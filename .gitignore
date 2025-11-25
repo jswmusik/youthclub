@@ -1,0 +1,22 @@
+# OS junk
+.DS_Store
+.vscode/
+.idea/
+
+# Python / Django
+venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+backend/media/
+*.log
+.env
+
+# Node / Next.js
+node_modules/
+.next/
+build/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
