@@ -1,122 +1,160 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import timedelta, date
 
-from .models import User, GuardianYouthLink
+from .models import User, GuardianYouthLink, UserLoginHistory
 from .serializers import CustomUserSerializer, UserManagementSerializer
-from .permissions import IsSuperAdmin
+from .permissions import IsSuperAdmin, IsMunicipalityAdmin, IsClubOrMunicipalityAdmin
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows Super Admins to CRUD all users.
+    API endpoint that allows Admins to CRUD users based on their scope.
     """
-    permission_classes = [IsSuperAdmin] 
+    permission_classes = [IsClubOrMunicipalityAdmin]
     lookup_field = 'id'
-    
+
     def get_queryset(self):
         queryset = User.objects.all().order_by('-date_joined')
-        
-        # Filters
-        role = self.request.query_params.get('role', None)
+        user = self.request.user
+
+        if getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            queryset = queryset.filter(
+                Q(assigned_municipality=user.assigned_municipality) |
+                Q(assigned_club__municipality=user.assigned_municipality) |
+                Q(preferred_club__municipality=user.assigned_municipality) |
+                Q(guardian_links__youth__preferred_club__municipality=user.assigned_municipality) |
+                Q(youth_links__youth__preferred_club__municipality=user.assigned_municipality)
+            ).exclude(role='SUPER_ADMIN').distinct()
+        elif getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            queryset = queryset.filter(
+                Q(assigned_club=user.assigned_club) |
+                Q(preferred_club=user.assigned_club) |
+                Q(guardian_links__youth__preferred_club=user.assigned_club) |
+                Q(youth_links__youth__preferred_club=user.assigned_club)
+            ).exclude(role__in=['SUPER_ADMIN', 'MUNICIPALITY_ADMIN']).distinct()
+
+        role = self.request.query_params.get('role')
         if role:
             queryset = queryset.filter(role=role)
-        
-        municipality = self.request.query_params.get('assigned_municipality', None)
+
+        municipality = self.request.query_params.get('assigned_municipality')
         if municipality:
             queryset = queryset.filter(assigned_municipality=municipality)
-        
-        club = self.request.query_params.get('assigned_club', None)
+
+        club = self.request.query_params.get('assigned_club')
         if club:
             queryset = queryset.filter(assigned_club=club)
-        
-        gender = self.request.query_params.get('legal_gender', None)
+
+        gender = self.request.query_params.get('legal_gender')
         if gender:
             queryset = queryset.filter(legal_gender=gender)
-        
-        # Search by first name, last name, or email
-        search = self.request.query_params.get('search', None)
+
+        search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
                 Q(first_name__icontains=search) |
                 Q(last_name__icontains=search) |
                 Q(email__icontains=search)
             )
-        
-        # Grade filters (for youth members)
-        grade_from = self.request.query_params.get('grade_from', None)
+
+        grade_from = self.request.query_params.get('grade_from')
         if grade_from:
             try:
                 queryset = queryset.filter(grade__gte=int(grade_from))
             except ValueError:
                 pass
-        
-        grade_to = self.request.query_params.get('grade_to', None)
+
+        grade_to = self.request.query_params.get('grade_to')
         if grade_to:
             try:
                 queryset = queryset.filter(grade__lte=int(grade_to))
             except ValueError:
                 pass
-        
-        # Age filters (for youth members) - calculate from date_of_birth
-        age_from = self.request.query_params.get('age_from', None)
+
+        age_from = self.request.query_params.get('age_from')
         if age_from:
             try:
                 age_from_int = int(age_from)
-                # If age_from is 10, user must be at least 10, so born on or before today - 10 years
                 max_birth_date = date.today() - timedelta(days=365 * age_from_int)
                 queryset = queryset.filter(date_of_birth__lte=max_birth_date)
             except (ValueError, TypeError):
                 pass
-        
-        age_to = self.request.query_params.get('age_to', None)
+
+        age_to = self.request.query_params.get('age_to')
         if age_to:
             try:
                 age_to_int = int(age_to)
-                # If age_to is 18, user must be at most 18, so born on or after today - 19 years
                 min_birth_date = date.today() - timedelta(days=365 * (age_to_int + 1))
                 queryset = queryset.filter(date_of_birth__gte=min_birth_date)
             except (ValueError, TypeError):
                 pass
-        
-        # Verification status filter
-        verification_status = self.request.query_params.get('verification_status', None)
+
+        verification_status = self.request.query_params.get('verification_status')
         if verification_status:
             queryset = queryset.filter(verification_status=verification_status)
-        
-        # Preferred club filter (for youth members)
-        preferred_club = self.request.query_params.get('preferred_club', None)
+
+        preferred_club = self.request.query_params.get('preferred_club')
         if preferred_club:
             queryset = queryset.filter(preferred_club=preferred_club)
-        
-        # Country filter (through municipality or preferred_club)
-        country = self.request.query_params.get('country', None)
+
+        country = self.request.query_params.get('country')
         if country:
-            # For youth members, filter by preferred_club's municipality's country
-            # For admins, filter by assigned_municipality's country
             queryset = queryset.filter(
                 Q(preferred_club__municipality__country=country) |
                 Q(assigned_municipality__country=country)
             )
-        
-        # Municipality filter
-        municipality = self.request.query_params.get('municipality', None)
-        if municipality:
-            # For youth members, filter by preferred_club's municipality
-            # For admins, filter by assigned_municipality
+
+        municipality_filter = self.request.query_params.get('municipality')
+        if municipality_filter:
             queryset = queryset.filter(
-                Q(preferred_club__municipality=municipality) |
-                Q(assigned_municipality=municipality)
+                Q(preferred_club__municipality=municipality_filter) |
+                Q(assigned_municipality=municipality_filter)
             )
-            
+
         return queryset
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
             return UserManagementSerializer
         return CustomUserSerializer
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        if getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            serializer.save(assigned_municipality=user.assigned_municipality)
+        elif getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            role = serializer.validated_data.get('role', 'YOUTH_MEMBER')
+            if role == 'YOUTH_MEMBER':
+                serializer.save(preferred_club=user.assigned_club)
+            elif role == 'GUARDIAN':
+                # Guardians don't have assigned_club, they're linked via youth members
+                serializer.save()
+            else:
+                # For other roles (like CLUB_ADMIN), assign to club
+                serializer.save(
+                    assigned_club=user.assigned_club,
+                    assigned_municipality=user.assigned_municipality,
+                    role='CLUB_ADMIN'
+                )
+        else:
+            serializer.save()
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        if getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            role = serializer.instance.role
+            if role == 'YOUTH_MEMBER':
+                serializer.save(preferred_club=user.assigned_club)
+            else:
+                serializer.save(assigned_club=user.assigned_club)
+        elif getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            serializer.save(assigned_municipality=user.assigned_municipality)
+        else:
+            serializer.save()
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
@@ -170,21 +208,24 @@ class UserViewSet(viewsets.ModelViewSet):
     def youth_stats(self, request):
         """
         Returns analytics data specifically for Youth Members.
+        Scoped by Municipality if the user is a Municipality Admin.
         """
+        user = request.user
         youth = User.objects.filter(role='YOUTH_MEMBER')
 
-        # 1. Total Count
+        if getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            youth = youth.filter(preferred_club__municipality=user.assigned_municipality)
+        elif getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            youth = youth.filter(preferred_club=user.assigned_club)
+
         total = youth.count()
 
-        # 2. Breakdown by Grade
         grade_counts = youth.values('grade').annotate(count=Count('id')).order_by('grade')
         grade_data = {str(item['grade']): item['count'] for item in grade_counts if item['grade'] is not None}
 
-        # 3. Breakdown by Gender
         gender_counts = youth.values('legal_gender').annotate(count=Count('id'))
         gender_data = {item['legal_gender']: item['count'] for item in gender_counts}
 
-        # 4. Activity (Last 7 Days)
         seven_days_ago = timezone.now() - timedelta(days=7)
         active_recently = youth.filter(last_login__gte=seven_days_ago).count()
 
@@ -204,18 +245,42 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def list_guardians(self, request):
         """
-        Returns a simple list of all users with role GUARDIAN.
-        Used for dropdowns.
+        Returns a list of guardians.
+        Super Admin: All guardians.
+        Muni Admin: Only guardians linked to youth within their municipality.
         """
-        guardians = User.objects.filter(role='GUARDIAN').values('id', 'first_name', 'last_name', 'email')
-        return Response(list(guardians))
+        user = request.user
+        guardians = User.objects.filter(role='GUARDIAN')
+        if getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            guardians = guardians.filter(
+                youth_links__youth__preferred_club__municipality=user.assigned_municipality
+            ).distinct()
+        elif getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            guardians = guardians.filter(
+                youth_links__youth__preferred_club=user.assigned_club
+            ).distinct()
+
+        values = guardians.values('id', 'first_name', 'last_name', 'email')
+        return Response(list(values))
 
     @action(detail=False, methods=['get'])
     def guardian_stats(self, request):
         """
         Returns analytics data specifically for Guardians.
+        Scoped by Municipality/Club if the user is an Admin.
         """
+        user = request.user
         guardians = User.objects.filter(role='GUARDIAN')
+
+        # Filter by scope
+        if getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            guardians = guardians.filter(
+                youth_links__youth__preferred_club__municipality=user.assigned_municipality
+            ).distinct()
+        elif getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            guardians = guardians.filter(
+                youth_links__youth__preferred_club=user.assigned_club
+            ).distinct()
 
         # 1. Total Count
         total = guardians.count()
@@ -228,9 +293,21 @@ class UserViewSet(viewsets.ModelViewSet):
         seven_days_ago = timezone.now() - timedelta(days=7)
         active_recently = guardians.filter(last_login__gte=seven_days_ago).count()
 
-        # 4. Connected Youth Count (Avg or Total links)
-        # Just counting total links for simplicity here
-        total_connections = GuardianYouthLink.objects.count()
+        # 4. Connected Youth Count (scoped to this admin's youth)
+        if getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            youth_ids = User.objects.filter(
+                role='YOUTH_MEMBER',
+                preferred_club__municipality=user.assigned_municipality
+            ).values_list('id', flat=True)
+            total_connections = GuardianYouthLink.objects.filter(youth_id__in=youth_ids).count()
+        elif getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            youth_ids = User.objects.filter(
+                role='YOUTH_MEMBER',
+                preferred_club=user.assigned_club
+            ).values_list('id', flat=True)
+            total_connections = GuardianYouthLink.objects.filter(youth_id__in=youth_ids).count()
+        else:
+            total_connections = GuardianYouthLink.objects.count()
 
         return Response({
             "total_guardians": total,
@@ -251,5 +328,51 @@ class UserViewSet(viewsets.ModelViewSet):
         Returns a simple list of all Youth Members.
         Used for dropdowns in Guardian management.
         """
-        youth = User.objects.filter(role='YOUTH_MEMBER').values('id', 'first_name', 'last_name', 'email', 'grade')
+        user = request.user
+        youth = User.objects.filter(role='YOUTH_MEMBER')
+        if getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            youth = youth.filter(preferred_club__municipality=user.assigned_municipality)
+        elif getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            youth = youth.filter(preferred_club=user.assigned_club)
+
+        youth = youth.values('id', 'first_name', 'last_name', 'email', 'grade')
         return Response(list(youth))
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='login_history')
+    def login_history(self, request):
+        """
+        Returns the latest 10 login events for the authenticated user.
+        """
+        history = UserLoginHistory.objects.filter(user=request.user).order_by('-timestamp')[:10]
+        data = [
+            {
+                "id": log.id,
+                "timestamp": log.timestamp,
+                "ip_address": log.ip_address,
+                "user_agent": log.user_agent,
+            }
+            for log in history
+        ]
+        return Response(data)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='log_login')
+    def log_login(self, request):
+        """
+        Stores a login entry for the authenticated user.
+        Useful for keeping a lightweight audit trail when tokens are issued.
+        """
+        ip_address = request.META.get('HTTP_X_FORWARDED_FOR')
+        if ip_address:
+            ip_address = ip_address.split(',')[0].strip()
+        else:
+            ip_address = request.META.get('REMOTE_ADDR')
+
+        user_agent = request.META.get('HTTP_USER_AGENT', '') or ''
+
+        UserLoginHistory.objects.create(
+            user=request.user,
+            ip_address=ip_address,
+            user_agent=user_agent[:512],
+        )
+
+        return Response({"status": "logged"})

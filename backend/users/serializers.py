@@ -48,14 +48,41 @@ class UserManagementSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'password', 'first_name', 'last_name', 
-            'role', 'phone_number', 'profession', 
+            'id', 'email', 'password', 'first_name', 'last_name',
+            'role', 'phone_number', 'profession',
             'assigned_municipality', 'assigned_club',
-            'grade', 'preferred_club', 'interests', 
-            'nickname', 'legal_gender', 'preferred_gender', 
+            'grade', 'preferred_club', 'interests',
+            'nickname', 'legal_gender', 'preferred_gender',
             'date_of_birth', 'hide_contact_info', 'avatar',
-            'verification_status', 'guardians', 'youth_members'
+            'verification_status', 'guardians', 'youth_members',
+            'preferred_language'
         ]
+
+    def _filter_youth_ids_by_scope(self, youth_ids):
+        if not youth_ids:
+            return youth_ids
+        request = self.context.get('request')
+        if not request:
+            return youth_ids
+
+        requester = request.user
+        if getattr(requester, 'role', None) == 'MUNICIPALITY_ADMIN' and requester.assigned_municipality:
+            allowed_ids = set(
+                User.objects.filter(
+                    role='YOUTH_MEMBER',
+                    preferred_club__municipality=requester.assigned_municipality
+                ).values_list('id', flat=True)
+            )
+            return [yid for yid in youth_ids if yid in allowed_ids]
+        elif getattr(requester, 'role', None) == 'CLUB_ADMIN' and requester.assigned_club:
+            allowed_ids = set(
+                User.objects.filter(
+                    role='YOUTH_MEMBER',
+                    preferred_club=requester.assigned_club
+                ).values_list('id', flat=True)
+            )
+            return [yid for yid in youth_ids if yid in allowed_ids]
+        return youth_ids
 
     def create(self, validated_data):
         password = validated_data.pop('password')
@@ -63,6 +90,8 @@ class UserManagementSerializer(serializers.ModelSerializer):
         interests = validated_data.pop('interests', [])
         guardian_ids = validated_data.pop('guardians', [])
         youth_ids = validated_data.pop('youth_members', [])
+
+        youth_ids = self._filter_youth_ids_by_scope(youth_ids)
         
         user = User.objects.create_user(email, password=password, **validated_data)
         
@@ -109,6 +138,8 @@ class UserManagementSerializer(serializers.ModelSerializer):
                 if youth_ids is None:
                     raw = request_data.getlist('youth_members')
                     if raw: youth_ids = [int(i) for i in raw if i.strip()]
+
+        youth_ids = self._filter_youth_ids_by_scope(youth_ids)
 
         if password:
             instance.set_password(password)

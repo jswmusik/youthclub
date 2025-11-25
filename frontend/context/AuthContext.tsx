@@ -12,6 +12,8 @@ interface User {
   last_name: string;
   role: string;
   avatar: string | null;
+  assigned_municipality?: number | { id: number } | null;
+  assigned_club?: number | { id: number } | null;
 }
 
 interface AuthContextType {
@@ -19,6 +21,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  messageCount: number;
+  refreshMessageCount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [messageCount, setMessageCount] = useState(0);
   const router = useRouter();
 
   // Check if user is already logged in when page loads
@@ -46,6 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkUser();
   }, []);
 
+  const refreshMessageCount = async () => {
+    try {
+      const res = await api.get('/messages/active_list/');
+      const list = Array.isArray(res.data) ? res.data : [];
+      setMessageCount(list.length);
+    } catch (err) {
+      console.error('Failed to load message count', err);
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       // 1. Get Token
@@ -57,6 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userRes = await api.get('/auth/users/me/');
       const userData = userRes.data;
       setUser(userData);
+      refreshMessageCount();
+
+      // Log the successful login for audit trail (ignore failures)
+      try {
+        await api.post('/users/log_login/');
+      } catch (logErr) {
+        console.error('Failed to log login event', logErr);
+      }
 
       // 3. Redirect based on Role
       switch (userData.role) {
@@ -88,11 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Cookies.remove('access_token');
     Cookies.remove('refresh_token');
     setUser(null);
+    setMessageCount(0);
     router.push('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, messageCount, refreshMessageCount }}>
       {children}
     </AuthContext.Provider>
   );

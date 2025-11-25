@@ -26,3 +26,16 @@ class SystemMessage(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.get_message_type_display()})"
+
+
+class SystemMessageDismissal(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='dismissed_messages')
+    message = models.ForeignKey(SystemMessage, on_delete=models.CASCADE, related_name='dismissals')
+    dismissed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'message')
+        ordering = ['-dismissed_at']
+
+    def __str__(self):
+        return f"{self.user.email} dismissed {self.message.title}"

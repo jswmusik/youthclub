@@ -15,3 +15,13 @@ class IsMunicipalityAdmin(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         return request.user.role in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN']
+
+
+class IsClubOrMunicipalityAdmin(permissions.BasePermission):
+    """
+    Allows access to Super Admins, Municipality Admins, or Club Admins.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return request.user.role in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']

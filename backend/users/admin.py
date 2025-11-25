@@ -1,6 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, YouthMember, Guardian, ClubAdmin, MunicipalityAdmin, GuardianYouthLink
+from .models import (
+    User,
+    YouthMember,
+    Guardian,
+    ClubAdmin,
+    MunicipalityAdmin,
+    GuardianYouthLink,
+    UserLoginHistory,
+)
 
 # --- INLINES ---
 
@@ -164,3 +172,10 @@ class MainUserAdmin(UserAdmin):
             'fields': ('email', 'password1', 'password2', 'role'),
         }),
     )
+
+
+@admin.register(UserLoginHistory)
+class UserLoginHistoryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'timestamp', 'ip_address')
+    list_filter = ('user',)
+    search_fields = ('user__email', 'ip_address', 'user_agent')
