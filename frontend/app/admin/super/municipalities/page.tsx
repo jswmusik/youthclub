@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface CountryOption { id: number; name: string; }
 
@@ -37,6 +38,11 @@ function ManageMunicipalitiesPageContent() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [municipalityToDelete, setMunicipalityToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const initialFormState = {
     country: '',
@@ -163,15 +169,24 @@ function ManageMunicipalitiesPageContent() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure? This will delete all clubs linked to this municipality.")) return;
+  const handleDeleteClick = (muni: any) => {
+    setMunicipalityToDelete({ id: muni.id, name: muni.name });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!municipalityToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/municipalities/${id}/`);
+      await api.delete(`/municipalities/${municipalityToDelete.id}/`);
       setToast({
         message: 'Municipality deleted successfully!',
         type: 'success',
         isVisible: true,
       });
+      setShowDeleteModal(false);
+      setMunicipalityToDelete(null);
       fetchMunicipalities();
     } catch (err) {
       setToast({
@@ -179,6 +194,8 @@ function ManageMunicipalitiesPageContent() {
         type: 'error',
         isVisible: true,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -368,7 +385,7 @@ function ManageMunicipalitiesPageContent() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                       <Link href={`/admin/super/municipalities/${muni.id}`} className="text-blue-600 hover:text-blue-900 font-bold">View</Link>
                       <button onClick={() => handleOpenEdit(muni)} className="text-indigo-600 hover:text-indigo-900 font-bold">Edit</button>
-                      <button onClick={() => handleDelete(muni.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                      <button onClick={() => handleDeleteClick(muni)} className="text-red-600 hover:text-red-900">Delete</button>
                     </td>
                   </tr>
                 );
@@ -541,6 +558,21 @@ function ManageMunicipalitiesPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setMunicipalityToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={municipalityToDelete?.name}
+        message={municipalityToDelete ? `Are you sure you want to delete "${municipalityToDelete.name}"? This will delete all clubs linked to this municipality. This action cannot be undone.` : undefined}
+        isLoading={isDeleting}
+      />
 
       {/* Toast Notification */}
       <Toast

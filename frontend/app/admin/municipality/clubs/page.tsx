@@ -7,6 +7,7 @@ import api from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 const WEEKDAYS = [
   { id: 1, name: 'Monday' }, { id: 2, name: 'Tuesday' }, { id: 3, name: 'Wednesday' },
@@ -49,6 +50,11 @@ function ManageMuniClubsPageContent() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [clubToDelete, setClubToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Opening Hours
   const [openingHours, setOpeningHours] = useState<any[]>([]);
@@ -135,15 +141,26 @@ function ManageMuniClubsPageContent() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure?")) return;
+  const handleDeleteClick = (club: any) => {
+    setClubToDelete({ id: club.id, name: club.name });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!clubToDelete) return;
+
+    setIsDeleting(true);
     try { 
-      await api.delete(`/clubs/${id}/`);
+      await api.delete(`/clubs/${clubToDelete.id}/`);
       setToast({ message: 'Club deleted successfully!', type: 'success', isVisible: true });
+      setShowDeleteModal(false);
+      setClubToDelete(null);
       fetchClubs(); 
     } 
     catch (err) { 
       setToast({ message: 'Failed to delete club.', type: 'error', isVisible: true });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -316,7 +333,7 @@ function ManageMuniClubsPageContent() {
                       View
                     </Link>
                     <button onClick={() => handleOpenEdit(club)} className="text-indigo-600 font-bold">Edit</button>
-                    <button onClick={() => handleDelete(club.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                    <button onClick={() => handleDeleteClick(club)} className="text-red-600 hover:text-red-900">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -419,6 +436,20 @@ function ManageMuniClubsPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setClubToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={clubToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={() => setToast({ ...toast, isVisible: false })} />
     </div>

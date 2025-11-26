@@ -5,6 +5,8 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import { useAuth } from '../../../../context/AuthContext';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface AdminStats {
   total_admins?: number;
@@ -16,6 +18,7 @@ function ManageClubAdminsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { user: currentUser } = useAuth();
 
   const [users, setUsers] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -24,7 +27,7 @@ function ManageClubAdminsPageContent() {
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   const [avatarErrors, setAvatarErrors] = useState<Set<number>>(new Set());
 
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
     message: '',
     type: 'success',
     isVisible: false,
@@ -33,6 +36,11 @@ function ManageClubAdminsPageContent() {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editUserId, setEditUserId] = useState<number | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const initialFormState = {
     email: '',
@@ -130,15 +138,36 @@ function ManageClubAdminsPageContent() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this admin?')) return;
+  const handleDeleteClick = (admin: any) => {
+    // Prevent admins from deleting themselves
+    if (currentUser && currentUser.id === admin.id) {
+      setToast({ 
+        message: 'You cannot delete your own account.', 
+        type: 'warning', 
+        isVisible: true 
+      });
+      return;
+    }
+
+    setUserToDelete({ id: admin.id, name: `${admin.first_name} ${admin.last_name}` });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/users/${id}/`);
+      await api.delete(`/users/${userToDelete.id}/`);
       setToast({ message: 'Admin deleted successfully!', type: 'success', isVisible: true });
+      setShowDeleteModal(false);
+      setUserToDelete(null);
       fetchAdmins();
       fetchStats();
     } catch (err) {
       setToast({ message: 'Failed to delete admin.', type: 'error', isVisible: true });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -352,7 +381,7 @@ function ManageClubAdminsPageContent() {
                     <button onClick={() => handleOpenEdit(admin)} className="text-emerald-600 font-semibold">
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(admin.id)} className="text-red-600 font-semibold">
+                    <button onClick={() => handleDeleteClick(admin)} className="text-red-600 font-semibold">
                       Delete
                     </button>
                   </td>
@@ -488,6 +517,20 @@ function ManageClubAdminsPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={userToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       <Toast
         message={toast.message}

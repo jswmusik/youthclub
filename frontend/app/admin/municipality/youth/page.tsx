@@ -7,6 +7,7 @@ import api from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -39,6 +40,11 @@ function ManageMunicipalityYouthPageContent() {
   const [editUserId, setEditUserId] = useState<number | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [guardianSearchTerm, setGuardianSearchTerm] = useState('');
   const [showGuardianDropdown, setShowGuardianDropdown] = useState(false);
@@ -210,15 +216,26 @@ function ManageMunicipalityYouthPageContent() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this youth member?')) return;
+  const handleDeleteClick = (youth: any) => {
+    setUserToDelete({ id: youth.id, name: `${youth.first_name} ${youth.last_name}` });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/users/${id}/`);
+      await api.delete(`/users/${userToDelete.id}/`);
       setToast({ message: 'Youth member deleted successfully!', type: 'success', isVisible: true });
+      setShowDeleteModal(false);
+      setUserToDelete(null);
       fetchYouth();
       fetchStats();
     } catch (err) {
       setToast({ message: 'Failed to delete youth member.', type: 'error', isVisible: true });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -522,7 +539,7 @@ function ManageMunicipalityYouthPageContent() {
                     <button onClick={() => handleOpenEdit(youth)} className="text-indigo-600 font-bold">
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(youth.id)} className="text-red-600">
+                    <button onClick={() => handleDeleteClick(youth)} className="text-red-600">
                       Delete
                     </button>
                   </td>
@@ -797,6 +814,20 @@ function ManageMunicipalityYouthPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={userToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       <Toast
         message={toast.message}

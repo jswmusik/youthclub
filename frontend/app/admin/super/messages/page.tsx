@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 const ROLES = [
   { id: 'SUPER_ADMIN', label: 'Super Admin' },
@@ -22,6 +23,11 @@ export default function ManageMessagesPage() {
     type: 'success',
     isVisible: false,
   });
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<{ id: number; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -93,15 +99,24 @@ export default function ManageMessagesPage() {
     }
   };
 
-  const deleteMessage = async (id: number) => {
-    if(!confirm("Delete this message?")) return;
+  const handleDeleteClick = (msg: any) => {
+    setMessageToDelete({ id: msg.id, title: msg.title });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!messageToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/messages/${id}/`);
+      await api.delete(`/messages/${messageToDelete.id}/`);
       setToast({
         message: 'System message deleted successfully!',
         type: 'success',
         isVisible: true,
       });
+      setShowDeleteModal(false);
+      setMessageToDelete(null);
       fetchMessages();
     } catch (err) {
       setToast({
@@ -109,8 +124,10 @@ export default function ManageMessagesPage() {
         type: 'error',
         isVisible: true,
       });
+    } finally {
+      setIsDeleting(false);
     }
-  }
+  };
 
   return (
     <div className="p-8">
@@ -155,7 +172,7 @@ export default function ManageMessagesPage() {
                   <span className="text-gray-500">Expires: {new Date(msg.expires_at).toLocaleDateString()}</span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                   <button onClick={() => deleteMessage(msg.id)} className="text-red-600 font-bold text-sm">Delete</button>
+                   <button onClick={() => handleDeleteClick(msg)} className="text-red-600 font-bold text-sm">Delete</button>
                 </td>
               </tr>
             ))}
@@ -245,6 +262,21 @@ export default function ManageMessagesPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setMessageToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={messageToDelete?.title}
+        message={messageToDelete ? `Are you sure you want to delete "${messageToDelete.title}"? This action cannot be undone.` : undefined}
+        isLoading={isDeleting}
+      />
 
       {/* Toast Notification */}
       <Toast

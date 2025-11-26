@@ -7,6 +7,7 @@ import api from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -38,6 +39,11 @@ function ManageClubYouthPageContent() {
   const [editUserId, setEditUserId] = useState<number | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [guardianSearchTerm, setGuardianSearchTerm] = useState('');
   const [showGuardianDropdown, setShowGuardianDropdown] = useState(false);
@@ -215,15 +221,26 @@ function ManageClubYouthPageContent() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this youth?')) return;
+  const handleDeleteClick = (youth: any) => {
+    setUserToDelete({ id: youth.id, name: `${youth.first_name} ${youth.last_name}` });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/users/${id}/`);
+      await api.delete(`/users/${userToDelete.id}/`);
       setToast({ message: 'Youth deleted successfully!', type: 'success', isVisible: true });
+      setShowDeleteModal(false);
+      setUserToDelete(null);
       fetchYouth();
       fetchStats();
     } catch (err) {
       setToast({ message: 'Failed to delete youth.', type: 'error', isVisible: true });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -526,7 +543,7 @@ function ManageClubYouthPageContent() {
                     <button onClick={() => handleOpenEdit(youth)} className="text-indigo-600 font-bold">
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(youth.id)} className="text-red-600">
+                    <button onClick={() => handleDeleteClick(youth)} className="text-red-600">
                       Delete
                     </button>
                   </td>
@@ -604,37 +621,116 @@ function ManageClubYouthPageContent() {
                         </div>
                     </div>
 
-                    {/* GUARDIANS & INTERESTS (Copied logic from Muni Admin but kept same) */}
-                    <div>
+                    {/* GUARDIANS & INTERESTS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
                         <label className="block text-sm font-bold mb-2">Assign Guardians</label>
+                        {formData.guardians.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            {getSelectedGuardians().map((guardian) => (
+                              <span key={guardian.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-full font-medium">
+                                {guardian.first_name} {guardian.last_name}
+                                <button type="button" onClick={() => removeGuardian(guardian.id)} className="hover:bg-blue-700 rounded-full p-0.5 transition-colors">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="relative mb-4">
-                            <input type="text" placeholder="Search guardians..." className="w-full border p-2 rounded" value={guardianSearchTerm} onChange={e => {setGuardianSearchTerm(e.target.value); setShowGuardianDropdown(true)}} />
-                            {showGuardianDropdown && (
-                                <div className="absolute z-20 w-full mt-1 bg-white border shadow-lg max-h-60 overflow-y-auto">
-                                    {filteredGuardians.map(g => (
-                                        <button key={g.id} type="button" onClick={() => toggleGuardian(g.id)} className="w-full text-left px-4 py-2 hover:bg-gray-100">
-                                            {g.first_name} {g.last_name} ({g.email})
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                          <input
+                            type="text"
+                            placeholder="Search guardians..."
+                            value={guardianSearchTerm}
+                            onChange={(e) => {
+                              setGuardianSearchTerm(e.target.value);
+                              setShowGuardianDropdown(true);
+                            }}
+                            onFocus={() => setShowGuardianDropdown(true)}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          {showGuardianDropdown && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setShowGuardianDropdown(false)}></div>
+                              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {filteredGuardians.length > 0 ? (
+                                  filteredGuardians.map((guardian) => (
+                                    <button
+                                      key={guardian.id}
+                                      type="button"
+                                      onClick={() => toggleGuardian(guardian.id)}
+                                      className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                    >
+                                      <div className="font-medium text-gray-900">{guardian.first_name} {guardian.last_name}</div>
+                                      <div className="text-xs text-gray-500">{guardian.email}</div>
+                                    </button>
+                                  ))
+                                ) : guardianSearchTerm ? (
+                                  <div className="px-4 py-3 text-sm text-gray-500 text-center">No guardians found</div>
+                                ) : (
+                                  <div className="px-4 py-3 text-sm text-gray-500 text-center">All guardians already selected</div>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
-                        <div className="flex flex-wrap gap-2">{getSelectedGuardians().map(g => <span key={g.id} className="bg-green-600 text-white px-2 py-1 rounded-full text-xs">{g.first_name} <button type="button" onClick={() => removeGuardian(g.id)} className="ml-1">x</button></span>)}</div>
-                    </div>
+                      </div>
 
-                    <div>
+                      <div>
                         <label className="block text-sm font-bold mb-2">Interests</label>
+                        {formData.interests.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            {getSelectedInterests().map((interest) => (
+                              <span key={interest.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-full font-medium">
+                                {interest.name}
+                                <button type="button" onClick={() => removeInterest(interest.id)} className="hover:bg-purple-700 rounded-full p-0.5 transition-colors">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="relative mb-4">
-                            <input type="text" placeholder="Search interests..." className="w-full border p-2 rounded" value={interestSearchTerm} onChange={e => {setInterestSearchTerm(e.target.value); setShowInterestDropdown(true)}} />
-                             {showInterestDropdown && (
-                                <div className="absolute z-20 w-full mt-1 bg-white border shadow-lg max-h-60 overflow-y-auto">
-                                    {filteredInterests.map(i => (
-                                        <button key={i.id} type="button" onClick={() => toggleInterest(i.id)} className="w-full text-left px-4 py-2 hover:bg-gray-100">{i.name}</button>
-                                    ))}
-                                </div>
-                            )}
+                          <input
+                            type="text"
+                            placeholder="Search interests..."
+                            value={interestSearchTerm}
+                            onChange={(e) => {
+                              setInterestSearchTerm(e.target.value);
+                              setShowInterestDropdown(true);
+                            }}
+                            onFocus={() => setShowInterestDropdown(true)}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          />
+                          {showInterestDropdown && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setShowInterestDropdown(false)}></div>
+                              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {filteredInterests.length > 0 ? (
+                                  filteredInterests.map((interest) => (
+                                    <button
+                                      key={interest.id}
+                                      type="button"
+                                      onClick={() => toggleInterest(interest.id)}
+                                      className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                    >
+                                      <div className="font-medium text-gray-900">{interest.name}</div>
+                                    </button>
+                                  ))
+                                ) : interestSearchTerm ? (
+                                  <div className="px-4 py-3 text-sm text-gray-500 text-center">No interests found</div>
+                                ) : (
+                                  <div className="px-4 py-3 text-sm text-gray-500 text-center">All interests already selected</div>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
-                        <div className="flex flex-wrap gap-2">{getSelectedInterests().map(i => <span key={i.id} className="bg-green-600 text-white px-2 py-1 rounded-full text-xs">{i.name} <button type="button" onClick={() => removeInterest(i.id)} className="ml-1">x</button></span>)}</div>
+                      </div>
                     </div>
 
                     <div><label className="block text-sm font-bold mb-2">Avatar</label><input type="file" className="w-full border p-2 rounded" onChange={handleAvatarChange} /></div>
@@ -647,6 +743,20 @@ function ManageClubYouthPageContent() {
             </div>
         </div>
        )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={userToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={() => setToast({ ...toast, isVisible: false })} />
     </div>

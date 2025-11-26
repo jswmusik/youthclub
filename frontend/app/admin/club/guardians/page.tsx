@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface YouthOption {
   id: number;
@@ -42,6 +43,11 @@ function ManageClubGuardiansPageContent() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [youthSearchTerm, setYouthSearchTerm] = useState('');
   const [showYouthDropdown, setShowYouthDropdown] = useState(false);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const initialFormState = {
     email: '',
@@ -200,15 +206,26 @@ function ManageClubGuardiansPageContent() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this guardian?')) return;
+  const handleDeleteClick = (guardian: any) => {
+    setUserToDelete({ id: guardian.id, name: `${guardian.first_name} ${guardian.last_name}` });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/users/${id}/`);
+      await api.delete(`/users/${userToDelete.id}/`);
       setToast({ message: 'Guardian deleted successfully!', type: 'success', isVisible: true });
+      setShowDeleteModal(false);
+      setUserToDelete(null);
       fetchGuardians();
       fetchStats();
     } catch (err) {
       setToast({ message: 'Failed to delete guardian.', type: 'error', isVisible: true });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -434,7 +451,7 @@ function ManageClubGuardiansPageContent() {
                     <button onClick={() => handleOpenEdit(guardian)} className="text-indigo-600 font-bold">
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(guardian.id)} className="text-red-600">
+                    <button onClick={() => handleDeleteClick(guardian)} className="text-red-600">
                       Delete
                     </button>
                   </td>
@@ -637,6 +654,20 @@ function ManageClubGuardiansPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={userToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       <Toast
         message={toast.message}

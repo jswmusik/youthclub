@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'api',
     'organization',
     'system_messages',
+    'news',
 ]
 
 MIDDLEWARE = [

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface YouthOption { id: number; first_name: string; last_name: string; email: string; grade: number; }
 
@@ -42,6 +43,11 @@ function ManageGuardiansPageContent() {
   // Youth search
   const [youthSearchTerm, setYouthSearchTerm] = useState('');
   const [showYouthDropdown, setShowYouthDropdown] = useState(false);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const initialFormState = {
     email: '', password: '', first_name: '', last_name: '', 
@@ -224,15 +230,24 @@ function ManageGuardiansPageContent() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure?")) return;
+  const handleDeleteClick = (user: any) => {
+    setUserToDelete({ id: user.id, name: `${user.first_name} ${user.last_name}` });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
     try { 
-      await api.delete(`/users/${id}/`);
+      await api.delete(`/users/${userToDelete.id}/`);
       setToast({
         message: 'Guardian deleted successfully!',
         type: 'success',
         isVisible: true,
       });
+      setShowDeleteModal(false);
+      setUserToDelete(null);
       fetchGuardians(); 
       fetchStats(); 
     } 
@@ -242,6 +257,8 @@ function ManageGuardiansPageContent() {
         type: 'error',
         isVisible: true,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -507,7 +524,7 @@ function ManageGuardiansPageContent() {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                   <Link href={`/admin/super/guardians/${user.id}`} className="text-blue-600 hover:text-blue-900 font-bold">View</Link>
                   <button onClick={() => handleOpenEdit(user)} className="text-indigo-600 hover:text-indigo-900 font-bold">Edit</button>
-                  <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                  <button onClick={() => handleDeleteClick(user)} className="text-red-600 hover:text-red-900">Delete</button>
                 </td>
               </tr>
             ))}
@@ -728,6 +745,20 @@ function ManageGuardiansPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={userToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       {/* Toast Notification */}
       <Toast

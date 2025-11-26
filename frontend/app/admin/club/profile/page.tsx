@@ -12,6 +12,7 @@ interface ProfileForm {
   email: string;
   phone_number: string;
   preferred_language: string;
+  profession: string;
   nickname: string;
   hide_contact_info: boolean;
   password: string;
@@ -41,6 +42,7 @@ function ClubProfileContent() {
     email: '',
     phone_number: '',
     preferred_language: 'sv',
+    profession: '',
     nickname: '',
     hide_contact_info: false,
     password: '',
@@ -69,6 +71,7 @@ function ClubProfileContent() {
           email: data.email || '',
           phone_number: data.phone_number || '',
           preferred_language: data.preferred_language || 'sv',
+          profession: data.profession || '',
           nickname: data.nickname || '',
           hide_contact_info: data.hide_contact_info ?? false,
           password: '',
@@ -205,6 +208,15 @@ function ClubProfileContent() {
                   <option value="en">English</option>
                   <option value="fi">Finnish</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Profession / Job Title</label>
+                <input
+                  type="text"
+                  className="w-full border rounded-lg p-2"
+                  value={profile.profession}
+                  onChange={(e) => handleChange('profession', e.target.value)}
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Nickname</label>

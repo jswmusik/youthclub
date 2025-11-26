@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import api from '../../../../lib/api';
 import Toast from '../../../components/Toast';
 import { useAuth } from '../../../../context/AuthContext';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface SystemMessage {
   id: number;
@@ -49,6 +50,11 @@ function MunicipalityMessageBoardContent() {
     isVisible: false,
   });
   const { refreshMessageCount } = useAuth();
+  
+  // Hide Confirmation Modal State
+  const [showHideModal, setShowHideModal] = useState(false);
+  const [messageToHide, setMessageToHide] = useState<{ id: number; title: string } | null>(null);
+  const [isHiding, setIsHiding] = useState(false);
 
   const fetchMessages = async () => {
     setLoading(true);
@@ -70,16 +76,27 @@ function MunicipalityMessageBoardContent() {
     fetchMessages();
   }, []);
 
-  const handleDismiss = async (id: number, isSticky: boolean) => {
-    if (isSticky) return;
-    if (!window.confirm('Hide this message?')) return;
+  const handleHideClick = (msg: SystemMessage) => {
+    if (msg.is_sticky) return;
+    setMessageToHide({ id: msg.id, title: msg.title });
+    setShowHideModal(true);
+  };
+
+  const handleHideConfirm = async () => {
+    if (!messageToHide) return;
+
+    setIsHiding(true);
     try {
-      await api.post(`/messages/${id}/dismiss/`);
+      await api.post(`/messages/${messageToHide.id}/dismiss/`);
       setToast({ message: 'Message hidden.', type: 'success', isVisible: true });
+      setShowHideModal(false);
+      setMessageToHide(null);
       fetchMessages();
     } catch (err) {
       console.error(err);
       setToast({ message: 'Failed to hide message.', type: 'error', isVisible: true });
+    } finally {
+      setIsHiding(false);
     }
   };
 
@@ -149,7 +166,7 @@ function MunicipalityMessageBoardContent() {
 
                 <div className="flex justify-end gap-3 text-sm">
                   <button
-                    onClick={() => handleDismiss(msg.id, msg.is_sticky)}
+                    onClick={() => handleHideClick(msg)}
                     disabled={msg.is_sticky}
                     className={`px-4 py-2 rounded-lg border text-sm font-semibold transition ${
                       msg.is_sticky
@@ -165,6 +182,23 @@ function MunicipalityMessageBoardContent() {
           })}
         </div>
       )}
+
+      {/* Hide Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showHideModal}
+        onClose={() => {
+          if (!isHiding) {
+            setShowHideModal(false);
+            setMessageToHide(null);
+          }
+        }}
+        onConfirm={handleHideConfirm}
+        title="Hide Message"
+        itemName={messageToHide?.title}
+        message={messageToHide ? `Are you sure you want to hide "${messageToHide.title}"? You can refresh the page to see it again.` : undefined}
+        confirmButtonText="Hide"
+        isLoading={isHiding}
+      />
 
       <Toast
         message={toast.message}

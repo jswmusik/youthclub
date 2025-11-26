@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface Option { id: number; name: string; }
 
@@ -53,6 +54,11 @@ function ManageClubsPageContent() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [clubToDelete, setClubToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Opening Hours
   const [openingHours, setOpeningHours] = useState<any[]>([]);
@@ -159,15 +165,24 @@ function ManageClubsPageContent() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure?")) return;
+  const handleDeleteClick = (club: any) => {
+    setClubToDelete({ id: club.id, name: club.name });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!clubToDelete) return;
+
+    setIsDeleting(true);
     try { 
-      await api.delete(`/clubs/${id}/`);
+      await api.delete(`/clubs/${clubToDelete.id}/`);
       setToast({
         message: 'Club deleted successfully!',
         type: 'success',
         isVisible: true,
       });
+      setShowDeleteModal(false);
+      setClubToDelete(null);
       fetchClubs(); 
     } 
     catch (err) { 
@@ -176,6 +191,8 @@ function ManageClubsPageContent() {
         type: 'error',
         isVisible: true,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -430,7 +447,7 @@ function ManageClubsPageContent() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-4">
                     <Link href={`/admin/super/clubs/${club.id}`} className="text-blue-600 hover:text-blue-900 font-bold">View</Link>
                     <button onClick={() => handleOpenEdit(club)} className="text-indigo-600 hover:text-indigo-900 font-bold">Edit</button>
-                    <button onClick={() => handleDelete(club.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                    <button onClick={() => handleDeleteClick(club)} className="text-red-600 hover:text-red-900">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -517,7 +534,10 @@ function ManageClubsPageContent() {
                 {/* Left Col: Basic */}
                 <div className="space-y-4">
                   <div><label className="text-sm font-bold">Club Name</label><input required type="text" className="w-full border p-2 rounded" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
-                  <div><label className="text-sm font-bold">Municipality</label><select required className="w-full border p-2 rounded" value={formData.municipality} onChange={e => setFormData({...formData, municipality: e.target.value})}>{municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                  <div><label className="text-sm font-bold">Municipality</label><select required className="w-full border p-2 rounded" value={formData.municipality} onChange={e => setFormData({...formData, municipality: e.target.value})}>
+                    <option value="">Select municipality</option>
+                    {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select></div>
                   <div className="grid grid-cols-2 gap-2">
                     <input required type="email" placeholder="Email" className="border p-2 rounded" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                     <input required type="text" placeholder="Phone" className="border p-2 rounded" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
@@ -631,6 +651,20 @@ function ManageClubsPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setClubToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={clubToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       {/* Toast Notification */}
       <Toast

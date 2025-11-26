@@ -27,6 +27,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'Manage Admins', href: '/admin/municipality/admins' },
     { name: 'Manage Youth', href: '/admin/municipality/youth' },
     { name: 'Manage Guardians', href: '/admin/municipality/guardians' },
+    { name: 'News Feed', href: '/admin/municipality/news-feed' },
     { name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true },
   ];
 

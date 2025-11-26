@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface Option { id: number; name: string; [key: string]: any; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -45,6 +46,11 @@ function ManageYouthPageContent() {
   const [editUserId, setEditUserId] = useState<number | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Guardian search
   const [guardianSearchTerm, setGuardianSearchTerm] = useState('');
@@ -272,15 +278,24 @@ function ManageYouthPageContent() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure?")) return;
+  const handleDeleteClick = (user: any) => {
+    setUserToDelete({ id: user.id, name: `${user.first_name} ${user.last_name}` });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
     try { 
-      await api.delete(`/users/${id}/`);
+      await api.delete(`/users/${userToDelete.id}/`);
       setToast({
         message: 'Youth member deleted successfully!',
         type: 'success',
         isVisible: true,
       });
+      setShowDeleteModal(false);
+      setUserToDelete(null);
       fetchYouth(); 
       fetchStats(); 
     } 
@@ -290,6 +305,8 @@ function ManageYouthPageContent() {
         type: 'error',
         isVisible: true,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -810,7 +827,7 @@ function ManageYouthPageContent() {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                   <Link href={`/admin/super/youth/${user.id}`} className="text-blue-600 hover:text-blue-900 font-bold">View</Link>
                   <button onClick={() => handleOpenEdit(user)} className="text-indigo-600 hover:text-indigo-900 font-bold">Edit</button>
-                  <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                  <button onClick={() => handleDeleteClick(user)} className="text-red-600 hover:text-red-900">Delete</button>
                 </td>
               </tr>
             ))}
@@ -1140,6 +1157,20 @@ function ManageYouthPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={userToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       {/* Toast Notification */}
       <Toast

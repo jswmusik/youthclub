@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 function ManageCountriesPageContent() {
   const router = useRouter();
@@ -30,6 +31,11 @@ function ManageCountriesPageContent() {
   // Form Files
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [countryToDelete, setCountryToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const initialFormState = {
     name: '',
@@ -87,15 +93,24 @@ function ManageCountriesPageContent() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure? This may affect all municipalities and clubs linked to this country.")) return;
+  const handleDeleteClick = (country: any) => {
+    setCountryToDelete({ id: country.id, name: country.name });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!countryToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/countries/${id}/`);
+      await api.delete(`/countries/${countryToDelete.id}/`);
       setToast({
         message: 'Country deleted successfully!',
         type: 'success',
         isVisible: true,
       });
+      setShowDeleteModal(false);
+      setCountryToDelete(null);
       fetchCountries();
     } catch (err) {
       setToast({
@@ -103,6 +118,8 @@ function ManageCountriesPageContent() {
         type: 'error',
         isVisible: true,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -216,7 +233,7 @@ function ManageCountriesPageContent() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                     <button onClick={() => handleOpenEdit(country)} className="text-indigo-600 hover:text-indigo-900 font-bold">Edit</button>
-                    <button onClick={() => handleDelete(country.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                    <button onClick={() => handleDeleteClick(country)} className="text-red-600 hover:text-red-900">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -329,6 +346,21 @@ function ManageCountriesPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setCountryToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={countryToDelete?.name}
+        message={countryToDelete ? `Are you sure you want to delete "${countryToDelete.name}"? This may affect all municipalities and clubs linked to this country. This action cannot be undone.` : undefined}
+        isLoading={isDeleting}
+      />
 
       {/* Toast Notification */}
       <Toast

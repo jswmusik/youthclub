@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 function ManageInterestsPageContent() {
   const router = useRouter();
@@ -31,6 +32,11 @@ function ManageInterestsPageContent() {
   // Form Files
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [interestToDelete, setInterestToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const initialFormState = {
     name: '',
@@ -100,16 +106,24 @@ function ManageInterestsPageContent() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure? This will remove this interest from all users who selected it.")) return;
+  const handleDeleteClick = (interest: any) => {
+    setInterestToDelete({ id: interest.id, name: interest.name });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!interestToDelete) return;
+
+    setIsDeleting(true);
     try {
-      // FIXED URL
-      await api.delete(`/interests/${id}/`);
+      await api.delete(`/interests/${interestToDelete.id}/`);
       setToast({
         message: 'Interest deleted successfully!',
         type: 'success',
         isVisible: true,
       });
+      setShowDeleteModal(false);
+      setInterestToDelete(null);
       fetchInterests();
     } catch (err) {
       setToast({
@@ -117,6 +131,8 @@ function ManageInterestsPageContent() {
         type: 'error',
         isVisible: true,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -223,7 +239,7 @@ function ManageInterestsPageContent() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                     <button onClick={() => handleOpenEdit(interest)} className="text-indigo-600 hover:text-indigo-900 font-bold">Edit</button>
-                    <button onClick={() => handleDelete(interest.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                    <button onClick={() => handleDeleteClick(interest)} className="text-red-600 hover:text-red-900">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -357,6 +373,21 @@ function ManageInterestsPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setInterestToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={interestToDelete?.name}
+        message={interestToDelete ? `Are you sure you want to delete "${interestToDelete.name}"? This will remove this interest from all users who selected it. This action cannot be undone.` : undefined}
+        isLoading={isDeleting}
+      />
 
       {/* Toast Notification */}
       <Toast

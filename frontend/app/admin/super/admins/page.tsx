@@ -5,6 +5,8 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import { useAuth } from '../../../../context/AuthContext';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 
 interface Option { id: number; name: string; }
 
@@ -20,6 +22,7 @@ function ManageAdminsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { user: currentUser } = useAuth();
 
   // --- STATE ---
   const [users, setUsers] = useState<any[]>([]);
@@ -44,6 +47,11 @@ function ManageAdminsPageContent() {
   const [editUserId, setEditUserId] = useState<number | null>(null);
   const [municipalities, setMunicipalities] = useState<Option[]>([]);
   const [clubs, setClubs] = useState<Option[]>([]);
+  
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const initialFormState = {
     email: '', password: '', first_name: '', last_name: '', nickname: '',
@@ -214,15 +222,34 @@ function ManageAdminsPageContent() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure?")) return;
+  const handleDeleteClick = (user: any) => {
+    // Prevent admins from deleting themselves
+    if (currentUser && currentUser.id === user.id) {
+      setToast({
+        message: 'You cannot delete your own account.',
+        type: 'warning',
+        isVisible: true,
+      });
+      return;
+    }
+
+    setUserToDelete({ id: user.id, name: `${user.first_name} ${user.last_name}` });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await api.delete(`/users/${id}/`);
+      await api.delete(`/users/${userToDelete.id}/`);
       setToast({
         message: 'Admin deleted successfully!',
         type: 'success',
         isVisible: true,
       });
+      setShowDeleteModal(false);
+      setUserToDelete(null);
       fetchAdmins();
       fetchStats(); // Update stats after delete
     } catch (err) { 
@@ -231,6 +258,8 @@ function ManageAdminsPageContent() {
         type: 'error',
         isVisible: true,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -599,7 +628,7 @@ function ManageAdminsPageContent() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                     <button onClick={() => handleOpenEdit(user)} className="text-indigo-600 hover:text-indigo-900 font-bold">Edit</button>
-                    <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                    <button onClick={() => handleDeleteClick(user)} className="text-red-600 hover:text-red-900">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -756,6 +785,20 @@ function ManageAdminsPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isVisible={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        itemName={userToDelete?.name}
+        isLoading={isDeleting}
+      />
 
       {/* Toast Notification */}
       <Toast
