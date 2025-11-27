@@ -57,7 +57,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
         {article.hero_image && (
           <div className="h-64 md:h-96 w-full relative bg-gray-100">
             <img 
-              src={getMediaUrl(article.hero_image)} 
+              src={getMediaUrl(article.hero_image) || ''} 
               alt={article.title} 
               className="w-full h-full object-cover"
             />

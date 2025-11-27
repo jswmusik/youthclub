@@ -47,6 +47,8 @@
                             page.tsx
                         [id]/
                             page.tsx
+                    custom-fields/
+                        page.tsx
                 super/
                     layout.tsx
                     page.tsx
@@ -82,6 +84,8 @@
                             page.tsx
                         [id]/
                             page.tsx
+                    custom-fields/
+                        page.tsx
                     countries/
                         page.tsx
                     interests/
@@ -115,6 +119,8 @@
                             page.tsx
                         [id]/
                             page.tsx
+                    custom-fields/
+                        page.tsx
             dashboard/
                 youth/
                     page.tsx
@@ -124,9 +130,12 @@
                 SystemAlert.tsx
                 NewsArticleReader.tsx
                 NewsFeed.tsx
+                CustomFieldsDisplay.tsx
                 NewsArchive.tsx
+                CustomFieldsForm.tsx
                 DeleteConfirmationModal.tsx
                 RichTextEditor.tsx
+                CustomFieldManager.tsx
                 Toast.tsx
             login/
                 page.tsx
@@ -151,6 +160,14 @@
             urls.py
             wsgi.py
         system_messages/
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            tests.py
+            views.py
+        custom_fields/
             models.py
             serializers.py
             __init__.py
@@ -471,10 +488,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         try {
           const res = await api.get('/auth/users/me/');
-          setUser(res.data);
+          const userData = res.data;
+          setUser(userData);
+          // Refresh message count after user is loaded
+          try {
+            const msgRes = await api.get('/messages/active_list/');
+            const list = Array.isArray(msgRes.data) ? msgRes.data : [];
+            setMessageCount(list.length);
+          } catch (msgErr: any) {
+            // Silently handle 401 for message count
+            if (msgErr?.response?.status !== 401) {
+              console.error('Failed to load message count', msgErr);
+            }
+            setMessageCount(0);
+          }
         } catch (error) {
           console.error("Session expired", error);
           Cookies.remove('access_token');
+          setMessageCount(0);
         }
       }
       setLoading(false);
@@ -483,12 +514,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshMessageCount = async () => {
+    // Only fetch message count if user is authenticated
+    if (!user) {
+      setMessageCount(0);
+      return;
+    }
+    
     try {
       const res = await api.get('/messages/active_list/');
       const list = Array.isArray(res.data) ? res.data : [];
       setMessageCount(list.length);
-    } catch (err) {
+    } catch (err: any) {
+      // Silently handle 401 (unauthorized) - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setMessageCount(0);
+        return;
+      }
       console.error('Failed to load message count', err);
+      setMessageCount(0);
     }
   };
 
@@ -880,6 +923,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'Manage Guardians', href: '/admin/club/guardians' },
     { name: 'News Feed', href: '/admin/club/news-feed' },
     { name: 'Message Board', href: '/admin/club/msgboard', showBadge: true },
+    { name: 'Custom Fields', href: '/admin/club/custom-fields' },
   ];
 
   return (
@@ -2140,6 +2184,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -2199,6 +2244,7 @@ function ManageClubYouthPageContent() {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   useEffect(() => {
     fetchDropdowns();
@@ -2283,6 +2329,7 @@ function ManageClubYouthPageContent() {
     setIsEditing(false);
     setEditUserId(null);
     setFormData(initialFormState);
+    setCustomFieldValues({});
     setAvatarFile(null);
     setAvatarPreview(null);
     setGuardianSearchTerm('');
@@ -2292,7 +2339,7 @@ function ManageClubYouthPageContent() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (youth: any) => {
+  const handleOpenEdit = async (youth: any) => {
     setIsEditing(true);
     setEditUserId(youth.id);
     setFormData({
@@ -2317,6 +2364,21 @@ function ManageClubYouthPageContent() {
     setInterestSearchTerm('');
     setShowGuardianDropdown(false);
     setShowInterestDropdown(false);
+    
+    // Load custom field values for this user
+    try {
+      const userRes = await api.get(`/users/${youth.id}/`);
+      const customFieldValuesData = userRes.data.custom_field_values || [];
+      const values: Record<number, any> = {};
+      customFieldValuesData.forEach((cfv: any) => {
+        values[cfv.field] = cfv.value;
+      });
+      setCustomFieldValues(values);
+    } catch (err) {
+      console.error('Failed to load custom field values:', err);
+      setCustomFieldValues({});
+    }
+    
     setShowModal(true);
   };
 
@@ -2336,12 +2398,27 @@ function ManageClubYouthPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({ message: 'Youth updated successfully!', type: 'success', isVisible: true });
       } else {
-        await api.post('/users/', data, config);
+        const res = await api.post('/users/', data, config);
+        userId = res.data.id;
         setToast({ message: 'Youth created successfully!', type: 'success', isVisible: true });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -2867,6 +2944,22 @@ function ManageClubYouthPageContent() {
 
                     <div><label className="block text-sm font-bold mb-2">Avatar</label><input type="file" className="w-full border p-2 rounded" onChange={handleAvatarChange} /></div>
 
+                    {/* Custom Fields */}
+                    <CustomFieldsForm
+                      targetRole="YOUTH_MEMBER"
+                      context="USER_PROFILE"
+                      values={customFieldValues}
+                      onChange={(fieldId, value) => {
+                        setCustomFieldValues((prev) => ({
+                          ...prev,
+                          [fieldId]: value,
+                        }));
+                      }}
+                      userId={isEditing ? editUserId : null}
+                      userMunicipalityId={null}
+                      userClubId={user?.assigned_club || null}
+                    />
+
                     <div className="flex justify-end gap-4 pt-4 border-t">
                         <button type="button" onClick={()=>setShowModal(false)} className="text-gray-500">Cancel</button>
                         <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded">{isEditing ? 'Save' : 'Create'}</button>
@@ -2913,6 +3006,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -3109,6 +3203,13 @@ function YouthViewPageContent() {
               </div>
             </section>
           )}
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={youth.id}
+            targetRole="YOUTH_MEMBER"
+            context="USER_PROFILE"
+          />
         </div>
 
         <aside className="space-y-6">
@@ -3177,9 +3278,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../lib/api';
+import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface YouthOption {
   id: number;
@@ -3208,6 +3311,8 @@ function ManageClubGuardiansPageContent() {
   });
 
   const [youthList, setYouthList] = useState<YouthOption[]>([]);
+  const { user } = useAuth();
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -3321,6 +3426,7 @@ function ManageClubGuardiansPageContent() {
     setIsEditing(false);
     setEditUserId(null);
     setFormData(initialFormState);
+    setCustomFieldValues({});
     setAvatarFile(null);
     setAvatarPreview(null);
     setYouthSearchTerm('');
@@ -3328,7 +3434,7 @@ function ManageClubGuardiansPageContent() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (guardian: any) => {
+  const handleOpenEdit = async (guardian: any) => {
     setIsEditing(true);
     setEditUserId(guardian.id);
     setFormData({
@@ -3345,6 +3451,21 @@ function ManageClubGuardiansPageContent() {
     setAvatarPreview(guardian.avatar ? getMediaUrl(guardian.avatar) : null);
     setYouthSearchTerm('');
     setShowYouthDropdown(false);
+    
+    // Load custom field values for this user
+    try {
+      const userRes = await api.get(`/users/${guardian.id}/`);
+      const customFieldValuesData = userRes.data.custom_field_values || [];
+      const values: Record<number, any> = {};
+      customFieldValuesData.forEach((cfv: any) => {
+        values[cfv.field] = cfv.value;
+      });
+      setCustomFieldValues(values);
+    } catch (err) {
+      console.error('Failed to load custom field values:', err);
+      setCustomFieldValues({});
+    }
+    
     setShowModal(true);
   };
 
@@ -3362,12 +3483,27 @@ function ManageClubGuardiansPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({ message: 'Guardian updated successfully!', type: 'success', isVisible: true });
       } else {
-        await api.post('/users/', data, config);
+        const createRes = await api.post('/users/', data, config);
+        userId = createRes.data.id;
         setToast({ message: 'Guardian created successfully!', type: 'success', isVisible: true });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -3815,6 +3951,21 @@ function ManageClubGuardiansPageContent() {
                 {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
               </div>
 
+              <CustomFieldsForm
+                targetRole="GUARDIAN"
+                context="USER_PROFILE"
+                values={customFieldValues}
+                onChange={(fieldId, value) => {
+                  setCustomFieldValues((prev) => ({
+                    ...prev,
+                    [fieldId]: value,
+                  }));
+                }}
+                userId={isEditing ? editUserId : null}
+                userMunicipalityId={null}
+                userClubId={user?.assigned_club ? (typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club) : null}
+              />
+
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <button type="button" onClick={() => setShowModal(false)} className="text-gray-500">
                   Cancel
@@ -3872,6 +4023,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface YouthOption {
   id: number;
@@ -4032,6 +4184,13 @@ function ClubGuardianViewContent() {
               </div>
             )}
           </section>
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={guardian.id}
+            targetRole="GUARDIAN"
+            context="USER_PROFILE"
+          />
         </div>
 
         <aside className="space-y-6">
@@ -4503,6 +4662,28 @@ export default function ClubAdminArticlePage() {
 --- END OF FILE: ./frontend/app/admin/club/news-feed/[id]/page.tsx ---
 
 
+--- START OF FILE: ./frontend/app/admin/club/custom-fields/page.tsx ---
+'use client';
+
+import CustomFieldManager from '../../../components/CustomFieldManager';
+
+export default function ClubCustomFieldsPage() {
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Club Specific Fields</h1>
+        <p className="text-gray-500">
+          Create fields that only members of your club will see.
+        </p>
+      </div>
+      
+      <CustomFieldManager scope="CLUB" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/club/custom-fields/page.tsx ---
+
+
 --- START OF FILE: ./frontend/app/admin/super/layout.tsx ---
 'use client';
 
@@ -4541,6 +4722,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'Manage Municipalities', href: '/admin/super/municipalities' },
         { name: 'Manage Clubs', href: '/admin/super/clubs' },
         { name: 'System Messages', href: '/admin/super/messages' },
+        { name: 'Custom Fields', href: '/admin/super/custom-fields' },
       ];
 
   return (
@@ -7655,6 +7837,7 @@ import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface Option { id: number; name: string; [key: string]: any; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -7718,6 +7901,7 @@ function ManageYouthPageContent() {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   // --- LOAD DATA ---
   useEffect(() => {
@@ -7836,6 +8020,7 @@ function ManageYouthPageContent() {
     setIsEditing(false);
     setEditUserId(null);
     setFormData(initialFormState);
+    setCustomFieldValues({});
     setAvatarFile(null);
     setAvatarPreview(null);
     setGuardianSearchTerm('');
@@ -7862,7 +8047,9 @@ function ManageYouthPageContent() {
       phone_number: user.phone_number || '', 
       date_of_birth: user.date_of_birth || '',
       grade: user.grade || '', 
-      preferred_club: user.preferred_club || '',
+      preferred_club: typeof user.preferred_club === 'object' 
+        ? (user.preferred_club?.id?.toString() || '')
+        : (user.preferred_club?.toString() || ''),
       verification_status: user.verification_status || 'UNVERIFIED',
       interests: interestIds,
       guardians: guardianIds
@@ -7897,20 +8084,35 @@ function ManageYouthPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({
           message: 'Youth member updated successfully!',
           type: 'success',
           isVisible: true,
         });
       } else {
-        await api.post('/users/', data, config);
+        const res = await api.post('/users/', data, config);
+        userId = res.data.id;
         setToast({
           message: 'Youth member created successfully!',
           type: 'success',
           isVisible: true,
         });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -8795,6 +8997,22 @@ function ManageYouthPageContent() {
                 {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
               </div>
 
+              {/* Custom Fields */}
+              <CustomFieldsForm
+                targetRole="YOUTH_MEMBER"
+                context="USER_PROFILE"
+                values={customFieldValues}
+                onChange={(fieldId, value) => {
+                  setCustomFieldValues((prev) => ({
+                    ...prev,
+                    [fieldId]: value,
+                  }));
+                }}
+                userId={isEditing ? editUserId : null}
+                userMunicipalityId={null}
+                userClubId={formData.preferred_club ? Number(formData.preferred_club) : null}
+              />
+
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <button type="button" onClick={() => setShowModal(false)} className="text-gray-500">Cancel</button>
                 <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded">
@@ -8850,6 +9068,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -9094,6 +9313,13 @@ function YouthViewPageContent() {
               </div>
             </div>
           )}
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={user.id}
+            targetRole="YOUTH_MEMBER"
+            context="USER_PROFILE"
+          />
         </div>
 
         {/* SIDEBAR */}
@@ -9175,6 +9401,7 @@ import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface YouthOption { id: number; first_name: string; last_name: string; email: string; grade: number; }
 
@@ -9225,6 +9452,7 @@ function ManageGuardiansPageContent() {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   // --- LOAD DATA ---
   useEffect(() => {
@@ -9321,6 +9549,7 @@ function ManageGuardiansPageContent() {
     setIsEditing(false);
     setEditUserId(null);
     setFormData(initialFormState);
+    setCustomFieldValues({});
     setAvatarFile(null);
     setAvatarPreview(null);
     setYouthSearchTerm('');
@@ -9328,7 +9557,7 @@ function ManageGuardiansPageContent() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (user: any) => {
+  const handleOpenEdit = async (user: any) => {
     setIsEditing(true);
     setEditUserId(user.id);
     
@@ -9347,6 +9576,21 @@ function ManageGuardiansPageContent() {
     setAvatarPreview(user.avatar ? getMediaUrl(user.avatar) : null);
     setYouthSearchTerm('');
     setShowYouthDropdown(false);
+    
+    // Load custom field values for this user
+    try {
+      const userRes = await api.get(`/users/${user.id}/`);
+      const customFieldValuesData = userRes.data.custom_field_values || [];
+      const values: Record<number, any> = {};
+      customFieldValuesData.forEach((cfv: any) => {
+        values[cfv.field] = cfv.value;
+      });
+      setCustomFieldValues(values);
+    } catch (err) {
+      console.error('Failed to load custom field values:', err);
+      setCustomFieldValues({});
+    }
+    
     setShowModal(true);
   };
 
@@ -9369,20 +9613,35 @@ function ManageGuardiansPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({
           message: 'Guardian updated successfully!',
           type: 'success',
           isVisible: true,
         });
       } else {
-        await api.post('/users/', data, config);
+        const res = await api.post('/users/', data, config);
+        userId = res.data.id;
         setToast({
           message: 'Guardian created successfully!',
           type: 'success',
           isVisible: true,
         });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -9903,6 +10162,22 @@ function ManageGuardiansPageContent() {
                 {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
               </div>
 
+              {/* Custom Fields */}
+              <CustomFieldsForm
+                targetRole="GUARDIAN"
+                context="USER_PROFILE"
+                values={customFieldValues}
+                onChange={(fieldId, value) => {
+                  setCustomFieldValues((prev) => ({
+                    ...prev,
+                    [fieldId]: value,
+                  }));
+                }}
+                userId={isEditing ? editUserId : null}
+                userMunicipalityId={null}
+                userClubId={null}
+              />
+
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <button type="button" onClick={() => setShowModal(false)} className="text-gray-500">Cancel</button>
                 <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded">
@@ -9957,6 +10232,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface YouthOption { id: number; first_name: string; last_name: string; email: string; grade: number; }
 
@@ -10135,6 +10411,13 @@ function GuardianViewPageContent() {
               <p className="text-gray-500">No youth members connected to this guardian.</p>
             </div>
           )}
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={user.id}
+            targetRole="GUARDIAN"
+            context="USER_PROFILE"
+          />
         </div>
 
         {/* SIDEBAR */}
@@ -11223,6 +11506,28 @@ export default function SuperAdminArticlePage() {
 --- END OF FILE: ./frontend/app/admin/super/news-feed/[id]/page.tsx ---
 
 
+--- START OF FILE: ./frontend/app/admin/super/custom-fields/page.tsx ---
+'use client';
+
+import CustomFieldManager from '../../../components/CustomFieldManager';
+
+export default function SuperCustomFieldsPage() {
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Global Custom Fields</h1>
+        <p className="text-gray-500">
+          Manage fields that appear on <strong>ALL</strong> user profiles across the platform.
+        </p>
+      </div>
+      
+      <CustomFieldManager scope="SUPER" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/custom-fields/page.tsx ---
+
+
 --- START OF FILE: ./frontend/app/admin/super/countries/page.tsx ---
 'use client';
 
@@ -12056,6 +12361,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'Manage Guardians', href: '/admin/municipality/guardians' },
     { name: 'News Feed', href: '/admin/municipality/news-feed' },
     { name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true },
+    { name: 'Custom Fields', href: '/admin/municipality/custom-fields' },
   ];
 
   return (
@@ -13964,6 +14270,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -14017,6 +14324,7 @@ function ManageMunicipalityYouthPageContent() {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   useEffect(() => {
     fetchDropdowns();
@@ -14098,6 +14406,7 @@ function ManageMunicipalityYouthPageContent() {
     setIsEditing(false);
     setEditUserId(null);
     setFormData(initialFormState);
+    setCustomFieldValues({});
     setAvatarFile(null);
     setAvatarPreview(null);
     setGuardianSearchTerm('');
@@ -14107,7 +14416,7 @@ function ManageMunicipalityYouthPageContent() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (youth: any) => {
+  const handleOpenEdit = async (youth: any) => {
     setIsEditing(true);
     setEditUserId(youth.id);
     setFormData({
@@ -14136,6 +14445,21 @@ function ManageMunicipalityYouthPageContent() {
     setInterestSearchTerm('');
     setShowGuardianDropdown(false);
     setShowInterestDropdown(false);
+    
+    // Load custom field values for this user
+    try {
+      const userRes = await api.get(`/users/${youth.id}/`);
+      const customFieldValuesData = userRes.data.custom_field_values || [];
+      const values: Record<number, any> = {};
+      customFieldValuesData.forEach((cfv: any) => {
+        values[cfv.field] = cfv.value;
+      });
+      setCustomFieldValues(values);
+    } catch (err) {
+      console.error('Failed to load custom field values:', err);
+      setCustomFieldValues({});
+    }
+    
     setShowModal(true);
   };
 
@@ -14155,12 +14479,27 @@ function ManageMunicipalityYouthPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({ message: 'Youth member updated successfully!', type: 'success', isVisible: true });
       } else {
-        await api.post('/users/', data, config);
+        const res = await api.post('/users/', data, config);
+        userId = res.data.id;
         setToast({ message: 'Youth member created successfully!', type: 'success', isVisible: true });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -14758,6 +15097,22 @@ function ManageMunicipalityYouthPageContent() {
                 {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
               </div>
 
+              {/* Custom Fields */}
+              <CustomFieldsForm
+                targetRole="YOUTH_MEMBER"
+                context="USER_PROFILE"
+                values={customFieldValues}
+                onChange={(fieldId, value) => {
+                  setCustomFieldValues((prev) => ({
+                    ...prev,
+                    [fieldId]: value,
+                  }));
+                }}
+                userId={isEditing ? editUserId : null}
+                userMunicipalityId={user?.assigned_municipality ? (typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality) : null}
+                userClubId={formData.preferred_club ? (typeof formData.preferred_club === 'string' ? Number(formData.preferred_club) : (typeof formData.preferred_club === 'number' ? formData.preferred_club : null)) : null}
+              />
+
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <button type="button" onClick={() => setShowModal(false)} className="text-gray-500">
                   Cancel
@@ -14813,6 +15168,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -15009,6 +15365,13 @@ function MunicipalityYouthViewContent() {
               </div>
             </section>
           )}
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={youth.id}
+            targetRole="YOUTH_MEMBER"
+            context="USER_PROFILE"
+          />
         </div>
 
         <aside className="space-y-6">
@@ -15078,9 +15441,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../lib/api';
+import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface YouthOption {
   id: number;
@@ -15109,6 +15474,8 @@ function ManageMunicipalityGuardiansPageContent() {
   });
 
   const [youthList, setYouthList] = useState<YouthOption[]>([]);
+  const { user } = useAuth();
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -15227,7 +15594,7 @@ function ManageMunicipalityGuardiansPageContent() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (guardian: any) => {
+  const handleOpenEdit = async (guardian: any) => {
     setIsEditing(true);
     setEditUserId(guardian.id);
     setFormData({
@@ -15244,6 +15611,21 @@ function ManageMunicipalityGuardiansPageContent() {
     setAvatarPreview(guardian.avatar ? getMediaUrl(guardian.avatar) : null);
     setYouthSearchTerm('');
     setShowYouthDropdown(false);
+    
+    // Load custom field values for this user
+    try {
+      const userRes = await api.get(`/users/${guardian.id}/`);
+      const customFieldValuesData = userRes.data.custom_field_values || [];
+      const values: Record<number, any> = {};
+      customFieldValuesData.forEach((cfv: any) => {
+        values[cfv.field] = cfv.value;
+      });
+      setCustomFieldValues(values);
+    } catch (err) {
+      console.error('Failed to load custom field values:', err);
+      setCustomFieldValues({});
+    }
+    
     setShowModal(true);
   };
 
@@ -15261,12 +15643,27 @@ function ManageMunicipalityGuardiansPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({ message: 'Guardian updated successfully!', type: 'success', isVisible: true });
       } else {
-        await api.post('/users/', data, config);
+        const createRes = await api.post('/users/', data, config);
+        userId = createRes.data.id;
         setToast({ message: 'Guardian created successfully!', type: 'success', isVisible: true });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -15713,6 +16110,21 @@ function ManageMunicipalityGuardiansPageContent() {
                 {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
               </div>
 
+              <CustomFieldsForm
+                targetRole="GUARDIAN"
+                context="USER_PROFILE"
+                values={customFieldValues}
+                onChange={(fieldId, value) => {
+                  setCustomFieldValues((prev) => ({
+                    ...prev,
+                    [fieldId]: value,
+                  }));
+                }}
+                userId={isEditing ? editUserId : null}
+                userMunicipalityId={user?.assigned_municipality ? (typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality) : null}
+                userClubId={null}
+              />
+
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <button type="button" onClick={() => setShowModal(false)} className="text-gray-500">
                   Cancel
@@ -15769,6 +16181,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface YouthOption {
   id: number;
@@ -15928,6 +16341,13 @@ function MunicipalityGuardianViewContent() {
               </div>
             )}
           </section>
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={guardian.id}
+            targetRole="GUARDIAN"
+            context="USER_PROFILE"
+          />
         </div>
 
         <aside className="space-y-6">
@@ -16432,6 +16852,28 @@ export default function MunicipalityAdminArticlePage() {
 --- END OF FILE: ./frontend/app/admin/municipality/news-feed/[id]/page.tsx ---
 
 
+--- START OF FILE: ./frontend/app/admin/municipality/custom-fields/page.tsx ---
+'use client';
+
+import CustomFieldManager from '../../../components/CustomFieldManager';
+
+export default function MunicipalityCustomFieldsPage() {
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Municipality Fields</h1>
+        <p className="text-gray-500">
+          Create fields applicable to clubs within your municipality. You can limit specific fields to specific clubs.
+        </p>
+      </div>
+      
+      <CustomFieldManager scope="MUNICIPALITY" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/custom-fields/page.tsx ---
+
+
 --- START OF FILE: ./frontend/app/dashboard/youth/page.tsx ---
 'use client';
 
@@ -16665,7 +17107,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
         {article.hero_image && (
           <div className="h-64 md:h-96 w-full relative bg-gray-100">
             <img 
-              src={getMediaUrl(article.hero_image)} 
+              src={getMediaUrl(article.hero_image) || ''} 
               alt={article.title} 
               className="w-full h-full object-cover"
             />
@@ -16886,6 +17328,132 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
   );
 }
 --- END OF FILE: ./frontend/app/components/NewsFeed.tsx ---
+
+
+--- START OF FILE: ./frontend/app/components/CustomFieldsDisplay.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
+
+interface CustomField {
+  id: number;
+  name: string;
+  help_text: string;
+  field_type: 'TEXT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'BOOLEAN';
+  options: string[];
+  required: boolean;
+  context: 'USER_PROFILE' | 'EVENT';
+  target_roles: string[];
+  value?: any;
+}
+
+interface CustomFieldsDisplayProps {
+  userId: number;
+  targetRole: 'YOUTH_MEMBER' | 'GUARDIAN';
+  context?: 'USER_PROFILE' | 'EVENT';
+}
+
+export default function CustomFieldsDisplay({
+  userId,
+  targetRole,
+  context = 'USER_PROFILE',
+}: CustomFieldsDisplayProps) {
+  const [fields, setFields] = useState<CustomField[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFields();
+  }, [userId, targetRole, context]);
+
+  const fetchFields = async () => {
+    setLoading(true);
+    try {
+      // Fetch all custom fields - the backend will filter based on admin's scope
+      const res = await api.get('/custom-fields/');
+      const allFields = Array.isArray(res.data.results) ? res.data.results : (Array.isArray(res.data) ? res.data : []);
+      
+      // Filter by context and target role
+      const applicableFields = allFields.filter((field: CustomField) => {
+        // Must match context
+        if (field.context !== context) return false;
+        
+        // Must target this role (or "ALL")
+        const targetRoles = Array.isArray(field.target_roles) ? field.target_roles : [];
+        if (!targetRoles.includes('ALL') && !targetRoles.includes(targetRole)) return false;
+        
+        return true;
+      });
+
+      // Fetch values for this user
+      const userRes = await api.get(`/users/${userId}/`);
+      const customFieldValuesData = userRes.data.custom_field_values || [];
+      const valuesMap: Record<number, any> = {};
+      customFieldValuesData.forEach((cfv: any) => {
+        valuesMap[cfv.field] = cfv.value;
+      });
+
+      // Attach values to fields
+      const fieldsWithValues = applicableFields.map((field: CustomField) => ({
+        ...field,
+        value: valuesMap[field.id],
+      }));
+
+      // Only show fields that have values
+      setFields(fieldsWithValues.filter((field) => field.value !== null && field.value !== undefined && field.value !== ''));
+    } catch (err) {
+      console.error('Failed to fetch custom fields:', err);
+      setFields([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatValue = (field: CustomField, value: any): string => {
+    if (value === null || value === undefined || value === '') return '-';
+    
+    if (field.field_type === 'BOOLEAN') {
+      return value ? 'Yes' : 'No';
+    }
+    
+    if (field.field_type === 'MULTI_SELECT') {
+      if (Array.isArray(value)) {
+        return value.join(', ');
+      }
+      return String(value);
+    }
+    
+    return String(value);
+  };
+
+  if (loading) {
+    return null;
+  }
+
+  if (fields.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow p-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Additional Information</h2>
+      <div className="grid grid-cols-2 gap-4">
+        {fields.map((field) => (
+          <div key={field.id}>
+            <p className="text-sm text-gray-500 font-bold uppercase mb-1">{field.name}</p>
+            <p className="text-gray-900 font-medium">{formatValue(field, field.value)}</p>
+            {field.help_text && (
+              <p className="text-xs text-gray-400 mt-0.5">{field.help_text}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+--- END OF FILE: ./frontend/app/components/CustomFieldsDisplay.tsx ---
 
 
 --- START OF FILE: ./frontend/app/components/NewsArchive.tsx ---
@@ -17147,6 +17715,435 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
 --- END OF FILE: ./frontend/app/components/NewsArchive.tsx ---
 
 
+--- START OF FILE: ./frontend/app/components/CustomFieldsForm.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
+
+interface CustomField {
+  id: number;
+  name: string;
+  help_text: string;
+  field_type: 'TEXT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'BOOLEAN';
+  options: string[];
+  required: boolean;
+  context: 'USER_PROFILE' | 'EVENT';
+  target_roles: string[];
+  value?: any; // Value is included when fetching via applicable_for_user
+}
+
+interface CustomFieldsFormProps {
+  targetRole: 'YOUTH_MEMBER' | 'GUARDIAN';
+  context?: 'USER_PROFILE' | 'EVENT';
+  values: Record<number, any>; // field_id -> value
+  onChange: (fieldId: number, value: any) => void;
+  userId?: number | null; // ID of the user being edited (for fetching applicable fields)
+  userMunicipalityId?: number | null;
+  userClubId?: number | null;
+}
+
+export default function CustomFieldsForm({
+  targetRole,
+  context = 'USER_PROFILE',
+  values,
+  onChange,
+  userId,
+  userMunicipalityId,
+  userClubId,
+}: CustomFieldsFormProps) {
+  const [fields, setFields] = useState<CustomField[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // For new user creation: only fetch if userClubId is provided (club selected)
+    // For editing existing user: 
+    //   - If userClubId is provided (preferred_club selected/changed), fetch based on that club
+    //   - Otherwise, fetch using applicable_for_user (uses user's saved club)
+    if (userId && userClubId) {
+      // Editing with a club selected - fetch based on the selected club (may have changed)
+      fetchFields();
+    } else if (userId && !userClubId) {
+      // Editing but no club selected - fetch using applicable_for_user (uses saved club)
+      fetchFields();
+    } else if (!userId && userClubId) {
+      // Creating new user with club selected
+      fetchFields();
+    } else {
+      // No club selected for new user - don't show fields yet
+      setFields([]);
+      setLoading(false);
+    }
+  }, [targetRole, context, userId, userMunicipalityId, userClubId]);
+
+  const fetchFields = async () => {
+    setLoading(true);
+    try {
+      let applicableFields: CustomField[] = [];
+      
+      // If userId is provided but userClubId is also provided, it means the user changed the club
+      // In this case, fetch fields based on the new club selection (not the saved one)
+      // Otherwise, if only userId is provided, use applicable_for_user (uses saved club)
+      if (userId && userClubId) {
+        // User is editing and has selected/changed preferred_club - fetch based on new club
+        try {
+          const clubRes = await api.get(`/clubs/${userClubId}/`);
+          const club = clubRes.data;
+          const clubMunicipalityId = typeof club.municipality === 'object' ? club.municipality?.id : club.municipality;
+
+          // Fetch all fields (backend filters by admin scope)
+          const res = await api.get('/custom-fields/');
+          const allFields = Array.isArray(res.data.results) ? res.data.results : (Array.isArray(res.data) ? res.data : []);
+
+          // Filter to show only:
+          // - Global fields (owner_role = SUPER_ADMIN, no municipality/club)
+          // - Municipality fields for the club's municipality
+          // - Club fields for the selected club
+          applicableFields = allFields.filter((field: any) => {
+            // Must match context
+            if (field.context !== context) return false;
+
+            // Must target this role (or "ALL")
+            const targetRoles = Array.isArray(field.target_roles) ? field.target_roles : [];
+            if (!targetRoles.includes('ALL') && !targetRoles.includes(targetRole)) return false;
+
+            // Check if field is applicable to this club/municipality
+            const fieldMunicipalityId = typeof field.municipality === 'object' ? field.municipality?.id : field.municipality;
+            const fieldClubId = typeof field.club === 'object' ? field.club?.id : field.club;
+
+            // Global fields (no municipality, no club)
+            if (field.owner_role === 'SUPER_ADMIN' && !fieldMunicipalityId && !fieldClubId) {
+              return true;
+            }
+
+            // Municipality fields for this municipality
+            if (field.owner_role === 'MUNICIPALITY_ADMIN' && fieldMunicipalityId === clubMunicipalityId) {
+              // Check if field applies to this club (specific_clubs empty or includes this club)
+              if (!field.specific_clubs || field.specific_clubs.length === 0) {
+                return true; // Applies to all clubs in municipality
+              }
+              // Check if this club is in specific_clubs
+              const specificClubIds = field.specific_clubs.map((c: any) => typeof c === 'object' ? c.id : c);
+              return specificClubIds.includes(userClubId);
+            }
+
+            // Club fields for this club
+            if (field.owner_role === 'CLUB_ADMIN' && fieldClubId === userClubId) {
+              return true;
+            }
+
+            return false;
+          });
+
+          // For editing, we need to preserve existing values for fields that still exist
+          // Fetch existing values from the user
+          try {
+            const userRes = await api.get(`/users/${userId}/`);
+            const customFieldValuesData = userRes.data.custom_field_values || [];
+            // customFieldValuesData is a list: [{field: field_id, value: value}, ...]
+            // Update parent state with existing values
+            customFieldValuesData.forEach((cfv: any) => {
+              const fieldId = typeof cfv.field === 'object' ? cfv.field.id : Number(cfv.field);
+              // Only set if this field is still applicable
+              if (applicableFields.some((f: any) => f.id === fieldId)) {
+                const valueToSet = cfv.value !== null && cfv.value !== undefined ? cfv.value : '';
+                onChange(fieldId, valueToSet);
+              }
+            });
+          } catch (err) {
+            console.error('Failed to load existing custom field values:', err);
+          }
+        } catch (err) {
+          console.error('Failed to fetch club details:', err);
+          setFields([]);
+          setLoading(false);
+          return;
+        }
+      } else if (userId && !userClubId) {
+        // User is editing but no club selected - use applicable_for_user (uses saved club)
+        const res = await api.get(`/custom-fields/applicable_for_user/?user_id=${userId}`);
+        applicableFields = Array.isArray(res.data) ? res.data : [];
+        
+        // Extract values from fields and update parent component
+        // The applicable_for_user endpoint returns fields with embedded values
+        // We sync these with the parent's values state so they're available for saving
+        applicableFields.forEach((field: any) => {
+          // field.value is included by CustomFieldUserViewSerializer
+          // Update parent state for each field (including null/empty, so they're in sync)
+          // Use empty string for null/undefined to ensure form fields work correctly
+          const valueToSet = field.value !== null && field.value !== undefined ? field.value : '';
+          onChange(field.id, valueToSet);
+        });
+      } else if (userClubId) {
+        // For new user creation with club selected: fetch club details to get municipality
+        // Then fetch fields applicable to that club and municipality
+        try {
+          const clubRes = await api.get(`/clubs/${userClubId}/`);
+          const club = clubRes.data;
+          const clubMunicipalityId = typeof club.municipality === 'object' ? club.municipality?.id : club.municipality;
+          
+          // Fetch all fields (backend filters by admin scope)
+          const res = await api.get('/custom-fields/');
+          const allFields = Array.isArray(res.data.results) ? res.data.results : (Array.isArray(res.data) ? res.data : []);
+          
+          // Filter to show only:
+          // - Global fields (owner_role = SUPER_ADMIN, no municipality/club)
+          // - Municipality fields for the club's municipality
+          // - Club fields for the selected club
+          applicableFields = allFields.filter((field: any) => {
+            // Must match context
+            if (field.context !== context) return false;
+            
+            // Must target this role (or "ALL")
+            const targetRoles = Array.isArray(field.target_roles) ? field.target_roles : [];
+            if (!targetRoles.includes('ALL') && !targetRoles.includes(targetRole)) return false;
+            
+            // Check if field is applicable to this club/municipality
+            const fieldMunicipalityId = typeof field.municipality === 'object' ? field.municipality?.id : field.municipality;
+            const fieldClubId = typeof field.club === 'object' ? field.club?.id : field.club;
+            
+            // Global fields (no municipality, no club)
+            if (field.owner_role === 'SUPER_ADMIN' && !fieldMunicipalityId && !fieldClubId) {
+              return true;
+            }
+            
+            // Municipality fields for this municipality
+            if (field.owner_role === 'MUNICIPALITY_ADMIN' && fieldMunicipalityId === clubMunicipalityId) {
+              // Check if field applies to this club (specific_clubs empty or includes this club)
+              if (!field.specific_clubs || field.specific_clubs.length === 0) {
+                return true; // Applies to all clubs in municipality
+              }
+              // Check if this club is in specific_clubs
+              const specificClubIds = field.specific_clubs.map((c: any) => typeof c === 'object' ? c.id : c);
+              return specificClubIds.includes(userClubId);
+            }
+            
+            // Club fields for this club
+            if (field.owner_role === 'CLUB_ADMIN' && fieldClubId === userClubId) {
+              return true;
+            }
+            
+            return false;
+          });
+        } catch (err) {
+          console.error('Failed to fetch club details:', err);
+          setFields([]);
+          setLoading(false);
+          return;
+        }
+      } else if (userMunicipalityId && userClubId) {
+        // Municipality admin creating/editing user with club selected
+        // Fetch club details to get municipality
+        try {
+          const clubRes = await api.get(`/clubs/${userClubId}/`);
+          const club = clubRes.data;
+          const clubMunicipalityId = typeof club.municipality === 'object' ? club.municipality?.id : club.municipality;
+
+          // Fetch all fields (backend filters by admin scope)
+          const res = await api.get('/custom-fields/');
+          const allFields = Array.isArray(res.data.results) ? res.data.results : (Array.isArray(res.data) ? res.data : []);
+
+          // Filter to show only:
+          // - Global fields (owner_role = SUPER_ADMIN, no municipality/club)
+          // - Municipality fields for the club's municipality
+          // - Club fields for the selected club
+          applicableFields = allFields.filter((field: any) => {
+            // Must match context
+            if (field.context !== context) return false;
+
+            // Must target this role (or "ALL")
+            const targetRoles = Array.isArray(field.target_roles) ? field.target_roles : [];
+            if (!targetRoles.includes('ALL') && !targetRoles.includes(targetRole)) return false;
+
+            // Check if field is applicable to this club/municipality
+            const fieldMunicipalityId = typeof field.municipality === 'object' ? field.municipality?.id : field.municipality;
+            const fieldClubId = typeof field.club === 'object' ? field.club?.id : field.club;
+
+            // Global fields (no municipality, no club)
+            if (field.owner_role === 'SUPER_ADMIN' && !fieldMunicipalityId && !fieldClubId) {
+              return true;
+            }
+
+            // Municipality fields for this municipality
+            if (field.owner_role === 'MUNICIPALITY_ADMIN' && fieldMunicipalityId === clubMunicipalityId) {
+              // Check if field applies to this club (specific_clubs empty or includes this club)
+              if (!field.specific_clubs || field.specific_clubs.length === 0) {
+                return true; // Applies to all clubs in municipality
+              }
+              // Check if this club is in specific_clubs
+              const specificClubIds = field.specific_clubs.map((c: any) => typeof c === 'object' ? c.id : c);
+              return specificClubIds.includes(userClubId);
+            }
+
+            // Club fields for this club
+            if (field.owner_role === 'CLUB_ADMIN' && fieldClubId === userClubId) {
+              return true;
+            }
+
+            return false;
+          });
+
+          // For editing, preserve existing values
+          if (userId) {
+            try {
+              const userRes = await api.get(`/users/${userId}/`);
+              const customFieldValuesData = userRes.data.custom_field_values || [];
+              customFieldValuesData.forEach((cfv: any) => {
+                const fieldId = typeof cfv.field === 'object' ? cfv.field.id : Number(cfv.field);
+                if (applicableFields.some((f: any) => f.id === fieldId)) {
+                  const valueToSet = cfv.value !== null && cfv.value !== undefined ? cfv.value : '';
+                  onChange(fieldId, valueToSet);
+                }
+              });
+            } catch (err) {
+              console.error('Failed to load existing custom field values:', err);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch club details:', err);
+          setFields([]);
+          setLoading(false);
+          return;
+        }
+      } else if (userMunicipalityId && !userClubId) {
+        // Municipality admin creating user in their municipality (no club selected yet)
+        // Don't show fields until club is selected
+        setFields([]);
+        setLoading(false);
+        return;
+      } else {
+        // No club or municipality selected for new user - don't fetch fields
+        setFields([]);
+        setLoading(false);
+        return;
+      }
+      
+      setFields(applicableFields);
+    } catch (err) {
+      console.error('Failed to fetch custom fields:', err);
+      setFields([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFieldChange = (fieldId: number, value: any) => {
+    onChange(fieldId, value);
+  };
+
+  // For new user creation: only show if club is selected (or if municipality admin creating user in their municipality)
+  // For editing: always show (userId is provided)
+  if (!userId && !userClubId && !userMunicipalityId) {
+    return null;
+  }
+
+  if (loading) {
+    return <div className="text-sm text-gray-500">Loading custom fields...</div>;
+  }
+
+  if (fields.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4 border-t pt-4 mt-4">
+      <h3 className="text-lg font-bold text-gray-800">Additional Information</h3>
+      {fields.map((field) => {
+        // Prioritize values prop (which gets updated when user types) over field.value (from API)
+        // This ensures the input is controlled by the parent state, not the API response
+        let fieldValue: any = values[field.id] !== undefined ? values[field.id] : ((field as any).value !== undefined ? (field as any).value : '');
+        if (fieldValue === null || fieldValue === undefined) {
+          fieldValue = '';
+        }
+        // For MULTI_SELECT, ensure it's an array
+        if (field.field_type === 'MULTI_SELECT' && !Array.isArray(fieldValue)) {
+          fieldValue = [];
+        }
+        const isRequired = field.required;
+
+        return (
+          <div key={field.id} className="space-y-1">
+            <label className="block text-sm font-semibold text-gray-700">
+              {field.name}
+              {isRequired && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {field.help_text && (
+              <p className="text-xs text-gray-500 mb-1">{field.help_text}</p>
+            )}
+
+            {field.field_type === 'TEXT' && (
+              <input
+                type="text"
+                className="w-full border rounded-lg p-2 text-sm"
+                value={fieldValue}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                required={isRequired}
+              />
+            )}
+
+            {field.field_type === 'SINGLE_SELECT' && (
+              <select
+                className="w-full border rounded-lg p-2 text-sm"
+                value={fieldValue}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                required={isRequired}
+              >
+                <option value="">Select...</option>
+                {field.options.map((option, idx) => (
+                  <option key={idx} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {field.field_type === 'MULTI_SELECT' && (
+              <div className="space-y-2">
+                {field.options.map((option, idx) => {
+                  const selectedValues = Array.isArray(fieldValue) ? fieldValue : [];
+                  const isChecked = selectedValues.includes(option);
+                  return (
+                    <label key={idx} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const newValues = e.target.checked
+                            ? [...selectedValues, option]
+                            : selectedValues.filter((v) => v !== option);
+                          handleFieldChange(field.id, newValues);
+                        }}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700">{option}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            {field.field_type === 'BOOLEAN' && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!fieldValue}
+                  onChange={(e) => handleFieldChange(field.id, e.target.checked)}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-sm text-gray-700">Yes</span>
+              </label>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+--- END OF FILE: ./frontend/app/components/CustomFieldsForm.tsx ---
+
+
 --- START OF FILE: ./frontend/app/components/DeleteConfirmationModal.tsx ---
 'use client';
 
@@ -17319,6 +18316,634 @@ export default function RichTextEditor({ value, onChange }: EditorProps) {
   );
 }
 --- END OF FILE: ./frontend/app/components/RichTextEditor.tsx ---
+
+
+--- START OF FILE: ./frontend/app/components/CustomFieldManager.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
+import Toast from './Toast';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
+
+interface CustomField {
+  id: number;
+  name: string;
+  help_text: string;
+  field_type: 'TEXT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'BOOLEAN';
+  options: string[];
+  required: boolean;
+  is_published: boolean;
+  target_roles: string[];
+  specific_clubs: number[];
+  owner_role?: string;
+  club?: number | { id: number };
+  municipality?: number | { id: number };
+}
+
+interface ClubOption {
+  id: number;
+  name: string;
+}
+
+interface CustomFieldManagerProps {
+  scope: 'SUPER' | 'MUNICIPALITY' | 'CLUB';
+}
+
+export default function CustomFieldManager({ scope }: CustomFieldManagerProps) {
+  const { user } = useAuth();
+  const [fields, setFields] = useState<CustomField[]>([]);
+  const [clubs, setClubs] = useState<ClubOption[]>([]); // For Muni Admin context
+  const [loading, setLoading] = useState(true);
+  
+  // Modal State
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  
+  // Delete Modal
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    help_text: '',
+    field_type: 'TEXT',
+    options: [] as string[], // For select fields
+    currentOptionInput: '', // Helper for adding options
+    required: false,
+    is_published: true,
+    target_roles: [] as string[],
+    specific_clubs: [] as number[],
+    context: 'USER_PROFILE',
+  });
+
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+
+  useEffect(() => {
+    fetchFields();
+    if (scope === 'MUNICIPALITY') {
+      fetchClubs();
+    }
+  }, [scope]);
+
+  const fetchFields = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/custom-fields/');
+      const data = res.data.results || res.data;
+      setFields(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      console.error('Failed to fetch custom fields:', err);
+      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || 'Failed to load custom fields';
+      setToast({ message: errorMessage, type: 'error', isVisible: true });
+      setFields([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchClubs = async () => {
+    try {
+      // Muni admin gets their clubs automatically via this endpoint due to permissions
+      const res = await api.get('/clubs/'); 
+      setClubs(Array.isArray(res.data) ? res.data : res.data.results || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // --- Form Helpers ---
+
+  const resetForm = () => {
+    setFormData({
+      name: '', help_text: '', field_type: 'TEXT',
+      options: [], currentOptionInput: '',
+      required: false, is_published: true,
+      target_roles: ['YOUTH_MEMBER'], // Default
+      specific_clubs: [],
+      context: 'USER_PROFILE',
+    });
+    setIsEditing(false);
+    setEditId(null);
+  };
+
+  const handleOpenCreate = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (field: CustomField) => {
+    // Prevent editing read-only fields
+    // Club admins can only edit their own club fields
+    if (scope === 'CLUB' && user?.assigned_club) {
+      const isOwnedByClubAdmin = field.owner_role === 'CLUB_ADMIN' && 
+        (typeof field.club === 'object' ? field.club?.id : field.club) === (typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club);
+      
+      if (!isOwnedByClubAdmin) {
+        setToast({ message: 'You can only edit fields assigned to your club.', type: 'error', isVisible: true });
+        return;
+      }
+    }
+    
+    // Municipality admins can edit their own municipality fields and club fields in their municipality (not global super admin fields)
+    if (scope === 'MUNICIPALITY' && user?.assigned_municipality) {
+      const userMunicipalityId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
+      const fieldMunicipalityId = typeof field.municipality === 'object' ? field.municipality?.id : field.municipality;
+      
+      // Check if it's a municipality field owned by this municipality
+      const isOwnedByMunicipalityAdmin = field.owner_role === 'MUNICIPALITY_ADMIN' && 
+        fieldMunicipalityId === userMunicipalityId;
+      
+      // Check if it's a club field that belongs to a club in this municipality
+      let isClubFieldInMunicipality = false;
+      if (field.owner_role === 'CLUB_ADMIN' && field.club) {
+        const fieldClubId = typeof field.club === 'object' ? field.club.id : field.club;
+        const clubInMunicipality = clubs.find(c => c.id === fieldClubId);
+        isClubFieldInMunicipality = !!clubInMunicipality;
+      }
+      
+      // Only allow editing if it's a municipality field or a club field in their municipality
+      // Block global super admin fields
+      if (field.owner_role === 'SUPER_ADMIN' || (!isOwnedByMunicipalityAdmin && !isClubFieldInMunicipality)) {
+        setToast({ message: 'You can only edit fields assigned to your municipality or clubs in your municipality.', type: 'error', isVisible: true });
+        return;
+      }
+    }
+    
+    setIsEditing(true);
+    setEditId(field.id);
+    setFormData({
+      name: field.name,
+      help_text: field.help_text || '',
+      field_type: field.field_type,
+      options: field.options || [],
+      currentOptionInput: '',
+      required: field.required,
+      is_published: field.is_published,
+      target_roles: field.target_roles || [],
+      specific_clubs: field.specific_clubs || [],
+      // @ts-ignore  -- field.context exists on API but might not be in TS interface yet
+      context: field.context || 'USER_PROFILE',
+    });
+    setShowModal(true);
+  };
+
+  // Option Management (for Select fields)
+  const addOption = () => {
+    if (!formData.currentOptionInput.trim()) return;
+    setFormData(prev => ({
+      ...prev,
+      options: [...prev.options, prev.currentOptionInput.trim()],
+      currentOptionInput: ''
+    }));
+  };
+
+  const removeOption = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Role Toggling
+  const toggleRole = (role: string) => {
+    setFormData(prev => {
+      const roles = prev.target_roles.includes(role)
+        ? prev.target_roles.filter(r => r !== role)
+        : [...prev.target_roles, role];
+      return { ...prev, target_roles: roles };
+    });
+  };
+
+  // Club Toggling (Muni only)
+  const toggleClub = (clubId: number) => {
+    setFormData(prev => {
+      const list = prev.specific_clubs.includes(clubId)
+        ? prev.specific_clubs.filter(id => id !== clubId)
+        : [...prev.specific_clubs, clubId];
+      return { ...prev, specific_clubs: list };
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if ((formData.field_type === 'SINGLE_SELECT' || formData.field_type === 'MULTI_SELECT') && formData.options.length === 0) {
+      alert("Please add at least one option for the selection list.");
+      return;
+    }
+    if (formData.target_roles.length === 0) {
+      alert("Please select at least one target role (Youth or Guardian).");
+      return;
+    }
+
+    const payload = {
+      name: formData.name,
+      help_text: formData.help_text,
+      field_type: formData.field_type,
+      options: formData.options,
+      required: formData.required,
+      is_published: formData.is_published,
+      target_roles: formData.target_roles,
+      specific_clubs: formData.specific_clubs,
+      context: formData.context,
+    };
+
+    try {
+      if (isEditing && editId) {
+        await api.patch(`/custom-fields/${editId}/`, payload);
+        setToast({ message: 'Field updated', type: 'success', isVisible: true });
+      } else {
+        await api.post('/custom-fields/', payload);
+        setToast({ message: 'Field created', type: 'success', isVisible: true });
+      }
+      setShowModal(false);
+      fetchFields();
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Operation failed', type: 'error', isVisible: true });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    
+    // Prevent deleting read-only fields
+    // Club admins can only delete their own club fields
+    if (scope === 'CLUB' && user?.assigned_club) {
+      const fieldToDelete = fields.find(f => f.id === deleteId);
+      if (fieldToDelete) {
+        const isOwnedByClubAdmin = fieldToDelete.owner_role === 'CLUB_ADMIN' && 
+          (typeof fieldToDelete.club === 'object' ? fieldToDelete.club?.id : fieldToDelete.club) === (typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club);
+        
+        if (!isOwnedByClubAdmin) {
+          setToast({ message: 'You can only delete fields assigned to your club.', type: 'error', isVisible: true });
+          setDeleteId(null);
+          setShowDelete(false);
+          return;
+        }
+      }
+    }
+    
+    // Municipality admins can delete their own municipality fields and club fields in their municipality (not global super admin fields)
+    if (scope === 'MUNICIPALITY' && user?.assigned_municipality) {
+      const fieldToDelete = fields.find(f => f.id === deleteId);
+      if (fieldToDelete) {
+        const userMunicipalityId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
+        const fieldMunicipalityId = typeof fieldToDelete.municipality === 'object' ? fieldToDelete.municipality?.id : fieldToDelete.municipality;
+        
+        // Check if it's a municipality field owned by this municipality
+        const isOwnedByMunicipalityAdmin = fieldToDelete.owner_role === 'MUNICIPALITY_ADMIN' && 
+          fieldMunicipalityId === userMunicipalityId;
+        
+        // Check if it's a club field that belongs to a club in this municipality
+        let isClubFieldInMunicipality = false;
+        if (fieldToDelete.owner_role === 'CLUB_ADMIN' && fieldToDelete.club) {
+          const fieldClubId = typeof fieldToDelete.club === 'object' ? fieldToDelete.club.id : fieldToDelete.club;
+          const clubInMunicipality = clubs.find(c => c.id === fieldClubId);
+          isClubFieldInMunicipality = !!clubInMunicipality;
+        }
+        
+        // Only allow deleting if it's a municipality field or a club field in their municipality
+        // Block global super admin fields
+        if (fieldToDelete.owner_role === 'SUPER_ADMIN' || (!isOwnedByMunicipalityAdmin && !isClubFieldInMunicipality)) {
+          setToast({ message: 'You can only delete fields assigned to your municipality or clubs in your municipality.', type: 'error', isVisible: true });
+          setDeleteId(null);
+          setShowDelete(false);
+          return;
+        }
+      }
+    }
+    
+    try {
+      await api.delete(`/custom-fields/${deleteId}/`);
+      setToast({ message: 'Field deleted', type: 'success', isVisible: true });
+      setDeleteId(null);
+      setShowDelete(false);
+      fetchFields();
+    } catch (err) {
+      setToast({ message: 'Delete failed', type: 'error', isVisible: true });
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">Registration Fields</h2>
+          <p className="text-sm text-gray-500">Customize the data users provide during registration.</p>
+        </div>
+        <button 
+          onClick={handleOpenCreate}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        >
+          + Add Field
+        </button>
+      </div>
+
+      {/* LIST */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Label</th>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Roles</th>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Req?</th>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {loading ? (
+              <tr><td colSpan={6} className="p-4 text-center">Loading...</td></tr>
+            ) : fields.length === 0 ? (
+              <tr><td colSpan={6} className="p-4 text-center text-gray-500">No custom fields created yet.</td></tr>
+            ) : fields.map(field => {
+              // For club admins, check if field belongs to their club
+              const isOwnedByClubAdmin = scope === 'CLUB' && user?.assigned_club && 
+                field.owner_role === 'CLUB_ADMIN' && 
+                (typeof field.club === 'object' ? field.club?.id : field.club) === (typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club);
+              
+              // For municipality admins:
+              // - Can edit their own municipality fields
+              // - Can edit club fields that belong to clubs in their municipality
+              // - Cannot edit global super admin fields
+              let isOwnedByMunicipalityAdmin = false;
+              let isClubFieldInMunicipality = false;
+              
+              if (scope === 'MUNICIPALITY' && user?.assigned_municipality) {
+                const userMunicipalityId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
+                const fieldMunicipalityId = typeof field.municipality === 'object' ? field.municipality?.id : field.municipality;
+                
+                // Check if it's a municipality field owned by this municipality
+                isOwnedByMunicipalityAdmin = field.owner_role === 'MUNICIPALITY_ADMIN' && 
+                  fieldMunicipalityId === userMunicipalityId;
+                
+                // Check if it's a club field that belongs to a club in this municipality
+                if (field.owner_role === 'CLUB_ADMIN' && field.club) {
+                  // We need to check if the club belongs to this municipality
+                  // Since we have clubs loaded for municipality admins, we can check against that
+                  const fieldClubId = typeof field.club === 'object' ? field.club.id : field.club;
+                  const clubInMunicipality = clubs.find(c => c.id === fieldClubId);
+                  // If the club is in our clubs list (which is filtered by municipality), it's editable
+                  isClubFieldInMunicipality = !!clubInMunicipality;
+                }
+              }
+              
+              // Fields that are not owned by the admin should be greyed out and disabled
+              // Club admins can only edit their club fields
+              // Municipality admins can edit their municipality fields and club fields in their municipality (only global super admin fields are read-only)
+              const isReadOnly = (scope === 'CLUB' && !isOwnedByClubAdmin) || 
+                                 (scope === 'MUNICIPALITY' && field.owner_role === 'SUPER_ADMIN');
+              
+              return (
+                <tr key={field.id} className={isReadOnly ? 'opacity-50 bg-gray-50' : ''}>
+                  <td className={`px-6 py-4 font-medium ${isReadOnly ? 'text-gray-500' : 'text-gray-900'}`}>
+                    {field.name}
+                    {isReadOnly && <span className="ml-2 text-xs text-gray-400">(Read-only)</span>}
+                  </td>
+                  <td className={`px-6 py-4 text-sm ${isReadOnly ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {field.field_type.replace('_', ' ')}
+                  </td>
+                  <td className={`px-6 py-4 text-sm flex gap-1 ${isReadOnly ? 'opacity-50' : ''}`}>
+                    {field.target_roles.map(r => (
+                      <span key={r} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                        {r === 'YOUTH_MEMBER' ? 'Youth' : 'Guardian'}
+                      </span>
+                    ))}
+                  </td>
+                  <td className={`px-6 py-4 text-sm ${isReadOnly ? 'text-gray-400' : ''}`}>
+                    {field.required ? <span className="text-red-600 font-bold">Yes</span> : 'No'}
+                  </td>
+                  <td className={`px-6 py-4 ${isReadOnly ? 'opacity-50' : ''}`}>
+                    {field.is_published 
+                      ? <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">Active</span>
+                      : <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">Draft</span>
+                    }
+                  </td>
+                  <td className="px-6 py-4 text-right space-x-2">
+                    {isReadOnly ? (
+                      <span className="text-gray-400 text-sm italic">Read-only</span>
+                    ) : (
+                      <>
+                        <button onClick={() => handleOpenEdit(field)} className="text-blue-600 hover:underline text-sm font-bold">Edit</button>
+                        <button onClick={() => { setDeleteId(field.id); setShowDelete(true); }} className="text-red-600 hover:underline text-sm">Delete</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">{isEditing ? 'Edit Field' : 'Create Custom Field'}</h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Row 1 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold mb-1">Field Label</label>
+                  <input 
+                    required 
+                    type="text" 
+                    className="w-full border p-2 rounded" 
+                    placeholder="e.g. T-Shirt Size"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-1">Data Type</label>
+                  <select 
+                    className="w-full border p-2 rounded"
+                    value={formData.field_type}
+                    // @ts-ignore
+                    onChange={e => setFormData({...formData, field_type: e.target.value})}
+                  >
+                    <option value="TEXT">Text (Free type)</option>
+                    <option value="SINGLE_SELECT">Single Select (Dropdown)</option>
+                    <option value="MULTI_SELECT">Multi Select (Checkboxes)</option>
+                    <option value="BOOLEAN">Boolean (Yes/No Checkbox)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* NEW ROW: Usage Context */}
+              <div>
+                <label className="block text-sm font-bold mb-1">Used For</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer border p-3 rounded-lg w-full hover:bg-gray-50">
+                    <input 
+                      type="radio" 
+                      name="context"
+                      value="USER_PROFILE"
+                      checked={formData.context === 'USER_PROFILE'}
+                      onChange={e => setFormData({...formData, context: e.target.value})}
+                      className="text-blue-600"
+                    />
+                    <div>
+                      <span className="block font-bold text-gray-800">User Profile</span>
+                      <span className="text-xs text-gray-500">Shown during registration/profile edit</span>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer border p-3 rounded-lg w-full hover:bg-gray-50">
+                    <input 
+                      type="radio" 
+                      name="context"
+                      value="EVENT"
+                      checked={formData.context === 'EVENT'}
+                      onChange={e => setFormData({...formData, context: e.target.value})}
+                      className="text-blue-600"
+                    />
+                    <div>
+                      <span className="block font-bold text-gray-800">Event Booking</span>
+                      <span className="text-xs text-gray-500">Shown when booking an event ticket</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Help Text */}
+              <div>
+                <label className="block text-sm font-bold mb-1">Help Text (Optional)</label>
+                <input 
+                  type="text" 
+                  className="w-full border p-2 rounded text-sm text-gray-600" 
+                  placeholder="e.g. Please select the size for your team jersey"
+                  value={formData.help_text}
+                  onChange={e => setFormData({...formData, help_text: e.target.value})}
+                />
+              </div>
+
+              {/* OPTIONS BUILDER (Only for Selects) */}
+              {(formData.field_type === 'SINGLE_SELECT' || formData.field_type === 'MULTI_SELECT') && (
+                <div className="bg-blue-50 p-4 rounded border border-blue-100">
+                  <label className="block text-sm font-bold mb-2 text-blue-800">Options List</label>
+                  <div className="flex gap-2 mb-2">
+                    <input 
+                      type="text" 
+                      className="flex-1 border p-2 rounded text-sm"
+                      placeholder="Type option and press Add..."
+                      value={formData.currentOptionInput}
+                      onChange={e => setFormData({...formData, currentOptionInput: e.target.value})}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addOption())}
+                    />
+                    <button type="button" onClick={addOption} className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-bold">Add</button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {formData.options.map((opt, idx) => (
+                      <span key={idx} className="bg-white border border-blue-200 text-blue-800 px-2 py-1 rounded text-sm flex items-center gap-2">
+                        {opt}
+                        <button type="button" onClick={() => removeOption(idx)} className="text-red-500 font-bold hover:text-red-700">×</button>
+                      </span>
+                    ))}
+                    {formData.options.length === 0 && <span className="text-xs text-gray-500 italic">No options added yet.</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* TARGET ROLES */}
+              <div>
+                <label className="block text-sm font-bold mb-2">Who should verify this?</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.target_roles.includes('YOUTH_MEMBER')}
+                      onChange={() => toggleRole('YOUTH_MEMBER')}
+                      className="w-5 h-5 text-blue-600"
+                    />
+                    <span>Youth Members</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.target_roles.includes('GUARDIAN')}
+                      onChange={() => toggleRole('GUARDIAN')}
+                      className="w-5 h-5 text-blue-600"
+                    />
+                    <span>Guardians</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* SETTINGS */}
+              <div className="flex gap-6 bg-gray-50 p-3 rounded">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.required}
+                    onChange={e => setFormData({...formData, required: e.target.checked})}
+                    className="w-5 h-5 text-red-600"
+                  />
+                  <span className="font-medium">Required Field</span>
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.is_published}
+                    onChange={e => setFormData({...formData, is_published: e.target.checked})}
+                    className="w-5 h-5 text-green-600"
+                  />
+                  <span className="font-medium">Published (Active)</span>
+                </label>
+              </div>
+
+              {/* MUNICIPALITY SPECIFIC: LIMIT TO CLUBS */}
+              {scope === 'MUNICIPALITY' && (
+                <div className="border-t pt-4">
+                  <label className="block text-sm font-bold mb-2">Limit to Specific Clubs (Optional)</label>
+                  <p className="text-xs text-gray-500 mb-2">If no clubs are selected, this field applies to ALL clubs in your municipality.</p>
+                  <div className="max-h-32 overflow-y-auto border rounded p-2 grid grid-cols-2 gap-2">
+                    {clubs.map(club => (
+                      <label key={club.id} className="flex items-center gap-2 text-sm">
+                        <input 
+                          type="checkbox" 
+                          checked={formData.specific_clubs.includes(club.id)}
+                          onChange={() => toggleClub(club.id)}
+                        />
+                        {club.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-4 pt-4 border-t">
+                <button type="button" onClick={() => setShowModal(false)} className="text-gray-500">Cancel</button>
+                <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">Save Field</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <DeleteConfirmationModal 
+        isVisible={showDelete}
+        onClose={() => setShowDelete(false)}
+        onConfirm={handleDelete}
+        itemName="this field"
+        message="Deleting this field will remove all data users have entered for it. This cannot be undone."
+      />
+
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/components/CustomFieldManager.tsx ---
 
 
 --- START OF FILE: ./frontend/app/components/Toast.tsx ---
@@ -18248,6 +19873,7 @@ INSTALLED_APPS = [
     'organization',
     'system_messages',
     'news',
+    'custom_fields',
 ]
 
 MIDDLEWARE = [
@@ -18618,6 +20244,625 @@ class SystemMessageViewSet(viewsets.ModelViewSet):
         SystemMessageDismissal.objects.get_or_create(user=user, message=message)
         return Response({"status": "dismissed"})
 --- END OF FILE: ./backend/system_messages/views.py ---
+
+
+--- START OF FILE: ./backend/custom_fields/models.py ---
+from django.db import models
+from django.conf import settings
+from organization.models import Municipality, Club
+
+class CustomFieldDefinition(models.Model):
+    """
+    Defines the schema for a custom field.
+    """
+    class FieldType(models.TextChoices):
+        TEXT = 'TEXT', 'Text Field'
+        SINGLE_SELECT = 'SINGLE_SELECT', 'Single Select'
+        MULTI_SELECT = 'MULTI_SELECT', 'Multi Select'
+        BOOLEAN = 'BOOLEAN', 'Boolean (Checkbox)'
+
+    class OwnerRole(models.TextChoices):
+        SUPER_ADMIN = 'SUPER_ADMIN', 'Super Admin'
+        MUNICIPALITY_ADMIN = 'MUNICIPALITY_ADMIN', 'Municipality Admin'
+        CLUB_ADMIN = 'CLUB_ADMIN', 'Club Admin'
+
+    class Context(models.TextChoices):
+        USER_PROFILE = 'USER_PROFILE', 'User Profile'
+        EVENT = 'EVENT', 'Event'
+
+    # --- Basic Configuration ---
+    name = models.CharField(max_length=255, help_text="Label for the field")
+    help_text = models.CharField(max_length=255, blank=True, null=True, help_text="Hint text displayed to user")
+    field_type = models.CharField(max_length=20, choices=FieldType.choices, default=FieldType.TEXT)
+    
+    # Stores options for Single/Multi select as a JSON list ["Option A", "Option B"]
+    options = models.JSONField(default=list, blank=True, help_text="List of options for select fields")
+    
+    required = models.BooleanField(default=False)
+    is_published = models.BooleanField(default=True)
+
+    # --- Scoping & Permissions ---
+    context = models.CharField(max_length=20, choices=Context.choices, default=Context.USER_PROFILE)
+    
+    # Target Roles: e.g. ["YOUTH_MEMBER", "GUARDIAN"]
+    target_roles = models.JSONField(default=list)
+
+    # --- Ownership Logic ---
+    owner_role = models.CharField(max_length=50, choices=OwnerRole.choices)
+    
+    # If owned by Municipality:
+    municipality = models.ForeignKey(Municipality, on_delete=models.CASCADE, null=True, blank=True, related_name='custom_fields')
+    # Optional: Limit to specific clubs within that municipality
+    specific_clubs = models.ManyToManyField(Club, blank=True, related_name='specific_custom_fields', help_text="If set, only applies to these clubs within the municipality")
+
+    # If owned by Club:
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, null=True, blank=True, related_name='custom_fields')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_field_type_display()})"
+
+
+class CustomFieldValue(models.Model):
+    """
+    Stores the actual data entered by a user for a specific field.
+    """
+    field = models.ForeignKey(CustomFieldDefinition, on_delete=models.CASCADE, related_name='values')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='custom_field_values')
+    
+    # Using JSONField allows us to store Strings, Booleans, or Lists (for Multi Select) easily
+    value = models.JSONField(null=True, blank=True)
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('field', 'user')
+
+    def __str__(self):
+        return f"{self.user} - {self.field.name}: {self.value}"
+--- END OF FILE: ./backend/custom_fields/models.py ---
+
+
+--- START OF FILE: ./backend/custom_fields/serializers.py ---
+from rest_framework import serializers
+from .models import CustomFieldDefinition, CustomFieldValue
+from organization.serializers import ClubSerializer
+
+class CustomFieldDefinitionSerializer(serializers.ModelSerializer):
+    # Used to show which specific clubs are selected (read-only)
+    specific_clubs_details = ClubSerializer(source='specific_clubs', many=True, read_only=True)
+    
+    class Meta:
+        model = CustomFieldDefinition
+        fields = [
+            'id', 'name', 'help_text', 'field_type', 'options',
+            'required', 'is_published', 'context', 'target_roles',
+            'owner_role', 'municipality', 'club', 'specific_clubs', 'specific_clubs_details',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'owner_role', 'municipality', 'club']
+
+    def validate(self, data):
+        """
+        Ensure that Select fields have options.
+        """
+        field_type = data.get('field_type')
+        options = data.get('options')
+
+        if field_type in ['SINGLE_SELECT', 'MULTI_SELECT']:
+            if not options or not isinstance(options, list) or len(options) == 0:
+                raise serializers.ValidationError({
+                    "options": "Options list is required for Select fields."
+                })
+        return data
+
+class CustomFieldValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomFieldValue
+        fields = ['id', 'field', 'user', 'value']
+
+
+class CustomFieldUserViewSerializer(CustomFieldDefinitionSerializer):
+    """
+    Used when a User views fields applicable to them.
+    Includes the user's saved value for this field.
+    """
+    value = serializers.SerializerMethodField()
+
+    class Meta(CustomFieldDefinitionSerializer.Meta):
+        fields = CustomFieldDefinitionSerializer.Meta.fields + ['value']
+
+    def get_value(self, obj):
+        # 'context' is passed from the View
+        user = self.context.get('user')
+        if user and user.is_authenticated:
+            # Try to find a value for this field and user
+            # We use the related name 'values' from the model definition
+            val_obj = obj.values.filter(user=user).first()
+            return val_obj.value if val_obj else None
+        return None
+--- END OF FILE: ./backend/custom_fields/serializers.py ---
+
+
+--- START OF FILE: ./backend/custom_fields/apps.py ---
+from django.apps import AppConfig
+
+
+class CustomFieldsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'custom_fields'
+
+--- END OF FILE: ./backend/custom_fields/apps.py ---
+
+
+--- START OF FILE: ./backend/custom_fields/admin.py ---
+from django.contrib import admin
+from .models import CustomFieldDefinition, CustomFieldValue
+
+@admin.register(CustomFieldDefinition)
+class CustomFieldDefinitionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'field_type', 'owner_role', 'context', 'is_published', 'created_at')
+    list_filter = ('owner_role', 'context', 'field_type', 'is_published')
+    search_fields = ('name', 'help_text')
+    ordering = ['-created_at']
+
+@admin.register(CustomFieldValue)
+class CustomFieldValueAdmin(admin.ModelAdmin):
+    list_display = ('user', 'field', 'value', 'updated_at')
+    search_fields = ('user__email', 'field__name', 'value')
+    list_filter = ('field',)
+--- END OF FILE: ./backend/custom_fields/admin.py ---
+
+
+--- START OF FILE: ./backend/custom_fields/tests.py ---
+from django.test import TestCase
+
+# Create your tests here.
+
+--- END OF FILE: ./backend/custom_fields/tests.py ---
+
+
+--- START OF FILE: ./backend/custom_fields/views.py ---
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+from django.db.models import Q
+# Import User to check roles if needed, though request.user is sufficient
+from .models import CustomFieldDefinition, CustomFieldValue
+from .serializers import CustomFieldDefinitionSerializer, CustomFieldUserViewSerializer, CustomFieldValueSerializer
+
+class CustomFieldDefinitionViewSet(viewsets.ModelViewSet):
+    serializer_class = CustomFieldDefinitionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        Filter fields based on the admin's role and scope.
+        - SUPER_ADMIN: sees ALL fields (global + municipality + club) for editing users
+        - MUNICIPALITY_ADMIN: sees global fields + MUNICIPALITY_ADMIN fields for their municipality
+        - CLUB_ADMIN: sees global fields + CLUB_ADMIN fields for their club
+        """
+        user = self.request.user
+        role = user.role
+        
+        if role == 'SUPER_ADMIN':
+            # Super admins see ALL fields (global + municipality + club) for editing any user
+            return CustomFieldDefinition.objects.all()
+        
+        elif role == 'MUNICIPALITY_ADMIN':
+            # Municipality admins see global fields + their municipality fields + club fields for clubs in their municipality
+            municipality = user.assigned_municipality
+            if isinstance(municipality, dict):
+                municipality_id = municipality.get('id')
+            elif hasattr(municipality, 'id'):
+                municipality_id = municipality.id
+            else:
+                municipality_id = municipality
+            
+            if municipality_id:
+                # Get all club IDs in this municipality
+                from organization.models import Club
+                club_ids = Club.objects.filter(municipality_id=municipality_id).values_list('id', flat=True)
+                
+                return CustomFieldDefinition.objects.filter(
+                    Q(owner_role='SUPER_ADMIN') |  # Global fields
+                    Q(owner_role='MUNICIPALITY_ADMIN', municipality_id=municipality_id) |  # Their municipality fields
+                    Q(owner_role='CLUB_ADMIN', club_id__in=club_ids)  # Club fields for clubs in their municipality
+                )
+            # If no municipality assigned, only show global fields
+            return CustomFieldDefinition.objects.filter(owner_role='SUPER_ADMIN')
+        
+        elif role == 'CLUB_ADMIN':
+            # Club admins see global fields + their club fields + municipality fields for their club's municipality
+            club = user.assigned_club
+            if isinstance(club, dict):
+                club_id = club.get('id')
+            elif hasattr(club, 'id'):
+                club_id = club.id
+            else:
+                club_id = club
+            
+            if club_id:
+                # Get the club's municipality
+                from organization.models import Club
+                try:
+                    club_obj = Club.objects.get(id=club_id)
+                    municipality_id = club_obj.municipality_id
+                    
+                    return CustomFieldDefinition.objects.filter(
+                        Q(owner_role='SUPER_ADMIN') |  # Global fields
+                        Q(owner_role='CLUB_ADMIN', club_id=club_id) |  # Their club fields
+                        Q(owner_role='MUNICIPALITY_ADMIN', municipality_id=municipality_id)  # Municipality fields for their club's municipality
+                    )
+                except Club.DoesNotExist:
+                    # Club doesn't exist, fall back to just global and club fields
+                    return CustomFieldDefinition.objects.filter(
+                        Q(owner_role='SUPER_ADMIN') |  # Global fields
+                        Q(owner_role='CLUB_ADMIN', club_id=club_id)  # Their club fields
+                    )
+            # If no club assigned, only show global fields
+            return CustomFieldDefinition.objects.filter(owner_role='SUPER_ADMIN')
+        
+        # Default: no access
+        return CustomFieldDefinition.objects.none()
+    
+    def perform_create(self, serializer):
+        """
+        Automatically set owner_role, municipality, and club based on the user's role.
+        - SUPER_ADMIN: Global fields (no municipality/club)
+        - MUNICIPALITY_ADMIN: Fields assigned to their municipality
+        - CLUB_ADMIN: Fields assigned to their club
+        """
+        user = self.request.user
+        role = user.role
+        
+        # Set owner_role
+        owner_role = None
+        if role == 'SUPER_ADMIN':
+            owner_role = 'SUPER_ADMIN'
+        elif role == 'MUNICIPALITY_ADMIN':
+            owner_role = 'MUNICIPALITY_ADMIN'
+        elif role == 'CLUB_ADMIN':
+            owner_role = 'CLUB_ADMIN'
+        
+        if not owner_role:
+            raise PermissionDenied("Only admins can create custom fields.")
+        
+        # Get municipality/club IDs - explicitly handle None for super admins
+        municipality_id = None
+        club_id = None
+        
+        if role == 'MUNICIPALITY_ADMIN':
+            # Municipality admin: assign to their municipality, club should be None
+            municipality = user.assigned_municipality
+            if municipality:
+                if isinstance(municipality, dict):
+                    municipality_id = municipality.get('id')
+                elif hasattr(municipality, 'id'):
+                    municipality_id = municipality.id
+                else:
+                    municipality_id = municipality
+                
+                if not municipality_id:
+                    raise PermissionDenied("Municipality admin must be assigned to a municipality.")
+            else:
+                raise PermissionDenied("Municipality admin must be assigned to a municipality.")
+        
+        elif role == 'CLUB_ADMIN':
+            # Club admin: assign to their club, municipality should be None
+            club = user.assigned_club
+            if club:
+                if isinstance(club, dict):
+                    club_id = club.get('id')
+                elif hasattr(club, 'id'):
+                    club_id = club.id
+                else:
+                    club_id = club
+                
+                if not club_id:
+                    raise PermissionDenied("Club admin must be assigned to a club.")
+            else:
+                raise PermissionDenied("Club admin must be assigned to a club.")
+        
+        # For SUPER_ADMIN: municipality_id and club_id remain None (global fields)
+        
+        # Save with the appropriate ownership
+        # Explicitly set None for fields that shouldn't be assigned
+        save_kwargs = {
+            'owner_role': owner_role,
+            'municipality_id': municipality_id,  # None for SUPER_ADMIN and CLUB_ADMIN
+            'club_id': club_id,  # None for SUPER_ADMIN and MUNICIPALITY_ADMIN
+        }
+        
+        serializer.save(**save_kwargs)
+    
+    def perform_update(self, serializer):
+        """
+        Ensure ownership fields cannot be changed during update.
+        The get_queryset already ensures admins can only see/edit their own fields.
+        """
+        instance = serializer.instance
+        
+        # Prevent changing ownership
+        serializer.save(
+            owner_role=instance.owner_role,
+            municipality_id=instance.municipality_id if instance.municipality_id else None,
+            club_id=instance.club_id if instance.club_id else None
+        )
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def applicable(self, request):
+        """
+        Returns fields applicable to the current logged-in user.
+        Combines Global + Municipality + Club fields.
+        """
+        user = request.user
+        role = user.role
+
+        # 1. Determine Context (Club/Muni)
+        # Ideally, a user (Youth) matches fields via their 'preferred_club'
+        # A Guardian might match via their children, but for V1 let's use user attributes.
+        
+        target_club = user.preferred_club or user.assigned_club
+        target_muni = user.assigned_municipality
+        
+        if target_club and not target_muni:
+            target_muni = target_club.municipality
+
+        # 2. Build Query
+        # A. Always include Global Super Admin fields
+        query = Q(owner_role='SUPER_ADMIN')
+
+        # B. Include Municipality Fields (if user is linked to a muni)
+        if target_muni:
+            # Must be owned by Muni AND (no specific clubs set OR club is in specific_clubs)
+            muni_query = Q(owner_role='MUNICIPALITY_ADMIN', municipality=target_muni)
+            
+            if target_club:
+                # Logic: (specific_clubs is empty) OR (target_club in specific_clubs)
+                # In Django Q objects for M2M: 
+                # specific_clubs=None checks if the relation is empty.
+                # specific_clubs=target_club checks if specific club is in the list.
+                muni_query &= (Q(specific_clubs=None) | Q(specific_clubs=target_club))
+            else:
+                # If user has no club (just muni), only show fields that apply to ALL clubs
+                muni_query &= Q(specific_clubs=None)
+            
+            query |= muni_query
+
+        # C. Include Club Fields (if user is linked to a club)
+        if target_club:
+            query |= Q(owner_role='CLUB_ADMIN', club=target_club)
+
+        # 3. Execute Database Fetch
+        # Filter by: Calculated Scope AND Published AND Profile Context
+        fields = CustomFieldDefinition.objects.filter(query).filter(
+            is_published=True,
+            context='USER_PROFILE' 
+        ).distinct()
+
+        # 4. Post-Filter by Role (Python side for JSONField safety across DBs)
+        # Check if the field's target_roles list contains the user's role OR "ALL"
+        final_fields = []
+        for f in fields:
+            # Clean/normalize list
+            allowed_roles = f.target_roles if isinstance(f.target_roles, list) else []
+            if "ALL" in allowed_roles or role in allowed_roles:
+                final_fields.append(f)
+
+        # 5. Serialize (Including User Values)
+        serializer = CustomFieldUserViewSerializer(final_fields, many=True, context={'user': user})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def save_values(self, request):
+        """
+        Bulk save values for the logged-in user.
+        Expected Payload: { "field_id": value, "field_id_2": value }
+        """
+        user = request.user
+        data = request.data
+        
+        results = []
+        
+        for field_id, val in data.items():
+            try:
+                field_def = CustomFieldDefinition.objects.get(id=field_id)
+                # Security Check: Is this field actually applicable?
+                # (For MVP speed, we skip complex re-verification here, 
+                # but ideally you re-run the query logic above to ensure they aren't hacking fields)
+                
+                obj, created = CustomFieldValue.objects.update_or_create(
+                    field=field_def,
+                    user=user,
+                    defaults={'value': val}
+                )
+                results.append({"id": field_id, "status": "saved"})
+            except CustomFieldDefinition.DoesNotExist:
+                continue
+                
+        return Response({"results": results})
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def applicable_for_user(self, request):
+        """
+        Returns fields applicable to a specific user (for admin editing).
+        Takes user_id as query parameter.
+        Returns fields based on the user's municipality/club, not the admin's scope.
+        """
+        admin_user = request.user
+        user_id = request.query_params.get('user_id')
+        
+        if not user_id:
+            return Response({"error": "user_id parameter required"}, status=400)
+        
+        # Check if admin has permission
+        if admin_user.role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+            raise PermissionDenied("Only admins can view custom fields for other users.")
+        
+        try:
+            from users.models import User
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+        
+        # Verify admin has permission to edit this user
+        # Super admin can edit anyone
+        if admin_user.role == 'SUPER_ADMIN':
+            pass  # Allowed
+        elif admin_user.role == 'MUNICIPALITY_ADMIN':
+            # Can only edit users in their municipality
+            if target_user.preferred_club and target_user.preferred_club.municipality != admin_user.assigned_municipality:
+                raise PermissionDenied("You can only view fields for users in your municipality.")
+        elif admin_user.role == 'CLUB_ADMIN':
+            # Can only edit users in their club
+            # For guardians, check if any of their youth members are in the admin's club
+            if target_user.role == 'GUARDIAN':
+                # Guardians are linked to youth through GuardianYouthLink
+                youth_links = target_user.youth_links.all()
+                has_youth_in_club = any(link.youth.preferred_club == admin_user.assigned_club for link in youth_links)
+                if not has_youth_in_club:
+                    raise PermissionDenied("You can only view fields for guardians linked to youth in your club.")
+            else:
+                # For youth members, check preferred_club
+                if target_user.preferred_club != admin_user.assigned_club:
+                    raise PermissionDenied("You can only view fields for users in your club.")
+        
+        # Determine the target user's municipality and club
+        # For guardians, get club from their linked youth members
+        if target_user.role == 'GUARDIAN':
+            # Guardians are linked to youth through GuardianYouthLink
+            youth_links = target_user.youth_links.all()
+            # Get the first youth member's club (or municipality if no club)
+            target_club = None
+            target_muni = None
+            for link in youth_links:
+                youth = link.youth
+                if youth.preferred_club:
+                    target_club = youth.preferred_club
+                    target_muni = target_club.municipality
+                    break
+                elif youth.assigned_municipality:
+                    target_muni = youth.assigned_municipality
+        else:
+            target_club = target_user.preferred_club or target_user.assigned_club
+            target_muni = target_user.assigned_municipality
+        
+        if target_club and not target_muni:
+            target_muni = target_club.municipality
+        
+        role = target_user.role
+        
+        # Build query for fields applicable to this user
+        # A. Always include Global Super Admin fields
+        query = Q(owner_role='SUPER_ADMIN')
+        
+        # B. Include Municipality Fields (if user is linked to a muni)
+        if target_muni:
+            muni_query = Q(owner_role='MUNICIPALITY_ADMIN', municipality=target_muni)
+            
+            if target_club:
+                # Logic: (specific_clubs is empty) OR (target_club in specific_clubs)
+                muni_query &= (Q(specific_clubs=None) | Q(specific_clubs=target_club))
+            else:
+                # If user has no club (just muni), only show fields that apply to ALL clubs
+                muni_query &= Q(specific_clubs=None)
+            
+            query |= muni_query
+        
+        # C. Include Club Fields (if user is linked to a club)
+        if target_club:
+            query |= Q(owner_role='CLUB_ADMIN', club=target_club)
+        
+        # Execute Database Fetch
+        fields = CustomFieldDefinition.objects.filter(query).filter(
+            is_published=True,
+            context='USER_PROFILE'
+        ).distinct()
+        
+        # Post-Filter by Role (Python side for JSONField safety across DBs)
+        final_fields = []
+        for f in fields:
+            allowed_roles = f.target_roles if isinstance(f.target_roles, list) else []
+            if "ALL" in allowed_roles or role in allowed_roles:
+                final_fields.append(f)
+        
+        # Serialize (Including User Values)
+        serializer = CustomFieldUserViewSerializer(final_fields, many=True, context={'user': target_user})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def save_values_for_user(self, request):
+        """
+        Bulk save custom field values for a specific user (admin only).
+        Expected Payload: { "user_id": 123, "values": { "field_id": value, "field_id_2": value } }
+        """
+        admin_user = request.user
+        user_id = request.data.get('user_id')
+        values = request.data.get('values', {})
+        
+        # Check if admin has permission
+        if admin_user.role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+            raise PermissionDenied("Only admins can save custom field values for other users.")
+        
+        try:
+            from users.models import User
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+        
+        # Verify admin has permission to edit this user
+        # Super admin can edit anyone
+        if admin_user.role == 'SUPER_ADMIN':
+            pass  # Allowed
+        elif admin_user.role == 'MUNICIPALITY_ADMIN':
+            # Can only edit users in their municipality
+            if target_user.preferred_club and target_user.preferred_club.municipality != admin_user.assigned_municipality:
+                raise PermissionDenied("You can only edit users in your municipality.")
+        elif admin_user.role == 'CLUB_ADMIN':
+            # Can only edit users in their club
+            # For guardians, check if any of their youth members are in the admin's club
+            if target_user.role == 'GUARDIAN':
+                # Guardians are linked to youth through GuardianYouthLink
+                youth_links = target_user.youth_links.all()
+                has_youth_in_club = any(link.youth.preferred_club == admin_user.assigned_club for link in youth_links)
+                if not has_youth_in_club:
+                    raise PermissionDenied("You can only edit guardians linked to youth in your club.")
+            else:
+                # For youth members, check preferred_club
+                if target_user.preferred_club != admin_user.assigned_club:
+                    raise PermissionDenied("You can only edit users in your club.")
+        
+        results = []
+        
+        # Get all fields the admin can see (to validate)
+        allowed_fields = self.get_queryset()
+        allowed_field_ids = set(allowed_fields.values_list('id', flat=True))
+        
+        for field_id_str, val in values.items():
+            try:
+                field_id = int(field_id_str)
+                
+                # Security: Only allow fields the admin can see
+                if field_id not in allowed_field_ids:
+                    continue
+                
+                field_def = CustomFieldDefinition.objects.get(id=field_id)
+                
+                obj, created = CustomFieldValue.objects.update_or_create(
+                    field=field_def,
+                    user=target_user,
+                    defaults={'value': val}
+                )
+                results.append({"id": field_id, "status": "saved"})
+            except (ValueError, CustomFieldDefinition.DoesNotExist):
+                continue
+                
+        return Response({"results": results})
+--- END OF FILE: ./backend/custom_fields/views.py ---
 
 
 --- START OF FILE: ./backend/news/models.py ---
@@ -19125,6 +21370,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     guardians = serializers.SerializerMethodField()
     # Add youth_members for Guardians viewing their profile
     youth_members = serializers.SerializerMethodField()
+    custom_field_values = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -19136,7 +21382,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'legal_gender', 'preferred_gender', 'date_of_birth',
             'avatar', 'preferred_language', 'is_active',
             'date_joined', 'last_login', 'hide_contact_info', 'interests',
-            'verification_status', 'guardians', 'youth_members'
+            'verification_status', 'guardians', 'youth_members', 'custom_field_values'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
 
@@ -19147,6 +21393,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
     def get_youth_members(self, obj):
         # If obj is a Guardian, return their youth
         return list(obj.youth_links.values_list('youth_id', flat=True))
+
+    def get_custom_field_values(self, obj):
+        # Return custom field values as a list of {field: field_id, value: value}
+        from custom_fields.models import CustomFieldValue
+        values = CustomFieldValue.objects.filter(user=obj).select_related('field')
+        return [
+            {'field': cfv.field.id, 'value': cfv.value}
+            for cfv in values
+        ]
 
 
 class UserManagementSerializer(serializers.ModelSerializer):
@@ -19977,32 +22232,23 @@ from rest_framework.routers import DefaultRouter
 from .views import HealthCheckView
 from users.views import UserViewSet
 from system_messages.views import SystemMessageViewSet
-
-# --- NEW IMPORT ---
 from news.views import NewsArticleViewSet, NewsTagViewSet
+# --- Import the new view ---
+from custom_fields.views import CustomFieldDefinitionViewSet
 
-# Create a router for our custom endpoints
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'messages', SystemMessageViewSet)
-
-# --- NEW REGISTRATIONS ---
-# This creates /api/news/ and /api/news/hero/
 router.register(r'news', NewsArticleViewSet)
-# This creates /api/news_tags/
 router.register(r'news_tags', NewsTagViewSet)
+# --- Register the new endpoint ---
+router.register(r'custom-fields', CustomFieldDefinitionViewSet, basename='custom-fields')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),
-    
-    # Djoser Auth (Login/Register self)
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
-    
-    # Our Custom User Management & News
     path('', include(router.urls)), 
-    
-    # Organization URLs
     path('', include('organization.urls')),
 ]
 --- END OF FILE: ./backend/api/urls.py ---

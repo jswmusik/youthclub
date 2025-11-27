@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
+import api from '../../../lib/api';
 
 const getInitials = (first?: string | null, last?: string | null) => {
   const firstInitial = first?.charAt(0)?.toUpperCase() || '';
@@ -15,10 +16,33 @@ const getInitials = (first?: string | null, last?: string | null) => {
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   useEffect(() => {
     refreshMessageCount();
+    refreshPendingRequestsCount();
   }, [refreshMessageCount]);
+
+  const refreshPendingRequestsCount = async () => {
+    if (!user) {
+      setPendingRequestsCount(0);
+      return;
+    }
+    
+    try {
+      const res = await api.get('/group-requests/');
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setPendingRequestsCount(data.length);
+    } catch (err: any) {
+      // Silently handle 401 (unauthorized) - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setPendingRequestsCount(0);
+        return;
+      }
+      console.error('Failed to load pending requests count', err);
+      setPendingRequestsCount(0);
+    }
+  };
 
     const navigation = [
         { name: 'Overview', href: '/admin/super' },
@@ -35,6 +59,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'Manage Municipalities', href: '/admin/super/municipalities' },
         { name: 'Manage Clubs', href: '/admin/super/clubs' },
         { name: 'System Messages', href: '/admin/super/messages' },
+        { name: 'Manage Groups', href: '/admin/super/groups' },
+        { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true },
         { name: 'Custom Fields', href: '/admin/super/custom-fields' },
       ];
 
@@ -80,7 +106,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 }`}
               >
                 <span>{item.name}</span>
-                {(item as any).showBadge && messageCount > 0 && (
+                {(item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+                {(item as any).showBadge && !item.href.includes('/requests') && messageCount > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
                     {messageCount}
                   </span>

@@ -40,10 +40,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         try {
           const res = await api.get('/auth/users/me/');
-          setUser(res.data);
+          const userData = res.data;
+          setUser(userData);
+          // Refresh message count after user is loaded
+          try {
+            const msgRes = await api.get('/messages/active_list/');
+            const list = Array.isArray(msgRes.data) ? msgRes.data : [];
+            setMessageCount(list.length);
+          } catch (msgErr: any) {
+            // Silently handle 401 for message count
+            if (msgErr?.response?.status !== 401) {
+              console.error('Failed to load message count', msgErr);
+            }
+            setMessageCount(0);
+          }
         } catch (error) {
           console.error("Session expired", error);
           Cookies.remove('access_token');
+          setMessageCount(0);
         }
       }
       setLoading(false);
@@ -52,12 +66,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshMessageCount = async () => {
+    // Only fetch message count if user is authenticated
+    if (!user) {
+      setMessageCount(0);
+      return;
+    }
+    
     try {
       const res = await api.get('/messages/active_list/');
       const list = Array.isArray(res.data) ? res.data : [];
       setMessageCount(list.length);
-    } catch (err) {
+    } catch (err: any) {
+      // Silently handle 401 (unauthorized) - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setMessageCount(0);
+        return;
+      }
       console.error('Failed to load message count', err);
+      setMessageCount(0);
     }
   };
 

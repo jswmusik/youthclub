@@ -4,16 +4,19 @@ from .views import HealthCheckView
 from users.views import UserViewSet
 from system_messages.views import SystemMessageViewSet
 from news.views import NewsArticleViewSet, NewsTagViewSet
-# --- Import the new view ---
 from custom_fields.views import CustomFieldDefinitionViewSet
+# Update Import
+from groups.views import GroupViewSet, GroupMembershipViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'messages', SystemMessageViewSet)
 router.register(r'news', NewsArticleViewSet)
 router.register(r'news_tags', NewsTagViewSet)
-# --- Register the new endpoint ---
 router.register(r'custom-fields', CustomFieldDefinitionViewSet, basename='custom-fields')
+router.register(r'groups', GroupViewSet, basename='groups')
+# NEW
+router.register(r'group-requests', GroupMembershipViewSet, basename='group-requests')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),
