@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface YouthOption { id: number; first_name: string; last_name: string; email: string; grade: number; }
 
@@ -183,6 +184,13 @@ function GuardianViewPageContent() {
               <p className="text-gray-500">No youth members connected to this guardian.</p>
             </div>
           )}
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={user.id}
+            targetRole="GUARDIAN"
+            context="USER_PROFILE"
+          />
         </div>
 
         {/* SIDEBAR */}

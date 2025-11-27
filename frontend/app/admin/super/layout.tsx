@@ -35,6 +35,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'Manage Municipalities', href: '/admin/super/municipalities' },
         { name: 'Manage Clubs', href: '/admin/super/clubs' },
         { name: 'System Messages', href: '/admin/super/messages' },
+        { name: 'Custom Fields', href: '/admin/super/custom-fields' },
       ];
 
   return (

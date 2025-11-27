@@ -4,9 +4,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../lib/api';
+import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface YouthOption {
   id: number;
@@ -35,6 +37,8 @@ function ManageMunicipalityGuardiansPageContent() {
   });
 
   const [youthList, setYouthList] = useState<YouthOption[]>([]);
+  const { user } = useAuth();
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -153,7 +157,7 @@ function ManageMunicipalityGuardiansPageContent() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (guardian: any) => {
+  const handleOpenEdit = async (guardian: any) => {
     setIsEditing(true);
     setEditUserId(guardian.id);
     setFormData({
@@ -170,6 +174,21 @@ function ManageMunicipalityGuardiansPageContent() {
     setAvatarPreview(guardian.avatar ? getMediaUrl(guardian.avatar) : null);
     setYouthSearchTerm('');
     setShowYouthDropdown(false);
+    
+    // Load custom field values for this user
+    try {
+      const userRes = await api.get(`/users/${guardian.id}/`);
+      const customFieldValuesData = userRes.data.custom_field_values || [];
+      const values: Record<number, any> = {};
+      customFieldValuesData.forEach((cfv: any) => {
+        values[cfv.field] = cfv.value;
+      });
+      setCustomFieldValues(values);
+    } catch (err) {
+      console.error('Failed to load custom field values:', err);
+      setCustomFieldValues({});
+    }
+    
     setShowModal(true);
   };
 
@@ -187,12 +206,27 @@ function ManageMunicipalityGuardiansPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({ message: 'Guardian updated successfully!', type: 'success', isVisible: true });
       } else {
-        await api.post('/users/', data, config);
+        const createRes = await api.post('/users/', data, config);
+        userId = createRes.data.id;
         setToast({ message: 'Guardian created successfully!', type: 'success', isVisible: true });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -638,6 +672,21 @@ function ManageMunicipalityGuardiansPageContent() {
                 <input type="file" accept="image/*" className="w-full border p-2 rounded" onChange={handleAvatarChange} />
                 {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
               </div>
+
+              <CustomFieldsForm
+                targetRole="GUARDIAN"
+                context="USER_PROFILE"
+                values={customFieldValues}
+                onChange={(fieldId, value) => {
+                  setCustomFieldValues((prev) => ({
+                    ...prev,
+                    [fieldId]: value,
+                  }));
+                }}
+                userId={isEditing ? editUserId : null}
+                userMunicipalityId={user?.assigned_municipality ? (typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality) : null}
+                userClubId={null}
+              />
 
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <button type="button" onClick={() => setShowModal(false)} className="text-gray-500">

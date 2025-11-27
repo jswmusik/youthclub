@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface YouthOption {
   id: number;
@@ -164,6 +165,13 @@ function MunicipalityGuardianViewContent() {
               </div>
             )}
           </section>
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={guardian.id}
+            targetRole="GUARDIAN"
+            context="USER_PROFILE"
+          />
         </div>
 
         <aside className="space-y-6">

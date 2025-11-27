@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'organization',
     'system_messages',
     'news',
+    'custom_fields',
 ]
 
 MIDDLEWARE = [

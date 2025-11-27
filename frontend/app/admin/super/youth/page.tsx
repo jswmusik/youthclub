@@ -7,6 +7,7 @@ import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface Option { id: number; name: string; [key: string]: any; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -70,6 +71,7 @@ function ManageYouthPageContent() {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   // --- LOAD DATA ---
   useEffect(() => {
@@ -188,6 +190,7 @@ function ManageYouthPageContent() {
     setIsEditing(false);
     setEditUserId(null);
     setFormData(initialFormState);
+    setCustomFieldValues({});
     setAvatarFile(null);
     setAvatarPreview(null);
     setGuardianSearchTerm('');
@@ -214,7 +217,9 @@ function ManageYouthPageContent() {
       phone_number: user.phone_number || '', 
       date_of_birth: user.date_of_birth || '',
       grade: user.grade || '', 
-      preferred_club: user.preferred_club || '',
+      preferred_club: typeof user.preferred_club === 'object' 
+        ? (user.preferred_club?.id?.toString() || '')
+        : (user.preferred_club?.toString() || ''),
       verification_status: user.verification_status || 'UNVERIFIED',
       interests: interestIds,
       guardians: guardianIds
@@ -249,20 +254,35 @@ function ManageYouthPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({
           message: 'Youth member updated successfully!',
           type: 'success',
           isVisible: true,
         });
       } else {
-        await api.post('/users/', data, config);
+        const res = await api.post('/users/', data, config);
+        userId = res.data.id;
         setToast({
           message: 'Youth member created successfully!',
           type: 'success',
           isVisible: true,
         });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -1146,6 +1166,22 @@ function ManageYouthPageContent() {
                 <input type="file" accept="image/*" className="w-full border p-2 rounded" onChange={handleAvatarChange} />
                 {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
               </div>
+
+              {/* Custom Fields */}
+              <CustomFieldsForm
+                targetRole="YOUTH_MEMBER"
+                context="USER_PROFILE"
+                values={customFieldValues}
+                onChange={(fieldId, value) => {
+                  setCustomFieldValues((prev) => ({
+                    ...prev,
+                    [fieldId]: value,
+                  }));
+                }}
+                userId={isEditing ? editUserId : null}
+                userMunicipalityId={null}
+                userClubId={formData.preferred_club ? Number(formData.preferred_club) : null}
+              />
 
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <button type="button" onClick={() => setShowModal(false)} className="text-gray-500">Cancel</button>

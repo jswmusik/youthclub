@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
+import CustomFieldsDisplay from '../../../../components/CustomFieldsDisplay';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -201,6 +202,13 @@ function YouthViewPageContent() {
               </div>
             </section>
           )}
+
+          {/* CUSTOM FIELDS */}
+          <CustomFieldsDisplay
+            userId={youth.id}
+            targetRole="YOUTH_MEMBER"
+            context="USER_PROFILE"
+          />
         </div>
 
         <aside className="space-y-6">

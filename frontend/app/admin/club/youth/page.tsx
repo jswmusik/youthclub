@@ -8,6 +8,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import CustomFieldsForm from '../../../components/CustomFieldsForm';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -67,6 +68,7 @@ function ManageClubYouthPageContent() {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
   useEffect(() => {
     fetchDropdowns();
@@ -151,6 +153,7 @@ function ManageClubYouthPageContent() {
     setIsEditing(false);
     setEditUserId(null);
     setFormData(initialFormState);
+    setCustomFieldValues({});
     setAvatarFile(null);
     setAvatarPreview(null);
     setGuardianSearchTerm('');
@@ -160,7 +163,7 @@ function ManageClubYouthPageContent() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (youth: any) => {
+  const handleOpenEdit = async (youth: any) => {
     setIsEditing(true);
     setEditUserId(youth.id);
     setFormData({
@@ -185,6 +188,21 @@ function ManageClubYouthPageContent() {
     setInterestSearchTerm('');
     setShowGuardianDropdown(false);
     setShowInterestDropdown(false);
+    
+    // Load custom field values for this user
+    try {
+      const userRes = await api.get(`/users/${youth.id}/`);
+      const customFieldValuesData = userRes.data.custom_field_values || [];
+      const values: Record<number, any> = {};
+      customFieldValuesData.forEach((cfv: any) => {
+        values[cfv.field] = cfv.value;
+      });
+      setCustomFieldValues(values);
+    } catch (err) {
+      console.error('Failed to load custom field values:', err);
+      setCustomFieldValues({});
+    }
+    
     setShowModal(true);
   };
 
@@ -204,12 +222,27 @@ function ManageClubYouthPageContent() {
       if (avatarFile) data.append('avatar', avatarFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      let userId: number;
       if (isEditing && editUserId) {
         await api.patch(`/users/${editUserId}/`, data, config);
+        userId = editUserId;
         setToast({ message: 'Youth updated successfully!', type: 'success', isVisible: true });
       } else {
-        await api.post('/users/', data, config);
+        const res = await api.post('/users/', data, config);
+        userId = res.data.id;
         setToast({ message: 'Youth created successfully!', type: 'success', isVisible: true });
+      }
+
+      // Save custom field values
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          await api.post('/custom-fields/save_values_for_user/', {
+            user_id: userId,
+            values: customFieldValues,
+          });
+        } catch (err) {
+          console.error('Failed to save custom field values:', err);
+        }
       }
 
       setShowModal(false);
@@ -734,6 +767,22 @@ function ManageClubYouthPageContent() {
                     </div>
 
                     <div><label className="block text-sm font-bold mb-2">Avatar</label><input type="file" className="w-full border p-2 rounded" onChange={handleAvatarChange} /></div>
+
+                    {/* Custom Fields */}
+                    <CustomFieldsForm
+                      targetRole="YOUTH_MEMBER"
+                      context="USER_PROFILE"
+                      values={customFieldValues}
+                      onChange={(fieldId, value) => {
+                        setCustomFieldValues((prev) => ({
+                          ...prev,
+                          [fieldId]: value,
+                        }));
+                      }}
+                      userId={isEditing ? editUserId : null}
+                      userMunicipalityId={null}
+                      userClubId={user?.assigned_club || null}
+                    />
 
                     <div className="flex justify-end gap-4 pt-4 border-t">
                         <button type="button" onClick={()=>setShowModal(false)} className="text-gray-500">Cancel</button>

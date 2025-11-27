@@ -9,6 +9,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     guardians = serializers.SerializerMethodField()
     # Add youth_members for Guardians viewing their profile
     youth_members = serializers.SerializerMethodField()
+    custom_field_values = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -20,7 +21,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'legal_gender', 'preferred_gender', 'date_of_birth',
             'avatar', 'preferred_language', 'is_active',
             'date_joined', 'last_login', 'hide_contact_info', 'interests',
-            'verification_status', 'guardians', 'youth_members'
+            'verification_status', 'guardians', 'youth_members', 'custom_field_values'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
 
@@ -31,6 +32,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
     def get_youth_members(self, obj):
         # If obj is a Guardian, return their youth
         return list(obj.youth_links.values_list('youth_id', flat=True))
+
+    def get_custom_field_values(self, obj):
+        # Return custom field values as a list of {field: field_id, value: value}
+        from custom_fields.models import CustomFieldValue
+        values = CustomFieldValue.objects.filter(user=obj).select_related('field')
+        return [
+            {'field': cfv.field.id, 'value': cfv.value}
+            for cfv in values
+        ]
 
 
 class UserManagementSerializer(serializers.ModelSerializer):
