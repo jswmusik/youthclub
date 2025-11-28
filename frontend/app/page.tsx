@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link'; // We need this for navigation
-import { Club } from './types';
+import { Club } from '../types/organization';
 import { getMediaUrl } from './utils';
 import { useAuth } from '../context/AuthContext'; // Import Auth
 

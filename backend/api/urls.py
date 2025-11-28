@@ -8,6 +8,8 @@ from custom_fields.views import CustomFieldDefinitionViewSet
 # Update Import
 from groups.views import GroupViewSet, GroupMembershipViewSet
 from rewards.views import RewardViewSet
+# Add this line at the top with other imports
+from posts.views import PostViewSet, PostCommentViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -19,6 +21,9 @@ router.register(r'groups', GroupViewSet, basename='groups')
 # NEW
 router.register(r'group-requests', GroupMembershipViewSet, basename='group-requests')
 router.register(r'rewards', RewardViewSet, basename='rewards')
+# --- ADD THESE TWO LINES ---
+router.register(r'posts', PostViewSet, basename='posts')
+router.register(r'post-comments', PostCommentViewSet, basename='post-comments')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),

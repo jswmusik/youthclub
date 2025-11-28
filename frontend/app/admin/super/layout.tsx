@@ -53,6 +53,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'News Management', href: '/admin/super/news' }, 
         { name: 'News Tags', href: '/admin/super/news/tags' },
         { name: 'News Feed', href: '/admin/super/news-feed' },
+        { name: 'Manage Posts', href: '/admin/super/posts' },
         // ------------------------
         { name: 'Manage Interests', href: '/admin/super/interests' },
         { name: 'Manage Countries', href: '/admin/super/countries' },

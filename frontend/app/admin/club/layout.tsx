@@ -51,6 +51,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'Manage Youth', href: '/admin/club/youth' },
     { name: 'Manage Guardians', href: '/admin/club/guardians' },
     { name: 'News Feed', href: '/admin/club/news-feed' },
+    { name: 'Manage Posts', href: '/admin/club/posts' },
     { name: 'Groups', href: '/admin/club/groups' },
     { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true },
     { name: 'Manage Rewards', href: '/admin/club/rewards' },

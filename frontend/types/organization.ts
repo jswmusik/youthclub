@@ -1,3 +1,5 @@
+// frontend/types/organization.ts
+
 export interface OpeningHour {
     id: number;
     weekday: number;
@@ -6,9 +8,9 @@ export interface OpeningHour {
     open_time: string;
     close_time: string;
     title: string;
-  }
-  
-  export interface Club {
+}
+
+export interface Club {
     id: number;
     name: string;
     municipality: number;
@@ -22,4 +24,5 @@ export interface OpeningHour {
     allowed_age_groups: string;
     club_categories: string;
     regular_hours: OpeningHour[];
-  }
+}
+

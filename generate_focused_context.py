@@ -4,17 +4,38 @@ import os
 #  PASTE THE FILES YOU WANT TO SHARE HERE
 # ==========================================
 TARGETS = [
-'backend/users/models.py',
-'backend/users/serializers.py',
-'backend/users/permissions.py',
-'backend/users/views.py',
-'backend/api/urls.py',
-'frontend/context/AuthContext.tsx',
-'frontend/lib/api.ts',
-'frontend/app/admin/municipality/youth/page.tsx',
-'frontend/app/admin/municipality/youth/[id]/page.tsx',
-'frontend/app/admin/municipality/admins/page.tsx',
-'frontend/app/admin/club/admins/page.tsx',
+    # --- Backend Configuration ---
+    'backend/core/settings.py',
+    'backend/api/urls.py',
+    
+    # --- User & Permissions (Crucial for Targeting Logic) ---
+    'backend/users/models.py',          # Added: To see exact user fields (grade, dob, etc.)
+    'backend/users/permissions.py',
+
+    # --- Reference Patterns (Targeting & Scoping) ---
+    'backend/rewards/models.py',        # Best reference for targeting mix (Groups + Demographics)
+    'backend/rewards/views.py',         # Best reference for Admin Scope filtering
+    'backend/news/models.py',           # Best reference for Title/Hero/RichText content
+    
+    # --- Critical for Custom Field Targeting ---
+    'backend/custom_fields/models.py',  # To understand the field schema
+    'backend/groups/models.py',         # Reference for storing 'custom_field_rules'
+    'backend/groups/views.py',          # Reference for logic that filters Users by custom rules
+
+    # --- Frontend Setup ---
+    'frontend/lib/api.ts',
+    
+    # --- Frontend Components (UI Reference) ---
+    'frontend/components/RichTextEditor.tsx',
+    'frontend/components/RewardForm.tsx',       # Reference for Demographics UI
+    'frontend/components/GroupForm.tsx',        # Reference for Custom Rule UI integration
+    'frontend/components/CustomRuleBuilder.tsx',# The specific component for building rules
+    'frontend/components/RewardManager.tsx',    # Reference for the Dashboard/List view
+    
+    # --- Navigation (To inject menu items) ---
+    'frontend/app/admin/super/layout.tsx',
+    'frontend/app/admin/municipality/layout.tsx',
+    'frontend/app/admin/club/layout.tsx',
 ]
 # ==========================================
 

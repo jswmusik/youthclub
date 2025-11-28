@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'custom_fields',
     'groups',
     'rewards',
+    'posts',
 ]
 
 MIDDLEWARE = [

@@ -13,11 +13,13 @@
         tsconfig.json
         eslint.config.mjs
         next.config.ts
+        types/
+            organization.ts
+            post.ts
         context/
             AuthContext.tsx
         app/
             utils.ts
-            types.ts
             layout.tsx
             page.tsx
             globals.css
@@ -27,6 +29,15 @@
                     page.tsx
                     settings/
                         page.tsx
+                    posts/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     rewards/
                         page.tsx
                         edit/
@@ -78,6 +89,15 @@
                             page.tsx
                     messages/
                         page.tsx
+                    posts/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     clubs/
                         page.tsx
                         [id]/
@@ -135,6 +155,15 @@
                     page.tsx
                     settings/
                         page.tsx
+                    posts/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     clubs/
                         page.tsx
                         [id]/
@@ -206,6 +235,8 @@
                 Toast.tsx
                 RewardForm.tsx
                 MemberSelector.tsx
+                posts/
+                    PostForm.tsx
             login/
                 page.tsx
         public/
@@ -221,6 +252,14 @@
             admin.py
             tests.py
             urls.py
+            views.py
+        posts/
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            tests.py
             views.py
         core/
             asgi.py
@@ -312,17 +351,38 @@ import os
 #  PASTE THE FILES YOU WANT TO SHARE HERE
 # ==========================================
 TARGETS = [
-'backend/users/models.py',
-'backend/users/serializers.py',
-'backend/users/permissions.py',
-'backend/users/views.py',
-'backend/api/urls.py',
-'frontend/context/AuthContext.tsx',
-'frontend/lib/api.ts',
-'frontend/app/admin/municipality/youth/page.tsx',
-'frontend/app/admin/municipality/youth/[id]/page.tsx',
-'frontend/app/admin/municipality/admins/page.tsx',
-'frontend/app/admin/club/admins/page.tsx',
+    # --- Backend Configuration ---
+    'backend/core/settings.py',
+    'backend/api/urls.py',
+    
+    # --- User & Permissions (Crucial for Targeting Logic) ---
+    'backend/users/models.py',          # Added: To see exact user fields (grade, dob, etc.)
+    'backend/users/permissions.py',
+
+    # --- Reference Patterns (Targeting & Scoping) ---
+    'backend/rewards/models.py',        # Best reference for targeting mix (Groups + Demographics)
+    'backend/rewards/views.py',         # Best reference for Admin Scope filtering
+    'backend/news/models.py',           # Best reference for Title/Hero/RichText content
+    
+    # --- Critical for Custom Field Targeting ---
+    'backend/custom_fields/models.py',  # To understand the field schema
+    'backend/groups/models.py',         # Reference for storing 'custom_field_rules'
+    'backend/groups/views.py',          # Reference for logic that filters Users by custom rules
+
+    # --- Frontend Setup ---
+    'frontend/lib/api.ts',
+    
+    # --- Frontend Components (UI Reference) ---
+    'frontend/components/RichTextEditor.tsx',
+    'frontend/components/RewardForm.tsx',       # Reference for Demographics UI
+    'frontend/components/GroupForm.tsx',        # Reference for Custom Rule UI integration
+    'frontend/components/CustomRuleBuilder.tsx',# The specific component for building rules
+    'frontend/components/RewardManager.tsx',    # Reference for the Dashboard/List view
+    
+    # --- Navigation (To inject menu items) ---
+    'frontend/app/admin/super/layout.tsx',
+    'frontend/app/admin/municipality/layout.tsx',
+    'frontend/app/admin/club/layout.tsx',
 ]
 # ==========================================
 
@@ -384,11 +444,13 @@ if __name__ == "__main__":
         tsconfig.json
         eslint.config.mjs
         next.config.ts
+        types/
+            organization.ts
+            post.ts
         context/
             AuthContext.tsx
         app/
             utils.ts
-            types.ts
             layout.tsx
             page.tsx
             globals.css
@@ -398,6 +460,15 @@ if __name__ == "__main__":
                     page.tsx
                     settings/
                         page.tsx
+                    posts/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     rewards/
                         page.tsx
                         edit/
@@ -449,6 +520,15 @@ if __name__ == "__main__":
                             page.tsx
                     messages/
                         page.tsx
+                    posts/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     clubs/
                         page.tsx
                         [id]/
@@ -506,6 +586,15 @@ if __name__ == "__main__":
                     page.tsx
                     settings/
                         page.tsx
+                    posts/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     clubs/
                         page.tsx
                         [id]/
@@ -577,6 +666,8 @@ if __name__ == "__main__":
                 Toast.tsx
                 RewardForm.tsx
                 MemberSelector.tsx
+                posts/
+                    PostForm.tsx
             login/
                 page.tsx
         public/
@@ -593,6 +684,14 @@ if __name__ == "__main__":
             tests.py
             urls.py
             views.py
+        posts/
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            tests.py
+            views.py
         core/
             asgi.py
             __init__.py
@@ -600,56 +699,6 @@ if __name__ == "__main__":
             urls.py
             wsgi.py
         system_messages/
-            models.py
-            serializers.py
-            __init__.py
-            apps.py
-            admin.py
-            tests.py
-            views.py
-        rewards/
-            signals.py
-            models.py
-            serializers.py
-            __init__.py
-            apps.py
-            admin.py
-            utils.py
-            tests.py
-            views.py
-            management/
-                commands/
-                    process_birthday_rewards.py
-        custom_fields/
-            models.py
-            serializers.py
-            __init__.py
-            apps.py
-            admin.py
-            tests.py
-            views.py
-        groups/
-            signals.py
-            models.py
-            serializers.py
-            __init__.py
-            apps.py
-            admin.py
-            permissions.py
-            tests.py
-            views.py
-            management/
-                __init__.py
-                commands/
-                    __init__.py
-                    init_system_groups.py
-        news/
-            models.py
-            serializers.py
-            __init__.py
-            apps.py
-            admin.py
-            tests.py
 
 --- END OF FILE: ./project_context.txt ---
 
@@ -826,6 +875,100 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 
 --- END OF FILE: ./frontend/next.config.ts ---
+
+
+--- START OF FILE: ./frontend/types/organization.ts ---
+// frontend/types/organization.ts
+
+export interface OpeningHour {
+    id: number;
+    weekday: number;
+    weekday_display: string;
+    week_cycle: string;
+    open_time: string;
+    close_time: string;
+    title: string;
+}
+
+export interface Club {
+    id: number;
+    name: string;
+    municipality: number;
+    municipality_name: string;
+    description: string;
+    email: string;
+    phone: string;
+    avatar: string | null;
+    hero_image: string | null;
+    address: string;
+    allowed_age_groups: string;
+    club_categories: string;
+    regular_hours: OpeningHour[];
+}
+
+
+--- END OF FILE: ./frontend/types/organization.ts ---
+
+
+--- START OF FILE: ./frontend/types/post.ts ---
+export interface PostImage {
+    id: number;
+    image: string;
+    order: number;
+}
+
+export interface Post {
+    id: number;
+    title: string;
+    content: string;
+    post_type: 'TEXT' | 'IMAGE' | 'VIDEO';
+    video_url?: string;
+    
+    // Distribution / Scope
+    is_global: boolean;
+    target_municipalities: number[];
+    target_clubs: number[];
+    
+    // Status & Scheduling
+    status: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'ARCHIVED';
+    published_at?: string; 
+    visibility_end_date?: string; 
+    is_pinned: boolean;
+
+    // Targeting (Audience)
+    target_member_type: 'YOUTH' | 'GUARDIAN' | 'BOTH';
+    target_groups: number[];
+    target_interests: number[];
+    target_genders: string[];
+    target_grades: number[];
+    target_min_age?: number;
+    target_max_age?: number;
+    target_custom_fields?: Record<string, any>;
+
+    // Settings
+    allow_comments: boolean;
+    require_moderation: boolean;
+    limit_comments_per_user: number;
+    allow_replies: boolean;
+    send_push_notification: boolean;
+    push_title?: string;
+    push_message?: string;
+
+    // Metrics
+    view_count: number;
+    comment_count: number;
+
+    // Relations
+    author?: {
+        id: number;
+        first_name: string;
+        last_name: string;
+    };
+    images: PostImage[];
+    created_at: string;
+}
+
+--- END OF FILE: ./frontend/types/post.ts ---
 
 
 --- START OF FILE: ./frontend/context/AuthContext.tsx ---
@@ -1006,35 +1149,6 @@ export const getMediaUrl = (path: string | null | undefined) => {
 --- END OF FILE: ./frontend/app/utils.ts ---
 
 
---- START OF FILE: ./frontend/app/types.ts ---
-export interface OpeningHour {
-    id: number;
-    weekday: number;
-    weekday_display: string;
-    week_cycle: string;
-    open_time: string;
-    close_time: string;
-    title: string;
-  }
-  
-  export interface Club {
-    id: number;
-    name: string;
-    municipality: number;
-    municipality_name: string;
-    description: string;
-    email: string;
-    phone: string;
-    avatar: string | null;
-    hero_image: string | null;
-    address: string;
-    allowed_age_groups: string;
-    club_categories: string;
-    regular_hours: OpeningHour[];
-  }
---- END OF FILE: ./frontend/app/types.ts ---
-
-
 --- START OF FILE: ./frontend/app/layout.tsx ---
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -1073,7 +1187,7 @@ export default function RootLayout({
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link'; // We need this for navigation
-import { Club } from './types';
+import { Club } from '../types/organization';
 import { getMediaUrl } from './utils';
 import { useAuth } from '../context/AuthContext'; // Import Auth
 
@@ -1329,6 +1443,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'Manage Youth', href: '/admin/club/youth' },
     { name: 'Manage Guardians', href: '/admin/club/guardians' },
     { name: 'News Feed', href: '/admin/club/news-feed' },
+    { name: 'Manage Posts', href: '/admin/club/posts' },
     { name: 'Groups', href: '/admin/club/groups' },
     { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true },
     { name: 'Manage Rewards', href: '/admin/club/rewards' },
@@ -1804,6 +1919,628 @@ export default function ClubSettingsPage() {
 
 
 --- END OF FILE: ./frontend/app/admin/club/settings/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/posts/page.tsx ---
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import api from '../../../../lib/api';
+import { Post } from '../../../../types/post';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import Toast from '../../../components/Toast';
+
+export default function SuperAdminPostsPage() {
+    const [posts, setPosts] = useState<any[]>([]); // Use any to handle the nested details easier
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    
+    // Delete Modal State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [postToDelete, setPostToDelete] = useState<{ id: number; title: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    
+    // Toast State
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
+        message: '',
+        type: 'success',
+        isVisible: false,
+    });
+
+    const fetchData = async () => {
+        try {
+            const postsRes = await api.get('/posts/');
+            setPosts(postsRes.data.results || postsRes.data);
+
+            const statsRes = await api.get('/posts/analytics_overview/');
+            setStats(statsRes.data);
+        } catch (err) {
+            console.error("Failed to fetch posts", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleDeleteClick = (post: Post) => {
+        setPostToDelete({ id: post.id, title: post.title });
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!postToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await api.delete(`/posts/${postToDelete.id}/`);
+            setToast({ message: 'Post deleted successfully!', type: 'success', isVisible: true });
+            setShowDeleteModal(false);
+            setPostToDelete(null);
+            fetchData(); 
+        } catch (err) {
+            setToast({ message: 'Failed to delete post.', type: 'error', isVisible: true });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    // Helper to determine what to show in the "Scope" column
+    const getScopeBadge = (post: any) => {
+        if (post.is_global) {
+            return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-bold">🌍 Global</span>;
+        }
+        
+        // Super Admin creating for specific Munis
+        if (post.target_municipalities_details && post.target_municipalities_details.length > 0) {
+            const count = post.target_municipalities_details.length;
+            const name = post.target_municipalities_details[0].name;
+            return (
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+                    🏛️ {count > 1 ? `${count} Municipalities` : name}
+                </span>
+            );
+        }
+
+        // Super/Muni Admin creating for specific Clubs
+        if (post.target_clubs_details && post.target_clubs_details.length > 0) {
+            const count = post.target_clubs_details.length;
+            const name = post.target_clubs_details[0].name;
+            return (
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold">
+                    ⚽ {count > 1 ? `${count} Clubs` : name}
+                </span>
+            );
+        }
+
+        // Fallback based on ownership
+        if (post.owner_role === 'MUNICIPALITY_ADMIN') return <span className="text-gray-500 text-xs">Municipality</span>;
+        if (post.owner_role === 'CLUB_ADMIN') return <span className="text-gray-500 text-xs">Club</span>;
+
+        return <span className="text-gray-400 text-xs">-</span>;
+    };
+
+    if (loading) return <div className="p-8 text-center">Loading posts...</div>;
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-800">Post Management</h1>
+                <Link 
+                    href="/admin/super/posts/create"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
+                >
+                    + Create New Post
+                </Link>
+            </div>
+
+            {/* Analytics Cards */}
+            {stats && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
+                        <p className="text-sm text-gray-500">Total Posts</p>
+                        <p className="text-2xl font-bold">{stats.total_posts}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
+                        <p className="text-sm text-gray-500">New (7 Days)</p>
+                        <p className="text-2xl font-bold">{stats.created_last_7_days}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
+                        <p className="text-sm text-gray-500">New (30 Days)</p>
+                        <p className="text-2xl font-bold">{stats.created_last_30_days}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
+                        <p className="text-sm text-gray-500">Avg Views</p>
+                        <p className="text-2xl font-bold">{stats.average_views}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Posts Table */}
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Title</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Scope</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Views</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {posts.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                    No posts found. Create your first one!
+                                </td>
+                            </tr>
+                        ) : (
+                            posts.map((post) => (
+                                <tr key={post.id} className="hover:bg-gray-50 transition">
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm font-bold text-gray-900">
+                                            {post.is_pinned && <span className="mr-2 text-red-500" title="Pinned">📌</span>}
+                                            {post.title}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                            By {post.author?.first_name || 'Unknown'} • {new Date(post.created_at).toLocaleDateString()}
+                                        </div>
+                                    </td>
+                                    
+                                    {/* NEW SCOPE COLUMN */}
+                                    <td className="px-6 py-4">
+                                        {getScopeBadge(post)}
+                                    </td>
+
+                                    <td className="px-6 py-4">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                            {post.post_type}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                            post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                                            post.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {post.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        {post.view_count}
+                                    </td>
+                                    <td className="px-6 py-4 text-right text-sm font-medium space-x-3">
+                                        <Link href={`/admin/super/posts/${post.id}`} className="text-indigo-600 hover:text-indigo-900">
+                                            View
+                                        </Link>
+                                        <Link href={`/admin/super/posts/edit/${post.id}`} className="text-blue-600 hover:text-blue-900">
+                                            Edit
+                                        </Link>
+                                        <button 
+                                            onClick={() => handleDeleteClick(post)}
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <DeleteConfirmationModal
+                isVisible={showDeleteModal}
+                onClose={() => { if (!isDeleting) { setShowDeleteModal(false); setPostToDelete(null); } }}
+                onConfirm={handleDeleteConfirm}
+                itemName={postToDelete?.title}
+                isLoading={isDeleting}
+            />
+            <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={() => setToast({ ...toast, isVisible: false })} />
+        </div>
+    );
+}
+
+--- END OF FILE: ./frontend/app/admin/club/posts/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/posts/edit/[id]/page.tsx ---
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import api from '../../../../../../lib/api';
+import PostForm from '../../../../../components/posts/PostForm';
+import { Post } from '../../../../../../types/post';
+
+export default function EditPostPage() {
+    const router = useRouter();
+    const params = useParams();
+    const postId = params?.id as string;
+    
+    const [post, setPost] = useState<Post | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!postId) return;
+        
+        const fetchPost = async () => {
+            try {
+                const res = await api.get(`/posts/${postId}/`);
+                setPost(res.data);
+            } catch (err) {
+                console.error("Failed to fetch post", err);
+                alert("Post not found");
+                router.push('/admin/club/posts');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPost();
+    }, [postId, router]);
+
+    if (loading) return <div className="p-8 text-center text-gray-500">Loading post data...</div>;
+    if (!post) return null;
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+                <button 
+                    onClick={() => router.back()}
+                    className="text-sm text-gray-500 hover:text-gray-700 mb-2"
+                >
+                    ← Cancel & Back
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">Edit Post</h1>
+            </div>
+
+            <PostForm 
+                initialData={post}
+                role="club" 
+                onSuccess={() => router.push(`/admin/club/posts/${post.id}`)} // Redirect to View Page
+            />
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/club/posts/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/posts/[id]/page.tsx ---
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useParams } from 'next/navigation';
+import api from '../../../../../lib/api';
+import { Post } from '../../../../../types/post';
+
+export default function PostDetailPage() {
+    const router = useRouter();
+    const params = useParams();
+    const postId = params?.id as string;
+    
+    const [post, setPost] = useState<Post | null>(null);
+    const [comments, setComments] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [customFieldMap, setCustomFieldMap] = useState<Record<number, string>>({});
+
+    const fetchData = async () => {
+        if (!postId) return;
+        
+        try {
+            // 1. Fetch Post Details
+            const postRes = await api.get(`/posts/${postId}/`);
+            setPost(postRes.data);
+
+            // 2. Fetch Comments for this post
+            const commentsRes = await api.get(`/post-comments/?post_id=${postId}`);
+            setComments(commentsRes.data.results || commentsRes.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [postId]);
+
+    const handleApproveComment = async (commentId: number, currentStatus: boolean) => {
+        try {
+            await api.patch(`/post-comments/${commentId}/`, { is_approved: !currentStatus });
+            fetchData(); // Refresh list
+        } catch (err) {
+            alert('Failed to update comment');
+        }
+    };
+
+    const handleDeleteComment = async (commentId: number) => {
+        if (!confirm("Delete this comment permanently?")) return;
+        try {
+            await api.delete(`/post-comments/${commentId}/`);
+            fetchData(); // Refresh list
+        } catch (err) {
+            alert('Failed to delete comment');
+        }
+    };
+
+    const hasCustomFieldRules = useMemo(() => {
+        if (!post?.target_custom_fields) return false;
+        return Object.keys(post.target_custom_fields).length > 0;
+    }, [post?.target_custom_fields]);
+
+    useEffect(() => {
+        const fetchCustomFieldNames = async () => {
+            if (!hasCustomFieldRules) return;
+            try {
+                const res = await api.get('/custom-fields/');
+                const definitions = res.data.results || res.data || [];
+                const map = definitions.reduce((acc: Record<number, string>, field: any) => {
+                    acc[field.id] = field.name;
+                    return acc;
+                }, {});
+                setCustomFieldMap(map);
+            } catch (error) {
+                console.error('Failed to load custom fields', error);
+            }
+        };
+
+        fetchCustomFieldNames();
+    }, [hasCustomFieldRules]);
+
+    if (loading) return <div className="p-8">Loading...</div>;
+    if (!post) return <div className="p-8">Post not found</div>;
+
+    return (
+        <div className="space-y-6 max-w-6xl mx-auto">
+            {/* --- HEADER --- */}
+            <div className="flex justify-between items-start">
+                <div>
+                    <button onClick={() => router.push('/admin/super/posts')} className="text-sm text-gray-500 mb-1 hover:underline">← Back to List</button>
+                    <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                            post.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
+                            {post.status}
+                        </span>
+                        <span className="text-sm text-gray-500">Created: {new Date(post.created_at).toLocaleDateString()}</span>
+                        {post.is_pinned && <span className="text-sm text-red-500 font-medium">📌 Pinned</span>}
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <Link 
+                        href={`/admin/super/posts/edit/${post.id}`}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+                    >
+                        Edit Post
+                    </Link>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* --- LEFT COL: PREVIEW --- */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Content Preview Card */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Content Preview</h3>
+                        
+                        {/* Video Display */}
+                        {post.post_type === 'VIDEO' && post.video_url && (
+                            <div className="mb-4 bg-black rounded overflow-hidden aspect-video flex items-center justify-center text-white">
+                                {/* Simple placeholder if specific youtube embed logic isn't added yet */}
+                                <a href={post.video_url} target="_blank" rel="noreferrer" className="underline">
+                                    Watch Video ({post.video_url})
+                                </a>
+                            </div>
+                        )}
+
+                        {/* Image Display */}
+                        {post.post_type === 'IMAGE' && post.images && post.images.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto mb-4 pb-2">
+                                {post.images.map(img => (
+                                    <img key={img.id} src={img.image} className="h-48 rounded object-cover border" alt="Post media" />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Text Content */}
+                        <div 
+                            className="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded border"
+                            dangerouslySetInnerHTML={{ __html: post.content }} 
+                        />
+                    </div>
+
+                    {/* Comments Manager */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-gray-800">Comments ({comments.length})</h3>
+                            <span className="text-xs text-gray-500">Moderation: {post.require_moderation ? 'On' : 'Off'}</span>
+                        </div>
+                        
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
+                            {comments.length === 0 ? (
+                                <p className="text-gray-400 italic">No comments yet.</p>
+                            ) : (
+                                comments.map(comment => (
+                                    <div key={comment.id} className={`p-3 rounded border ${comment.is_approved ? 'bg-white' : 'bg-red-50 border-red-200'}`}>
+                                        <div className="flex justify-between">
+                                            <p className="text-sm font-bold text-gray-700">
+                                                {comment.author?.first_name} {comment.author?.last_name}
+                                                <span className="text-gray-400 font-normal ml-2 text-xs">
+                                                    {new Date(comment.created_at).toLocaleString()}
+                                                </span>
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => handleApproveComment(comment.id, comment.is_approved)}
+                                                    className={`text-xs px-2 py-1 rounded ${comment.is_approved ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}
+                                                >
+                                                    {comment.is_approved ? 'Hide' : 'Approve'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteComment(comment.id)}
+                                                    className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-800 mt-1 text-sm">{comment.content}</p>
+                                        {!comment.is_approved && (
+                                            <p className="text-xs text-red-600 font-bold mt-1">⚠ Pending Approval</p>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- RIGHT COL: DETAILS & ANALYTICS --- */}
+                <div className="space-y-6">
+                    
+                    {/* Analytics Card */}
+                    <div className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500">
+                        <h3 className="font-bold text-gray-800 mb-4">Analytics</h3>
+                        <div className="grid grid-cols-2 gap-4 text-center">
+                            <div className="p-2 bg-gray-50 rounded">
+                                <p className="text-2xl font-bold text-blue-600">{post.view_count}</p>
+                                <p className="text-xs text-gray-500">Views</p>
+                            </div>
+                            <div className="p-2 bg-gray-50 rounded">
+                                <p className="text-2xl font-bold text-green-600">{comments.length}</p>
+                                <p className="text-xs text-gray-500">Comments</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Targeting Summary */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="font-bold text-gray-800 mb-4">Target Audience</h3>
+                        <ul className="space-y-3 text-sm">
+                            <li className="flex justify-between">
+                                <span className="text-gray-500">Member Type:</span>
+                                <span className="font-medium">{post.target_member_type}</span>
+                            </li>
+                            {post.target_groups.length > 0 ? (
+                                <div>
+                                    <p className="text-gray-500 mb-1">Targeted Groups:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                        {post.target_groups.map(g => (
+                                            <span key={g} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">Group ID {g}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Age Range:</span>
+                                        <span className="font-medium">
+                                            {post.target_min_age || 0} - {post.target_max_age || 'Any'}
+                                        </span>
+                                    </li>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Gender:</span>
+                                        <span className="font-medium">
+                                            {post.target_genders.length > 0 ? post.target_genders.join(', ') : 'All'}
+                                        </span>
+                                    </li>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Grades:</span>
+                                        <span className="font-medium">
+                                            {post.target_grades.length > 0 ? post.target_grades.join(', ') : 'All'}
+                                        </span>
+                                    </li>
+                                </>
+                            )}
+                            {hasCustomFieldRules && (
+                                <li className="flex flex-col gap-2">
+                                    <span className="text-gray-500">Custom Field Rules:</span>
+                                    <div className="flex flex-col gap-1">
+                                        {Object.entries(post.target_custom_fields || {}).map(([fieldId, value]) => {
+                                            const id = Number(fieldId);
+                                            const fieldName = customFieldMap[id] || `Custom Field #${fieldId}`;
+                                            let displayValue: string;
+                                            if (typeof value === 'boolean') displayValue = value ? 'Yes' : 'No';
+                                            else displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+                                            return (
+                                                <span
+                                                    key={fieldId}
+                                                    className="text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-100"
+                                                >
+                                                    <strong>{fieldName}:</strong> {displayValue || 'Any'}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+
+                    {/* Settings Summary */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="font-bold text-gray-800 mb-4">Configuration</h3>
+                        <ul className="space-y-2 text-sm text-gray-600">
+                            <li>• {post.allow_comments ? '✅ Comments Allowed' : '❌ Comments Disabled'}</li>
+                            <li>• {post.require_moderation ? '✅ Moderation On' : '⚪ Moderation Off'}</li>
+                            <li>• {post.send_push_notification ? '✅ Push Notification Sent' : '⚪ No Push Notification'}</li>
+                            {post.visibility_end_date && (
+                                <li className="text-orange-600">• Expires: {new Date(post.visibility_end_date).toLocaleDateString()}</li>
+                            )}
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/club/posts/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/posts/create/page.tsx ---
+'use client';
+
+import { useRouter } from 'next/navigation';
+import PostForm from '../../../../components/posts/PostForm';
+
+export default function CreatePostPage() {
+    const router = useRouter();
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+                <button 
+                    onClick={() => router.back()}
+                    className="text-sm text-gray-500 hover:text-gray-700 mb-2"
+                >
+                    ← Back to Posts
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">Create New Post</h1>
+                <p className="text-gray-500">Share updates, news, or media with your members.</p>
+            </div>
+
+            <PostForm 
+                role="club" 
+                onSuccess={() => router.push('/admin/club/posts')} 
+            />
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/club/posts/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/club/rewards/page.tsx ---
@@ -5349,6 +6086,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'News Management', href: '/admin/super/news' }, 
         { name: 'News Tags', href: '/admin/super/news/tags' },
         { name: 'News Feed', href: '/admin/super/news-feed' },
+        { name: 'Manage Posts', href: '/admin/super/posts' },
         // ------------------------
         { name: 'Manage Interests', href: '/admin/super/interests' },
         { name: 'Manage Countries', href: '/admin/super/countries' },
@@ -6613,6 +7351,628 @@ export default function ManageMessagesPage() {
   );
 }
 --- END OF FILE: ./frontend/app/admin/super/messages/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/posts/page.tsx ---
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import api from '../../../../lib/api';
+import { Post } from '../../../../types/post';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import Toast from '../../../components/Toast';
+
+export default function SuperAdminPostsPage() {
+    const [posts, setPosts] = useState<any[]>([]); // Use any to handle the nested details easier
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    
+    // Delete Modal State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [postToDelete, setPostToDelete] = useState<{ id: number; title: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    
+    // Toast State
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
+        message: '',
+        type: 'success',
+        isVisible: false,
+    });
+
+    const fetchData = async () => {
+        try {
+            const postsRes = await api.get('/posts/');
+            setPosts(postsRes.data.results || postsRes.data);
+
+            const statsRes = await api.get('/posts/analytics_overview/');
+            setStats(statsRes.data);
+        } catch (err) {
+            console.error("Failed to fetch posts", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleDeleteClick = (post: Post) => {
+        setPostToDelete({ id: post.id, title: post.title });
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!postToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await api.delete(`/posts/${postToDelete.id}/`);
+            setToast({ message: 'Post deleted successfully!', type: 'success', isVisible: true });
+            setShowDeleteModal(false);
+            setPostToDelete(null);
+            fetchData(); 
+        } catch (err) {
+            setToast({ message: 'Failed to delete post.', type: 'error', isVisible: true });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    // Helper to determine what to show in the "Scope" column
+    const getScopeBadge = (post: any) => {
+        if (post.is_global) {
+            return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-bold">🌍 Global</span>;
+        }
+        
+        // Super Admin creating for specific Munis
+        if (post.target_municipalities_details && post.target_municipalities_details.length > 0) {
+            const count = post.target_municipalities_details.length;
+            const name = post.target_municipalities_details[0].name;
+            return (
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+                    🏛️ {count > 1 ? `${count} Municipalities` : name}
+                </span>
+            );
+        }
+
+        // Super/Muni Admin creating for specific Clubs
+        if (post.target_clubs_details && post.target_clubs_details.length > 0) {
+            const count = post.target_clubs_details.length;
+            const name = post.target_clubs_details[0].name;
+            return (
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold">
+                    ⚽ {count > 1 ? `${count} Clubs` : name}
+                </span>
+            );
+        }
+
+        // Fallback based on ownership
+        if (post.owner_role === 'MUNICIPALITY_ADMIN') return <span className="text-gray-500 text-xs">Municipality</span>;
+        if (post.owner_role === 'CLUB_ADMIN') return <span className="text-gray-500 text-xs">Club</span>;
+
+        return <span className="text-gray-400 text-xs">-</span>;
+    };
+
+    if (loading) return <div className="p-8 text-center">Loading posts...</div>;
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-800">Post Management</h1>
+                <Link 
+                    href="/admin/super/posts/create"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
+                >
+                    + Create New Post
+                </Link>
+            </div>
+
+            {/* Analytics Cards */}
+            {stats && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
+                        <p className="text-sm text-gray-500">Total Posts</p>
+                        <p className="text-2xl font-bold">{stats.total_posts}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
+                        <p className="text-sm text-gray-500">New (7 Days)</p>
+                        <p className="text-2xl font-bold">{stats.created_last_7_days}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
+                        <p className="text-sm text-gray-500">New (30 Days)</p>
+                        <p className="text-2xl font-bold">{stats.created_last_30_days}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
+                        <p className="text-sm text-gray-500">Avg Views</p>
+                        <p className="text-2xl font-bold">{stats.average_views}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Posts Table */}
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Title</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Scope</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Views</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {posts.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                    No posts found. Create your first one!
+                                </td>
+                            </tr>
+                        ) : (
+                            posts.map((post) => (
+                                <tr key={post.id} className="hover:bg-gray-50 transition">
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm font-bold text-gray-900">
+                                            {post.is_pinned && <span className="mr-2 text-red-500" title="Pinned">📌</span>}
+                                            {post.title}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                            By {post.author?.first_name || 'Unknown'} • {new Date(post.created_at).toLocaleDateString()}
+                                        </div>
+                                    </td>
+                                    
+                                    {/* NEW SCOPE COLUMN */}
+                                    <td className="px-6 py-4">
+                                        {getScopeBadge(post)}
+                                    </td>
+
+                                    <td className="px-6 py-4">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                            {post.post_type}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                            post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                                            post.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {post.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        {post.view_count}
+                                    </td>
+                                    <td className="px-6 py-4 text-right text-sm font-medium space-x-3">
+                                        <Link href={`/admin/super/posts/${post.id}`} className="text-indigo-600 hover:text-indigo-900">
+                                            View
+                                        </Link>
+                                        <Link href={`/admin/super/posts/edit/${post.id}`} className="text-blue-600 hover:text-blue-900">
+                                            Edit
+                                        </Link>
+                                        <button 
+                                            onClick={() => handleDeleteClick(post)}
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <DeleteConfirmationModal
+                isVisible={showDeleteModal}
+                onClose={() => { if (!isDeleting) { setShowDeleteModal(false); setPostToDelete(null); } }}
+                onConfirm={handleDeleteConfirm}
+                itemName={postToDelete?.title}
+                isLoading={isDeleting}
+            />
+            <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={() => setToast({ ...toast, isVisible: false })} />
+        </div>
+    );
+}
+
+--- END OF FILE: ./frontend/app/admin/super/posts/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/posts/edit/[id]/page.tsx ---
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import api from '../../../../../../lib/api';
+import PostForm from '../../../../../components/posts/PostForm';
+import { Post } from '../../../../../../types/post';
+
+export default function EditPostPage() {
+    const router = useRouter();
+    const params = useParams();
+    const postId = params?.id as string;
+    
+    const [post, setPost] = useState<Post | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!postId) return;
+        
+        const fetchPost = async () => {
+            try {
+                const res = await api.get(`/posts/${postId}/`);
+                setPost(res.data);
+            } catch (err) {
+                console.error("Failed to fetch post", err);
+                alert("Post not found");
+                router.push('/admin/super/posts');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPost();
+    }, [postId, router]);
+
+    if (loading) return <div className="p-8 text-center text-gray-500">Loading post data...</div>;
+    if (!post) return null;
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+                <button 
+                    onClick={() => router.back()}
+                    className="text-sm text-gray-500 hover:text-gray-700 mb-2"
+                >
+                    ← Cancel & Back
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">Edit Post</h1>
+            </div>
+
+            <PostForm 
+                initialData={post}
+                role="super" 
+                onSuccess={() => router.push(`/admin/super/posts/${post.id}`)} // Redirect to View Page
+            />
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/super/posts/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/posts/[id]/page.tsx ---
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useParams } from 'next/navigation';
+import api from '../../../../../lib/api';
+import { Post } from '../../../../../types/post';
+
+export default function PostDetailPage() {
+    const router = useRouter();
+    const params = useParams();
+    const postId = params?.id as string;
+    
+    const [post, setPost] = useState<Post | null>(null);
+    const [comments, setComments] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [customFieldMap, setCustomFieldMap] = useState<Record<number, string>>({});
+
+    const fetchData = async () => {
+        if (!postId) return;
+        
+        try {
+            // 1. Fetch Post Details
+            const postRes = await api.get(`/posts/${postId}/`);
+            setPost(postRes.data);
+
+            // 2. Fetch Comments for this post
+            const commentsRes = await api.get(`/post-comments/?post_id=${postId}`);
+            setComments(commentsRes.data.results || commentsRes.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [postId]);
+
+    const handleApproveComment = async (commentId: number, currentStatus: boolean) => {
+        try {
+            await api.patch(`/post-comments/${commentId}/`, { is_approved: !currentStatus });
+            fetchData(); // Refresh list
+        } catch (err) {
+            alert('Failed to update comment');
+        }
+    };
+
+    const handleDeleteComment = async (commentId: number) => {
+        if (!confirm("Delete this comment permanently?")) return;
+        try {
+            await api.delete(`/post-comments/${commentId}/`);
+            fetchData(); // Refresh list
+        } catch (err) {
+            alert('Failed to delete comment');
+        }
+    };
+
+    const hasCustomFieldRules = useMemo(() => {
+        if (!post?.target_custom_fields) return false;
+        return Object.keys(post.target_custom_fields).length > 0;
+    }, [post?.target_custom_fields]);
+
+    useEffect(() => {
+        const fetchCustomFieldNames = async () => {
+            if (!hasCustomFieldRules) return;
+            try {
+                const res = await api.get('/custom-fields/');
+                const definitions = res.data.results || res.data || [];
+                const map = definitions.reduce((acc: Record<number, string>, field: any) => {
+                    acc[field.id] = field.name;
+                    return acc;
+                }, {});
+                setCustomFieldMap(map);
+            } catch (error) {
+                console.error('Failed to load custom fields', error);
+            }
+        };
+
+        fetchCustomFieldNames();
+    }, [hasCustomFieldRules]);
+
+    if (loading) return <div className="p-8">Loading...</div>;
+    if (!post) return <div className="p-8">Post not found</div>;
+
+    return (
+        <div className="space-y-6 max-w-6xl mx-auto">
+            {/* --- HEADER --- */}
+            <div className="flex justify-between items-start">
+                <div>
+                    <button onClick={() => router.push('/admin/super/posts')} className="text-sm text-gray-500 mb-1 hover:underline">← Back to List</button>
+                    <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                            post.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
+                            {post.status}
+                        </span>
+                        <span className="text-sm text-gray-500">Created: {new Date(post.created_at).toLocaleDateString()}</span>
+                        {post.is_pinned && <span className="text-sm text-red-500 font-medium">📌 Pinned</span>}
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <Link 
+                        href={`/admin/super/posts/edit/${post.id}`}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+                    >
+                        Edit Post
+                    </Link>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* --- LEFT COL: PREVIEW --- */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Content Preview Card */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Content Preview</h3>
+                        
+                        {/* Video Display */}
+                        {post.post_type === 'VIDEO' && post.video_url && (
+                            <div className="mb-4 bg-black rounded overflow-hidden aspect-video flex items-center justify-center text-white">
+                                {/* Simple placeholder if specific youtube embed logic isn't added yet */}
+                                <a href={post.video_url} target="_blank" rel="noreferrer" className="underline">
+                                    Watch Video ({post.video_url})
+                                </a>
+                            </div>
+                        )}
+
+                        {/* Image Display */}
+                        {post.post_type === 'IMAGE' && post.images && post.images.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto mb-4 pb-2">
+                                {post.images.map(img => (
+                                    <img key={img.id} src={img.image} className="h-48 rounded object-cover border" alt="Post media" />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Text Content */}
+                        <div 
+                            className="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded border"
+                            dangerouslySetInnerHTML={{ __html: post.content }} 
+                        />
+                    </div>
+
+                    {/* Comments Manager */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-gray-800">Comments ({comments.length})</h3>
+                            <span className="text-xs text-gray-500">Moderation: {post.require_moderation ? 'On' : 'Off'}</span>
+                        </div>
+                        
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
+                            {comments.length === 0 ? (
+                                <p className="text-gray-400 italic">No comments yet.</p>
+                            ) : (
+                                comments.map(comment => (
+                                    <div key={comment.id} className={`p-3 rounded border ${comment.is_approved ? 'bg-white' : 'bg-red-50 border-red-200'}`}>
+                                        <div className="flex justify-between">
+                                            <p className="text-sm font-bold text-gray-700">
+                                                {comment.author?.first_name} {comment.author?.last_name}
+                                                <span className="text-gray-400 font-normal ml-2 text-xs">
+                                                    {new Date(comment.created_at).toLocaleString()}
+                                                </span>
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => handleApproveComment(comment.id, comment.is_approved)}
+                                                    className={`text-xs px-2 py-1 rounded ${comment.is_approved ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}
+                                                >
+                                                    {comment.is_approved ? 'Hide' : 'Approve'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteComment(comment.id)}
+                                                    className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-800 mt-1 text-sm">{comment.content}</p>
+                                        {!comment.is_approved && (
+                                            <p className="text-xs text-red-600 font-bold mt-1">⚠ Pending Approval</p>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- RIGHT COL: DETAILS & ANALYTICS --- */}
+                <div className="space-y-6">
+                    
+                    {/* Analytics Card */}
+                    <div className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500">
+                        <h3 className="font-bold text-gray-800 mb-4">Analytics</h3>
+                        <div className="grid grid-cols-2 gap-4 text-center">
+                            <div className="p-2 bg-gray-50 rounded">
+                                <p className="text-2xl font-bold text-blue-600">{post.view_count}</p>
+                                <p className="text-xs text-gray-500">Views</p>
+                            </div>
+                            <div className="p-2 bg-gray-50 rounded">
+                                <p className="text-2xl font-bold text-green-600">{comments.length}</p>
+                                <p className="text-xs text-gray-500">Comments</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Targeting Summary */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="font-bold text-gray-800 mb-4">Target Audience</h3>
+                        <ul className="space-y-3 text-sm">
+                            <li className="flex justify-between">
+                                <span className="text-gray-500">Member Type:</span>
+                                <span className="font-medium">{post.target_member_type}</span>
+                            </li>
+                            {post.target_groups.length > 0 ? (
+                                <div>
+                                    <p className="text-gray-500 mb-1">Targeted Groups:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                        {post.target_groups.map(g => (
+                                            <span key={g} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">Group ID {g}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Age Range:</span>
+                                        <span className="font-medium">
+                                            {post.target_min_age || 0} - {post.target_max_age || 'Any'}
+                                        </span>
+                                    </li>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Gender:</span>
+                                        <span className="font-medium">
+                                            {post.target_genders.length > 0 ? post.target_genders.join(', ') : 'All'}
+                                        </span>
+                                    </li>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Grades:</span>
+                                        <span className="font-medium">
+                                            {post.target_grades.length > 0 ? post.target_grades.join(', ') : 'All'}
+                                        </span>
+                                    </li>
+                                </>
+                            )}
+                            {hasCustomFieldRules && (
+                                <li className="flex flex-col gap-2">
+                                    <span className="text-gray-500">Custom Field Rules:</span>
+                                    <div className="flex flex-col gap-1">
+                                        {Object.entries(post.target_custom_fields || {}).map(([fieldId, value]) => {
+                                            const id = Number(fieldId);
+                                            const fieldName = customFieldMap[id] || `Custom Field #${fieldId}`;
+                                            let displayValue: string;
+                                            if (typeof value === 'boolean') displayValue = value ? 'Yes' : 'No';
+                                            else displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+                                            return (
+                                                <span
+                                                    key={fieldId}
+                                                    className="text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-100"
+                                                >
+                                                    <strong>{fieldName}:</strong> {displayValue || 'Any'}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+
+                    {/* Settings Summary */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="font-bold text-gray-800 mb-4">Configuration</h3>
+                        <ul className="space-y-2 text-sm text-gray-600">
+                            <li>• {post.allow_comments ? '✅ Comments Allowed' : '❌ Comments Disabled'}</li>
+                            <li>• {post.require_moderation ? '✅ Moderation On' : '⚪ Moderation Off'}</li>
+                            <li>• {post.send_push_notification ? '✅ Push Notification Sent' : '⚪ No Push Notification'}</li>
+                            {post.visibility_end_date && (
+                                <li className="text-orange-600">• Expires: {new Date(post.visibility_end_date).toLocaleDateString()}</li>
+                            )}
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/super/posts/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/posts/create/page.tsx ---
+'use client';
+
+import { useRouter } from 'next/navigation';
+import PostForm from '../../../../components/posts/PostForm';
+
+export default function CreatePostPage() {
+    const router = useRouter();
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+                <button 
+                    onClick={() => router.back()}
+                    className="text-sm text-gray-500 hover:text-gray-700 mb-2"
+                >
+                    ← Back to Posts
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">Create New Post</h1>
+                <p className="text-gray-500">Share updates, news, or media with your members.</p>
+            </div>
+
+            <PostForm 
+                role="super" 
+                onSuccess={() => router.push('/admin/super/posts')} 
+            />
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/super/posts/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/super/clubs/page.tsx ---
@@ -13253,6 +14613,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'Manage Youth', href: '/admin/municipality/youth' },
     { name: 'Manage Guardians', href: '/admin/municipality/guardians' },
     { name: 'News Feed', href: '/admin/municipality/news-feed' },
+    { name: 'Manage Posts', href: '/admin/municipality/posts' },
     { name: 'Groups', href: '/admin/municipality/groups' },
     { name: 'Applications', href: '/admin/municipality/groups/requests', showBadge: true },
     { name: 'Manage Rewards', href: '/admin/municipality/rewards' },
@@ -13702,6 +15063,628 @@ export default function MyMunicipalityPage() {
   );
 }
 --- END OF FILE: ./frontend/app/admin/municipality/settings/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/posts/page.tsx ---
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import api from '../../../../lib/api';
+import { Post } from '../../../../types/post';
+import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import Toast from '../../../components/Toast';
+
+export default function SuperAdminPostsPage() {
+    const [posts, setPosts] = useState<any[]>([]); // Use any to handle the nested details easier
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    
+    // Delete Modal State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [postToDelete, setPostToDelete] = useState<{ id: number; title: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    
+    // Toast State
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
+        message: '',
+        type: 'success',
+        isVisible: false,
+    });
+
+    const fetchData = async () => {
+        try {
+            const postsRes = await api.get('/posts/');
+            setPosts(postsRes.data.results || postsRes.data);
+
+            const statsRes = await api.get('/posts/analytics_overview/');
+            setStats(statsRes.data);
+        } catch (err) {
+            console.error("Failed to fetch posts", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleDeleteClick = (post: Post) => {
+        setPostToDelete({ id: post.id, title: post.title });
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!postToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await api.delete(`/posts/${postToDelete.id}/`);
+            setToast({ message: 'Post deleted successfully!', type: 'success', isVisible: true });
+            setShowDeleteModal(false);
+            setPostToDelete(null);
+            fetchData(); 
+        } catch (err) {
+            setToast({ message: 'Failed to delete post.', type: 'error', isVisible: true });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    // Helper to determine what to show in the "Scope" column
+    const getScopeBadge = (post: any) => {
+        if (post.is_global) {
+            return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-bold">🌍 Global</span>;
+        }
+        
+        // Super Admin creating for specific Munis
+        if (post.target_municipalities_details && post.target_municipalities_details.length > 0) {
+            const count = post.target_municipalities_details.length;
+            const name = post.target_municipalities_details[0].name;
+            return (
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+                    🏛️ {count > 1 ? `${count} Municipalities` : name}
+                </span>
+            );
+        }
+
+        // Super/Muni Admin creating for specific Clubs
+        if (post.target_clubs_details && post.target_clubs_details.length > 0) {
+            const count = post.target_clubs_details.length;
+            const name = post.target_clubs_details[0].name;
+            return (
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold">
+                    ⚽ {count > 1 ? `${count} Clubs` : name}
+                </span>
+            );
+        }
+
+        // Fallback based on ownership
+        if (post.owner_role === 'MUNICIPALITY_ADMIN') return <span className="text-gray-500 text-xs">Municipality</span>;
+        if (post.owner_role === 'CLUB_ADMIN') return <span className="text-gray-500 text-xs">Club</span>;
+
+        return <span className="text-gray-400 text-xs">-</span>;
+    };
+
+    if (loading) return <div className="p-8 text-center">Loading posts...</div>;
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-800">Post Management</h1>
+                <Link 
+                    href="/admin/super/posts/create"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
+                >
+                    + Create New Post
+                </Link>
+            </div>
+
+            {/* Analytics Cards */}
+            {stats && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
+                        <p className="text-sm text-gray-500">Total Posts</p>
+                        <p className="text-2xl font-bold">{stats.total_posts}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
+                        <p className="text-sm text-gray-500">New (7 Days)</p>
+                        <p className="text-2xl font-bold">{stats.created_last_7_days}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
+                        <p className="text-sm text-gray-500">New (30 Days)</p>
+                        <p className="text-2xl font-bold">{stats.created_last_30_days}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
+                        <p className="text-sm text-gray-500">Avg Views</p>
+                        <p className="text-2xl font-bold">{stats.average_views}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Posts Table */}
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Title</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Scope</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Views</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {posts.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                    No posts found. Create your first one!
+                                </td>
+                            </tr>
+                        ) : (
+                            posts.map((post) => (
+                                <tr key={post.id} className="hover:bg-gray-50 transition">
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm font-bold text-gray-900">
+                                            {post.is_pinned && <span className="mr-2 text-red-500" title="Pinned">📌</span>}
+                                            {post.title}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                            By {post.author?.first_name || 'Unknown'} • {new Date(post.created_at).toLocaleDateString()}
+                                        </div>
+                                    </td>
+                                    
+                                    {/* NEW SCOPE COLUMN */}
+                                    <td className="px-6 py-4">
+                                        {getScopeBadge(post)}
+                                    </td>
+
+                                    <td className="px-6 py-4">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                            {post.post_type}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                            post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                                            post.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {post.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        {post.view_count}
+                                    </td>
+                                    <td className="px-6 py-4 text-right text-sm font-medium space-x-3">
+                                        <Link href={`/admin/super/posts/${post.id}`} className="text-indigo-600 hover:text-indigo-900">
+                                            View
+                                        </Link>
+                                        <Link href={`/admin/super/posts/edit/${post.id}`} className="text-blue-600 hover:text-blue-900">
+                                            Edit
+                                        </Link>
+                                        <button 
+                                            onClick={() => handleDeleteClick(post)}
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <DeleteConfirmationModal
+                isVisible={showDeleteModal}
+                onClose={() => { if (!isDeleting) { setShowDeleteModal(false); setPostToDelete(null); } }}
+                onConfirm={handleDeleteConfirm}
+                itemName={postToDelete?.title}
+                isLoading={isDeleting}
+            />
+            <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={() => setToast({ ...toast, isVisible: false })} />
+        </div>
+    );
+}
+
+--- END OF FILE: ./frontend/app/admin/municipality/posts/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/posts/edit/[id]/page.tsx ---
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import api from '../../../../../../lib/api';
+import PostForm from '../../../../../components/posts/PostForm';
+import { Post } from '../../../../../../types/post';
+
+export default function EditPostPage() {
+    const router = useRouter();
+    const params = useParams();
+    const postId = params?.id as string;
+    
+    const [post, setPost] = useState<Post | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!postId) return;
+        
+        const fetchPost = async () => {
+            try {
+                const res = await api.get(`/posts/${postId}/`);
+                setPost(res.data);
+            } catch (err) {
+                console.error("Failed to fetch post", err);
+                alert("Post not found");
+                router.push('/admin/municipality/posts');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPost();
+    }, [postId, router]);
+
+    if (loading) return <div className="p-8 text-center text-gray-500">Loading post data...</div>;
+    if (!post) return null;
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+                <button 
+                    onClick={() => router.back()}
+                    className="text-sm text-gray-500 hover:text-gray-700 mb-2"
+                >
+                    ← Cancel & Back
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">Edit Post</h1>
+            </div>
+
+            <PostForm 
+                initialData={post}
+                role="municipality" 
+                onSuccess={() => router.push(`/admin/municipality/posts/${post.id}`)} // Redirect to View Page
+            />
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/posts/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/posts/[id]/page.tsx ---
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useParams } from 'next/navigation';
+import api from '../../../../../lib/api';
+import { Post } from '../../../../../types/post';
+
+export default function PostDetailPage() {
+    const router = useRouter();
+    const params = useParams();
+    const postId = params?.id as string;
+    
+    const [post, setPost] = useState<Post | null>(null);
+    const [comments, setComments] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [customFieldMap, setCustomFieldMap] = useState<Record<number, string>>({});
+
+    const fetchData = async () => {
+        if (!postId) return;
+        
+        try {
+            // 1. Fetch Post Details
+            const postRes = await api.get(`/posts/${postId}/`);
+            setPost(postRes.data);
+
+            // 2. Fetch Comments for this post
+            const commentsRes = await api.get(`/post-comments/?post_id=${postId}`);
+            setComments(commentsRes.data.results || commentsRes.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [postId]);
+
+    const handleApproveComment = async (commentId: number, currentStatus: boolean) => {
+        try {
+            await api.patch(`/post-comments/${commentId}/`, { is_approved: !currentStatus });
+            fetchData(); // Refresh list
+        } catch (err) {
+            alert('Failed to update comment');
+        }
+    };
+
+    const handleDeleteComment = async (commentId: number) => {
+        if (!confirm("Delete this comment permanently?")) return;
+        try {
+            await api.delete(`/post-comments/${commentId}/`);
+            fetchData(); // Refresh list
+        } catch (err) {
+            alert('Failed to delete comment');
+        }
+    };
+
+    const hasCustomFieldRules = useMemo(() => {
+        if (!post?.target_custom_fields) return false;
+        return Object.keys(post.target_custom_fields).length > 0;
+    }, [post?.target_custom_fields]);
+
+    useEffect(() => {
+        const fetchCustomFieldNames = async () => {
+            if (!hasCustomFieldRules) return;
+            try {
+                const res = await api.get('/custom-fields/');
+                const definitions = res.data.results || res.data || [];
+                const map = definitions.reduce((acc: Record<number, string>, field: any) => {
+                    acc[field.id] = field.name;
+                    return acc;
+                }, {});
+                setCustomFieldMap(map);
+            } catch (error) {
+                console.error('Failed to load custom fields', error);
+            }
+        };
+
+        fetchCustomFieldNames();
+    }, [hasCustomFieldRules]);
+
+    if (loading) return <div className="p-8">Loading...</div>;
+    if (!post) return <div className="p-8">Post not found</div>;
+
+    return (
+        <div className="space-y-6 max-w-6xl mx-auto">
+            {/* --- HEADER --- */}
+            <div className="flex justify-between items-start">
+                <div>
+                    <button onClick={() => router.push('/admin/super/posts')} className="text-sm text-gray-500 mb-1 hover:underline">← Back to List</button>
+                    <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                            post.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
+                            {post.status}
+                        </span>
+                        <span className="text-sm text-gray-500">Created: {new Date(post.created_at).toLocaleDateString()}</span>
+                        {post.is_pinned && <span className="text-sm text-red-500 font-medium">📌 Pinned</span>}
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <Link 
+                        href={`/admin/super/posts/edit/${post.id}`}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+                    >
+                        Edit Post
+                    </Link>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* --- LEFT COL: PREVIEW --- */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Content Preview Card */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Content Preview</h3>
+                        
+                        {/* Video Display */}
+                        {post.post_type === 'VIDEO' && post.video_url && (
+                            <div className="mb-4 bg-black rounded overflow-hidden aspect-video flex items-center justify-center text-white">
+                                {/* Simple placeholder if specific youtube embed logic isn't added yet */}
+                                <a href={post.video_url} target="_blank" rel="noreferrer" className="underline">
+                                    Watch Video ({post.video_url})
+                                </a>
+                            </div>
+                        )}
+
+                        {/* Image Display */}
+                        {post.post_type === 'IMAGE' && post.images && post.images.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto mb-4 pb-2">
+                                {post.images.map(img => (
+                                    <img key={img.id} src={img.image} className="h-48 rounded object-cover border" alt="Post media" />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Text Content */}
+                        <div 
+                            className="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded border"
+                            dangerouslySetInnerHTML={{ __html: post.content }} 
+                        />
+                    </div>
+
+                    {/* Comments Manager */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-gray-800">Comments ({comments.length})</h3>
+                            <span className="text-xs text-gray-500">Moderation: {post.require_moderation ? 'On' : 'Off'}</span>
+                        </div>
+                        
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
+                            {comments.length === 0 ? (
+                                <p className="text-gray-400 italic">No comments yet.</p>
+                            ) : (
+                                comments.map(comment => (
+                                    <div key={comment.id} className={`p-3 rounded border ${comment.is_approved ? 'bg-white' : 'bg-red-50 border-red-200'}`}>
+                                        <div className="flex justify-between">
+                                            <p className="text-sm font-bold text-gray-700">
+                                                {comment.author?.first_name} {comment.author?.last_name}
+                                                <span className="text-gray-400 font-normal ml-2 text-xs">
+                                                    {new Date(comment.created_at).toLocaleString()}
+                                                </span>
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => handleApproveComment(comment.id, comment.is_approved)}
+                                                    className={`text-xs px-2 py-1 rounded ${comment.is_approved ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}
+                                                >
+                                                    {comment.is_approved ? 'Hide' : 'Approve'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteComment(comment.id)}
+                                                    className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-800 mt-1 text-sm">{comment.content}</p>
+                                        {!comment.is_approved && (
+                                            <p className="text-xs text-red-600 font-bold mt-1">⚠ Pending Approval</p>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- RIGHT COL: DETAILS & ANALYTICS --- */}
+                <div className="space-y-6">
+                    
+                    {/* Analytics Card */}
+                    <div className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500">
+                        <h3 className="font-bold text-gray-800 mb-4">Analytics</h3>
+                        <div className="grid grid-cols-2 gap-4 text-center">
+                            <div className="p-2 bg-gray-50 rounded">
+                                <p className="text-2xl font-bold text-blue-600">{post.view_count}</p>
+                                <p className="text-xs text-gray-500">Views</p>
+                            </div>
+                            <div className="p-2 bg-gray-50 rounded">
+                                <p className="text-2xl font-bold text-green-600">{comments.length}</p>
+                                <p className="text-xs text-gray-500">Comments</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Targeting Summary */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="font-bold text-gray-800 mb-4">Target Audience</h3>
+                        <ul className="space-y-3 text-sm">
+                            <li className="flex justify-between">
+                                <span className="text-gray-500">Member Type:</span>
+                                <span className="font-medium">{post.target_member_type}</span>
+                            </li>
+                            {post.target_groups.length > 0 ? (
+                                <div>
+                                    <p className="text-gray-500 mb-1">Targeted Groups:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                        {post.target_groups.map(g => (
+                                            <span key={g} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">Group ID {g}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Age Range:</span>
+                                        <span className="font-medium">
+                                            {post.target_min_age || 0} - {post.target_max_age || 'Any'}
+                                        </span>
+                                    </li>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Gender:</span>
+                                        <span className="font-medium">
+                                            {post.target_genders.length > 0 ? post.target_genders.join(', ') : 'All'}
+                                        </span>
+                                    </li>
+                                    <li className="flex justify-between">
+                                        <span className="text-gray-500">Grades:</span>
+                                        <span className="font-medium">
+                                            {post.target_grades.length > 0 ? post.target_grades.join(', ') : 'All'}
+                                        </span>
+                                    </li>
+                                </>
+                            )}
+                            {hasCustomFieldRules && (
+                                <li className="flex flex-col gap-2">
+                                    <span className="text-gray-500">Custom Field Rules:</span>
+                                    <div className="flex flex-col gap-1">
+                                        {Object.entries(post.target_custom_fields || {}).map(([fieldId, value]) => {
+                                            const id = Number(fieldId);
+                                            const fieldName = customFieldMap[id] || `Custom Field #${fieldId}`;
+                                            let displayValue: string;
+                                            if (typeof value === 'boolean') displayValue = value ? 'Yes' : 'No';
+                                            else displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+                                            return (
+                                                <span
+                                                    key={fieldId}
+                                                    className="text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-100"
+                                                >
+                                                    <strong>{fieldName}:</strong> {displayValue || 'Any'}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+
+                    {/* Settings Summary */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="font-bold text-gray-800 mb-4">Configuration</h3>
+                        <ul className="space-y-2 text-sm text-gray-600">
+                            <li>• {post.allow_comments ? '✅ Comments Allowed' : '❌ Comments Disabled'}</li>
+                            <li>• {post.require_moderation ? '✅ Moderation On' : '⚪ Moderation Off'}</li>
+                            <li>• {post.send_push_notification ? '✅ Push Notification Sent' : '⚪ No Push Notification'}</li>
+                            {post.visibility_end_date && (
+                                <li className="text-orange-600">• Expires: {new Date(post.visibility_end_date).toLocaleDateString()}</li>
+                            )}
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/posts/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/posts/create/page.tsx ---
+'use client';
+
+import { useRouter } from 'next/navigation';
+import PostForm from '../../../../components/posts/PostForm';
+
+export default function CreatePostPage() {
+    const router = useRouter();
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+                <button 
+                    onClick={() => router.back()}
+                    className="text-sm text-gray-500 hover:text-gray-700 mb-2"
+                >
+                    ← Back to Posts
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900">Create New Post</h1>
+                <p className="text-gray-500">Share updates, news, or media with your members.</p>
+            </div>
+
+            <PostForm 
+                role="municipality" 
+                onSuccess={() => router.push('/admin/municipality/posts')} 
+            />
+        </div>
+    );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/posts/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/municipality/clubs/page.tsx ---
@@ -22400,6 +24383,762 @@ export default function MemberSelector({ criteria, selectedIds, onChange, exclud
 --- END OF FILE: ./frontend/app/components/MemberSelector.tsx ---
 
 
+--- START OF FILE: ./frontend/app/components/posts/PostForm.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import api from '../../../lib/api';
+import { Post, PostImage } from '../../../types/post';
+import RichTextEditor from '../RichTextEditor';
+import { getMediaUrl } from '../../utils';
+import Toast from '../Toast';
+import { useAuth } from '../../../context/AuthContext';
+
+interface PostFormProps {
+    initialData?: Post;
+    role: 'super' | 'municipality' | 'club';
+    onSuccess: () => void;
+}
+
+export default function PostForm({ initialData, role, onSuccess }: PostFormProps) {
+    const router = useRouter();
+    const { user: currentUser } = useAuth();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+        message: '', type: 'success', isVisible: false,
+    });
+
+    // --- Dynamic Data ---
+    const [municipalities, setMunicipalities] = useState<any[]>([]);
+    const [clubs, setClubs] = useState<any[]>([]);
+    const [availableGroups, setAvailableGroups] = useState<any[]>([]);
+    const [availableInterests, setAvailableInterests] = useState<any[]>([]);
+    const [availableCustomFields, setAvailableCustomFields] = useState<any[]>([]);
+
+    // --- 1. Distribution (Scope) State ---
+    // Initialize based on role and initial data, pre-select assigned values
+    const getInitialDistributionMode = (): 'GLOBAL' | 'MUNICIPALITY' | 'CLUB' => {
+        if (initialData?.is_global) return 'GLOBAL';
+        if (initialData?.target_municipalities?.length) return 'MUNICIPALITY';
+        if (initialData?.target_clubs?.length) return 'CLUB';
+        // For club admin, default to CLUB
+        if (role === 'club') return 'CLUB';
+        // For municipality admin, default to MUNICIPALITY
+        if (role === 'municipality') return 'MUNICIPALITY';
+        return 'CLUB';
+    };
+    
+    const [distributionMode, setDistributionMode] = useState<'GLOBAL' | 'MUNICIPALITY' | 'CLUB'>(getInitialDistributionMode());
+    
+    // Initialize selected values - pre-select assigned club/municipality for non-super admins
+    const getInitialSelectedMunis = (): number[] => {
+        if (initialData?.target_municipalities?.length) return initialData.target_municipalities;
+        // Pre-select municipality admin's assigned municipality
+        if (role === 'municipality' && currentUser?.assigned_municipality) {
+            const muniId = typeof currentUser.assigned_municipality === 'object' 
+                ? currentUser.assigned_municipality.id 
+                : currentUser.assigned_municipality;
+            return muniId ? [muniId] : [];
+        }
+        return [];
+    };
+    
+    const getInitialSelectedClubs = (): number[] => {
+        if (initialData?.target_clubs?.length) return initialData.target_clubs;
+        // Pre-select club admin's assigned club
+        if (role === 'club' && currentUser?.assigned_club) {
+            const clubId = typeof currentUser.assigned_club === 'object' 
+                ? currentUser.assigned_club.id 
+                : currentUser.assigned_club;
+            return clubId ? [clubId] : [];
+        }
+        return [];
+    };
+    
+    const [selectedMunis, setSelectedMunis] = useState<number[]>(getInitialSelectedMunis());
+    const [selectedClubs, setSelectedClubs] = useState<number[]>(getInitialSelectedClubs());
+
+    // For Muni Admin: "All Clubs" means selecting ALL clubs in their muni
+    const [muniScope, setMuniScope] = useState<'ALL' | 'SPECIFIC'>(
+        (initialData?.target_clubs && initialData.target_clubs.length > 0) ? 'SPECIFIC' : 'ALL'
+    );
+
+    // --- 2. Basic Info ---
+    const [title, setTitle] = useState(initialData?.title || '');
+    const [content, setContent] = useState(initialData?.content || '');
+    const [postType, setPostType] = useState(initialData?.post_type || 'TEXT');
+    const [videoUrl, setVideoUrl] = useState(initialData?.video_url || '');
+    const [existingImages, setExistingImages] = useState<PostImage[]>(initialData?.images || []);
+    const [newImages, setNewImages] = useState<File[]>([]);
+    const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
+
+    // --- 3. Status & Scheduling ---
+    const [status, setStatus] = useState(initialData?.status || 'DRAFT');
+    const [publishedAt, setPublishedAt] = useState(initialData?.published_at ? initialData.published_at.slice(0, 16) : '');
+    const [visibilityEndDate, setVisibilityEndDate] = useState(initialData?.visibility_end_date ? initialData.visibility_end_date.slice(0, 16) : '');
+    const [isPinned, setIsPinned] = useState(initialData?.is_pinned || false);
+
+    // --- 4. Targeting (Audience) ---
+    const [targetMode, setTargetMode] = useState<'GROUPS' | 'ATTRIBUTES'>(
+        (initialData?.target_groups && initialData.target_groups.length > 0) ? 'GROUPS' : 'ATTRIBUTES'
+    );
+    const [selectedGroups, setSelectedGroups] = useState<number[]>(initialData?.target_groups || []);
+    const [memberType, setMemberType] = useState(initialData?.target_member_type || 'BOTH');
+    const [minAge, setMinAge] = useState(initialData?.target_min_age?.toString() || '');
+    const [maxAge, setMaxAge] = useState(initialData?.target_max_age?.toString() || '');
+    const [selectedGrades, setSelectedGrades] = useState<number[]>(initialData?.target_grades || []);
+    const [selectedGenders, setSelectedGenders] = useState<string[]>(initialData?.target_genders || []);
+    const [selectedInterests, setSelectedInterests] = useState<number[]>(initialData?.target_interests || []);
+    const [customFieldRules, setCustomFieldRules] = useState<Record<string, any>>(initialData?.target_custom_fields || {});
+
+    // --- 5. Comment Settings ---
+    const [allowComments, setAllowComments] = useState(initialData?.allow_comments ?? true);
+    const [requireModeration, setRequireModeration] = useState(initialData?.require_moderation ?? false);
+    const [allowReplies, setAllowReplies] = useState(initialData?.allow_replies ?? true);
+    const [limitComments, setLimitComments] = useState(initialData?.limit_comments_per_user || 0);
+
+    // --- 6. Push Notifications ---
+    const [sendPush, setSendPush] = useState(initialData?.send_push_notification || false);
+    const [pushTitle, setPushTitle] = useState(initialData?.push_title || '');
+    const [pushMessage, setPushMessage] = useState(initialData?.push_message || '');
+
+    // Update existing images when initialData changes
+    useEffect(() => {
+        if (initialData?.images) {
+            setExistingImages(initialData.images);
+            setImagesToDelete([]);
+        }
+    }, [initialData?.id]);
+
+    // Pre-select assigned club/municipality when component mounts or user data loads
+    useEffect(() => {
+        if (!initialData && currentUser) {
+            if (role === 'club' && currentUser.assigned_club) {
+                const clubId = typeof currentUser.assigned_club === 'object' 
+                    ? currentUser.assigned_club.id 
+                    : currentUser.assigned_club;
+                if (clubId && !selectedClubs.includes(clubId)) {
+                    setSelectedClubs([clubId]);
+                }
+                // Force CLUB mode for club admins
+                if (distributionMode !== 'CLUB') {
+                    setDistributionMode('CLUB');
+                }
+            } else if (role === 'municipality' && currentUser.assigned_municipality) {
+                const muniId = typeof currentUser.assigned_municipality === 'object' 
+                    ? currentUser.assigned_municipality.id 
+                    : currentUser.assigned_municipality;
+                if (muniId && !selectedMunis.includes(muniId)) {
+                    setSelectedMunis([muniId]);
+                }
+                // Force MUNICIPALITY mode for municipality admins (they can't use GLOBAL)
+                if (distributionMode === 'GLOBAL') {
+                    setDistributionMode('MUNICIPALITY');
+                }
+            }
+        }
+    }, [role, currentUser?.assigned_club, currentUser?.assigned_municipality, initialData, distributionMode, selectedClubs, selectedMunis]);
+
+    // --- Data Fetching ---
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                // Parallel fetching of options
+                const promises = [
+                    api.get('/groups/'),
+                    api.get('/interests/'),
+                    api.get('/custom-fields/')
+                ];
+                
+                // Fetch municipalities for super and municipality admins
+                if (role === 'super' || role === 'municipality') {
+                    promises.push(api.get('/municipalities/'));
+                }
+                
+                // Fetch clubs for all roles (super sees all, muni sees theirs, club sees theirs)
+                promises.push(api.get('/clubs/?page_size=1000'));
+
+                const results = await Promise.allSettled(promises);
+                
+                // Helper to safely extract data
+                const getResult = (index: number) => {
+                    if (results[index].status === 'fulfilled') {
+                        const val = (results[index] as PromiseFulfilledResult<any>).value;
+                        return Array.isArray(val.data) ? val.data : (val.data.results || []);
+                    }
+                    return [];
+                };
+
+                setAvailableGroups(getResult(0));
+                setAvailableInterests(getResult(1));
+                
+                const allFields = getResult(2);
+                setAvailableCustomFields(allFields.filter((f: any) => 
+                    ['BOOLEAN', 'SINGLE_SELECT', 'MULTI_SELECT'].includes(f.field_type)
+                ));
+
+                if (role === 'super') {
+                    setMunicipalities(getResult(3));
+                    setClubs(getResult(4));
+                } else if (role === 'municipality') {
+                    setMunicipalities(getResult(3)); // Municipalities are index 3
+                    setClubs(getResult(4)); // Clubs are index 4
+                } else if (role === 'club') {
+                    setMunicipalities([]); // Club admins don't need municipalities list
+                    setClubs(getResult(3)); // Clubs are index 3 (no municipalities fetched)
+                }
+
+            } catch (err) {
+                console.error("Failed to load form data", err);
+            }
+        };
+        loadData();
+    }, [role]);
+
+    // --- Helpers ---
+    const toggleSelection = (id: any, list: any[], setList: (l: any[]) => void) => {
+        if (list.includes(id)) setList(list.filter(item => item !== id));
+        else setList([...list, id]);
+    };
+
+    const handleCustomFieldChange = (fieldId: number, value: any) => {
+        setCustomFieldRules(prev => {
+            if (value === '' || value === false) {
+                const copy = { ...prev };
+                delete copy[fieldId];
+                return copy;
+            }
+            return { ...prev, [fieldId]: value };
+        });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        const formData = new FormData();
+
+        // 1. Basic
+        formData.append('title', title);
+        formData.append('content', content);
+        formData.append('post_type', postType);
+        if (videoUrl) formData.append('video_url', videoUrl);
+
+        // 2. Distribution Logic
+        // Prevent non-super admins from using GLOBAL
+        if (distributionMode === 'GLOBAL' && role !== 'super') {
+            // Force municipality admin to MUNICIPALITY mode, club admin to CLUB mode
+            if (role === 'municipality') {
+                formData.append('is_global', 'false');
+                const muniId = currentUser?.assigned_municipality 
+                    ? (typeof currentUser.assigned_municipality === 'object' 
+                        ? currentUser.assigned_municipality.id 
+                        : currentUser.assigned_municipality)
+                    : null;
+                if (muniId) {
+                    formData.append('target_municipalities', muniId.toString());
+                }
+                // Don't append empty string for target_clubs
+            } else if (role === 'club') {
+                formData.append('is_global', 'false');
+                // Don't append empty string for target_municipalities
+                const clubId = currentUser?.assigned_club 
+                    ? (typeof currentUser.assigned_club === 'object' 
+                        ? currentUser.assigned_club.id 
+                        : currentUser.assigned_club)
+                    : null;
+                if (clubId) {
+                    formData.append('target_clubs', clubId.toString());
+                }
+            }
+        } else if (distributionMode === 'GLOBAL') {
+            formData.append('is_global', 'true');
+            // Don't append empty strings for ManyToMany fields - just omit them
+        } else if (distributionMode === 'MUNICIPALITY') {
+            formData.append('is_global', 'false');
+            // For municipality admin, ensure their assigned municipality is included
+            const finalMunis = [...selectedMunis];
+            if (role === 'municipality' && currentUser?.assigned_municipality) {
+                const muniId = typeof currentUser.assigned_municipality === 'object' 
+                    ? currentUser.assigned_municipality.id 
+                    : currentUser.assigned_municipality;
+                if (muniId && !finalMunis.includes(muniId)) {
+                    finalMunis.push(muniId);
+                }
+            }
+            // Always append municipalities (even if empty, backend will handle it)
+            // But ensure at least the assigned municipality is there for municipality admins
+            if (finalMunis.length > 0) {
+                finalMunis.forEach(id => formData.append('target_municipalities', id.toString()));
+            } else if (role === 'municipality' && currentUser?.assigned_municipality) {
+                // Fallback: if somehow no municipalities selected, use assigned municipality
+                const muniId = typeof currentUser.assigned_municipality === 'object' 
+                    ? currentUser.assigned_municipality.id 
+                    : currentUser.assigned_municipality;
+                if (muniId) {
+                    formData.append('target_municipalities', muniId.toString());
+                }
+            }
+            // Don't append empty string for target_clubs
+        } else { // CLUB
+            formData.append('is_global', 'false');
+            // Don't append empty string for target_municipalities
+            // For club admin, ensure their assigned club is included
+            const finalClubs = [...selectedClubs];
+            if (role === 'club' && currentUser?.assigned_club) {
+                const clubId = typeof currentUser.assigned_club === 'object' 
+                    ? currentUser.assigned_club.id 
+                    : currentUser.assigned_club;
+                if (clubId && !finalClubs.includes(clubId)) {
+                    finalClubs.push(clubId);
+                }
+            }
+            // Always append clubs (even if empty, backend will handle it)
+            // But ensure at least the assigned club is there for club admins
+            if (finalClubs.length > 0) {
+                finalClubs.forEach(id => formData.append('target_clubs', id.toString()));
+            } else if (role === 'club' && currentUser?.assigned_club) {
+                // Fallback: if somehow no clubs selected, use assigned club
+                const clubId = typeof currentUser.assigned_club === 'object' 
+                    ? currentUser.assigned_club.id 
+                    : currentUser.assigned_club;
+                if (clubId) {
+                    formData.append('target_clubs', clubId.toString());
+                }
+            }
+        }
+
+        // 3. Status
+        formData.append('status', status);
+        if (status === 'SCHEDULED' && publishedAt) formData.append('published_at', new Date(publishedAt).toISOString());
+        if (visibilityEndDate) formData.append('visibility_end_date', new Date(visibilityEndDate).toISOString());
+        formData.append('is_pinned', isPinned ? 'true' : 'false');
+
+        // 4. Targeting
+        formData.append('target_member_type', memberType);
+        if (targetMode === 'GROUPS') {
+            selectedGroups.forEach(id => formData.append('target_groups', id.toString()));
+            // Reset attrs
+            formData.append('target_grades', JSON.stringify([]));
+            formData.append('target_genders', JSON.stringify([]));
+            formData.append('target_custom_fields', JSON.stringify({}));
+        } else {
+            // Reset groups
+            if (selectedGroups.length === 0) {
+                formData.append('target_groups', '');
+            } else {
+                selectedGroups.forEach(id => formData.append('target_groups', id.toString()));
+            }
+            if (minAge) formData.append('target_min_age', minAge.toString());
+            if (maxAge) formData.append('target_max_age', maxAge.toString());
+            formData.append('target_grades', JSON.stringify(selectedGrades));
+            formData.append('target_genders', JSON.stringify(selectedGenders));
+            // Only append interests if there are any
+            if (selectedInterests.length > 0) {
+                selectedInterests.forEach(id => formData.append('target_interests', id.toString()));
+            }
+            formData.append('target_custom_fields', JSON.stringify(customFieldRules));
+        }
+
+        // 5. Settings
+        formData.append('allow_comments', allowComments ? 'true' : 'false');
+        formData.append('require_moderation', requireModeration ? 'true' : 'false');
+        formData.append('allow_replies', allowReplies ? 'true' : 'false');
+        formData.append('limit_comments_per_user', limitComments.toString());
+        formData.append('send_push_notification', sendPush ? 'true' : 'false');
+        if (sendPush) {
+            formData.append('push_title', pushTitle);
+            formData.append('push_message', pushMessage);
+        }
+
+        // 6. Files
+        newImages.forEach((file) => formData.append('uploaded_images', file));
+        if (initialData && imagesToDelete.length > 0) {
+            imagesToDelete.forEach((id) => formData.append('images_to_delete', id.toString()));
+        }
+
+        try {
+            if (initialData) {
+                await api.patch(`/posts/${initialData.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                setToast({ message: 'Updated successfully', type: 'success', isVisible: true });
+            } else {
+                await api.post('/posts/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                setToast({ message: 'Created successfully', type: 'success', isVisible: true });
+            }
+            setTimeout(() => onSuccess(), 1000);
+        } catch (err: any) {
+            const msg = err.response?.data?.detail || err.response?.data?.message || 'Failed to save post.';
+            setError(msg);
+            setToast({ message: msg, type: 'error', isVisible: true });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-2">{initialData ? 'Edit Post' : 'Create New Post'}</h2>
+                {error && <p className="text-red-600 bg-red-50 p-2 rounded text-sm">{error}</p>}
+            </div>
+
+            {/* --- DISTRIBUTION SECTION (New) --- */}
+            <div className="bg-blue-50 p-5 rounded-lg border border-blue-100 space-y-4">
+                <h3 className="text-lg font-bold text-blue-900">Distribution Scope</h3>
+                
+                {/* Distribution Mode Selection - All roles see this, but some options are disabled */}
+                <div className="flex gap-4 mb-4">
+                    <label 
+                        className={`flex items-center px-3 py-2 rounded border ${
+                            role === 'super' 
+                                ? 'cursor-pointer bg-white hover:border-blue-300' 
+                                : 'cursor-not-allowed bg-gray-100 opacity-50'
+                        }`}
+                        onClick={(e) => {
+                            if (role !== 'super') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                        }}
+                    >
+                        <input 
+                            type="radio" 
+                            name="dist" 
+                            checked={distributionMode === 'GLOBAL'} 
+                            onChange={(e) => {
+                                if (role === 'super') {
+                                    setDistributionMode('GLOBAL');
+                                } else {
+                                    e.preventDefault();
+                                }
+                            }} 
+                            disabled={role !== 'super'}
+                            className="mr-2" 
+                        />
+                        <span className="font-medium">Global (All Users)</span>
+                    </label>
+                    <label 
+                        className={`flex items-center px-3 py-2 rounded border ${
+                            (role === 'super' || role === 'municipality')
+                                ? 'cursor-pointer bg-white hover:border-blue-300' 
+                                : 'cursor-not-allowed bg-gray-100 opacity-50'
+                        }`}
+                        onClick={(e) => {
+                            if (role === 'club') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                        }}
+                    >
+                        <input 
+                            type="radio" 
+                            name="dist" 
+                            checked={distributionMode === 'MUNICIPALITY'} 
+                            onChange={(e) => {
+                                if (role === 'super' || role === 'municipality') {
+                                    setDistributionMode('MUNICIPALITY');
+                                } else {
+                                    e.preventDefault();
+                                }
+                            }} 
+                            disabled={role === 'club'}
+                            className="mr-2" 
+                        />
+                        <span className="font-medium">Specific Municipalities</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
+                        <input 
+                            type="radio" 
+                            name="dist" 
+                            checked={distributionMode === 'CLUB'} 
+                            onChange={() => setDistributionMode('CLUB')} 
+                            className="mr-2" 
+                        />
+                        <span className="font-medium">Specific Clubs</span>
+                    </label>
+                </div>
+
+                {/* Municipality Selector - Show for super and municipality admins */}
+                {distributionMode === 'MUNICIPALITY' && (role === 'super' || role === 'municipality') && (
+                    <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
+                        {municipalities.map(m => {
+                            // For municipality admin, their assigned municipality should be pre-selected and disabled
+                            const userMuniId = currentUser?.assigned_municipality 
+                                ? (typeof currentUser.assigned_municipality === 'object' 
+                                    ? currentUser.assigned_municipality.id 
+                                    : currentUser.assigned_municipality)
+                                : null;
+                            const isAssigned = role === 'municipality' && userMuniId === m.id;
+                            const isChecked = selectedMunis.includes(m.id);
+                            
+                            return (
+                                <label 
+                                    key={m.id} 
+                                    className={`flex items-center space-x-2 text-sm ${
+                                        isAssigned ? 'opacity-75' : ''
+                                    }`}
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isChecked} 
+                                        onChange={() => !isAssigned && toggleSelection(m.id, selectedMunis, setSelectedMunis)} 
+                                        disabled={isAssigned}
+                                        className="mr-2" 
+                                    />
+                                    <span>{m.name} {isAssigned && '(Your Municipality)'}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Club Selector - Show for all roles when CLUB mode is selected */}
+                {distributionMode === 'CLUB' && (
+                    <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
+                        {clubs.map(c => {
+                            // For club admin, their assigned club should be pre-selected and disabled
+                            const userClubId = currentUser?.assigned_club 
+                                ? (typeof currentUser.assigned_club === 'object' 
+                                    ? currentUser.assigned_club.id 
+                                    : currentUser.assigned_club)
+                                : null;
+                            const isAssigned = role === 'club' && userClubId === c.id;
+                            const isChecked = selectedClubs.includes(c.id);
+                            
+                            return (
+                                <label 
+                                    key={c.id} 
+                                    className={`flex items-center space-x-2 text-sm ${
+                                        isAssigned ? 'opacity-75' : ''
+                                    }`}
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isChecked} 
+                                        onChange={() => !isAssigned && toggleSelection(c.id, selectedClubs, setSelectedClubs)} 
+                                        disabled={isAssigned}
+                                        className="mr-2" 
+                                    />
+                                    <span>{c.name} {isAssigned && '(Your Club)'}</span>
+                                </label>
+                            );
+                        })}
+                        {clubs.length === 0 && <p className="text-sm text-gray-500">No clubs available.</p>}
+                    </div>
+                )}
+            </div>
+
+            {/* --- CONTENT --- */}
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Title</label>
+                    <input type="text" required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" value={title} onChange={e => setTitle(e.target.value)} />
+                </div>
+                <RichTextEditor value={content} onChange={setContent} />
+                
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Media</label>
+                    <div className="flex gap-4 mb-2">
+                        {['TEXT', 'IMAGE', 'VIDEO'].map((type) => (
+                            <button key={type} type="button" onClick={() => setPostType(type as any)} 
+                                className={`px-4 py-2 rounded text-sm font-medium border ${postType === type ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}>
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {postType === 'IMAGE' && (
+                        <div className="space-y-3">
+                            {existingImages.length > 0 && (
+                                <div className="flex gap-2 flex-wrap">
+                                    {existingImages.map(img => (
+                                        <div key={img.id} className="relative w-24 h-24">
+                                            <img src={getMediaUrl(img.image) || ''} className={`w-full h-full object-cover rounded ${imagesToDelete.includes(img.id) ? 'opacity-50' : ''}`} alt={`Post image ${img.id}`} />
+                                            <button type="button" onClick={() => toggleSelection(img.id, imagesToDelete, setImagesToDelete)} 
+                                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <input type="file" multiple accept="image/*" onChange={e => e.target.files && setNewImages(Array.from(e.target.files))} className="block w-full text-sm text-gray-500" />
+                        </div>
+                    )}
+                    
+                    {postType === 'VIDEO' && (
+                        <input type="url" placeholder="YouTube URL" className="w-full border p-2 rounded" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
+                    )}
+                </div>
+            </div>
+
+            <hr />
+
+            {/* --- TARGETING (AUDIENCE) --- */}
+            <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Target Audience Filters</h3>
+                <div className="flex items-center gap-6 mb-4">
+                    <label className="flex items-center cursor-pointer">
+                        <input type="radio" checked={targetMode === 'ATTRIBUTES'} onChange={() => setTargetMode('ATTRIBUTES')} className="mr-2" />
+                        Attributes (Age, Interests)
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                        <input type="radio" checked={targetMode === 'GROUPS'} onChange={() => setTargetMode('GROUPS')} className="mr-2" />
+                        Specific Groups
+                    </label>
+                </div>
+
+                {targetMode === 'GROUPS' ? (
+                    <div className="bg-gray-50 p-4 rounded border max-h-48 overflow-y-auto">
+                        {availableGroups.map(g => (
+                            <label key={g.id} className="flex items-center p-1 cursor-pointer">
+                                <input type="checkbox" checked={selectedGroups.includes(g.id)} onChange={() => toggleSelection(g.id, selectedGroups, setSelectedGroups)} className="mr-2" />
+                                {g.name}
+                            </label>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="space-y-4 bg-gray-50 p-4 rounded border">
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Member Type</label>
+                            <div className="flex gap-4">
+                                {['BOTH', 'YOUTH', 'GUARDIAN'].map(t => (
+                                    <label key={t} className="flex items-center"><input type="radio" checked={memberType === t} onChange={() => setMemberType(t as any)} className="mr-1" /> {t}</label>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <input type="number" placeholder="Min Age" className="border p-2 rounded" value={minAge} onChange={e => setMinAge(e.target.value)} />
+                            <input type="number" placeholder="Max Age" className="border p-2 rounded" value={maxAge} onChange={e => setMaxAge(e.target.value)} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Grades</label>
+                            <div className="flex flex-wrap gap-2">
+                                {[1,2,3,4,5,6,7,8,9,10,11,12].map(g => (
+                                    <button key={g} type="button" onClick={() => toggleSelection(g, selectedGrades, setSelectedGrades)} 
+                                        className={`w-8 h-8 rounded border ${selectedGrades.includes(g) ? 'bg-blue-600 text-white' : 'bg-white'}`}>{g}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Gender</label>
+                            <div className="flex gap-3">
+                                {['MALE', 'FEMALE', 'OTHER'].map(g => (
+                                    <label key={g} className="inline-flex items-center bg-white px-3 py-1 rounded border shadow-sm cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedGenders.includes(g)}
+                                            onChange={() => toggleSelection(g, selectedGenders, setSelectedGenders)}
+                                            className="mr-2 text-blue-600"
+                                        />
+                                        <span className="text-sm capitalize">{g.toLowerCase()}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Interests</label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                                {availableInterests.map(interest => (
+                                    <label key={interest.id} className="flex items-center text-sm cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedInterests.includes(interest.id)}
+                                            onChange={() => toggleSelection(interest.id, selectedInterests, setSelectedInterests)}
+                                            className="mr-2 rounded text-blue-600 h-4 w-4 border-gray-300"
+                                        />
+                                        {interest.name}
+                                    </label>
+                                ))}
+                                {availableInterests.length === 0 && <span className="text-sm text-gray-400">No interests available.</span>}
+                            </div>
+                        </div>
+                        {availableCustomFields.length > 0 && (
+                            <div className="border-t pt-2 mt-2">
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Custom Fields</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {availableCustomFields.map(f => (
+                                        <div key={f.id}>
+                                            <label className="text-xs block mb-1">{f.name}</label>
+                                            {f.field_type === 'BOOLEAN' ? (
+                                                <select className="w-full border p-1 rounded text-sm" value={customFieldRules[f.id] || ''} onChange={e => handleCustomFieldChange(f.id, e.target.value)}>
+                                                    <option value="">Any</option><option value="true">Yes</option><option value="false">No</option>
+                                                </select>
+                                            ) : (
+                                                <select className="w-full border p-1 rounded text-sm" value={customFieldRules[f.id] || ''} onChange={e => handleCustomFieldChange(f.id, e.target.value)}>
+                                                    <option value="">Any</option>
+                                                    {f.options?.map((o:string) => <option key={o} value={o}>{o}</option>)}
+                                                </select>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* --- PUBLISH SETTINGS --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium">Status</label>
+                        <select value={status} onChange={e => setStatus(e.target.value as any)} className="w-full border p-2 rounded">
+                            <option value="DRAFT">Draft</option>
+                            <option value="PUBLISHED">Publish Now</option>
+                            <option value="SCHEDULED">Schedule</option>
+                        </select>
+                    </div>
+                    {status === 'SCHEDULED' && <input type="datetime-local" className="w-full border p-2 rounded" value={publishedAt} onChange={e => setPublishedAt(e.target.value)} />}
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Expiration Date (Optional)</label>
+                        <input type="datetime-local" value={visibilityEndDate} onChange={e => setVisibilityEndDate(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                    </div>
+                    
+                    <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={isPinned} onChange={e => setIsPinned(e.target.checked)} />
+                        Pin to top
+                    </label>
+                </div>
+                <div className="bg-gray-50 p-4 rounded border">
+                    <label className="flex items-center gap-2 mb-2 font-bold"><input type="checkbox" checked={allowComments} onChange={e => setAllowComments(e.target.checked)} /> Allow Comments</label>
+                    {allowComments && (
+                        <div className="pl-6 space-y-2 text-sm">
+                            <label className="flex items-center gap-2"><input type="checkbox" checked={requireModeration} onChange={e => setRequireModeration(e.target.checked)} /> Moderation</label>
+                            <label className="flex items-center gap-2"><input type="checkbox" checked={allowReplies} onChange={e => setAllowReplies(e.target.checked)} /> Replies</label>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Max Comments Per User (0 = Unlimited)</label>
+                                <input type="number" value={limitComments} onChange={e => setLimitComments(parseInt(e.target.value) || 0)} className="w-24 rounded-md border p-1" />
+                            </div>
+                        </div>
+                    )}
+                    <label className="flex items-center gap-2 mt-4 font-bold"><input type="checkbox" checked={sendPush} onChange={e => setSendPush(e.target.checked)} /> Send Push Notification</label>
+                    {sendPush && (
+                        <div className="pl-6 mt-2 space-y-2">
+                            <input type="text" placeholder="Notif Title" className="w-full border p-1 rounded text-sm" value={pushTitle} onChange={e => setPushTitle(e.target.value)} />
+                            <input type="text" placeholder="Notif Message" className="w-full border p-1 rounded text-sm" value={pushMessage} onChange={e => setPushMessage(e.target.value)} />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="flex justify-end gap-4 pt-6 border-t">
+                <button type="button" onClick={() => router.back()} className="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
+                <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                    {loading ? 'Saving...' : (initialData ? 'Update' : 'Create')}
+                </button>
+            </div>
+
+            <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={() => setToast({...toast, isVisible: false})} />
+        </form>
+    );
+}
+
+--- END OF FILE: ./frontend/app/components/posts/PostForm.tsx ---
+
+
 --- START OF FILE: ./frontend/app/login/page.tsx ---
 'use client';
 
@@ -23183,6 +25922,499 @@ class InterestViewSet(viewsets.ModelViewSet):
 --- END OF FILE: ./backend/organization/views.py ---
 
 
+--- START OF FILE: ./backend/posts/models.py ---
+# backend/posts/models.py
+
+from django.db import models
+from django.conf import settings
+from django.core.validators import FileExtensionValidator, MinValueValidator, MaxValueValidator
+from organization.models import Municipality, Club, Interest
+from groups.models import Group
+
+# Validator for post images
+image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp'])
+
+class Post(models.Model):
+    # --- Enums ---
+    class PostType(models.TextChoices):
+        TEXT = 'TEXT', 'Text Post'
+        IMAGE = 'IMAGE', 'Image Post'
+        VIDEO = 'VIDEO', 'Video Post'
+
+    class Status(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        SCHEDULED = 'SCHEDULED', 'Scheduled'
+        PUBLISHED = 'PUBLISHED', 'Published'
+        ARCHIVED = 'ARCHIVED', 'Archived/Expired'
+
+    class OwnerRole(models.TextChoices):
+        SUPER_ADMIN = 'SUPER_ADMIN', 'Super Admin'
+        MUNICIPALITY_ADMIN = 'MUNICIPALITY_ADMIN', 'Municipality Admin'
+        CLUB_ADMIN = 'CLUB_ADMIN', 'Club Admin'
+
+    class TargetMemberType(models.TextChoices):
+        YOUTH = 'YOUTH', 'Youth Only'
+        GUARDIAN = 'GUARDIAN', 'Guardians Only'
+        BOTH = 'BOTH', 'Both Youth and Guardians'
+
+    # --- Basic Info (Section 3) ---
+    title = models.CharField(max_length=200)
+    content = models.TextField(help_text="Rich text content")
+    post_type = models.CharField(max_length=20, choices=PostType.choices, default=PostType.TEXT)
+    
+    # Video Link (Only used if post_type is VIDEO)
+    video_url = models.URLField(blank=True, null=True, help_text="YouTube link")
+
+    # --- Ownership & Scope (Section 2) ---
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_posts')
+    owner_role = models.CharField(max_length=50, choices=OwnerRole.choices)
+    
+    # These fields now represent OWNERSHIP context, not necessarily the only viewers
+    municipality = models.ForeignKey(Municipality, on_delete=models.CASCADE, null=True, blank=True, related_name='owned_posts')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, null=True, blank=True, related_name='owned_posts')
+
+    # --- NEW: DISTRIBUTION SCOPE (Who SEES it) ---
+    is_global = models.BooleanField(default=False, help_text="Visible to everyone (Super Admin only)")
+    
+    # Granular targeting
+    target_municipalities = models.ManyToManyField(Municipality, blank=True, related_name='targeted_posts')
+    target_clubs = models.ManyToManyField(Club, blank=True, related_name='targeted_posts')
+
+    # --- Publishing & Visibility (Section 4, 5, 6, 8) ---
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    
+    # Scheduling
+    published_at = models.DateTimeField(null=True, blank=True, help_text="When the post goes live")
+    
+    # Visibility Window
+    visibility_start_date = models.DateTimeField(null=True, blank=True)
+    visibility_end_date = models.DateTimeField(null=True, blank=True, help_text="Auto-hide after this date")
+    
+    # Pinned Logic
+    is_pinned = models.BooleanField(default=False)
+    pinned_until = models.DateTimeField(null=True, blank=True)
+
+    # --- Targeting (Section 7) ---
+    # 1. Broad Roles
+    target_member_type = models.CharField(max_length=20, choices=TargetMemberType.choices, default=TargetMemberType.BOTH)
+
+    # 2. Specific Groups (Overrides other targeting if set)
+    target_groups = models.ManyToManyField(Group, blank=True, related_name='targeted_posts')
+    
+    # 3. Attribute Targeting
+    target_interests = models.ManyToManyField(Interest, blank=True, related_name='targeted_posts')
+    target_genders = models.JSONField(default=list, blank=True, help_text='List of genders e.g. ["MALE", "FEMALE"]')
+    target_grades = models.JSONField(default=list, blank=True, help_text='List of grades e.g. [7, 8, 9]')
+    
+    target_min_age = models.IntegerField(null=True, blank=True)
+    target_max_age = models.IntegerField(null=True, blank=True)
+    
+    # Custom Fields: {"field_id": "value"}
+    target_custom_fields = models.JSONField(default=dict, blank=True)
+
+    # --- Comment Settings (Section 9) ---
+    allow_comments = models.BooleanField(default=True)
+    require_moderation = models.BooleanField(default=False, help_text="If true, comments must be approved")
+    limit_comments_per_user = models.IntegerField(default=0, help_text="0 = Unlimited")
+    allow_replies = models.BooleanField(default=True)
+    
+    # --- Push Notification Config (Section 10) ---
+    send_push_notification = models.BooleanField(default=False)
+    push_title = models.CharField(max_length=200, blank=True)
+    push_message = models.CharField(max_length=200, blank=True)
+
+    # --- Metrics ---
+    view_count = models.IntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_pinned', '-published_at', '-created_at']
+
+    def __str__(self):
+        return f"{self.title} ({self.get_status_display()})"
+
+
+class PostImage(models.Model):
+    """
+    Allows multiple images per post (Section 3.B).
+    """
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='images')
+    image = models.FileField(upload_to='posts/images/', validators=[image_validator])
+    order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+
+class PostComment(models.Model):
+    """
+    Comment system (Section 9).
+    """
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='post_comments')
+    content = models.TextField(max_length=1000)
+    
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    
+    is_approved = models.BooleanField(default=True) # Defaults to true unless moderation is on
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Comment by {self.author} on {self.post}"
+--- END OF FILE: ./backend/posts/models.py ---
+
+
+--- START OF FILE: ./backend/posts/serializers.py ---
+from rest_framework import serializers
+from django.db.models import Max
+from .models import Post, PostImage, PostComment
+from users.serializers import CustomUserSerializer # To show author details
+from organization.serializers import MunicipalitySerializer, ClubSerializer # Import these for display
+from organization.models import Municipality, Club
+import json
+
+class PostImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostImage
+        fields = ['id', 'image', 'order']
+
+class PostCommentSerializer(serializers.ModelSerializer):
+    author = CustomUserSerializer(read_only=True)
+    
+    class Meta:
+        model = PostComment
+        fields = ['id', 'post', 'author', 'content', 'parent', 'is_approved', 'created_at']
+        read_only_fields = ['is_approved', 'author']
+
+class PostSerializer(serializers.ModelSerializer):
+    images = PostImageSerializer(many=True, read_only=True)
+    author = CustomUserSerializer(read_only=True)
+    
+    # Read-only details for the UI
+    target_municipalities_details = MunicipalitySerializer(source='target_municipalities', many=True, read_only=True)
+    target_clubs_details = ClubSerializer(source='target_clubs', many=True, read_only=True)
+    
+    # Write-only fields for ManyToMany
+    target_municipalities = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=Municipality.objects.all(), required=False
+    )
+    target_clubs = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=Club.objects.all(), required=False
+    )
+    
+    # We will accept uploaded files as a list during creation
+    uploaded_images = serializers.ListField(
+        child=serializers.FileField(max_length=100000, allow_empty_file=False, use_url=False),
+        write_only=True,
+        required=False
+    )
+    
+    # Accept list of image IDs to delete during update
+    images_to_delete = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False
+    )
+    
+    comment_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Post
+        fields = '__all__'
+        read_only_fields = [
+            'author', 'owner_role', 'municipality', 'club', 'view_count', 'comment_count',
+            'target_municipalities_details', 'target_clubs_details'
+        ]
+    
+    def validate(self, data):
+        """
+        Validate that JSON fields are lists/dicts.
+        Handle both JSON strings (from FormData) and native types (from JSON API).
+        Also handle boolean strings from FormData.
+        """
+        # Handle boolean strings from FormData
+        boolean_fields = ['is_pinned', 'allow_comments', 'require_moderation', 'allow_replies', 'send_push_notification', 'is_global']
+        for field in boolean_fields:
+            if field in data and isinstance(data[field], str):
+                data[field] = data[field].lower() == 'true'
+        
+        # Parse JSON strings if they come from FormData
+        if 'target_genders' in data:
+            if isinstance(data['target_genders'], str):
+                try:
+                    data['target_genders'] = json.loads(data['target_genders'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"target_genders": "Invalid JSON format."})
+            if not isinstance(data['target_genders'], list):
+                raise serializers.ValidationError({"target_genders": "Must be a list."})
+        
+        if 'target_grades' in data:
+            if isinstance(data['target_grades'], str):
+                try:
+                    data['target_grades'] = json.loads(data['target_grades'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"target_grades": "Invalid JSON format."})
+            if not isinstance(data['target_grades'], list):
+                raise serializers.ValidationError({"target_grades": "Must be a list."})
+        
+        if 'target_custom_fields' in data:
+            if isinstance(data['target_custom_fields'], str):
+                try:
+                    data['target_custom_fields'] = json.loads(data['target_custom_fields'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"target_custom_fields": "Invalid JSON format."})
+            if not isinstance(data['target_custom_fields'], dict):
+                raise serializers.ValidationError({"target_custom_fields": "Must be a dictionary."})
+        
+        return data
+
+    def create(self, validated_data):
+        # Extract ManyToMany fields (they can't be set during create)
+        # DRF automatically parses multiple FormData values into lists for ManyToMany fields
+        target_groups = validated_data.pop('target_groups', [])
+        target_interests = validated_data.pop('target_interests', [])
+        t_munis = validated_data.pop('target_municipalities', [])
+        t_clubs = validated_data.pop('target_clubs', [])
+        uploaded_images = validated_data.pop('uploaded_images', [])
+        
+        # Ensure they're lists (in case DRF didn't parse them correctly)
+        if not isinstance(target_groups, list):
+            target_groups = [target_groups] if target_groups else []
+        if not isinstance(target_interests, list):
+            target_interests = [target_interests] if target_interests else []
+        if not isinstance(t_munis, list):
+            t_munis = [t_munis] if t_munis else []
+        if not isinstance(t_clubs, list):
+            t_clubs = [t_clubs] if t_clubs else []
+        
+        # For club admins: automatically add their club to target_clubs if not specified
+        user = self.context.get('request').user if self.context.get('request') else None
+        if user and user.role == 'CLUB_ADMIN' and user.assigned_club:
+            # If no clubs specified, automatically add the club admin's club
+            if not t_clubs:
+                t_clubs = [user.assigned_club.id]
+            # Ensure the club admin's club is always included (even if they somehow specified others)
+            elif user.assigned_club.id not in t_clubs:
+                t_clubs.append(user.assigned_club.id)
+        
+        # Create the post
+        post = Post.objects.create(**validated_data)
+
+        # Set ManyToMany relationships (even if empty, to clear any defaults)
+        post.target_groups.set(target_groups)
+        post.target_interests.set(target_interests)
+        post.target_municipalities.set(t_munis)
+        post.target_clubs.set(t_clubs)
+
+        # Handle Image Uploads
+        for index, image in enumerate(uploaded_images):
+            PostImage.objects.create(post=post, image=image, order=index)
+
+        return post
+
+    def update(self, instance, validated_data):
+        # Extract ManyToMany fields
+        target_groups = validated_data.pop('target_groups', None)
+        target_interests = validated_data.pop('target_interests', None)
+        t_munis = validated_data.pop('target_municipalities', None)
+        t_clubs = validated_data.pop('target_clubs', None)
+        uploaded_images = validated_data.pop('uploaded_images', [])
+        images_to_delete = validated_data.pop('images_to_delete', [])
+        
+        # Ensure they're lists if provided
+        if target_groups is not None and not isinstance(target_groups, list):
+            target_groups = [target_groups] if target_groups else []
+        if target_interests is not None and not isinstance(target_interests, list):
+            target_interests = [target_interests] if target_interests else []
+        if t_munis is not None and not isinstance(t_munis, list):
+            t_munis = [t_munis] if t_munis else []
+        if t_clubs is not None and not isinstance(t_clubs, list):
+            t_clubs = [t_clubs] if t_clubs else []
+        
+        # Handle image deletion first
+        if images_to_delete:
+            if isinstance(images_to_delete, str):
+                try:
+                    images_to_delete = json.loads(images_to_delete)
+                except (json.JSONDecodeError, ValueError):
+                    images_to_delete = []
+            if isinstance(images_to_delete, list):
+                instance.images.filter(id__in=images_to_delete).delete()
+        
+        # Update standard fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update ManyToMany relationships if provided
+        if target_groups is not None:
+            instance.target_groups.set(target_groups)
+        if target_interests is not None:
+            instance.target_interests.set(target_interests)
+        if t_munis is not None:
+            instance.target_municipalities.set(t_munis)
+        if t_clubs is not None:
+            instance.target_clubs.set(t_clubs)
+        
+        # Handle new image uploads
+        if uploaded_images:
+            # Get current max order
+            current_max_order = instance.images.aggregate(max_order=Max('order'))['max_order'] or -1
+            for index, image in enumerate(uploaded_images):
+                PostImage.objects.create(post=instance, image=image, order=current_max_order + 1 + index)
+        
+        return instance
+--- END OF FILE: ./backend/posts/serializers.py ---
+
+
+--- START OF FILE: ./backend/posts/apps.py ---
+from django.apps import AppConfig
+
+
+class PostsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'posts'
+
+--- END OF FILE: ./backend/posts/apps.py ---
+
+
+--- START OF FILE: ./backend/posts/admin.py ---
+from django.contrib import admin
+
+# Register your models here.
+
+--- END OF FILE: ./backend/posts/admin.py ---
+
+
+--- START OF FILE: ./backend/posts/tests.py ---
+from django.test import TestCase
+
+# Create your tests here.
+
+--- END OF FILE: ./backend/posts/tests.py ---
+
+
+--- START OF FILE: ./backend/posts/views.py ---
+from rest_framework import viewsets, permissions, status, parsers
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+from django.db.models import Q, Count
+from django.utils import timezone
+from datetime import timedelta
+
+from .models import Post, PostComment
+from .serializers import PostSerializer, PostCommentSerializer
+
+class PostViewSet(viewsets.ModelViewSet):
+    serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+
+    def get_queryset(self):
+        """
+        Filter posts based on Admin Role (Section 2 of Doc).
+        """
+        user = self.request.user
+        queryset = Post.objects.all().annotate(comment_count=Count('comments'))
+
+        # 1. Super Admin sees ALL posts
+        if user.role == 'SUPER_ADMIN':
+            return queryset.order_by('-is_pinned', '-created_at')
+
+        # 2. Municipality Admin sees their Muni + Clubs inside it
+        if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            return queryset.filter(
+                Q(municipality=user.assigned_municipality) |
+                Q(club__municipality=user.assigned_municipality)
+            ).order_by('-is_pinned', '-created_at')
+
+        # 3. Club Admin sees ONLY their Club
+        if user.role == 'CLUB_ADMIN' and user.assigned_club:
+            return queryset.filter(club=user.assigned_club).order_by('-is_pinned', '-created_at')
+
+        # 4. If regular user (Fallback), show nothing (Admins only in this view)
+        return Post.objects.none()
+
+    def perform_create(self, serializer):
+        """
+        Auto-assign Owner Role and Scope (Municipality/Club) based on who is creating.
+        """
+        user = self.request.user
+        
+        save_kwargs = {'author': user}
+
+        if user.role == 'SUPER_ADMIN':
+            save_kwargs['owner_role'] = 'SUPER_ADMIN'
+            # Super admins can optionally set muni/club manually in the form, 
+            # but for now we default to global if not provided.
+            
+        elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            save_kwargs['owner_role'] = 'MUNICIPALITY_ADMIN'
+            save_kwargs['municipality'] = user.assigned_municipality
+            
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            save_kwargs['owner_role'] = 'CLUB_ADMIN'
+            save_kwargs['club'] = user.assigned_club
+            # Club admins can only post to their own club - automatically set target_clubs
+            # Note: target_clubs will be set in the serializer's create method
+        else:
+            raise PermissionDenied("You do not have permission to create posts.")
+            
+        post = serializer.save(**save_kwargs)
+        
+        # For club admins, automatically add their club to target_clubs if not already set
+        if user.role == 'CLUB_ADMIN' and user.assigned_club:
+            if not post.target_clubs.filter(id=user.assigned_club.id).exists():
+                post.target_clubs.add(user.assigned_club)
+        
+        return post
+
+    @action(detail=False, methods=['get'])
+    def analytics_overview(self, request):
+        """
+        Analytics for the Management Dashboard (Section 13).
+        """
+        queryset = self.get_queryset()
+        now = timezone.now()
+        
+        total_posts = queryset.count()
+        last_7_days = queryset.filter(created_at__gte=now - timedelta(days=7)).count()
+        last_30_days = queryset.filter(created_at__gte=now - timedelta(days=30)).count()
+        
+        # Calculate Average Views (avoid division by zero)
+        total_views = sum([p.view_count for p in queryset])
+        avg_views = (total_views / total_posts) if total_posts > 0 else 0
+
+        return Response({
+            "total_posts": total_posts,
+            "created_last_7_days": last_7_days,
+            "created_last_30_days": last_30_days,
+            "average_views": round(avg_views, 1)
+        })
+
+class PostCommentViewSet(viewsets.ModelViewSet):
+    serializer_class = PostCommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = PostComment.objects.all().order_by('-created_at')
+        
+        # Allow filtering by post ID (e.g. /api/post-comments/?post_id=1)
+        post_id = self.request.query_params.get('post_id')
+        if post_id:
+            queryset = queryset.filter(post_id=post_id)
+            
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+--- END OF FILE: ./backend/posts/views.py ---
+
+
 --- START OF FILE: ./backend/core/asgi.py ---
 """
 ASGI config for core project.
@@ -23244,6 +26476,7 @@ INSTALLED_APPS = [
     'custom_fields',
     'groups',
     'rewards',
+    'posts',
 ]
 
 MIDDLEWARE = [
@@ -27145,6 +30378,8 @@ from custom_fields.views import CustomFieldDefinitionViewSet
 # Update Import
 from groups.views import GroupViewSet, GroupMembershipViewSet
 from rewards.views import RewardViewSet
+# Add this line at the top with other imports
+from posts.views import PostViewSet, PostCommentViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -27156,6 +30391,9 @@ router.register(r'groups', GroupViewSet, basename='groups')
 # NEW
 router.register(r'group-requests', GroupMembershipViewSet, basename='group-requests')
 router.register(r'rewards', RewardViewSet, basename='rewards')
+# --- ADD THESE TWO LINES ---
+router.register(r'posts', PostViewSet, basename='posts')
+router.register(r'post-comments', PostCommentViewSet, basename='post-comments')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),
