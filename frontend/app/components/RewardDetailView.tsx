@@ -155,7 +155,15 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{usage.user_name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{usage.user_email}</td>
                     <td className="px-6 py-4 text-sm text-gray-500 text-right">
-                      {new Date(usage.used_at).toLocaleString()}
+                      {/* Show redeemed_at if available, otherwise fallback to created_at */}
+                      {(() => {
+                        const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
+                        if (!date) return 'N/A';
+                        const dateStr = date.toLocaleDateString();
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        return `${dateStr} ${hours}:${minutes}`;
+                      })()}
                     </td>
                   </tr>
                 ))}
@@ -180,7 +188,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
             <div className="space-y-3 text-sm">
               <div>
                 <span className="block text-gray-500 text-xs font-bold uppercase">Target Audience</span>
-                <span className="font-medium">{reward.target_member_type === 'YOUTH' ? 'Youth Members' : 'Guardians'}</span>
+                <span className="font-medium">{reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}</span>
               </div>
               
               <div>

@@ -15,7 +15,7 @@ class Reward(models.Model):
         CLUB_ADMIN = 'CLUB_ADMIN', 'Club Admin'
 
     class MemberType(models.TextChoices):
-        YOUTH = 'YOUTH', 'Youth Only'
+        YOUTH_MEMBER = 'YOUTH_MEMBER', 'Youth Member' # <--- CHANGED THIS
         GUARDIAN = 'GUARDIAN', 'Guardians Only'
 
     class TriggerType(models.TextChoices):
@@ -64,7 +64,7 @@ class Reward(models.Model):
     max_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
     
     # F. Member Type
-    target_member_type = models.CharField(max_length=20, choices=MemberType.choices, default=MemberType.YOUTH)
+    target_member_type = models.CharField(max_length=20, choices=MemberType.choices, default=MemberType.YOUTH_MEMBER) # <--- CHANGED THIS
 
     # --- Constraints (Section 5) ---
     expiration_date = models.DateField(null=True, blank=True)
@@ -92,14 +92,27 @@ class Reward(models.Model):
 
 class RewardUsage(models.Model):
     """
-    Tracks who used a reward and when (Section 9).
+    Tracks the lifecycle of a reward for a user.
+    1. Created (Granted) -> When a trigger happens.
+    2. Redeemed -> When the user actually uses it.
     """
     reward = models.ForeignKey(Reward, on_delete=models.CASCADE, related_name='usages')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reward_usages')
-    used_at = models.DateTimeField(auto_now_add=True)
+    
+    # When was it given to the user?
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Has the user actually used it at the shop/club?
+    is_redeemed = models.BooleanField(default=False)
+    redeemed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ['-used_at']
+        ordering = ['-created_at']
+        # Ensure a user can't have multiple "active/unredeemed" copies of the same reward
+        # They must use the first one before getting another (optional, but good practice)
+        # For now, let's allow multiples if triggers fire multiple times, but usually we want to limit unique constraints here.
+        # We will handle logic in utils.py instead of strict DB constraints to be safe.
 
     def __str__(self):
-        return f"{self.user} used {self.reward}"
+        status = "Redeemed" if self.is_redeemed else "Available"
+        return f"{self.user} - {self.reward.name} ({status})"

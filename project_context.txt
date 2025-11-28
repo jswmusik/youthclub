@@ -27,6 +27,15 @@
                     page.tsx
                     settings/
                         page.tsx
+                    rewards/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     admins/
                         page.tsx
                     groups/
@@ -72,6 +81,15 @@
                     clubs/
                         page.tsx
                         [id]/
+                            page.tsx
+                    rewards/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
                             page.tsx
                     admins/
                         page.tsx
@@ -121,6 +139,15 @@
                         page.tsx
                         [id]/
                             page.tsx
+                    rewards/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     admins/
                         page.tsx
                     groups/
@@ -165,9 +192,11 @@
                 NewsFeed.tsx
                 CustomFieldsDisplay.tsx
                 GroupForm.tsx
+                RewardDetailView.tsx
                 NewsArchive.tsx
                 CustomRuleBuilder.tsx
                 GroupDetailView.tsx
+                RewardManager.tsx
                 GroupManager.tsx
                 GroupRequestsManager.tsx
                 CustomFieldsForm.tsx
@@ -175,6 +204,7 @@
                 RichTextEditor.tsx
                 CustomFieldManager.tsx
                 Toast.tsx
+                RewardForm.tsx
                 MemberSelector.tsx
             login/
                 page.tsx
@@ -206,6 +236,19 @@
             admin.py
             tests.py
             views.py
+        rewards/
+            signals.py
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            utils.py
+            tests.py
+            views.py
+            management/
+                commands/
+                    process_birthday_rewards.py
         custom_fields/
             models.py
             serializers.py
@@ -355,6 +398,15 @@ if __name__ == "__main__":
                     page.tsx
                     settings/
                         page.tsx
+                    rewards/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     admins/
                         page.tsx
                     groups/
@@ -400,6 +452,15 @@ if __name__ == "__main__":
                     clubs/
                         page.tsx
                         [id]/
+                            page.tsx
+                    rewards/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
                             page.tsx
                     admins/
                         page.tsx
@@ -449,6 +510,15 @@ if __name__ == "__main__":
                         page.tsx
                         [id]/
                             page.tsx
+                    rewards/
+                        page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     admins/
                         page.tsx
                     groups/
@@ -493,9 +563,11 @@ if __name__ == "__main__":
                 NewsFeed.tsx
                 CustomFieldsDisplay.tsx
                 GroupForm.tsx
+                RewardDetailView.tsx
                 NewsArchive.tsx
                 CustomRuleBuilder.tsx
                 GroupDetailView.tsx
+                RewardManager.tsx
                 GroupManager.tsx
                 GroupRequestsManager.tsx
                 CustomFieldsForm.tsx
@@ -503,6 +575,7 @@ if __name__ == "__main__":
                 RichTextEditor.tsx
                 CustomFieldManager.tsx
                 Toast.tsx
+                RewardForm.tsx
                 MemberSelector.tsx
             login/
                 page.tsx
@@ -534,6 +607,19 @@ if __name__ == "__main__":
             admin.py
             tests.py
             views.py
+        rewards/
+            signals.py
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            utils.py
+            tests.py
+            views.py
+            management/
+                commands/
+                    process_birthday_rewards.py
         custom_fields/
             models.py
             serializers.py
@@ -564,92 +650,7 @@ if __name__ == "__main__":
             apps.py
             admin.py
             tests.py
-            views.py
-        users/
-            models.py
-            serializers.py
-            __init__.py
-            apps.py
-            admin.py
-            permissions.py
-            tests.py
-            views.py
-            management/
-                commands/
-                    increment_grades.py
-        api/
-            models.py
-            __init__.py
-            apps.py
-            admin.py
-            tests.py
-            urls.py
-            views.py
 
-
-=== FILE CONTENTS ===
-
-
---- START OF FILE: ./generate_focused_context.py ---
-import os
-
-# ==========================================
-#  PASTE THE FILES YOU WANT TO SHARE HERE
-# ==========================================
-TARGETS = [
-'backend/users/models.py',
-'backend/users/serializers.py',
-'backend/users/permissions.py',
-'backend/users/views.py',
-'backend/api/urls.py',
-'frontend/context/AuthContext.tsx',
-'frontend/lib/api.ts',
-'frontend/app/admin/municipality/youth/page.tsx',
-'frontend/app/admin/municipality/youth/[id]/page.tsx',
-'frontend/app/admin/municipality/admins/page.tsx',
-'frontend/app/admin/club/admins/page.tsx',
-]
-# ==========================================
-
-OUTPUT_FILE = 'focused_context.txt'
-
-def generate_focused_context():
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as out:
-        out.write("=== FOCUSED CONTEXT ===\n\n")
-        
-        for path in TARGETS:
-            # Check if file exists
-            if not os.path.exists(path):
-                out.write(f"\n--- MISSING FILE: {path} ---\n")
-                continue
-
-            # If it's a directory, walk it (shallow, 1 level deep usually preferred here but we'll do full)
-            if os.path.isdir(path):
-                for root, _, files in os.walk(path):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        try:
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                out.write(f"\n\n--- START OF FILE: {file_path} ---\n")
-                                out.write(f.read())
-                                out.write(f"\n--- END OF FILE: {file_path} ---\n")
-                        except Exception as e:
-                            out.write(f"\n--- ERROR READING: {file_path} ---\n")
-            
-            # If it's a file, just read it
-            else:
-                try:
-                    with open(path, 'r', encoding='utf-8') as f:
-                        out.write(f"\n\n--- START OF FILE: {path} ---\n")
-                        out.write(f.read())
-                        out.write(f"\n--- END OF FILE: {path} ---\n")
-                except Exception as e:
-                    out.write(f"\n--- ERROR READING: {path} ---\n")
-
-    print(f"✅ Focused context generated in: {OUTPUT_FILE}")
-
-if __name__ == "__main__":
-    generate_focused_context()
 --- END OF FILE: ./project_context.txt ---
 
 
@@ -1330,6 +1331,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'News Feed', href: '/admin/club/news-feed' },
     { name: 'Groups', href: '/admin/club/groups' },
     { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true },
+    { name: 'Manage Rewards', href: '/admin/club/rewards' },
     { name: 'Message Board', href: '/admin/club/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/club/custom-fields' },
   ];
@@ -1802,6 +1804,113 @@ export default function ClubSettingsPage() {
 
 
 --- END OF FILE: ./frontend/app/admin/club/settings/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/rewards/page.tsx ---
+'use client';
+
+import RewardManager from '../../../components/RewardManager';
+
+export default function ClubRewardsPage() {
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      <RewardManager basePath="/admin/club/rewards" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/club/rewards/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/rewards/edit/[id]/page.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import api from '@/lib/api'; 
+import RewardForm from '@/app/components/RewardForm';
+
+export default function EditRewardPage() {
+  const params = useParams();
+  const id = params?.id as string;
+  
+  const [reward, setReward] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      api.get(`/rewards/${id}/`)
+        .then(res => {
+          setReward(res.data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoading(false);
+        });
+    }
+  }, [id]);
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading...</div>;
+  if (!reward) return <div className="p-12 text-center text-red-500">Reward not found.</div>;
+
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Edit Reward</h1>
+      </div>
+      
+      <RewardForm 
+        initialData={reward} 
+        redirectPath="/admin/club/rewards" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/club/rewards/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/rewards/[id]/page.tsx ---
+'use client';
+
+import { useParams } from 'next/navigation';
+import RewardDetailView from '@/app/components/RewardDetailView';
+
+export default function RewardDetailPage() {
+  const params = useParams();
+  const id = params?.id as string;
+
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      <RewardDetailView 
+        rewardId={id} 
+        basePath="/admin/club/rewards" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/club/rewards/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/rewards/create/page.tsx ---
+'use client';
+
+import RewardForm from '../../../../components/RewardForm';
+
+export default function CreateRewardPage() {
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Create Club Reward</h1>
+        <p className="text-gray-500">
+          This reward will be targeted specifically to members of your club.
+        </p>
+      </div>
+      
+      <RewardForm redirectPath="/admin/club/rewards" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/club/rewards/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/club/admins/page.tsx ---
@@ -5248,6 +5357,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'System Messages', href: '/admin/super/messages' },
         { name: 'Manage Groups', href: '/admin/super/groups' },
         { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true },
+        { name: 'Manage Rewards', href: '/admin/super/rewards' },
         { name: 'Custom Fields', href: '/admin/super/custom-fields' },
       ];
 
@@ -7531,6 +7641,114 @@ export default function ClubViewPage() {
 
 
 --- END OF FILE: ./frontend/app/admin/super/clubs/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/rewards/page.tsx ---
+'use client';
+
+import RewardManager from '../../../components/RewardManager';
+
+export default function SuperAdminRewardsPage() {
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      <RewardManager basePath="/admin/super/rewards" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/rewards/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/rewards/edit/[id]/page.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import api from '@/lib/api'; 
+import RewardForm from '@/app/components/RewardForm';
+
+export default function EditRewardPage() {
+  const params = useParams();
+  const id = params?.id as string;
+  
+  const [reward, setReward] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      api.get(`/rewards/${id}/`)
+        .then(res => {
+          setReward(res.data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoading(false);
+        });
+    }
+  }, [id]);
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading reward...</div>;
+  if (!reward) return <div className="p-12 text-center text-red-500">Reward not found.</div>;
+
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Edit Reward</h1>
+      </div>
+      
+      <RewardForm 
+        initialData={reward} 
+        redirectPath="/admin/super/rewards" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/rewards/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/rewards/[id]/page.tsx ---
+'use client';
+
+import { useParams } from 'next/navigation';
+import RewardDetailView from '@/app/components/RewardDetailView';
+
+export default function RewardDetailPage() {
+  const params = useParams();
+  const id = params?.id as string;
+
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      <RewardDetailView 
+        rewardId={id} 
+        basePath="/admin/super/rewards" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/rewards/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/rewards/create/page.tsx ---
+'use client';
+
+import RewardForm from '../../../../components/RewardForm';
+
+export default function CreateRewardPage() {
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Create New Reward</h1>
+        <p className="text-gray-500">
+          Rewards can be targeted to specific groups, demographics, or triggered automatically.
+        </p>
+      </div>
+      
+      {/* Reuse the component we just made */}
+      <RewardForm redirectPath="/admin/super/rewards" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/rewards/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/super/admins/page.tsx ---
@@ -13037,6 +13255,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'News Feed', href: '/admin/municipality/news-feed' },
     { name: 'Groups', href: '/admin/municipality/groups' },
     { name: 'Applications', href: '/admin/municipality/groups/requests', showBadge: true },
+    { name: 'Manage Rewards', href: '/admin/municipality/rewards' },
     { name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/municipality/custom-fields' },
   ];
@@ -14284,6 +14503,114 @@ export default function ClubViewPage() {
   );
 }
 --- END OF FILE: ./frontend/app/admin/municipality/clubs/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/rewards/page.tsx ---
+'use client';
+
+import RewardManager from '../../../components/RewardManager';
+
+export default function MunicipalityRewardsPage() {
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      {/* The component handles fetching only municipality-specific rewards automatically */}
+      <RewardManager basePath="/admin/municipality/rewards" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/rewards/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/rewards/edit/[id]/page.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import api from '@/lib/api'; 
+import RewardForm from '@/app/components/RewardForm';
+
+export default function EditRewardPage() {
+  const params = useParams();
+  const id = params?.id as string;
+  
+  const [reward, setReward] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      api.get(`/rewards/${id}/`)
+        .then(res => {
+          setReward(res.data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoading(false);
+        });
+    }
+  }, [id]);
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading...</div>;
+  if (!reward) return <div className="p-12 text-center text-red-500">Reward not found.</div>;
+
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Edit Reward</h1>
+      </div>
+      
+      <RewardForm 
+        initialData={reward} 
+        redirectPath="/admin/municipality/rewards" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/rewards/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/rewards/[id]/page.tsx ---
+'use client';
+
+import { useParams } from 'next/navigation';
+import RewardDetailView from '@/app/components/RewardDetailView';
+
+export default function RewardDetailPage() {
+  const params = useParams();
+  const id = params?.id as string;
+
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      <RewardDetailView 
+        rewardId={id} 
+        basePath="/admin/municipality/rewards" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/rewards/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/rewards/create/page.tsx ---
+'use client';
+
+import RewardForm from '../../../../components/RewardForm';
+
+export default function CreateRewardPage() {
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Create Municipality Reward</h1>
+        <p className="text-gray-500">
+          This reward will be owned by your municipality.
+        </p>
+      </div>
+      
+      <RewardForm redirectPath="/admin/municipality/rewards" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/rewards/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/municipality/admins/page.tsx ---
@@ -18585,6 +18912,276 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
 --- END OF FILE: ./frontend/app/components/GroupForm.tsx ---
 
 
+--- START OF FILE: ./frontend/app/components/RewardDetailView.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import api from '../../lib/api';
+import { getMediaUrl } from '../utils';
+
+interface RewardDetailProps {
+  rewardId: string;
+  basePath: string; // e.g. "/admin/super/rewards"
+}
+
+export default function RewardDetailView({ rewardId, basePath }: RewardDetailProps) {
+  const [reward, setReward] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (rewardId) {
+      fetchData();
+    }
+  }, [rewardId]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [rewardRes, statsRes, historyRes] = await Promise.all([
+        api.get(`/rewards/${rewardId}/`),
+        api.get(`/rewards/${rewardId}/analytics_detail/`),
+        api.get(`/rewards/${rewardId}/history/`)
+      ]);
+      setReward(rewardRes.data);
+      setAnalytics(statsRes.data);
+      setHistory(historyRes.data.results || historyRes.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading details...</div>;
+  if (!reward) return <div className="p-12 text-center text-red-500">Reward not found.</div>;
+
+  return (
+    <div className="space-y-8">
+      
+      {/* 1. HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+        <div className="flex items-start gap-6">
+          {/* Image */}
+          <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden border flex-shrink-0">
+            {reward.image ? (
+              <img src={getMediaUrl(reward.image) || ''} className="w-full h-full object-cover" alt="Reward" />
+            ) : (
+              <div className="flex items-center justify-center h-full text-2xl">🎁</div>
+            )}
+          </div>
+          
+          {/* Title & Status */}
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-3xl font-bold text-gray-900">{reward.name}</h1>
+              {reward.is_active ? (
+                <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">Active</span>
+              ) : (
+                <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">Inactive</span>
+              )}
+            </div>
+            
+            <p className="text-gray-500 text-sm mb-2">
+              Owned by: <span className="font-semibold">{reward.municipality_name || reward.club_name || 'Super Admin'}</span>
+            </p>
+
+            <div className="flex gap-2">
+              <Link href={`${basePath}/edit/${reward.id}`} className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-200">
+                Edit Reward
+              </Link>
+              <Link href={basePath} className="text-gray-500 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50">
+                Back to List
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. ANALYTICS GRID */}
+      {analytics && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Total Claims</p>
+            <p className="text-2xl font-bold text-blue-600">{analytics.total_uses}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Last 24h</p>
+            <p className="text-2xl font-bold text-gray-900">{analytics.uses_last_24h}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Last 7 Days</p>
+            <p className="text-2xl font-bold text-gray-900">{analytics.uses_last_7d}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Last 30 Days</p>
+            <p className="text-2xl font-bold text-gray-900">{analytics.uses_last_30d}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Days Left</p>
+            <p className="text-2xl font-bold text-orange-600">{analytics.days_remaining !== null ? analytics.days_remaining : '∞'}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* 3. LEFT COL: INFO & CONFIG */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Description */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">About</h3>
+            <p className="text-gray-700 whitespace-pre-wrap">{reward.description}</p>
+            
+            {(reward.sponsor_name || reward.sponsor_link) && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-xs font-bold text-gray-500 uppercase">Sponsor</p>
+                <p className="text-sm font-medium">
+                  {reward.sponsor_name || 'Anonymous'} 
+                  {reward.sponsor_link && (
+                    <a href={reward.sponsor_link} target="_blank" className="ml-2 text-blue-600 hover:underline">
+                      (Visit Website)
+                    </a>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Usage History Table */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-900">Claim History</h3>
+              <span className="text-xs text-gray-500">Latest claims</span>
+            </div>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Date Claimed</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {history.map((usage) => (
+                  <tr key={usage.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{usage.user_name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{usage.user_email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 text-right">
+                      {/* Show redeemed_at if available, otherwise fallback to created_at */}
+                      {(() => {
+                        const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
+                        if (!date) return 'N/A';
+                        const dateStr = date.toLocaleDateString();
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        return `${dateStr} ${hours}:${minutes}`;
+                      })()}
+                    </td>
+                  </tr>
+                ))}
+                {history.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
+                      No one has claimed this reward yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 4. RIGHT COL: RULES */}
+        <div className="space-y-6">
+          
+          {/* Target Rules */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Targeting Rules</h3>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="block text-gray-500 text-xs font-bold uppercase">Target Audience</span>
+                <span className="font-medium">{reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}</span>
+              </div>
+              
+              <div>
+                <span className="block text-gray-500 text-xs font-bold uppercase">Age Range</span>
+                <span>{reward.min_age || 0} - {reward.max_age || 'Any'} years</span>
+              </div>
+
+              {reward.target_grades && reward.target_grades.length > 0 && (
+                <div>
+                  <span className="block text-gray-500 text-xs font-bold uppercase">Grades</span>
+                  <span>{reward.target_grades.join(', ')}</span>
+                </div>
+              )}
+
+              {reward.target_genders && reward.target_genders.length > 0 && (
+                <div>
+                  <span className="block text-gray-500 text-xs font-bold uppercase">Genders</span>
+                  <span className="capitalize">{reward.target_genders.join(', ').toLowerCase()}</span>
+                </div>
+              )}
+
+              {reward.target_groups_details && reward.target_groups_details.length > 0 && (
+                <div>
+                  <span className="block text-gray-500 text-xs font-bold uppercase mb-1">Specific Groups</span>
+                  <div className="flex flex-wrap gap-1">
+                    {reward.target_groups_details.map((g: any) => (
+                      <span key={g.id} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs border border-blue-100">
+                        {g.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Active Triggers */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Active Triggers</h3>
+            {reward.active_triggers && reward.active_triggers.length > 0 ? (
+              <div className="space-y-2">
+                {reward.active_triggers.map((t: string) => (
+                  <div key={t} className="flex items-center gap-2 bg-green-50 text-green-800 px-3 py-2 rounded-lg border border-green-100">
+                    <span>⚡</span>
+                    <span className="font-bold text-sm">{t}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No automatic triggers set. Manual claim only.</p>
+            )}
+          </div>
+
+          {/* Limits */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Availability</h3>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="block text-gray-500 text-xs font-bold uppercase">Expires On</span>
+                <span className={reward.expiration_date ? '' : 'text-gray-400'}>
+                  {reward.expiration_date ? new Date(reward.expiration_date).toLocaleDateString() : 'No Expiration'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-gray-500 text-xs font-bold uppercase">Usage Limit</span>
+                <span>{reward.usage_limit ? `${reward.usage_limit} total claims` : 'Unlimited'}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/components/RewardDetailView.tsx ---
+
+
 --- START OF FILE: ./frontend/app/components/NewsArchive.tsx ---
 'use client';
 
@@ -19332,6 +19929,192 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
   );
 }
 --- END OF FILE: ./frontend/app/components/GroupDetailView.tsx ---
+
+
+--- START OF FILE: ./frontend/app/components/RewardManager.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import api from '../../lib/api';
+import Toast from './Toast';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
+import { getMediaUrl } from '../utils';
+
+interface Reward {
+  id: number;
+  name: string;
+  image: string | null;
+  owner_role: string;
+  municipality_name?: string;
+  club_name?: string;
+  is_active: boolean;
+  expiration_date: string | null;
+  usage_limit: number | null;
+}
+
+interface Analytics {
+  total_created: number;
+  active_rewards: number;
+  expired_rewards: number;
+  total_uses: number;
+  uses_last_7_days: number;
+}
+
+interface RewardManagerProps {
+  basePath: string; // e.g. "/admin/super/rewards"
+}
+
+export default function RewardManager({ basePath }: RewardManagerProps) {
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Actions
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const [rewardToDelete, setRewardToDelete] = useState<Reward | null>(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [listRes, statsRes] = await Promise.all([
+        api.get('/rewards/'),
+        api.get('/rewards/analytics_overview/')
+      ]);
+      
+      setRewards(Array.isArray(listRes.data) ? listRes.data : listRes.data.results);
+      setAnalytics(statsRes.data);
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Failed to load rewards.', type: 'error', isVisible: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!rewardToDelete) return;
+    try {
+      await api.delete(`/rewards/${rewardToDelete.id}/`);
+      setToast({ message: 'Reward deleted successfully.', type: 'success', isVisible: true });
+      setRewardToDelete(null);
+      fetchData(); // Refresh list
+    } catch (err) {
+      setToast({ message: 'Failed to delete reward.', type: 'error', isVisible: true });
+    }
+  };
+
+  const getScopeLabel = (r: Reward) => {
+    if (r.owner_role === 'SUPER_ADMIN') return '🌍 Global';
+    if (r.owner_role === 'MUNICIPALITY_ADMIN') return `🏛️ ${r.municipality_name}`;
+    if (r.owner_role === 'CLUB_ADMIN') return `⚽ ${r.club_name}`;
+    return '-';
+  };
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading rewards...</div>;
+
+  return (
+    <div className="space-y-8">
+      
+      {/* 1. HEADER & ACTIONS */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Rewards Management</h1>
+        <Link 
+          href={`${basePath}/create`}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 shadow transition"
+        >
+          + Create Reward
+        </Link>
+      </div>
+
+      {/* 2. ANALYTICS CARDS */}
+      {analytics && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Active Rewards</p>
+            <p className="text-2xl font-bold text-green-600">{analytics.active_rewards}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Total Created</p>
+            <p className="text-2xl font-bold text-gray-900">{analytics.total_created}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Total Claims</p>
+            <p className="text-2xl font-bold text-blue-600">{analytics.total_uses}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Claims (7 Days)</p>
+            <p className="text-2xl font-bold text-purple-600">{analytics.uses_last_7_days}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 3. LIST TABLE */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Reward</th>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Scope</th>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Expiry</th>
+              <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {rewards.length === 0 ? (
+              <tr><td colSpan={5} className="p-8 text-center text-gray-500">No rewards found.</td></tr>
+            ) : rewards.map((r) => (
+              <tr key={r.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border">
+                      {r.image ? (
+                        <img src={getMediaUrl(r.image) || ''} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-lg">🎁</div>
+                      )}
+                    </div>
+                    <span className="font-bold text-gray-900">{r.name}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">{getScopeLabel(r)}</td>
+                <td className="px-6 py-4">
+                  {r.is_active 
+                    ? <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold">Active</span>
+                    : <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-bold">Inactive</span>
+                  }
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {r.expiration_date ? new Date(r.expiration_date).toLocaleDateString() : 'No Expiry'}
+                </td>
+                <td className="px-6 py-4 text-right space-x-3 text-sm">
+                  <Link href={`${basePath}/${r.id}`} className="text-indigo-600 font-bold hover:underline">View</Link>
+                  <Link href={`${basePath}/edit/${r.id}`} className="text-blue-600 font-bold hover:underline">Edit</Link>
+                  <button onClick={() => setRewardToDelete(r)} className="text-red-600 font-bold hover:underline">Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <DeleteConfirmationModal
+        isVisible={!!rewardToDelete}
+        onClose={() => setRewardToDelete(null)}
+        onConfirm={handleDelete}
+        itemName={rewardToDelete?.name}
+      />
+
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/components/RewardManager.tsx ---
 
 
 --- START OF FILE: ./frontend/app/components/GroupManager.tsx ---
@@ -21038,6 +21821,388 @@ export default function Toast({
 --- END OF FILE: ./frontend/app/components/Toast.tsx ---
 
 
+--- START OF FILE: ./frontend/app/components/RewardForm.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import api from '../../lib/api';
+import Toast from './Toast';
+import { getMediaUrl } from '../utils';
+
+interface Option { id: number; name: string; }
+
+interface RewardFormProps {
+  initialData?: any;
+  redirectPath: string;
+}
+
+const GRADES = Array.from({ length: 13 }, (_, i) => i + 1); // [1...13]
+const GENDERS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+const TRIGGERS = [
+  { value: 'BIRTHDAY', label: '🎂 On Birthday', desc: 'Given automatically on member\'s birthday' },
+  { value: 'WELCOME', label: '👋 On Signup', desc: 'Given immediately after registration' },
+  { value: 'VERIFIED', label: '✅ On Verification', desc: 'Given when account is verified' },
+  { value: 'MOST_ACTIVE', label: '🔥 Most Active', desc: 'Awarded to users with most logins' },
+];
+
+export default function RewardForm({ initialData, redirectPath }: RewardFormProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  
+  // Dropdown Data
+  const [groups, setGroups] = useState<Option[]>([]);
+  const [interests, setInterests] = useState<Option[]>([]);
+  
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+
+  // Files
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    sponsor_name: '',
+    sponsor_link: '',
+    
+    // Targeting
+    target_groups: [] as number[],
+    target_interests: [] as number[],
+    target_genders: [] as string[],
+    target_grades: [] as number[],
+    min_age: '',
+    max_age: '',
+    target_member_type: 'YOUTH_MEMBER', // <--- WAS 'YOUTH'
+
+    // Constraints
+    expiration_date: '',
+    usage_limit: '', // Empty = Unlimited
+
+    // Triggers
+    active_triggers: [] as string[],
+    trigger_config: {} as any,
+    
+    is_active: true
+  });
+
+  useEffect(() => {
+    fetchDropdowns();
+    if (initialData) {
+      loadInitialData();
+    }
+  }, [initialData]);
+
+  const fetchDropdowns = async () => {
+    try {
+      const [grpRes, intRes] = await Promise.all([
+        api.get('/groups/'),
+        api.get('/interests/')
+      ]);
+      setGroups(Array.isArray(grpRes.data) ? grpRes.data : grpRes.data.results || []);
+      setInterests(Array.isArray(intRes.data) ? intRes.data : intRes.data.results || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadInitialData = () => {
+    setFormData({
+      name: initialData.name || '',
+      description: initialData.description || '',
+      sponsor_name: initialData.sponsor_name || '',
+      sponsor_link: initialData.sponsor_link || '',
+      target_groups: initialData.target_groups || [],
+      target_interests: initialData.target_interests || [],
+      target_genders: initialData.target_genders || [],
+      target_grades: initialData.target_grades || [],
+      min_age: initialData.min_age || '',
+      max_age: initialData.max_age || '',
+      target_member_type: initialData.target_member_type || 'YOUTH_MEMBER',
+      expiration_date: initialData.expiration_date || '',
+      usage_limit: initialData.usage_limit || '',
+      active_triggers: initialData.active_triggers || [],
+      trigger_config: initialData.trigger_config || {},
+      is_active: initialData.is_active ?? true,
+    });
+    if (initialData.image) {
+      setImagePreview(getMediaUrl(initialData.image));
+    }
+  };
+
+  // --- Helpers ---
+
+  const handleArrayToggle = (field: keyof typeof formData, value: any) => {
+    setFormData(prev => {
+      const currentList = prev[field] as any[];
+      if (currentList.includes(value)) {
+        return { ...prev, [field]: currentList.filter(i => i !== value) };
+      }
+      return { ...prev, [field]: [...currentList, value] };
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setImageFile(e.target.files[0]);
+      setImagePreview(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const data = new FormData();
+    // Append standard fields
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key === 'target_groups' || key === 'target_interests' || key === 'target_genders' || key === 'target_grades' || key === 'active_triggers') return; // Handle arrays separately
+      if (key === 'trigger_config') {
+        data.append(key, JSON.stringify(value));
+        return;
+      }
+      if (value === null || value === '') return; // Skip empty
+      data.append(key, value.toString());
+    });
+
+    // Append Arrays (ManyToMany fields - DRF handles multiple values automatically)
+    formData.target_groups.forEach(id => data.append('target_groups', id.toString()));
+    formData.target_interests.forEach(id => data.append('target_interests', id.toString()));
+    
+    // JSON Fields - Send as JSON strings since DRF's MultiPartParser doesn't auto-convert to lists for JSONFields
+    // The serializer will parse these JSON strings back to lists
+    // Always send these fields, even if empty (send as "[]")
+    data.append('target_genders', JSON.stringify(formData.target_genders || []));
+    data.append('target_grades', JSON.stringify(formData.target_grades || []));
+    data.append('active_triggers', JSON.stringify(formData.active_triggers || []));
+
+    if (imageFile) data.append('image', imageFile);
+
+    try {
+      if (initialData) {
+        await api.patch(`/rewards/${initialData.id}/`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        setToast({ message: 'Reward updated!', type: 'success', isVisible: true });
+      } else {
+        await api.post('/rewards/', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        setToast({ message: 'Reward created!', type: 'success', isVisible: true });
+      }
+      setTimeout(() => router.push(redirectPath), 1000);
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Operation failed.', type: 'error', isVisible: true });
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl mx-auto pb-20">
+      
+      {/* 1. INFO */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <h3 className="text-lg font-bold text-gray-900 border-b pb-2">1. Reward Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold mb-1">Reward Title</label>
+              <input required type="text" className="w-full border p-2 rounded" placeholder="e.g. Free Coffee"
+                value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Sponsor Name</label>
+              <input type="text" className="w-full border p-2 rounded" placeholder="e.g. Local Cafe"
+                value={formData.sponsor_name} onChange={e => setFormData({...formData, sponsor_name: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Sponsor Link (Optional)</label>
+              <input type="url" className="w-full border p-2 rounded" placeholder="https://..."
+                value={formData.sponsor_link} onChange={e => setFormData({...formData, sponsor_link: e.target.value})} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-bold mb-1">Reward Image</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center h-48 flex flex-col items-center justify-center bg-gray-50">
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="h-full object-contain mb-2" />
+              ) : (
+                <span className="text-gray-400 text-sm mb-2">No image selected</span>
+              )}
+              <input type="file" accept="image/*" onChange={handleFileChange} className="text-xs" />
+            </div>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-bold mb-1">Description & Redemption Instructions</label>
+          <textarea required rows={4} className="w-full border p-2 rounded" 
+            placeholder="Explain what the reward is and how to use it..."
+            value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+        </div>
+      </div>
+
+      {/* 2. TARGETING */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+        <h3 className="text-lg font-bold text-gray-900 border-b pb-2">2. Who gets this reward?</h3>
+        
+        {/* Role Selection */}
+        <div className="flex gap-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="member_type" value="YOUTH_MEMBER" // <--- WAS "YOUTH"
+              checked={formData.target_member_type === 'YOUTH_MEMBER'} // <--- WAS 'YOUTH'
+              onChange={e => setFormData({...formData, target_member_type: e.target.value})}
+              className="w-5 h-5 text-blue-600" />
+            <span className="font-bold">Youth Members</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="member_type" value="GUARDIAN" 
+              checked={formData.target_member_type === 'GUARDIAN'}
+              onChange={e => setFormData({...formData, target_member_type: e.target.value})}
+              className="w-5 h-5 text-blue-600" />
+            <span className="font-bold">Guardians</span>
+          </label>
+        </div>
+
+        {/* Groups & Interests */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-bold mb-2">Target Groups (Optional)</label>
+            <div className="h-40 overflow-y-auto border p-2 rounded bg-gray-50 space-y-1">
+              {groups.map(g => (
+                <label key={g.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={formData.target_groups.includes(g.id)}
+                    onChange={() => handleArrayToggle('target_groups', g.id)} />
+                  {g.name}
+                </label>
+              ))}
+              {groups.length === 0 && <p className="text-xs text-gray-400">No groups available.</p>}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-bold mb-2">Target Interests (Optional)</label>
+            <div className="h-40 overflow-y-auto border p-2 rounded bg-gray-50 space-y-1">
+              {interests.map(i => (
+                <label key={i.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={formData.target_interests.includes(i.id)}
+                    onChange={() => handleArrayToggle('target_interests', i.id)} />
+                  {i.name}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Demographics (Only for Youth) */}
+        {formData.target_member_type === 'YOUTH_MEMBER' && ( // <--- WAS 'YOUTH'
+          <div className="space-y-4 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-bold mb-2">Age Range</label>
+                <div className="flex gap-2 items-center">
+                  <input type="number" placeholder="Min" className="w-20 border p-2 rounded" 
+                    value={formData.min_age} onChange={e => setFormData({...formData, min_age: e.target.value})} />
+                  <span>to</span>
+                  <input type="number" placeholder="Max" className="w-20 border p-2 rounded" 
+                    value={formData.max_age} onChange={e => setFormData({...formData, max_age: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-2">Gender</label>
+                <div className="flex gap-4">
+                  {GENDERS.map(g => (
+                    <label key={g.value} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={formData.target_genders.includes(g.value)}
+                        onChange={() => handleArrayToggle('target_genders', g.value)} />
+                      {g.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-bold mb-2">Grades</label>
+              <div className="flex flex-wrap gap-2">
+                {GRADES.map(g => (
+                  <button type="button" key={g} onClick={() => handleArrayToggle('target_grades', g)}
+                    className={`w-8 h-8 rounded text-sm font-bold border transition
+                      ${formData.target_grades.includes(g) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-300'}
+                    `}>
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. CONSTRAINTS */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <h3 className="text-lg font-bold text-gray-900 border-b pb-2">3. Limits & Expiration</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-bold mb-1">Expiration Date</label>
+            <input type="date" className="w-full border p-2 rounded" 
+              value={formData.expiration_date} onChange={e => setFormData({...formData, expiration_date: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold mb-1">Total Usage Limit</label>
+            <input type="number" className="w-full border p-2 rounded" placeholder="Leave empty for unlimited"
+              value={formData.usage_limit} onChange={e => setFormData({...formData, usage_limit: e.target.value})} />
+          </div>
+        </div>
+      </div>
+
+      {/* 4. TRIGGERS */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <h3 className="text-lg font-bold text-gray-900 border-b pb-2">4. Automatic Triggers (Optional)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {TRIGGERS.map(t => (
+            <label key={t.value} className={`border p-4 rounded-lg cursor-pointer transition flex items-start gap-3
+              ${formData.active_triggers.includes(t.value) ? 'bg-green-50 border-green-500' : 'hover:bg-gray-50'}
+            `}>
+              <input type="checkbox" className="mt-1" 
+                checked={formData.active_triggers.includes(t.value)}
+                onChange={() => {
+                  // For simplistic UI, let's treat JSONField array just like other arrays
+                  const current = [...formData.active_triggers];
+                  if (current.includes(t.value)) {
+                    setFormData({...formData, active_triggers: current.filter(x => x !== t.value)});
+                  } else {
+                    setFormData({...formData, active_triggers: [...current, t.value]});
+                  }
+                }}
+              />
+              <div>
+                <span className="block font-bold text-gray-900">{t.label}</span>
+                <span className="text-xs text-gray-500">{t.desc}</span>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* ACTIONS */}
+      <div className="flex justify-end gap-4 pt-4">
+        <button type="button" onClick={() => router.back()} className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold">
+          Cancel
+        </button>
+        <button type="submit" disabled={loading} className="px-8 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-lg disabled:opacity-50">
+          {loading ? 'Saving...' : (initialData ? 'Update Reward' : 'Create Reward')}
+        </button>
+      </div>
+
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+    </form>
+  );
+}
+--- END OF FILE: ./frontend/app/components/RewardForm.tsx ---
+
+
 --- START OF FILE: ./frontend/app/components/MemberSelector.tsx ---
 'use client';
 
@@ -22078,6 +23243,7 @@ INSTALLED_APPS = [
     'news',
     'custom_fields',
     'groups',
+    'rewards',
 ]
 
 MIDDLEWARE = [
@@ -22448,6 +23614,698 @@ class SystemMessageViewSet(viewsets.ModelViewSet):
         SystemMessageDismissal.objects.get_or_create(user=user, message=message)
         return Response({"status": "dismissed"})
 --- END OF FILE: ./backend/system_messages/views.py ---
+
+
+--- START OF FILE: ./backend/rewards/signals.py ---
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
+from django.utils import timezone
+from users.models import User
+from .models import Reward, RewardUsage
+from .utils import grant_reward
+
+
+@receiver(pre_save, sender=User)
+def track_dob_change(sender, instance, **kwargs):
+    """
+    Checks if date_of_birth is changing.
+    We attach a temporary flag '_dob_changed' to the instance to check in post_save.
+    """
+    if instance.pk: # Only for existing users
+        try:
+            old_user = User.objects.get(pk=instance.pk)
+            if old_user.date_of_birth != instance.date_of_birth:
+                instance._dob_changed = True
+        except User.DoesNotExist:
+            pass
+
+
+@receiver(post_save, sender=User)
+def check_reward_triggers(sender, instance, created, **kwargs):
+    """
+    Handles all automatic triggers: WELCOME, VERIFIED, and BIRTHDAY (on change).
+    """
+    user = instance
+    
+    # --- 1. WELCOME TRIGGER (On Creation) ---
+    if created:
+        welcome_rewards = Reward.objects.filter(active_triggers__icontains="WELCOME", is_active=True)
+        for reward in welcome_rewards:
+            triggers = reward.active_triggers if isinstance(reward.active_triggers, list) else []
+            if "WELCOME" in triggers:
+                grant_reward(user, reward)
+
+    # --- 2. VERIFIED TRIGGER (On Update) ---
+    if not created and user.verification_status == 'VERIFIED':
+        verified_rewards = Reward.objects.filter(active_triggers__icontains="VERIFIED", is_active=True)
+        for reward in verified_rewards:
+            triggers = reward.active_triggers if isinstance(reward.active_triggers, list) else []
+            if "VERIFIED" in triggers:
+                grant_reward(user, reward)
+
+    # --- 3. BIRTHDAY TRIGGER (On DOB Change) ---
+    # If the user changes their birthday, we re-evaluate.
+    if getattr(instance, '_dob_changed', False):
+        print(f"🎂 DOB changed for {user.email}. Re-evaluating birthday rewards...")
+        
+        # A. Revoke existing unredeemed birthday rewards
+        # (Because the previous birthday date is no longer valid)
+        user_usages = RewardUsage.objects.filter(user=user, is_redeemed=False)
+        for usage in user_usages:
+            triggers = usage.reward.active_triggers if isinstance(usage.reward.active_triggers, list) else []
+            if "BIRTHDAY" in triggers:
+                print(f"   -> Revoking previous birthday reward '{usage.reward.name}'")
+                usage.delete()
+
+        # B. Check if NEW birthday is today
+        today = timezone.now().date()
+        if user.date_of_birth and user.date_of_birth.month == today.month and user.date_of_birth.day == today.day:
+            print("   -> New birthday is TODAY! Granting rewards...")
+            birthday_rewards = Reward.objects.filter(active_triggers__icontains="BIRTHDAY", is_active=True)
+            for reward in birthday_rewards:
+                triggers = reward.active_triggers if isinstance(reward.active_triggers, list) else []
+                if "BIRTHDAY" in triggers:
+                    grant_reward(user, reward)
+        else:
+            print("   -> New birthday is not today.")
+
+--- END OF FILE: ./backend/rewards/signals.py ---
+
+
+--- START OF FILE: ./backend/rewards/models.py ---
+from django.db import models
+from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from organization.models import Municipality, Club, Interest
+from groups.models import Group
+
+# Validator for reward images
+image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
+
+class Reward(models.Model):
+    # --- Enums (Choices) ---
+    class OwnerRole(models.TextChoices):
+        SUPER_ADMIN = 'SUPER_ADMIN', 'Super Admin'
+        MUNICIPALITY_ADMIN = 'MUNICIPALITY_ADMIN', 'Municipality Admin'
+        CLUB_ADMIN = 'CLUB_ADMIN', 'Club Admin'
+
+    class MemberType(models.TextChoices):
+        YOUTH_MEMBER = 'YOUTH_MEMBER', 'Youth Member' # <--- CHANGED THIS
+        GUARDIAN = 'GUARDIAN', 'Guardians Only'
+
+    class TriggerType(models.TextChoices):
+        NONE = 'NONE', 'Manual / No Trigger'
+        BIRTHDAY = 'BIRTHDAY', 'Birthday'
+        WELCOME = 'WELCOME', 'Welcome (Registration)'
+        VERIFIED = 'VERIFIED', 'Verified Account'
+        MOST_ACTIVE = 'MOST_ACTIVE', 'Most Active (Logins)'
+        # MOST_CHECKED_IN can be added later
+
+    # --- Basic Info (Section 3) ---
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    image = models.FileField(
+        upload_to='rewards/images/', 
+        validators=[image_validator],
+        blank=True, null=True
+    )
+    sponsor_name = models.CharField(max_length=200, blank=True)
+    sponsor_link = models.URLField(blank=True, null=True)
+
+    # --- Ownership & Scope (Section 2) ---
+    owner_role = models.CharField(max_length=50, choices=OwnerRole.choices)
+    
+    # If owned by Municipality Admin:
+    municipality = models.ForeignKey(Municipality, on_delete=models.CASCADE, null=True, blank=True, related_name='rewards')
+    
+    # If owned by Club Admin:
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, null=True, blank=True, related_name='rewards')
+
+    # --- Targeting Options (Section 4) ---
+    # A. Target Specific Groups
+    target_groups = models.ManyToManyField(Group, blank=True, related_name='targeted_rewards')
+    
+    # B. Target Interests
+    target_interests = models.ManyToManyField(Interest, blank=True, related_name='targeted_rewards')
+    
+    # C. Gender (Stored as list ["MALE", "FEMALE"])
+    target_genders = models.JSONField(default=list, blank=True)
+    
+    # D. Grade (Stored as list [7, 8, 9])
+    target_grades = models.JSONField(default=list, blank=True)
+    
+    # E. Age Range
+    min_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    max_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    
+    # F. Member Type
+    target_member_type = models.CharField(max_length=20, choices=MemberType.choices, default=MemberType.YOUTH_MEMBER) # <--- CHANGED THIS
+
+    # --- Constraints (Section 5) ---
+    expiration_date = models.DateField(null=True, blank=True)
+    usage_limit = models.IntegerField(null=True, blank=True, help_text="Total times this reward can be claimed. Null = Unlimited.")
+
+    # --- Triggers (Section 6) ---
+    # We allow multiple triggers, but for simplicity in SQL, we can store primary trigger type
+    # or use a ManyToMany if you want complex combinations. 
+    # Based on your doc, "Admins can choose one or several triggers".
+    # For now, let's use a JSON list to store multiple trigger types e.g. ["BIRTHDAY", "VERIFIED"]
+    active_triggers = models.JSONField(default=list, blank=True, help_text="List of active trigger codes")
+    
+    # Configuration for complex triggers (like Most Active)
+    # Example: { "logins_per_day": 3, "top_n": 10, "period": "WEEKLY" }
+    trigger_config = models.JSONField(default=dict, blank=True)
+
+    # --- System Fields ---
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_owner_role_display()})"
+
+
+class RewardUsage(models.Model):
+    """
+    Tracks the lifecycle of a reward for a user.
+    1. Created (Granted) -> When a trigger happens.
+    2. Redeemed -> When the user actually uses it.
+    """
+    reward = models.ForeignKey(Reward, on_delete=models.CASCADE, related_name='usages')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reward_usages')
+    
+    # When was it given to the user?
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Has the user actually used it at the shop/club?
+    is_redeemed = models.BooleanField(default=False)
+    redeemed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        # Ensure a user can't have multiple "active/unredeemed" copies of the same reward
+        # They must use the first one before getting another (optional, but good practice)
+        # For now, let's allow multiples if triggers fire multiple times, but usually we want to limit unique constraints here.
+        # We will handle logic in utils.py instead of strict DB constraints to be safe.
+
+    def __str__(self):
+        status = "Redeemed" if self.is_redeemed else "Available"
+        return f"{self.user} - {self.reward.name} ({status})"
+--- END OF FILE: ./backend/rewards/models.py ---
+
+
+--- START OF FILE: ./backend/rewards/serializers.py ---
+from rest_framework import serializers
+from .models import Reward, RewardUsage
+from organization.serializers import InterestSerializer, ClubSerializer
+from groups.serializers import GroupSerializer
+import json
+
+class RewardUsageSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.first_name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+
+    class Meta:
+        model = RewardUsage
+        # Include created_at as fallback if redeemed_at is null
+        fields = ['id', 'user_name', 'user_email', 'redeemed_at', 'created_at']
+
+class RewardSerializer(serializers.ModelSerializer):
+    # Read-only fields to show details nicely in the frontend
+    municipality_name = serializers.CharField(source='municipality.name', read_only=True)
+    club_name = serializers.CharField(source='club.name', read_only=True)
+    
+    # Nested serializers for reading (shows full object details)
+    target_groups_details = GroupSerializer(source='target_groups', many=True, read_only=True)
+    target_interests_details = InterestSerializer(source='target_interests', many=True, read_only=True)
+
+    # Write-only fields for saving data (accepts lists of IDs)
+    target_groups = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=Reward.target_groups.rel.model.objects.all()
+    )
+    target_interests = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=Reward.target_interests.rel.model.objects.all()
+    )
+
+    class Meta:
+        model = Reward
+        fields = [
+            'id', 'name', 'description', 'image', 
+            'sponsor_name', 'sponsor_link',
+            'owner_role', 'municipality', 'municipality_name', 'club', 'club_name',
+            'target_groups', 'target_groups_details',
+            'target_interests', 'target_interests_details',
+            'target_genders', 'target_grades', 
+            'min_age', 'max_age', 'target_member_type',
+            'expiration_date', 'usage_limit',
+            'active_triggers', 'trigger_config',
+            'is_active', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'owner_role', 'municipality', 'club']
+
+    def validate(self, data):
+        """
+        Validate that JSON fields are lists.
+        Handle both JSON strings (from FormData) and lists (from JSON API).
+        """
+        # Parse JSON strings if they come from FormData
+        if 'target_genders' in data:
+            if isinstance(data['target_genders'], str):
+                try:
+                    data['target_genders'] = json.loads(data['target_genders'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"target_genders": "Invalid JSON format."})
+            if not isinstance(data['target_genders'], list):
+                raise serializers.ValidationError({"target_genders": "Must be a list."})
+        
+        if 'target_grades' in data:
+            if isinstance(data['target_grades'], str):
+                try:
+                    data['target_grades'] = json.loads(data['target_grades'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"target_grades": "Invalid JSON format."})
+            if not isinstance(data['target_grades'], list):
+                raise serializers.ValidationError({"target_grades": "Must be a list."})
+        
+        return data
+--- END OF FILE: ./backend/rewards/serializers.py ---
+
+
+--- START OF FILE: ./backend/rewards/apps.py ---
+from django.apps import AppConfig
+
+class RewardsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'rewards'
+
+    def ready(self):
+        import rewards.signals
+--- END OF FILE: ./backend/rewards/apps.py ---
+
+
+--- START OF FILE: ./backend/rewards/admin.py ---
+from django.contrib import admin
+from .models import Reward, RewardUsage
+
+@admin.register(Reward)
+class RewardAdmin(admin.ModelAdmin):
+    # Columns to show in the list view
+    list_display = ('name', 'owner_role', 'municipality', 'club', 'target_member_type', 'is_active', 'expiration_date')
+    
+    # Sidebar filters
+    list_filter = ('owner_role', 'is_active', 'target_member_type', 'municipality', 'club')
+    
+    # Search bar config
+    search_fields = ('name', 'description', 'sponsor_name')
+    
+    # Nice UI for selecting multiple Groups/Interests
+    filter_horizontal = ('target_groups', 'target_interests')
+    
+    # Organizing the edit form into logical sections
+    fieldsets = (
+        ('Basic Info', {
+            'fields': ('name', 'description', 'image', 'sponsor_name', 'sponsor_link', 'is_active')
+        }),
+        ('Ownership', {
+            'fields': ('owner_role', 'municipality', 'club')
+        }),
+        ('Targeting', {
+            'fields': (
+                'target_member_type', 'target_groups', 'target_interests', 
+                'target_genders', 'target_grades', 'min_age', 'max_age'
+            )
+        }),
+        ('Constraints & Triggers', {
+            'fields': ('expiration_date', 'usage_limit', 'active_triggers', 'trigger_config')
+        }),
+    )
+
+@admin.register(RewardUsage)
+class RewardUsageAdmin(admin.ModelAdmin):
+    list_display = ('user', 'reward', 'is_redeemed', 'created_at', 'redeemed_at')
+    list_filter = ('is_redeemed', 'reward', 'created_at')
+    search_fields = ('user__email', 'reward__name')
+--- END OF FILE: ./backend/rewards/admin.py ---
+
+
+--- START OF FILE: ./backend/rewards/utils.py ---
+from django.utils import timezone
+from .models import Reward, RewardUsage
+
+def is_user_eligible_for_reward(user, reward):
+    """
+    Checks if a user meets all targeting criteria for a reward.
+    """
+    print(f"Checking eligibility for User: {user.email} vs Reward: {reward.name}")
+
+    # 1. Active Check
+    if not reward.is_active:
+        print("-> Failed: Reward is inactive")
+        return False
+    
+    # 2. Scope Check
+    if reward.owner_role == 'MUNICIPALITY_ADMIN':
+        user_muni = user.assigned_municipality
+        if not user_muni and user.preferred_club:
+            user_muni = user.preferred_club.municipality
+        if user_muni != reward.municipality:
+            print("-> Failed: Municipality scope mismatch")
+            return False
+            
+    if reward.owner_role == 'CLUB_ADMIN':
+        user_club = user.assigned_club or user.preferred_club
+        if user_club != reward.club:
+            print("-> Failed: Club scope mismatch")
+            return False
+
+    # 3. Member Type
+    if reward.target_member_type != user.role:
+        print(f"-> Failed: Role mismatch. Reward wants {reward.target_member_type}, User is {user.role}")
+        return False
+
+    # 4. Demographics
+    if reward.target_genders and user.legal_gender not in reward.target_genders:
+        print(f"-> Failed: Gender mismatch. Reward needs {reward.target_genders}")
+        return False
+    
+    # Note: Ensure user.grade is not None before comparing if target_grades is set
+    if reward.target_grades:
+        if user.grade is None or user.grade not in reward.target_grades:
+            print(f"-> Failed: Grade mismatch. User grade is {user.grade}")
+            return False
+    
+    # 5. Age
+    if user.age is not None:
+        if reward.min_age and user.age < reward.min_age: 
+            print(f"-> Failed: Too young ({user.age} < {reward.min_age})")
+            return False
+        if reward.max_age and user.age > reward.max_age: 
+            print(f"-> Failed: Too old ({user.age} > {reward.max_age})")
+            return False
+
+    # 6. Usage Limit
+    if reward.usage_limit:
+        count = RewardUsage.objects.filter(user=user, reward=reward).count()
+        if count >= reward.usage_limit:
+            print("-> Failed: Usage limit reached")
+            return False
+
+    print("-> Success! Eligible.")
+    return True
+
+def grant_reward(user, reward):
+    """
+    Grants a reward to a user (UNLOCKED state).
+    It does NOT mark it as redeemed yet.
+    """
+    if is_user_eligible_for_reward(user, reward):
+        # Check if they already have an UNREDEEMED copy of this reward
+        # We generally don't want to stack 5 "Welcome" rewards if the trigger fires 5 times by accident
+        exists = RewardUsage.objects.filter(
+            user=user, 
+            reward=reward, 
+            is_redeemed=False
+        ).exists()
+        
+        if exists:
+            print(f"-> Skipped: User already has an active copy of '{reward.name}'")
+            return False
+
+        # Create the record as AVAILABLE (not redeemed)
+        RewardUsage.objects.create(
+            user=user, 
+            reward=reward, 
+            is_redeemed=False,
+            redeemed_at=None
+        )
+        print(f"-> Granted '{reward.name}' to {user.email} (Pending Redemption)")
+        return True
+        
+    return False
+--- END OF FILE: ./backend/rewards/utils.py ---
+
+
+--- START OF FILE: ./backend/rewards/tests.py ---
+from django.test import TestCase
+
+# Create your tests here.
+
+--- END OF FILE: ./backend/rewards/tests.py ---
+
+
+--- START OF FILE: ./backend/rewards/views.py ---
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+from django.db.models import Q, Count
+from django.utils import timezone
+from datetime import timedelta
+
+from .models import Reward, RewardUsage
+from .serializers import RewardSerializer, RewardUsageSerializer
+
+class RewardViewSet(viewsets.ModelViewSet):
+    serializer_class = RewardSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filter rewards based on the Admin's scope (Section 2).
+        """
+        user = self.request.user
+        queryset = Reward.objects.all().order_by('-created_at')
+
+        # Super Admin sees everything
+        if user.role == 'SUPER_ADMIN':
+            return queryset
+
+        # Municipality Admin sees rewards in their muni + rewards in clubs of their muni
+        if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            return queryset.filter(
+                Q(municipality=user.assigned_municipality) |
+                Q(club__municipality=user.assigned_municipality)
+            )
+
+        # Club Admin sees only rewards in their club
+        if user.role == 'CLUB_ADMIN' and user.assigned_club:
+            return queryset.filter(club=user.assigned_club)
+
+        # Regular users (Youth/Guardian) should not access this management endpoint
+        # They will use a separate endpoint later to "see available rewards"
+        return Reward.objects.none()
+
+    def perform_create(self, serializer):
+        """
+        Automatically assign owner_role and scope based on the logged-in user.
+        """
+        user = self.request.user
+        
+        if user.role == 'SUPER_ADMIN':
+            # Super Admin can create Global rewards (no muni/club)
+            # OR they can manually assign them in the serializer if passed (not handled here for simplicity)
+            serializer.save(owner_role='SUPER_ADMIN', municipality=None, club=None)
+            
+        elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            serializer.save(
+                owner_role='MUNICIPALITY_ADMIN', 
+                municipality=user.assigned_municipality,
+                club=None
+            )
+            
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            serializer.save(
+                owner_role='CLUB_ADMIN', 
+                municipality=None, # Explicitly None, as it belongs to the Club specifically
+                club=user.assigned_club
+            )
+        else:
+            raise PermissionDenied("You do not have permission to create rewards.")
+
+    @action(detail=False, methods=['get'])
+    def analytics_overview(self, request):
+        """
+        Analytics for the Management Page (Section 10.A).
+        """
+        queryset = self.get_queryset()
+        now = timezone.now().date()
+        
+        # 1. Totals
+        total_created = queryset.count()
+        
+        # Active: is_active=True AND (expiration is None OR expiration > today)
+        active_count = queryset.filter(
+            Q(is_active=True) & 
+            (Q(expiration_date__isnull=True) | Q(expiration_date__gte=now))
+        ).count()
+        
+        expired_count = queryset.filter(expiration_date__lt=now).count()
+
+        # 2. Usage Stats (Redeemed only)
+        visible_reward_ids = queryset.values_list('id', flat=True)
+        usages = RewardUsage.objects.filter(reward_id__in=visible_reward_ids, is_redeemed=True)
+        
+        total_uses = usages.count()
+        
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        
+        uses_7d = usages.filter(redeemed_at__gte=seven_days_ago).count()
+        uses_30d = usages.filter(redeemed_at__gte=thirty_days_ago).count()
+
+        return Response({
+            "total_created": total_created,
+            "active_rewards": active_count,
+            "expired_rewards": expired_count,
+            "total_uses": total_uses,
+            "uses_last_7_days": uses_7d,
+            "uses_last_30_days": uses_30d
+        })
+
+    @action(detail=True, methods=['get'])
+    def analytics_detail(self, request, pk=None):
+        """
+        Analytics for a Single Reward Detail Page.
+        Only counts REDEEMED rewards.
+        """
+        reward = self.get_object()
+        # Filter for redeemed items only
+        usages = reward.usages.filter(is_redeemed=True)
+        now = timezone.now()
+
+        total_uses = usages.count()
+        uses_24h = usages.filter(redeemed_at__gte=now - timedelta(hours=24)).count()
+        uses_7d = usages.filter(redeemed_at__gte=now - timedelta(days=7)).count()
+        uses_30d = usages.filter(redeemed_at__gte=now - timedelta(days=30)).count()
+
+        days_remaining = None
+        if reward.expiration_date:
+            delta = (reward.expiration_date - now.date()).days
+            days_remaining = max(delta, 0)
+
+        return Response({
+            "total_uses": total_uses,
+            "uses_last_24h": uses_24h,
+            "uses_last_7d": uses_7d,
+            "uses_last_30d": uses_30d,
+            "days_remaining": days_remaining
+        })
+
+    @action(detail=True, methods=['get'])
+    def history(self, request, pk=None):
+        """
+        Returns the list of users who claimed (redeemed) this reward.
+        """
+        reward = self.get_object()
+        
+        # Only show REDEEMED rewards, ordered by when they were redeemed
+        usages = reward.usages.filter(is_redeemed=True).select_related('user').order_by('-redeemed_at')
+        
+        page = self.paginate_queryset(usages)
+        if page is not None:
+            serializer = RewardUsageSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = RewardUsageSerializer(usages, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def redeem(self, request, pk=None):
+        """
+        The User claims/uses the reward.
+        """
+        reward = self.get_object()
+        user = request.user
+
+        # 1. Check if they have a granted (unredeemed) copy
+        usage = RewardUsage.objects.filter(
+            user=user, 
+            reward=reward, 
+            is_redeemed=False
+        ).first()
+
+        if usage:
+            # Mark as used
+            usage.is_redeemed = True
+            usage.redeemed_at = timezone.now()
+            usage.save()
+            return Response({"status": "redeemed", "message": f"You have used {reward.name}!"})
+        
+        # 2. If no granted copy, check if it's an "Open" reward (No Triggers)
+        # If a reward has NO triggers, it is available to everyone who matches targeting
+        # So we create a record and mark it redeemed immediately.
+        if not reward.active_triggers:
+            # We must re-check eligibility logic here to be safe
+            from .utils import is_user_eligible_for_reward
+            if is_user_eligible_for_reward(user, reward):
+                RewardUsage.objects.create(
+                    user=user, 
+                    reward=reward, 
+                    is_redeemed=True,
+                    redeemed_at=timezone.now()
+                )
+                return Response({"status": "redeemed", "message": f"You have used {reward.name}!"})
+            else:
+                return Response({"error": "You are not eligible for this reward."}, status=403)
+
+        return Response({"error": "No active reward to redeem."}, status=400)
+--- END OF FILE: ./backend/rewards/views.py ---
+
+
+--- START OF FILE: ./backend/rewards/management/commands/process_birthday_rewards.py ---
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from users.models import User
+from rewards.models import Reward
+from rewards.utils import grant_reward
+
+class Command(BaseCommand):
+    help = 'Grants rewards to users whose birthday is today'
+
+    def handle(self, *args, **kwargs):
+        today = timezone.now().date()
+        self.stdout.write(f"📅 Checking birthdays for Date: {today}")
+
+        # 1. Find active Birthday Rewards
+        birthday_rewards = []
+        all_rewards = Reward.objects.filter(is_active=True)
+        for r in all_rewards:
+            triggers = r.active_triggers if isinstance(r.active_triggers, list) else []
+            # Check for exact string match
+            if "BIRTHDAY" in triggers:
+                birthday_rewards.append(r)
+
+        self.stdout.write(f"🎁 Found {len(birthday_rewards)} active Birthday Reward(s).")
+        if not birthday_rewards:
+            self.stdout.write(self.style.WARNING("   -> No rewards found. Check if Reward is Active and Trigger is 'BIRTHDAY'."))
+            return
+
+        # 2. Find Users with birthday today
+        birthday_users = User.objects.filter(
+            date_of_birth__month=today.month, 
+            date_of_birth__day=today.day
+        )
+        
+        self.stdout.write(f"🎂 Found {len(birthday_users)} User(s) with birthday today.")
+        if not birthday_users:
+            self.stdout.write(self.style.WARNING("   -> No users found. Check User 'Date of birth'."))
+
+        # 3. Process
+        count = 0
+        for user in birthday_users:
+            self.stdout.write(f"   Processing User: {user.email} (Role: {user.role})")
+            for reward in birthday_rewards:
+                self.stdout.write(f"      - Trying Reward: {reward.name}")
+                
+                # We attempt to grant. The utils.py already prints eligibility failures to console.
+                if grant_reward(user, reward):
+                    count += 1
+                    self.stdout.write(self.style.SUCCESS(f"        -> GRANTED!"))
+                else:
+                    self.stdout.write(self.style.WARNING(f"        -> SKIPPED (See reason above)"))
+
+        self.stdout.write(self.style.SUCCESS(f"✅ Done. Total rewards granted: {count}"))
+--- END OF FILE: ./backend/rewards/management/commands/process_birthday_rewards.py ---
 
 
 --- START OF FILE: ./backend/custom_fields/models.py ---
@@ -24518,6 +26376,8 @@ class UsersConfig(AppConfig):
 --- START OF FILE: ./backend/users/admin.py ---
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.utils.html import format_html
+from datetime import date
 from .models import (
     User,
     YouthMember,
@@ -24527,8 +26387,20 @@ from .models import (
     GuardianYouthLink,
     UserLoginHistory,
 )
+# Import the Reward models
+from rewards.models import Reward, RewardUsage
 
 # --- INLINES ---
+
+class RewardUsageInline(admin.TabularInline):
+    model = RewardUsage
+    extra = 0
+    # Show status and timestamps
+    fields = ('reward', 'is_redeemed', 'created_at', 'redeemed_at')
+    readonly_fields = ('reward', 'created_at', 'redeemed_at')
+    can_delete = True # Allow admins to delete a grant if needed
+    verbose_name = "Reward Status"
+    verbose_name_plural = "Rewards Wallet"
 
 class GuardianLinkInline(admin.TabularInline):
     model = GuardianYouthLink
@@ -24558,6 +26430,7 @@ class BaseRoleAdmin(UserAdmin):
         ('Personal info', {'fields': ('first_name', 'last_name')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        ('Rewards', {'fields': ('view_eligible_rewards',)}), # <--- Added this section
     )
     
     add_fieldsets = (
@@ -24566,6 +26439,77 @@ class BaseRoleAdmin(UserAdmin):
             'fields': ('email', 'first_name', 'last_name', 'role', 'password1', 'password2'),
         }),
     )
+    
+    # Add the inline table for history
+    inlines = [GuardianLinkInline, RewardUsageInline] 
+    
+    # Allow us to display the calculated field
+    readonly_fields = ('view_eligible_rewards',)
+
+    def view_eligible_rewards(self, user):
+        """
+        Calculates which rewards this specific user matches based on rules.
+        """
+        # 1. Fetch all active rewards
+        all_rewards = Reward.objects.filter(is_active=True)
+        eligible_list = []
+
+        # 2. Calculate User Age
+        user_age = user.age if user.date_of_birth else None
+
+        for r in all_rewards:
+            # --- CHECK 1: SCOPE (Who owns the reward?) ---
+            # If Super Admin: Everyone sees it
+            # If Muni Admin: User must be in that Muni
+            # If Club Admin: User must be in that Club
+            if r.owner_role == 'MUNICIPALITY_ADMIN':
+                if user.assigned_municipality != r.municipality and \
+                   (not user.preferred_club or user.preferred_club.municipality != r.municipality):
+                    continue
+            
+            if r.owner_role == 'CLUB_ADMIN':
+                if user.preferred_club != r.club and user.assigned_club != r.club:
+                    continue
+
+            # --- CHECK 2: MEMBER TYPE ---
+            if r.target_member_type != user.role:
+                continue
+
+            # --- CHECK 3: DEMOGRAPHICS ---
+            # Gender
+            if r.target_genders and user.legal_gender not in r.target_genders:
+                continue
+            
+            # Grade
+            if r.target_grades and user.grade not in r.target_grades:
+                continue
+
+            # Age
+            if user_age is not None:
+                if r.min_age and user_age < r.min_age: continue
+                if r.max_age and user_age > r.max_age: continue
+
+            # --- CHECK 4: USAGE LIMITS ---
+            # Count how many times THIS user has claimed THIS reward
+            claim_count = RewardUsage.objects.filter(user=user, reward=r).count()
+            limit_str = f"{claim_count} / {r.usage_limit}" if r.usage_limit else f"{claim_count} / ∞"
+            
+            # Styling: Red if maxed out, Green if available
+            color = "green"
+            if r.usage_limit and claim_count >= r.usage_limit:
+                color = "red"
+                limit_str += " (Max Reached)"
+
+            eligible_list.append(
+                f"<li style='color:{color};'><b>{r.name}</b> — Used: {limit_str}</li>"
+            )
+
+        if not eligible_list:
+            return "No rewards currently available for this user."
+
+        return format_html("<ul>" + "".join(eligible_list) + "</ul>")
+
+    view_eligible_rewards.short_description = "Eligible / Active Rewards"
 
 # --- SPECIFIC ADMINS ---
 
@@ -24586,10 +26530,12 @@ class YouthMemberAdmin(BaseRoleAdmin):
             'fields': ('date_of_birth', 'get_age_display', 'legal_gender', 'preferred_gender')
         }),
         ('Youth Specifics', {'fields': ('grade', 'preferred_club', 'interests')}),
+        ('Rewards', {'fields': ('view_eligible_rewards',)}),
     )
     
-    readonly_fields = ('get_age_display',)
-    inlines = [YouthLinkInline]
+    readonly_fields = ('get_age_display', 'view_eligible_rewards',)
+    # We merge the base inlines (RewardHistory) with the Youth link
+    inlines = [YouthLinkInline, RewardUsageInline]
 
     def get_age_display(self, obj):
         return obj.age
@@ -24616,9 +26562,11 @@ class GuardianAdmin(BaseRoleAdmin):
                 'legal_gender', 'avatar'
             )
         }),
+        ('Rewards', {'fields': ('view_eligible_rewards',)}),
     )
     
-    inlines = [GuardianLinkInline]
+    readonly_fields = ('view_eligible_rewards',)
+    inlines = [GuardianLinkInline, RewardUsageInline]
 
     def get_queryset(self, request):
         return super().get_queryset(request).filter(role=User.Role.GUARDIAN)
@@ -25196,6 +27144,7 @@ from news.views import NewsArticleViewSet, NewsTagViewSet
 from custom_fields.views import CustomFieldDefinitionViewSet
 # Update Import
 from groups.views import GroupViewSet, GroupMembershipViewSet
+from rewards.views import RewardViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -25206,6 +27155,7 @@ router.register(r'custom-fields', CustomFieldDefinitionViewSet, basename='custom
 router.register(r'groups', GroupViewSet, basename='groups')
 # NEW
 router.register(r'group-requests', GroupMembershipViewSet, basename='group-requests')
+router.register(r'rewards', RewardViewSet, basename='rewards')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),

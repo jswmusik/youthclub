@@ -19,10 +19,12 @@ from rewards.models import Reward, RewardUsage
 class RewardUsageInline(admin.TabularInline):
     model = RewardUsage
     extra = 0
-    readonly_fields = ('reward', 'used_at')
-    can_delete = False
-    verbose_name = "Claimed Reward"
-    verbose_name_plural = "Reward History"
+    # Show status and timestamps
+    fields = ('reward', 'is_redeemed', 'created_at', 'redeemed_at')
+    readonly_fields = ('reward', 'created_at', 'redeemed_at')
+    can_delete = True # Allow admins to delete a grant if needed
+    verbose_name = "Reward Status"
+    verbose_name_plural = "Rewards Wallet"
 
 class GuardianLinkInline(admin.TabularInline):
     model = GuardianYouthLink

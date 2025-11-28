@@ -36,7 +36,6 @@ class RewardAdmin(admin.ModelAdmin):
 
 @admin.register(RewardUsage)
 class RewardUsageAdmin(admin.ModelAdmin):
-    list_display = ('user', 'reward', 'used_at')
-    list_filter = ('reward', 'used_at')
-    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'reward__name')
-    readonly_fields = ('used_at',)
+    list_display = ('user', 'reward', 'is_redeemed', 'created_at', 'redeemed_at')
+    list_filter = ('is_redeemed', 'reward', 'created_at')
+    search_fields = ('user__email', 'reward__name')

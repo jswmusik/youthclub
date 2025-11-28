@@ -85,18 +85,17 @@ class RewardViewSet(viewsets.ModelViewSet):
         
         expired_count = queryset.filter(expiration_date__lt=now).count()
 
-        # 2. Usage Stats (Across all visible rewards)
-        # We need to filter usages based on the rewards visible to this admin
+        # 2. Usage Stats (Redeemed only)
         visible_reward_ids = queryset.values_list('id', flat=True)
-        usages = RewardUsage.objects.filter(reward_id__in=visible_reward_ids)
+        usages = RewardUsage.objects.filter(reward_id__in=visible_reward_ids, is_redeemed=True)
         
         total_uses = usages.count()
         
         seven_days_ago = timezone.now() - timedelta(days=7)
         thirty_days_ago = timezone.now() - timedelta(days=30)
         
-        uses_7d = usages.filter(used_at__gte=seven_days_ago).count()
-        uses_30d = usages.filter(used_at__gte=thirty_days_ago).count()
+        uses_7d = usages.filter(redeemed_at__gte=seven_days_ago).count()
+        uses_30d = usages.filter(redeemed_at__gte=thirty_days_ago).count()
 
         return Response({
             "total_created": total_created,
@@ -110,21 +109,23 @@ class RewardViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def analytics_detail(self, request, pk=None):
         """
-        Analytics for a Single Reward Detail Page (Section 10.B).
+        Analytics for a Single Reward Detail Page.
+        Only counts REDEEMED rewards.
         """
         reward = self.get_object()
-        usages = reward.usages.all()
+        # Filter for redeemed items only
+        usages = reward.usages.filter(is_redeemed=True)
         now = timezone.now()
 
         total_uses = usages.count()
-        uses_24h = usages.filter(used_at__gte=now - timedelta(hours=24)).count()
-        uses_7d = usages.filter(used_at__gte=now - timedelta(days=7)).count()
-        uses_30d = usages.filter(used_at__gte=now - timedelta(days=30)).count()
+        uses_24h = usages.filter(redeemed_at__gte=now - timedelta(hours=24)).count()
+        uses_7d = usages.filter(redeemed_at__gte=now - timedelta(days=7)).count()
+        uses_30d = usages.filter(redeemed_at__gte=now - timedelta(days=30)).count()
 
         days_remaining = None
         if reward.expiration_date:
             delta = (reward.expiration_date - now.date()).days
-            days_remaining = max(delta, 0) # Don't return negative numbers
+            days_remaining = max(delta, 0)
 
         return Response({
             "total_uses": total_uses,
@@ -137,13 +138,13 @@ class RewardViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def history(self, request, pk=None):
         """
-        Returns the list of users who claimed this reward (Section 9).
+        Returns the list of users who claimed (redeemed) this reward.
         """
         reward = self.get_object()
-        # Get usage history, newest first
-        usages = reward.usages.select_related('user').order_by('-used_at')
         
-        # Support pagination
+        # Only show REDEEMED rewards, ordered by when they were redeemed
+        usages = reward.usages.filter(is_redeemed=True).select_related('user').order_by('-redeemed_at')
+        
         page = self.paginate_queryset(usages)
         if page is not None:
             serializer = RewardUsageSerializer(page, many=True)
@@ -151,3 +152,44 @@ class RewardViewSet(viewsets.ModelViewSet):
 
         serializer = RewardUsageSerializer(usages, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def redeem(self, request, pk=None):
+        """
+        The User claims/uses the reward.
+        """
+        reward = self.get_object()
+        user = request.user
+
+        # 1. Check if they have a granted (unredeemed) copy
+        usage = RewardUsage.objects.filter(
+            user=user, 
+            reward=reward, 
+            is_redeemed=False
+        ).first()
+
+        if usage:
+            # Mark as used
+            usage.is_redeemed = True
+            usage.redeemed_at = timezone.now()
+            usage.save()
+            return Response({"status": "redeemed", "message": f"You have used {reward.name}!"})
+        
+        # 2. If no granted copy, check if it's an "Open" reward (No Triggers)
+        # If a reward has NO triggers, it is available to everyone who matches targeting
+        # So we create a record and mark it redeemed immediately.
+        if not reward.active_triggers:
+            # We must re-check eligibility logic here to be safe
+            from .utils import is_user_eligible_for_reward
+            if is_user_eligible_for_reward(user, reward):
+                RewardUsage.objects.create(
+                    user=user, 
+                    reward=reward, 
+                    is_redeemed=True,
+                    redeemed_at=timezone.now()
+                )
+                return Response({"status": "redeemed", "message": f"You have used {reward.name}!"})
+            else:
+                return Response({"error": "You are not eligible for this reward."}, status=403)
+
+        return Response({"error": "No active reward to redeem."}, status=400)

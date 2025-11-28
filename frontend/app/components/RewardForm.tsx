@@ -55,7 +55,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
     target_grades: [] as number[],
     min_age: '',
     max_age: '',
-    target_member_type: 'YOUTH',
+    target_member_type: 'YOUTH_MEMBER', // <--- WAS 'YOUTH'
 
     // Constraints
     expiration_date: '',
@@ -100,7 +100,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
       target_grades: initialData.target_grades || [],
       min_age: initialData.min_age || '',
       max_age: initialData.max_age || '',
-      target_member_type: initialData.target_member_type || 'YOUTH',
+      target_member_type: initialData.target_member_type || 'YOUTH_MEMBER',
       expiration_date: initialData.expiration_date || '',
       usage_limit: initialData.usage_limit || '',
       active_triggers: initialData.active_triggers || [],
@@ -227,8 +227,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
         {/* Role Selection */}
         <div className="flex gap-6">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="member_type" value="YOUTH" 
-              checked={formData.target_member_type === 'YOUTH'}
+            <input type="radio" name="member_type" value="YOUTH_MEMBER" // <--- WAS "YOUTH"
+              checked={formData.target_member_type === 'YOUTH_MEMBER'} // <--- WAS 'YOUTH'
               onChange={e => setFormData({...formData, target_member_type: e.target.value})}
               className="w-5 h-5 text-blue-600" />
             <span className="font-bold">Youth Members</span>
@@ -272,7 +272,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
         </div>
 
         {/* Demographics (Only for Youth) */}
-        {formData.target_member_type === 'YOUTH' && (
+        {formData.target_member_type === 'YOUTH_MEMBER' && ( // <--- WAS 'YOUTH'
           <div className="space-y-4 pt-4 border-t border-gray-100">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

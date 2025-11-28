@@ -10,7 +10,8 @@ class RewardUsageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RewardUsage
-        fields = ['id', 'user_name', 'user_email', 'used_at']
+        # Include created_at as fallback if redeemed_at is null
+        fields = ['id', 'user_name', 'user_email', 'redeemed_at', 'created_at']
 
 class RewardSerializer(serializers.ModelSerializer):
     # Read-only fields to show details nicely in the frontend
