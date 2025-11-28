@@ -53,6 +53,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'News Feed', href: '/admin/club/news-feed' },
     { name: 'Groups', href: '/admin/club/groups' },
     { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true },
+    { name: 'Manage Rewards', href: '/admin/club/rewards' },
     { name: 'Message Board', href: '/admin/club/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/club/custom-fields' },
   ];

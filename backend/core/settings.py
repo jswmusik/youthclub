@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'news',
     'custom_fields',
     'groups',
+    'rewards',
 ]
 
 MIDDLEWARE = [

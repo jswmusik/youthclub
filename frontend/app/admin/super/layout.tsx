@@ -61,6 +61,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'System Messages', href: '/admin/super/messages' },
         { name: 'Manage Groups', href: '/admin/super/groups' },
         { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true },
+        { name: 'Manage Rewards', href: '/admin/super/rewards' },
         { name: 'Custom Fields', href: '/admin/super/custom-fields' },
       ];
 

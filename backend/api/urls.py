@@ -7,6 +7,7 @@ from news.views import NewsArticleViewSet, NewsTagViewSet
 from custom_fields.views import CustomFieldDefinitionViewSet
 # Update Import
 from groups.views import GroupViewSet, GroupMembershipViewSet
+from rewards.views import RewardViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -17,6 +18,7 @@ router.register(r'custom-fields', CustomFieldDefinitionViewSet, basename='custom
 router.register(r'groups', GroupViewSet, basename='groups')
 # NEW
 router.register(r'group-requests', GroupMembershipViewSet, basename='group-requests')
+router.register(r'rewards', RewardViewSet, basename='rewards')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),

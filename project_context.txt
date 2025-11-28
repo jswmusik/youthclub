@@ -29,6 +29,17 @@
                         page.tsx
                     admins/
                         page.tsx
+                    groups/
+                        page.tsx
+                        requests/
+                            page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     msgboard/
                         page.tsx
                     youth/
@@ -64,6 +75,17 @@
                             page.tsx
                     admins/
                         page.tsx
+                    groups/
+                        page.tsx
+                        requests/
+                            page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     youth/
                         page.tsx
                         [id]/
@@ -101,6 +123,17 @@
                             page.tsx
                     admins/
                         page.tsx
+                    groups/
+                        page.tsx
+                        requests/
+                            page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
                     msgboard/
                         page.tsx
                     youth/
@@ -131,12 +164,18 @@
                 NewsArticleReader.tsx
                 NewsFeed.tsx
                 CustomFieldsDisplay.tsx
+                GroupForm.tsx
                 NewsArchive.tsx
+                CustomRuleBuilder.tsx
+                GroupDetailView.tsx
+                GroupManager.tsx
+                GroupRequestsManager.tsx
                 CustomFieldsForm.tsx
                 DeleteConfirmationModal.tsx
                 RichTextEditor.tsx
                 CustomFieldManager.tsx
                 Toast.tsx
+                MemberSelector.tsx
             login/
                 page.tsx
         public/
@@ -175,6 +214,21 @@
             admin.py
             tests.py
             views.py
+        groups/
+            signals.py
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            permissions.py
+            tests.py
+            views.py
+            management/
+                __init__.py
+                commands/
+                    __init__.py
+                    init_system_groups.py
         news/
             models.py
             serializers.py
@@ -269,6 +323,334 @@ def generate_focused_context():
 if __name__ == "__main__":
     generate_focused_context()
 --- END OF FILE: ./generate_focused_context.py ---
+
+
+--- START OF FILE: ./project_context.txt ---
+=== PROJECT CONTEXT GENERATED ===
+=== IGNORED: node_modules, venv, migrations, media, images ===
+
+=== DIRECTORY STRUCTURE ===
+./
+    generate_focused_context.py
+    project_context.txt
+    frontend/
+        postcss.config.mjs
+        next-env.d.ts
+        README.md
+        package.json
+        tsconfig.json
+        eslint.config.mjs
+        next.config.ts
+        context/
+            AuthContext.tsx
+        app/
+            utils.ts
+            types.ts
+            layout.tsx
+            page.tsx
+            globals.css
+            admin/
+                club/
+                    layout.tsx
+                    page.tsx
+                    settings/
+                        page.tsx
+                    admins/
+                        page.tsx
+                    groups/
+                        page.tsx
+                        requests/
+                            page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
+                    msgboard/
+                        page.tsx
+                    youth/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    guardians/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    profile/
+                        page.tsx
+                    news-feed/
+                        page.tsx
+                        archive/
+                            page.tsx
+                        [id]/
+                            page.tsx
+                    custom-fields/
+                        page.tsx
+                super/
+                    layout.tsx
+                    page.tsx
+                    municipalities/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    messages/
+                        page.tsx
+                    clubs/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    admins/
+                        page.tsx
+                    groups/
+                        page.tsx
+                        requests/
+                            page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
+                    youth/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    guardians/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    profile/
+                        page.tsx
+                    news/
+                        page.tsx
+                        tags/
+                            page.tsx
+                    news-feed/
+                        page.tsx
+                        archive/
+                            page.tsx
+                        [id]/
+                            page.tsx
+                    custom-fields/
+                        page.tsx
+                    countries/
+                        page.tsx
+                    interests/
+                        page.tsx
+                municipality/
+                    layout.tsx
+                    page.tsx
+                    settings/
+                        page.tsx
+                    clubs/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    admins/
+                        page.tsx
+                    groups/
+                        page.tsx
+                        requests/
+                            page.tsx
+                        edit/
+                            [id]/
+                                page.tsx
+                        [id]/
+                            page.tsx
+                        create/
+                            page.tsx
+                    msgboard/
+                        page.tsx
+                    youth/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    guardians/
+                        page.tsx
+                        [id]/
+                            page.tsx
+                    profile/
+                        page.tsx
+                    news-feed/
+                        page.tsx
+                        archive/
+                            page.tsx
+                        [id]/
+                            page.tsx
+                    custom-fields/
+                        page.tsx
+            dashboard/
+                youth/
+                    page.tsx
+                guardian/
+                    page.tsx
+            components/
+                SystemAlert.tsx
+                NewsArticleReader.tsx
+                NewsFeed.tsx
+                CustomFieldsDisplay.tsx
+                GroupForm.tsx
+                NewsArchive.tsx
+                CustomRuleBuilder.tsx
+                GroupDetailView.tsx
+                GroupManager.tsx
+                GroupRequestsManager.tsx
+                CustomFieldsForm.tsx
+                DeleteConfirmationModal.tsx
+                RichTextEditor.tsx
+                CustomFieldManager.tsx
+                Toast.tsx
+                MemberSelector.tsx
+            login/
+                page.tsx
+        public/
+        lib/
+            api.ts
+    backend/
+        manage.py
+        organization/
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            tests.py
+            urls.py
+            views.py
+        core/
+            asgi.py
+            __init__.py
+            settings.py
+            urls.py
+            wsgi.py
+        system_messages/
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            tests.py
+            views.py
+        custom_fields/
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            tests.py
+            views.py
+        groups/
+            signals.py
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            permissions.py
+            tests.py
+            views.py
+            management/
+                __init__.py
+                commands/
+                    __init__.py
+                    init_system_groups.py
+        news/
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            tests.py
+            views.py
+        users/
+            models.py
+            serializers.py
+            __init__.py
+            apps.py
+            admin.py
+            permissions.py
+            tests.py
+            views.py
+            management/
+                commands/
+                    increment_grades.py
+        api/
+            models.py
+            __init__.py
+            apps.py
+            admin.py
+            tests.py
+            urls.py
+            views.py
+
+
+=== FILE CONTENTS ===
+
+
+--- START OF FILE: ./generate_focused_context.py ---
+import os
+
+# ==========================================
+#  PASTE THE FILES YOU WANT TO SHARE HERE
+# ==========================================
+TARGETS = [
+'backend/users/models.py',
+'backend/users/serializers.py',
+'backend/users/permissions.py',
+'backend/users/views.py',
+'backend/api/urls.py',
+'frontend/context/AuthContext.tsx',
+'frontend/lib/api.ts',
+'frontend/app/admin/municipality/youth/page.tsx',
+'frontend/app/admin/municipality/youth/[id]/page.tsx',
+'frontend/app/admin/municipality/admins/page.tsx',
+'frontend/app/admin/club/admins/page.tsx',
+]
+# ==========================================
+
+OUTPUT_FILE = 'focused_context.txt'
+
+def generate_focused_context():
+    with open(OUTPUT_FILE, 'w', encoding='utf-8') as out:
+        out.write("=== FOCUSED CONTEXT ===\n\n")
+        
+        for path in TARGETS:
+            # Check if file exists
+            if not os.path.exists(path):
+                out.write(f"\n--- MISSING FILE: {path} ---\n")
+                continue
+
+            # If it's a directory, walk it (shallow, 1 level deep usually preferred here but we'll do full)
+            if os.path.isdir(path):
+                for root, _, files in os.walk(path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                out.write(f"\n\n--- START OF FILE: {file_path} ---\n")
+                                out.write(f.read())
+                                out.write(f"\n--- END OF FILE: {file_path} ---\n")
+                        except Exception as e:
+                            out.write(f"\n--- ERROR READING: {file_path} ---\n")
+            
+            # If it's a file, just read it
+            else:
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        out.write(f"\n\n--- START OF FILE: {path} ---\n")
+                        out.write(f.read())
+                        out.write(f"\n--- END OF FILE: {path} ---\n")
+                except Exception as e:
+                    out.write(f"\n--- ERROR READING: {path} ---\n")
+
+    print(f"✅ Focused context generated in: {OUTPUT_FILE}")
+
+if __name__ == "__main__":
+    generate_focused_context()
+--- END OF FILE: ./project_context.txt ---
 
 
 --- START OF FILE: ./frontend/postcss.config.mjs ---
@@ -895,11 +1277,12 @@ body {
 --- START OF FILE: ./frontend/app/admin/club/layout.tsx ---
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
+import api from '../../../lib/api';
 
 const getInitials = (first?: string | null, last?: string | null) => {
   const firstInitial = first?.charAt(0)?.toUpperCase() || '';
@@ -910,10 +1293,33 @@ const getInitials = (first?: string | null, last?: string | null) => {
 export default function ClubAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   useEffect(() => {
     refreshMessageCount();
+    refreshPendingRequestsCount();
   }, [refreshMessageCount]);
+
+  const refreshPendingRequestsCount = async () => {
+    if (!user) {
+      setPendingRequestsCount(0);
+      return;
+    }
+    
+    try {
+      const res = await api.get('/group-requests/');
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setPendingRequestsCount(data.length);
+    } catch (err: any) {
+      // Silently handle 401 (unauthorized) - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setPendingRequestsCount(0);
+        return;
+      }
+      console.error('Failed to load pending requests count', err);
+      setPendingRequestsCount(0);
+    }
+  };
 
   const navigation = [
     { name: 'Overview', href: '/admin/club' },
@@ -922,6 +1328,8 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'Manage Youth', href: '/admin/club/youth' },
     { name: 'Manage Guardians', href: '/admin/club/guardians' },
     { name: 'News Feed', href: '/admin/club/news-feed' },
+    { name: 'Groups', href: '/admin/club/groups' },
+    { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true },
     { name: 'Message Board', href: '/admin/club/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/club/custom-fields' },
   ];
@@ -965,7 +1373,12 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                 }`}
               >
                 <span>{item.name}</span>
-                {item.showBadge && messageCount > 0 && (
+                {item.showBadge && item.href.includes('/requests') && pendingRequestsCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+                {item.showBadge && !item.href.includes('/requests') && messageCount > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
                     {messageCount}
                   </span>
@@ -1946,6 +2359,93 @@ export default function ManageClubAdminsPage() {
 
 
 --- END OF FILE: ./frontend/app/admin/club/admins/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/groups/page.tsx ---
+'use client';
+import GroupManager from '../../../components/GroupManager';
+export default function Page() { return <div className="p-8"><GroupManager basePath="/admin/municipality/groups" /></div>; }
+--- END OF FILE: ./frontend/app/admin/club/groups/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/groups/requests/page.tsx ---
+'use client';
+import GroupRequestsManager from '../../../../components/GroupRequestsManager';
+export default function Page() { return <div className="p-8 max-w-6xl mx-auto"><GroupRequestsManager /></div>; }
+--- END OF FILE: ./frontend/app/admin/club/groups/requests/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/groups/edit/[id]/page.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import api from '@/lib/api'; 
+import GroupForm from '@/app/components/GroupForm';
+
+export default function EditGroupPage() {
+  const params = useParams();
+  const id = params?.id as string;
+  
+  const [group, setGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (id) {
+      const fetchGroup = async () => {
+        try {
+          const res = await api.get(`/groups/${id}/`);
+          setGroup(res.data);
+        } catch (err) {
+          console.error(err);
+          setError('Failed to load group data.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchGroup();
+    }
+  }, [id]);
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading group settings...</div>;
+  if (error || !group) return <div className="p-12 text-center text-red-500">{error || 'Group not found'}</div>;
+
+  return (
+    <div className="max-w-4xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Edit Group</h1>
+        <p className="text-gray-500">Update membership rules and settings.</p>
+      </div>
+      
+      <GroupForm 
+        initialData={group} 
+        redirectPath="/admin/super/groups" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/club/groups/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/groups/[id]/page.tsx ---
+'use client';
+import { useParams } from 'next/navigation';
+import GroupDetailView from '../../../../components/GroupDetailView';
+export default function Page() { 
+  const { id } = useParams() as { id: string };
+  return <div className="p-8"><GroupDetailView groupId={id} basePath="/admin/municipality/groups" /></div>; 
+}
+--- END OF FILE: ./frontend/app/admin/club/groups/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/club/groups/create/page.tsx ---
+'use client';
+import GroupForm from '../../../../components/GroupForm';
+export default function Page() { 
+  return <div className="p-8"><h1 className="text-2xl font-bold mb-6">New Municipality Group</h1><GroupForm redirectPath="/admin/municipality/groups" /></div>; 
+}
+--- END OF FILE: ./frontend/app/admin/club/groups/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/club/msgboard/page.tsx ---
@@ -4687,11 +5187,12 @@ export default function ClubCustomFieldsPage() {
 --- START OF FILE: ./frontend/app/admin/super/layout.tsx ---
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
+import api from '../../../lib/api';
 
 const getInitials = (first?: string | null, last?: string | null) => {
   const firstInitial = first?.charAt(0)?.toUpperCase() || '';
@@ -4702,10 +5203,33 @@ const getInitials = (first?: string | null, last?: string | null) => {
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   useEffect(() => {
     refreshMessageCount();
+    refreshPendingRequestsCount();
   }, [refreshMessageCount]);
+
+  const refreshPendingRequestsCount = async () => {
+    if (!user) {
+      setPendingRequestsCount(0);
+      return;
+    }
+    
+    try {
+      const res = await api.get('/group-requests/');
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setPendingRequestsCount(data.length);
+    } catch (err: any) {
+      // Silently handle 401 (unauthorized) - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setPendingRequestsCount(0);
+        return;
+      }
+      console.error('Failed to load pending requests count', err);
+      setPendingRequestsCount(0);
+    }
+  };
 
     const navigation = [
         { name: 'Overview', href: '/admin/super' },
@@ -4722,6 +5246,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'Manage Municipalities', href: '/admin/super/municipalities' },
         { name: 'Manage Clubs', href: '/admin/super/clubs' },
         { name: 'System Messages', href: '/admin/super/messages' },
+        { name: 'Manage Groups', href: '/admin/super/groups' },
+        { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true },
         { name: 'Custom Fields', href: '/admin/super/custom-fields' },
       ];
 
@@ -4767,7 +5293,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 }`}
               >
                 <span>{item.name}</span>
-                {(item as any).showBadge && messageCount > 0 && (
+                {(item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+                {(item as any).showBadge && !item.href.includes('/requests') && messageCount > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
                     {messageCount}
                   </span>
@@ -7825,6 +8356,126 @@ export default function ManageAdminsPage() {
 }
 
 --- END OF FILE: ./frontend/app/admin/super/admins/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/groups/page.tsx ---
+'use client';
+
+import GroupManager from '../../../components/GroupManager';
+
+export default function SuperAdminGroupsPage() {
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      <GroupManager basePath="/admin/super/groups" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/groups/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/groups/requests/page.tsx ---
+'use client';
+import GroupRequestsManager from '../../../../components/GroupRequestsManager';
+export default function Page() { return <div className="p-8 max-w-6xl mx-auto"><GroupRequestsManager /></div>; }
+--- END OF FILE: ./frontend/app/admin/super/groups/requests/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/groups/edit/[id]/page.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import api from '@/lib/api'; 
+import GroupForm from '@/app/components/GroupForm';
+
+export default function EditGroupPage() {
+  const params = useParams();
+  const id = params?.id as string;
+  
+  const [group, setGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (id) {
+      const fetchGroup = async () => {
+        try {
+          const res = await api.get(`/groups/${id}/`);
+          setGroup(res.data);
+        } catch (err) {
+          console.error(err);
+          setError('Failed to load group data.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchGroup();
+    }
+  }, [id]);
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading group settings...</div>;
+  if (error || !group) return <div className="p-12 text-center text-red-500">{error || 'Group not found'}</div>;
+
+  return (
+    <div className="max-w-4xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Edit Group</h1>
+        <p className="text-gray-500">Update membership rules and settings.</p>
+      </div>
+      
+      <GroupForm 
+        initialData={group} 
+        redirectPath="/admin/super/groups" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/groups/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/groups/[id]/page.tsx ---
+'use client';
+
+import { useParams } from 'next/navigation';
+import GroupDetailView from '../../../../components/GroupDetailView';
+import Link from 'next/link';
+
+export default function GroupPage() {
+  const params = useParams();
+  const id = params?.id as string;
+
+  return (
+    <div className="max-w-7xl mx-auto p-4">
+      <div className="mb-6">
+        <Link href="/admin/super/groups" className="text-gray-500 hover:text-gray-900 font-medium flex items-center gap-1">
+          ← Back to Groups
+        </Link>
+      </div>
+      <GroupDetailView groupId={id} basePath="/admin/super/groups" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/groups/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/super/groups/create/page.tsx ---
+'use client';
+
+import GroupForm from '../../../../components/GroupForm';
+
+export default function CreateGroupPage() {
+  return (
+    <div className="max-w-4xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Create New Group</h1>
+        <p className="text-gray-500">Define the rules for who belongs in this group.</p>
+      </div>
+      
+      <GroupForm redirectPath="/admin/super/groups" />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/super/groups/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/super/youth/page.tsx ---
@@ -12332,11 +12983,12 @@ export default function ManageInterestsPage() {
 --- START OF FILE: ./frontend/app/admin/municipality/layout.tsx ---
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
+import api from '../../../lib/api';
 
 const getInitials = (first?: string | null, last?: string | null) => {
   const firstInitial = first?.charAt(0)?.toUpperCase() || '';
@@ -12347,10 +12999,33 @@ const getInitials = (first?: string | null, last?: string | null) => {
 export default function MunicipalityAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   useEffect(() => {
     refreshMessageCount();
+    refreshPendingRequestsCount();
   }, []);
+
+  const refreshPendingRequestsCount = async () => {
+    if (!user) {
+      setPendingRequestsCount(0);
+      return;
+    }
+    
+    try {
+      const res = await api.get('/group-requests/');
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setPendingRequestsCount(data.length);
+    } catch (err: any) {
+      // Silently handle 401 (unauthorized) - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setPendingRequestsCount(0);
+        return;
+      }
+      console.error('Failed to load pending requests count', err);
+      setPendingRequestsCount(0);
+    }
+  };
 
   const navigation = [
     { name: 'Overview', href: '/admin/municipality' },
@@ -12360,6 +13035,8 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'Manage Youth', href: '/admin/municipality/youth' },
     { name: 'Manage Guardians', href: '/admin/municipality/guardians' },
     { name: 'News Feed', href: '/admin/municipality/news-feed' },
+    { name: 'Groups', href: '/admin/municipality/groups' },
+    { name: 'Applications', href: '/admin/municipality/groups/requests', showBadge: true },
     { name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/municipality/custom-fields' },
   ];
@@ -12406,7 +13083,12 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                 }`}
               >
                 <span>{item.name}</span>
-                {item.showBadge && messageCount > 0 && (
+                {item.showBadge && item.href.includes('/requests') && pendingRequestsCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+                {item.showBadge && !item.href.includes('/requests') && messageCount > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
                     {messageCount}
                   </span>
@@ -14033,6 +14715,93 @@ export default function ManageMuniAdminsPage() {
   );
 }
 --- END OF FILE: ./frontend/app/admin/municipality/admins/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/groups/page.tsx ---
+'use client';
+import GroupManager from '../../../components/GroupManager';
+export default function Page() { return <div className="p-8"><GroupManager basePath="/admin/municipality/groups" /></div>; }
+--- END OF FILE: ./frontend/app/admin/municipality/groups/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/groups/requests/page.tsx ---
+'use client';
+import GroupRequestsManager from '../../../../components/GroupRequestsManager';
+export default function Page() { return <div className="p-8 max-w-6xl mx-auto"><GroupRequestsManager /></div>; }
+--- END OF FILE: ./frontend/app/admin/municipality/groups/requests/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/groups/edit/[id]/page.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import api from '@/lib/api'; 
+import GroupForm from '@/app/components/GroupForm';
+
+export default function EditGroupPage() {
+  const params = useParams();
+  const id = params?.id as string;
+  
+  const [group, setGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (id) {
+      const fetchGroup = async () => {
+        try {
+          const res = await api.get(`/groups/${id}/`);
+          setGroup(res.data);
+        } catch (err) {
+          console.error(err);
+          setError('Failed to load group data.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchGroup();
+    }
+  }, [id]);
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading group settings...</div>;
+  if (error || !group) return <div className="p-12 text-center text-red-500">{error || 'Group not found'}</div>;
+
+  return (
+    <div className="max-w-4xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Edit Group</h1>
+        <p className="text-gray-500">Update membership rules and settings.</p>
+      </div>
+      
+      <GroupForm 
+        initialData={group} 
+        redirectPath="/admin/super/groups" 
+      />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/admin/municipality/groups/edit/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/groups/[id]/page.tsx ---
+'use client';
+import { useParams } from 'next/navigation';
+import GroupDetailView from '../../../../components/GroupDetailView';
+export default function Page() { 
+  const { id } = useParams() as { id: string };
+  return <div className="p-8"><GroupDetailView groupId={id} basePath="/admin/municipality/groups" /></div>; 
+}
+--- END OF FILE: ./frontend/app/admin/municipality/groups/[id]/page.tsx ---
+
+
+--- START OF FILE: ./frontend/app/admin/municipality/groups/create/page.tsx ---
+'use client';
+import GroupForm from '../../../../components/GroupForm';
+export default function Page() { 
+  return <div className="p-8"><h1 className="text-2xl font-bold mb-6">New Municipality Group</h1><GroupForm redirectPath="/admin/municipality/groups" /></div>; 
+}
+--- END OF FILE: ./frontend/app/admin/municipality/groups/create/page.tsx ---
 
 
 --- START OF FILE: ./frontend/app/admin/municipality/msgboard/page.tsx ---
@@ -17456,6 +18225,366 @@ export default function CustomFieldsDisplay({
 --- END OF FILE: ./frontend/app/components/CustomFieldsDisplay.tsx ---
 
 
+--- START OF FILE: ./frontend/app/components/GroupForm.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import api from '../../lib/api';
+import Toast from './Toast';
+import MemberSelector from './MemberSelector';
+import CustomRuleBuilder from './CustomRuleBuilder';
+
+interface Interest {
+  id: number;
+  name: string;
+}
+
+interface GroupFormProps {
+  initialData?: any; // If provided, we are in "Edit Mode"
+  redirectPath: string; // Where to go after saving
+}
+
+const GRADES = Array.from({ length: 13 }, (_, i) => i + 1); // [1, 2, ... 12, 13]
+const GENDERS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export default function GroupForm({ initialData, redirectPath }: GroupFormProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [interestsList, setInterestsList] = useState<Interest[]>([]);
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    group_type: 'OPEN',
+    target_member_type: 'YOUTH',
+    min_age: '',
+    max_age: '',
+    grades: [] as number[],
+    genders: [] as string[],
+    interests: [] as number[],
+    custom_field_rules: {} as Record<string, any>, // NEW: Custom Fields
+    members_to_add: [] as number[],
+  });
+
+  useEffect(() => {
+    // 1. Fetch Interests
+    api.get('/interests/').then(res => {
+      const data = Array.isArray(res.data) ? res.data : res.data.results;
+      setInterestsList(data || []);
+    });
+
+    // 2. Load Initial Data (if editing)
+    if (initialData) {
+      setFormData({
+        name: initialData.name,
+        description: initialData.description,
+        group_type: initialData.group_type,
+        target_member_type: initialData.target_member_type,
+        min_age: initialData.min_age || '',
+        max_age: initialData.max_age || '',
+        grades: initialData.grades || [],
+        genders: initialData.genders || [],
+        interests: initialData.interests || [],
+        custom_field_rules: initialData.custom_field_rules || {}, // Load existing rules
+        members_to_add: [],
+      });
+    }
+  }, [initialData]);
+
+  // --- Handlers ---
+
+  const toggleGrade = (grade: number) => {
+    setFormData(prev => {
+      const exists = prev.grades.includes(grade);
+      if (exists) return { ...prev, grades: prev.grades.filter(g => g !== grade) };
+      return { ...prev, grades: [...prev.grades, grade].sort((a, b) => a - b) };
+    });
+  };
+
+  const toggleGender = (gender: string) => {
+    setFormData(prev => {
+      const exists = prev.genders.includes(gender);
+      if (exists) return { ...prev, genders: prev.genders.filter(g => g !== gender) };
+      return { ...prev, genders: [...prev.genders, gender] };
+    });
+  };
+
+  const toggleInterest = (id: number) => {
+    setFormData(prev => {
+      const exists = prev.interests.includes(id);
+      if (exists) return { ...prev, interests: prev.interests.filter(i => i !== id) };
+      return { ...prev, interests: [...prev.interests, id] };
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const payload = {
+      ...formData,
+      min_age: formData.min_age ? parseInt(formData.min_age as string) : null,
+      max_age: formData.max_age ? parseInt(formData.max_age as string) : null,
+    };
+
+    try {
+      if (initialData) {
+        // Update
+        await api.patch(`/groups/${initialData.id}/`, payload);
+        setToast({ message: 'Group updated successfully!', type: 'success', isVisible: true });
+      } else {
+        // Create
+        await api.post('/groups/', payload);
+        setToast({ message: 'Group created successfully!', type: 'success', isVisible: true });
+      }
+      
+      // Delay redirect slightly to show toast
+      setTimeout(() => {
+        router.push(redirectPath);
+      }, 1000);
+
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Operation failed. Please check your inputs.', type: 'error', isVisible: true });
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
+      
+      {/* SECTION 1: BASIC INFO */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-gray-900 border-b pb-2">1. Basic Information</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-bold mb-1">Group Name</label>
+            <input 
+              required
+              type="text"
+              className="w-full border p-2.5 rounded-lg"
+              placeholder="e.g. Summer Football Camp"
+              value={formData.name}
+              onChange={e => setFormData({...formData, name: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold mb-1">Group Type</label>
+            <select 
+              className="w-full border p-2.5 rounded-lg"
+              value={formData.group_type}
+              onChange={e => setFormData({...formData, group_type: e.target.value})}
+            >
+              <option value="OPEN">Open (Join Freely)</option>
+              <option value="APPLICATION">Application Required</option>
+              <option value="CLOSED">Closed (Invite Only)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold mb-1">Description</label>
+          <textarea 
+            rows={3}
+            className="w-full border p-2.5 rounded-lg"
+            placeholder="Describe what this group is about..."
+            value={formData.description}
+            onChange={e => setFormData({...formData, description: e.target.value})}
+          />
+        </div>
+      </div>
+
+      {/* SECTION 2: TARGETING RULES */}
+      <div className="space-y-6">
+        <h3 className="text-lg font-bold text-gray-900 border-b pb-2">2. Membership Rules</h3>
+        
+        {/* Member Type */}
+        <div>
+          <label className="block text-sm font-bold mb-2">Target Audience</label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer border p-3 rounded-lg hover:bg-gray-50 flex-1">
+              <input 
+                type="radio" 
+                name="member_type"
+                value="YOUTH"
+                checked={formData.target_member_type === 'YOUTH'}
+                onChange={e => setFormData({...formData, target_member_type: e.target.value})}
+                className="w-5 h-5 text-indigo-600"
+              />
+              <span className="font-bold">Youth Members</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer border p-3 rounded-lg hover:bg-gray-50 flex-1">
+              <input 
+                type="radio" 
+                name="member_type"
+                value="GUARDIAN"
+                checked={formData.target_member_type === 'GUARDIAN'}
+                onChange={e => setFormData({...formData, target_member_type: e.target.value})}
+                className="w-5 h-5 text-indigo-600"
+              />
+              <span className="font-bold">Guardians</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Age Range */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-bold mb-1">Min Age</label>
+            <input 
+              type="number" min="0" max="100"
+              className="w-full border p-2.5 rounded-lg"
+              placeholder="Any"
+              value={formData.min_age}
+              onChange={e => setFormData({...formData, min_age: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold mb-1">Max Age</label>
+            <input 
+              type="number" min="0" max="100"
+              className="w-full border p-2.5 rounded-lg"
+              placeholder="Any"
+              value={formData.max_age}
+              onChange={e => setFormData({...formData, max_age: e.target.value})}
+            />
+          </div>
+        </div>
+
+        {/* Grades (Only if Youth) */}
+        {formData.target_member_type === 'YOUTH' && (
+          <div>
+            <label className="block text-sm font-bold mb-2">Allowed Grades</label>
+            <div className="flex flex-wrap gap-2">
+              {GRADES.map(grade => (
+                <button
+                  key={grade}
+                  type="button"
+                  onClick={() => toggleGrade(grade)}
+                  className={`w-10 h-10 rounded-full font-bold text-sm transition
+                    ${formData.grades.includes(grade) 
+                      ? 'bg-indigo-600 text-white shadow-md' 
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300'}
+                  `}
+                >
+                  {grade}
+                </button>
+              ))}
+            </div>
+            {formData.grades.length === 0 && <p className="text-xs text-gray-400 mt-1">Leave empty to allow all grades.</p>}
+          </div>
+        )}
+
+        {/* Gender */}
+        <div>
+          <label className="block text-sm font-bold mb-2">Allowed Genders</label>
+          <div className="flex gap-4">
+            {GENDERS.map(g => (
+              <label key={g.value} className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox"
+                  checked={formData.genders.includes(g.value)}
+                  onChange={() => toggleGender(g.value)}
+                  className="w-4 h-4 text-indigo-600 rounded"
+                />
+                <span className="text-sm">{g.label}</span>
+              </label>
+            ))}
+          </div>
+          {formData.genders.length === 0 && <p className="text-xs text-gray-400 mt-1">Leave empty to allow all genders.</p>}
+        </div>
+
+        {/* Interests */}
+        <div>
+          <label className="block text-sm font-bold mb-2">Required Interests</label>
+          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto border p-4 rounded-lg bg-gray-50">
+            {interestsList.map(interest => (
+              <button
+                key={interest.id}
+                type="button"
+                onClick={() => toggleInterest(interest.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition
+                  ${formData.interests.includes(interest.id)
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:border-purple-300'}
+                `}
+              >
+                {interest.name}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">Users matching ANY of selected interests will be eligible.</p>
+        </div>
+
+        {/* NEW: CUSTOM FIELD RULES */}
+        <div>
+          <label className="block text-sm font-bold mb-2">Custom Field Rules</label>
+          <p className="text-xs text-gray-500 mb-2">Members must match ALL these additional conditions.</p>
+          <CustomRuleBuilder 
+            currentRules={formData.custom_field_rules}
+            onChange={(newRules) => setFormData(prev => ({...prev, custom_field_rules: newRules}))}
+          />
+        </div>
+      </div>
+
+      {/* SECTION 3: ADD MEMBERS */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-gray-900 border-b pb-2">3. Add Members</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Select users to immediately add to this group. 
+          The list below filters based on ALL the rules above (Age, Grade, Interests, Custom Fields).
+        </p>
+        
+        <MemberSelector
+          criteria={{
+            target_member_type: formData.target_member_type,
+            min_age: formData.min_age,
+            max_age: formData.max_age,
+            grades: formData.grades,
+            genders: formData.genders,
+            interests: formData.interests,
+            // Pass the new rules
+            custom_field_rules: formData.custom_field_rules
+          }}
+          selectedIds={formData.members_to_add}
+          onChange={(ids) => setFormData(prev => ({ ...prev, members_to_add: ids }))}
+          excludeGroupId={initialData?.id}
+        />
+      </div>
+
+      {/* FOOTER */}
+      <div className="flex justify-end gap-4 border-t pt-6">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-6 py-2.5 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-8 py-2.5 rounded-lg bg-indigo-600 text-white font-bold shadow-lg hover:bg-indigo-700 transition disabled:opacity-50"
+        >
+          {loading ? 'Saving...' : 'Save Group'}
+        </button>
+      </div>
+
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+    </form>
+  );
+}
+--- END OF FILE: ./frontend/app/components/GroupForm.tsx ---
+
+
 --- START OF FILE: ./frontend/app/components/NewsArchive.tsx ---
 'use client';
 
@@ -17713,6 +18842,883 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
   );
 }
 --- END OF FILE: ./frontend/app/components/NewsArchive.tsx ---
+
+
+--- START OF FILE: ./frontend/app/components/CustomRuleBuilder.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
+
+interface CustomField {
+  id: number;
+  name: string;
+  field_type: 'TEXT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'BOOLEAN';
+  options: string[];
+}
+
+interface CustomRuleBuilderProps {
+  currentRules: Record<string, any>; // { "1": "Value", "2": true }
+  onChange: (rules: Record<string, any>) => void;
+}
+
+export default function CustomRuleBuilder({ currentRules, onChange }: CustomRuleBuilderProps) {
+  const [fields, setFields] = useState<CustomField[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // New Rule State
+  const [selectedFieldId, setSelectedFieldId] = useState<string>('');
+  const [selectedValue, setSelectedValue] = useState<string>('');
+  const [selectedBool, setSelectedBool] = useState<string>('true');
+
+  useEffect(() => {
+    // Fetch fields available to this admin
+    api.get('/custom-fields/').then(res => {
+      const data = Array.isArray(res.data) ? res.data : res.data.results;
+      setFields(data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const handleAddRule = () => {
+    if (!selectedFieldId) return;
+    
+    const field = fields.find(f => f.id.toString() === selectedFieldId);
+    if (!field) return;
+
+    let val: any = selectedValue;
+    if (field.field_type === 'BOOLEAN') {
+      val = selectedBool === 'true';
+    }
+
+    onChange({
+      ...currentRules,
+      [selectedFieldId]: val
+    });
+
+    // Reset input
+    setSelectedValue('');
+    setSelectedBool('true');
+    setSelectedFieldId('');
+  };
+
+  const removeRule = (id: string) => {
+    const newRules = { ...currentRules };
+    delete newRules[id];
+    onChange(newRules);
+  };
+
+  if (loading) return <div className="text-sm text-gray-500">Loading fields...</div>;
+  if (fields.length === 0) return <div className="text-sm text-gray-400 italic">No custom fields defined.</div>;
+
+  const selectedField = fields.find(f => f.id.toString() === selectedFieldId);
+
+  return (
+    <div className="space-y-4">
+      
+      {/* 1. Rule Creator */}
+      <div className="flex flex-wrap gap-2 items-end bg-gray-50 p-3 rounded-lg border border-gray-200">
+        
+        {/* Select Field */}
+        <div className="flex-1 min-w-[150px]">
+          <label className="block text-xs font-bold text-gray-500 mb-1">Field</label>
+          <select 
+            className="w-full border p-2 rounded text-sm"
+            value={selectedFieldId}
+            onChange={e => { setSelectedFieldId(e.target.value); setSelectedValue(''); }}
+          >
+            <option value="">Select Field...</option>
+            {fields.map(f => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Input Value (Changes based on Type) */}
+        <div className="flex-1 min-w-[150px]">
+          <label className="block text-xs font-bold text-gray-500 mb-1">Condition (Must Match)</label>
+          
+          {!selectedField && <input disabled className="w-full border p-2 rounded text-sm bg-gray-100" placeholder="Select field first" />}
+
+          {selectedField && selectedField.field_type === 'BOOLEAN' && (
+            <select className="w-full border p-2 rounded text-sm" value={selectedBool} onChange={e => setSelectedBool(e.target.value)}>
+              <option value="true">Yes (Checked)</option>
+              <option value="false">No (Unchecked)</option>
+            </select>
+          )}
+
+          {selectedField && (selectedField.field_type === 'SINGLE_SELECT' || selectedField.field_type === 'MULTI_SELECT') && (
+            <select className="w-full border p-2 rounded text-sm" value={selectedValue} onChange={e => setSelectedValue(e.target.value)}>
+              <option value="">Select Option...</option>
+              {selectedField.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+          )}
+
+          {selectedField && selectedField.field_type === 'TEXT' && (
+            <input 
+              type="text" 
+              className="w-full border p-2 rounded text-sm" 
+              placeholder="Type value..."
+              value={selectedValue}
+              onChange={e => setSelectedValue(e.target.value)}
+            />
+          )}
+        </div>
+
+        {/* Add Button */}
+        <button 
+          type="button" 
+          onClick={handleAddRule}
+          disabled={!selectedFieldId}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 h-[38px]"
+        >
+          Add Rule
+        </button>
+      </div>
+
+      {/* 2. Active Rules List */}
+      {Object.keys(currentRules).length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(currentRules).map(([id, val]) => {
+            const fieldName = fields.find(f => f.id.toString() === id)?.name || `Field #${id}`;
+            let displayVal = val.toString();
+            if (typeof val === 'boolean') displayVal = val ? 'Yes' : 'No';
+
+            return (
+              <span key={id} className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
+                <span><b>{fieldName}</b> = {displayVal}</span>
+                <button type="button" onClick={() => removeRule(id)} className="hover:text-red-600 font-bold">×</button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/components/CustomRuleBuilder.tsx ---
+
+
+--- START OF FILE: ./frontend/app/components/GroupDetailView.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import api from '../../lib/api';
+import Toast from './Toast';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
+
+interface GroupDetailProps {
+  groupId: string;
+  basePath: string; // e.g. "/admin/super/groups"
+}
+
+export default function GroupDetailView({ groupId, basePath }: GroupDetailProps) {
+  const router = useRouter();
+  const [group, setGroup] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'MEMBERS' | 'SETTINGS'>('DASHBOARD');
+  const [loading, setLoading] = useState(true);
+  
+  // Actions
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const [memberToRemove, setMemberToRemove] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchData();
+  }, [groupId]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [groupRes, analyticsRes, membersRes] = await Promise.all([
+        api.get(`/groups/${groupId}/`),
+        api.get(`/groups/${groupId}/analytics/`),
+        api.get(`/groups/${groupId}/members/`)
+      ]);
+      setGroup(groupRes.data);
+      setAnalytics(analyticsRes.data);
+      setMembers(membersRes.data.results || membersRes.data);
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Failed to load group details.', type: 'error', isVisible: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!confirm("Create a copy of this group?")) return;
+    try {
+      await api.post(`/groups/${groupId}/duplicate/`);
+      setToast({ message: 'Group duplicated! Check the list.', type: 'success', isVisible: true });
+      setTimeout(() => router.push(basePath), 1000);
+    } catch (err) {
+      setToast({ message: 'Failed to duplicate.', type: 'error', isVisible: true });
+    }
+  };
+
+  const handleApproveMember = async (membershipId: number) => {
+    try {
+      await api.post(`/groups/${groupId}/approve_member/`, { membership_id: membershipId });
+      setToast({ message: 'Member approved.', type: 'success', isVisible: true });
+      fetchData(); // Refresh list
+    } catch (err) {
+      setToast({ message: 'Failed to approve.', type: 'error', isVisible: true });
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
+    try {
+      await api.post(`/groups/${groupId}/remove_member/`, { membership_id: memberToRemove });
+      setToast({ message: 'Member removed.', type: 'success', isVisible: true });
+      setMemberToRemove(null);
+      fetchData();
+    } catch (err) {
+      setToast({ message: 'Failed to remove member.', type: 'error', isVisible: true });
+    }
+  };
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading group details...</div>;
+  if (!group) return <div className="p-12 text-center text-red-500">Group not found.</div>;
+
+  return (
+    <div className="space-y-6">
+      
+      {/* HEADER */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+            <span className={`px-2 py-1 rounded text-xs font-bold uppercase
+              ${group.group_type === 'OPEN' ? 'bg-green-100 text-green-800' : 
+                group.group_type === 'CLOSED' ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800'}
+            `}>
+              {group.group_type}
+            </span>
+          </div>
+          
+          {/* NEW: Context Info (Club/Muni) */}
+          <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+            {group.club_name && (
+              <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                🏢 <b>Club:</b> {group.club_name}
+              </span>
+            )}
+            {group.municipality_name && (
+              <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                🏛️ <b>Municipality:</b> {group.municipality_name}
+              </span>
+            )}
+            {!group.club_name && !group.municipality_name && !group.is_system_group && (
+              <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                🌍 Global Group
+              </span>
+            )}
+          </div>
+
+          <p className="text-gray-500 mt-2">{group.description || 'No description provided.'}</p>
+        </div>
+        
+        {/* Buttons remain the same */}
+        <div className="flex gap-2">
+          {!group.is_system_group && (
+            <>
+              <Link 
+                href={`${basePath}/edit/${group.id}`}
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200"
+              >
+                Edit
+              </Link>
+              <button 
+                onClick={handleDuplicate}
+                className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-medium hover:bg-indigo-100"
+              >
+                Duplicate
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div className="border-b border-gray-200">
+        <nav className="flex gap-6">
+          {['DASHBOARD', 'MEMBERS', 'SETTINGS'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors
+                ${activeTab === tab 
+                  ? 'border-indigo-600 text-indigo-600' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+              `}
+            >
+              {tab.charAt(0) + tab.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* DASHBOARD TAB */}
+      {activeTab === 'DASHBOARD' && analytics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-gray-500 text-xs font-bold uppercase">Total Members</h3>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{analytics.total_members}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-gray-500 text-xs font-bold uppercase">New This Week</h3>
+            <p className="text-3xl font-bold text-green-600 mt-2">+{analytics.new_this_week}</p>
+          </div>
+          
+          {/* Gender Dist */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 col-span-1 md:col-span-2">
+            <h3 className="text-gray-500 text-xs font-bold uppercase mb-4">Gender Distribution</h3>
+            <div className="flex gap-4">
+              {Object.entries(analytics.gender_distribution || {}).map(([key, val]: any) => (
+                <div key={key} className="text-center bg-gray-50 p-3 rounded-lg min-w-[80px]">
+                  <span className="block text-xl font-bold text-gray-800">{val}</span>
+                  <span className="text-xs text-gray-500 uppercase">{key || 'Unset'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Grade Dist */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 col-span-1 md:col-span-4">
+            <h3 className="text-gray-500 text-xs font-bold uppercase mb-4">Grade Distribution</h3>
+            <div className="flex flex-wrap gap-3">
+              {Object.entries(analytics.grade_distribution || {}).map(([grade, count]: any) => (
+                <div key={grade} className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
+                  <span className="text-xs font-bold text-indigo-800">Grade {grade}</span>
+                  <span className="bg-white text-indigo-600 px-2 py-0.5 rounded-full text-xs font-bold shadow-sm">{count}</span>
+                </div>
+              ))}
+              {Object.keys(analytics.grade_distribution || {}).length === 0 && <p className="text-sm text-gray-400">No data available.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MEMBERS TAB */}
+      {activeTab === 'MEMBERS' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Member</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Joined</th>
+                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {members.map((m: any) => (
+                <tr key={m.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {m.user_avatar ? (
+                        <img src={m.user_avatar} className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold">
+                          {m.user_name.charAt(0)}
+                        </div>
+                      )}
+                      <span className="font-medium text-gray-900">{m.user_name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{m.user_email}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded text-xs font-bold 
+                      ${m.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
+                        m.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}
+                    `}>
+                      {m.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {new Date(m.joined_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 text-right space-x-2">
+                    {m.status === 'PENDING' && (
+                      <button 
+                        onClick={() => handleApproveMember(m.id)}
+                        className="text-green-600 hover:text-green-800 font-bold text-xs uppercase"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => setMemberToRemove(m.id)}
+                      className="text-red-600 hover:text-red-800 font-bold text-xs uppercase"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {members.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    No members in this group yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* SETTINGS TAB */}
+      {activeTab === 'SETTINGS' && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <div>
+              <span className="block text-gray-500 font-bold uppercase text-xs">Target Audience</span>
+              <span className="text-gray-900">{group.target_member_type === 'YOUTH' ? 'Youth Members' : 'Guardians'}</span>
+            </div>
+            <div>
+              <span className="block text-gray-500 font-bold uppercase text-xs">Age Range</span>
+              <span className="text-gray-900">
+                {group.min_age || 0} - {group.max_age || 'Any'} years
+              </span>
+            </div>
+            <div>
+              <span className="block text-gray-500 font-bold uppercase text-xs">Allowed Grades</span>
+              <span className="text-gray-900">
+                {group.grades?.length > 0 ? group.grades.join(', ') : 'All Grades'}
+              </span>
+            </div>
+            <div>
+              <span className="block text-gray-500 font-bold uppercase text-xs">Allowed Genders</span>
+              <span className="text-gray-900">
+                {group.genders?.length > 0 ? group.genders.join(', ') : 'All Genders'}
+              </span>
+            </div>
+            <div className="col-span-2">
+              <span className="block text-gray-500 font-bold uppercase text-xs mb-2">Required Interests</span>
+              <div className="flex flex-wrap gap-2">
+                {group.interests_details?.map((i: any) => (
+                  <span key={i.id} className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md text-xs font-medium border border-purple-100">
+                    {i.name}
+                  </span>
+                ))}
+                {(!group.interests_details || group.interests_details.length === 0) && (
+                  <span className="text-gray-400 italic">None</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALS */}
+      <DeleteConfirmationModal
+        isVisible={!!memberToRemove}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={handleRemoveMember}
+        title="Remove Member"
+        message="Are you sure you want to remove this member from the group?"
+        confirmButtonText="Remove"
+      />
+
+      <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/components/GroupDetailView.tsx ---
+
+
+--- START OF FILE: ./frontend/app/components/GroupManager.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import api from '../../lib/api';
+import Toast from './Toast';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
+
+interface Group {
+  id: number;
+  name: string;
+  group_type: 'OPEN' | 'APPLICATION' | 'CLOSED';
+  is_system_group: boolean;
+  member_count: number;
+  pending_request_count: number;
+  created_at: string;
+  municipality: number | null;
+  municipality_name?: string; // New
+  club: number | null;
+  club_name?: string;         // New
+}
+
+interface GroupManagerProps {
+  basePath: string; // e.g., "/admin/super/groups"
+}
+
+export default function GroupManager({ basePath }: GroupManagerProps) {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Determine admin type from basePath
+  const isSuperAdmin = basePath.includes('/super');
+  const isMuniAdmin = basePath.includes('/municipality');
+  
+  // Stats
+  const [stats, setStats] = useState({
+    totalGroups: 0,
+    totalMembers: 0,
+    activeGroups: 0,
+    emptyGroups: 0
+  });
+
+  // Actions
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+  const [showDelete, setShowDelete] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const fetchGroups = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/groups/');
+      const data = Array.isArray(res.data) ? res.data : res.data.results;
+      setGroups(data);
+      calculateStats(data);
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Failed to load groups.', type: 'error', isVisible: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = (data: Group[]) => {
+    const totalMembers = data.reduce((sum, g) => sum + g.member_count, 0);
+    const activeGroups = data.filter(g => g.member_count > 0).length;
+    
+    setStats({
+      totalGroups: data.length,
+      totalMembers,
+      activeGroups,
+      emptyGroups: data.length - activeGroups
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!selectedGroup) return;
+    try {
+      await api.delete(`/groups/${selectedGroup.id}/`);
+      setToast({ message: 'Group deleted successfully.', type: 'success', isVisible: true });
+      fetchGroups();
+    } catch (err) {
+      setToast({ message: 'Failed to delete group.', type: 'error', isVisible: true });
+    } finally {
+      setShowDelete(false);
+      setSelectedGroup(null);
+    }
+  };
+
+  const getBadgeStyle = (type: string) => {
+    switch (type) {
+      case 'OPEN': return 'bg-green-100 text-green-800';
+      case 'APPLICATION': return 'bg-blue-100 text-blue-800';
+      case 'CLOSED': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      
+      {/* HEADER & ACTIONS */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
+          <p className="text-gray-500 text-sm">Manage member segments and filters.</p>
+        </div>
+        <Link 
+          href={`${basePath}/create`}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 shadow transition text-center"
+        >
+          + Create New Group
+        </Link>
+      </div>
+
+      {/* ANALYTICS CARDS (Same as before) */}
+      {!loading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Total Groups</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.totalGroups}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Total Members</p>
+            <p className="text-2xl font-bold text-indigo-600">{stats.totalMembers}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Active Groups</p>
+            <p className="text-2xl font-bold text-green-600">{stats.activeGroups}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase">Empty Groups</p>
+            <p className="text-2xl font-bold text-gray-400">{stats.emptyGroups}</p>
+          </div>
+        </div>
+      )}
+
+      {/* GROUPS LIST */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Loading groups...</div>
+        ) : groups.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-gray-500 mb-2">No groups found.</p>
+            <p className="text-sm text-gray-400">Create your first group to get started.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Group Name</th>
+                  
+                  {/* DYNAMIC COLUMNS */}
+                  {isSuperAdmin && <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Municipality</th>}
+                  {(isSuperAdmin || isMuniAdmin) && <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Club</th>}
+                  
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Members</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {groups.map((group) => (
+                  <tr key={group.id} className="hover:bg-gray-50 transition">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">{group.name}</div>
+                          {group.is_system_group && (
+                            <span className="text-[10px] uppercase font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">System</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* DYNAMIC CELLS */}
+                    {isSuperAdmin && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {group.municipality_name || '-'}
+                      </td>
+                    )}
+                    {(isSuperAdmin || isMuniAdmin) && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {group.club_name || '-'}
+                      </td>
+                    )}
+
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getBadgeStyle(group.group_type)}`}>
+                        {group.group_type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 font-medium">{group.member_count}</div>
+                      {group.pending_request_count > 0 && (
+                        <div className="text-xs text-orange-600 font-semibold">
+                          {group.pending_request_count} pending
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                      <Link 
+                        href={`${basePath}/${group.id}`}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        View
+                      </Link>
+                      {!group.is_system_group && (
+                        <button 
+                          onClick={() => { setSelectedGroup(group); setShowDelete(true); }}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <DeleteConfirmationModal
+        isVisible={showDelete}
+        onClose={() => setShowDelete(false)}
+        onConfirm={handleDelete}
+        itemName={selectedGroup?.name}
+        message="Are you sure? This will remove all members from this group."
+      />
+
+      <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/components/GroupManager.tsx ---
+
+
+--- START OF FILE: ./frontend/app/components/GroupRequestsManager.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
+import Toast from './Toast';
+import { getMediaUrl } from '../../app/utils';
+
+export default function GroupRequestsManager() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+
+  useEffect(() => {
+    fetchRequests();
+  }, [filter]);
+
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filter) params.set('group_name', filter);
+      
+      const res = await api.get(`/group-requests/?${params.toString()}`);
+      setRequests(Array.isArray(res.data) ? res.data : res.data.results);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAction = async (id: number, action: 'approve' | 'reject') => {
+    try {
+      await api.post(`/group-requests/${id}/${action}/`);
+      setToast({ 
+        message: action === 'approve' ? 'Member approved!' : 'Request rejected.', 
+        type: 'success', 
+        isVisible: true 
+      });
+      fetchRequests(); // Refresh list
+    } catch (err) {
+      setToast({ message: 'Action failed.', type: 'error', isVisible: true });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      
+      {/* FILTER BAR */}
+      <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div>
+          <h2 className="text-lg font-bold text-gray-800">Pending Applications</h2>
+          <p className="text-sm text-gray-500">Manage users waiting to join your groups.</p>
+        </div>
+        <div className="w-full sm:w-64">
+          <input 
+            type="text" 
+            placeholder="Filter by group name..." 
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* LIST */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Loading requests...</div>
+        ) : requests.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            <p className="mb-2">No pending applications found.</p>
+            {filter && <button onClick={() => setFilter('')} className="text-blue-600 underline text-sm">Clear filter</button>}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Applying To</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Requested</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {requests.map((req) => (
+                  <tr key={req.id} className="hover:bg-gray-50 transition">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        {req.user_avatar ? (
+                          <img src={getMediaUrl(req.user_avatar) || ''} className="w-8 h-8 rounded-full object-cover bg-gray-200" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
+                            {req.user_name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">{req.user_name}</div>
+                          <div className="text-xs text-gray-500">{req.user_email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-gray-900 bg-blue-50 px-2 py-1 rounded text-blue-700">
+                        {req.group_name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(req.joined_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                      <button 
+                        onClick={() => handleAction(req.id, 'approve')}
+                        className="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-200 transition"
+                      >
+                        Approve
+                      </button>
+                      <button 
+                        onClick={() => handleAction(req.id, 'reject')}
+                        className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 transition"
+                      >
+                        Deny
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/components/GroupRequestsManager.tsx ---
 
 
 --- START OF FILE: ./frontend/app/components/CustomFieldsForm.tsx ---
@@ -19032,6 +21038,203 @@ export default function Toast({
 --- END OF FILE: ./frontend/app/components/Toast.tsx ---
 
 
+--- START OF FILE: ./frontend/app/components/MemberSelector.tsx ---
+'use client';
+
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
+import { getMediaUrl } from '../../app/utils';
+
+interface User {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  avatar: string | null;
+  grade?: number;
+  age?: number; // Calculated on backend or frontend
+}
+
+interface MemberSelectorProps {
+  criteria: {
+    target_member_type: string;
+    min_age: string | number;
+    max_age: string | number;
+    grades: number[];
+    genders: string[];
+    interests: number[];
+    custom_field_rules?: Record<string, any>; // NEW: Custom field rules
+  };
+  selectedIds: number[];
+  onChange: (ids: number[]) => void;
+  excludeGroupId?: number; // To exclude people already in the group (Edit mode)
+}
+
+export default function MemberSelector({ criteria, selectedIds, onChange, excludeGroupId }: MemberSelectorProps) {
+  const [candidates, setCandidates] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Auto-fetch when criteria changes significantly, or manual refresh
+  const fetchCandidates = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      
+      // Map criteria to API params
+      params.set('target_member_type', criteria.target_member_type);
+      if (criteria.min_age) params.set('min_age', criteria.min_age.toString());
+      if (criteria.max_age) params.set('max_age', criteria.max_age.toString());
+      if (criteria.grades.length > 0) params.set('grades', criteria.grades.join(','));
+      if (criteria.genders.length > 0) params.set('genders', criteria.genders.join(','));
+      if (criteria.interests.length > 0) params.set('interests', criteria.interests.join(','));
+      
+      // NEW: Add custom field rules
+      if (criteria.custom_field_rules && Object.keys(criteria.custom_field_rules).length > 0) {
+        params.set('custom_field_rules', JSON.stringify(criteria.custom_field_rules));
+      }
+      
+      if (searchTerm) params.set('search', searchTerm);
+      if (excludeGroupId) params.set('exclude_group', excludeGroupId.toString());
+      
+      // Get all candidates (pagination handled by backend, but for selector we might want a reasonable limit or load more)
+      // For now, let's get the first page (default 10) or set a higher page_size
+      params.set('page_size', '50'); 
+
+      const res = await api.get(`/groups/search_candidates/?${params.toString()}`);
+      const data = Array.isArray(res.data) ? res.data : res.data.results;
+      setCandidates(data || []);
+      setHasSearched(true);
+    } catch (err) {
+      console.error("Failed to search members", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleUser = (id: number) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter(sid => sid !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const selectAllVisible = () => {
+    const visibleIds = candidates.map(c => c.id);
+    // Add only ones not already selected
+    const newIds = [...selectedIds];
+    visibleIds.forEach(id => {
+      if (!newIds.includes(id)) newIds.push(id);
+    });
+    onChange(newIds);
+  };
+
+  const clearSelection = () => {
+    onChange([]);
+  };
+
+  return (
+    <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
+      <div className="p-4 bg-gray-50 border-b flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h4 className="font-bold text-gray-800">Add Members</h4>
+          <div className="text-sm text-gray-500">
+            {selectedIds.length} selected
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <input 
+            type="text" 
+            placeholder="Search by name or email..." 
+            className="flex-1 border rounded-lg px-3 py-2 text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && fetchCandidates()}
+          />
+          <button 
+            type="button" 
+            onClick={fetchCandidates}
+            disabled={loading}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {loading ? 'Searching...' : 'Find Matches'}
+          </button>
+        </div>
+        
+        <p className="text-xs text-gray-500">
+          Showing users matching the rules defined above (Age, Grade, etc.)
+        </p>
+      </div>
+
+      {/* LIST */}
+      <div className="max-h-80 overflow-y-auto p-2">
+        {!hasSearched && (
+          <div className="text-center py-8 text-gray-400 text-sm">
+            Click "Find Matches" to see eligible users.
+          </div>
+        )}
+
+        {hasSearched && candidates.length === 0 && (
+          <div className="text-center py-8 text-gray-400 text-sm">
+            No eligible users found matching criteria.
+          </div>
+        )}
+
+        {candidates.length > 0 && (
+          <div className="space-y-1">
+            <div className="flex justify-end px-2 mb-2">
+              <button type="button" onClick={selectAllVisible} className="text-xs text-indigo-600 font-bold hover:underline">Select All</button>
+            </div>
+            
+            {candidates.map(user => {
+              const isSelected = selectedIds.includes(user.id);
+              return (
+                <div 
+                  key={user.id} 
+                  onClick={() => toggleUser(user.id)}
+                  className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border transition-colors
+                    ${isSelected ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-transparent hover:bg-gray-50'}
+                  `}
+                >
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0
+                    ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}
+                  `}>
+                    {isSelected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+
+                  {user.avatar ? (
+                    <img src={getMediaUrl(user.avatar) || ''} className="w-8 h-8 rounded-full object-cover bg-gray-200" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">
+                      {user.first_name.charAt(0)}
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">
+                      {user.first_name} {user.last_name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  </div>
+
+                  {user.grade && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Gr {user.grade}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+--- END OF FILE: ./frontend/app/components/MemberSelector.tsx ---
+
+
 --- START OF FILE: ./frontend/app/login/page.tsx ---
 'use client';
 
@@ -19874,6 +22077,7 @@ INSTALLED_APPS = [
     'system_messages',
     'news',
     'custom_fields',
+    'groups',
 ]
 
 MIDDLEWARE = [
@@ -20863,6 +23067,762 @@ class CustomFieldDefinitionViewSet(viewsets.ModelViewSet):
                 
         return Response({"results": results})
 --- END OF FILE: ./backend/custom_fields/views.py ---
+
+
+--- START OF FILE: ./backend/groups/signals.py ---
+from django.db.models.signals import post_save
+from django.contrib.auth.signals import user_logged_in
+from django.dispatch import receiver
+from users.models import User
+from .models import Group, GroupMembership
+
+# 1. Registered Members (Triggered when a User is created)
+@receiver(post_save, sender=User)
+def add_to_registered_group(sender, instance, created, **kwargs):
+    if created:
+        try:
+            group = Group.objects.get(system_group_type='REGISTERED')
+            GroupMembership.objects.get_or_create(user=instance, group=group, defaults={'status': 'APPROVED'})
+        except Group.DoesNotExist:
+            pass # Group hasn't been created yet
+
+# 2. Verified Members (Triggered when User is saved/updated)
+@receiver(post_save, sender=User)
+def update_verified_group(sender, instance, **kwargs):
+    try:
+        group = Group.objects.get(system_group_type='VERIFIED')
+        is_member = GroupMembership.objects.filter(user=instance, group=group).exists()
+        
+        # If user is verified but NOT in group -> Add them
+        if instance.verification_status == 'VERIFIED' and not is_member:
+            GroupMembership.objects.create(user=instance, group=group, status='APPROVED')
+            
+        # If user is NOT verified but IS in group -> Remove them
+        elif instance.verification_status != 'VERIFIED' and is_member:
+            GroupMembership.objects.filter(user=instance, group=group).delete()
+            
+    except Group.DoesNotExist:
+        pass
+
+# 3. Active Members (Triggered when User logs in)
+@receiver(user_logged_in)
+def add_to_active_group(sender, user, request, **kwargs):
+    try:
+        group = Group.objects.get(system_group_type='ACTIVE')
+        # We use get_or_create to ensure we don't duplicate or crash
+        GroupMembership.objects.get_or_create(user=user, group=group, defaults={'status': 'APPROVED'})
+    except Group.DoesNotExist:
+        pass
+--- END OF FILE: ./backend/groups/signals.py ---
+
+
+--- START OF FILE: ./backend/groups/models.py ---
+from django.db import models
+from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
+from organization.models import Municipality, Club, Interest
+
+class Group(models.Model):
+    class GroupType(models.TextChoices):
+        OPEN = 'OPEN', 'Open (Join Freely)'
+        APPLICATION = 'APPLICATION', 'Application Required'
+        CLOSED = 'CLOSED', 'Closed (Invite Only)'
+
+    class MemberType(models.TextChoices):
+        YOUTH = 'YOUTH', 'Youth Only'
+        GUARDIAN = 'GUARDIAN', 'Guardians Only'
+
+    class SystemGroupType(models.TextChoices):
+        NONE = 'NONE', 'Standard Group'
+        REGISTERED = 'REGISTERED', 'All Registered'
+        ACTIVE = 'ACTIVE', 'Active Members'
+        VERIFIED = 'VERIFIED', 'Verified Members'
+
+    # --- Basic Info ---
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    # Using the same file validator you used in other apps
+    avatar = models.FileField(upload_to='groups/avatars/', blank=True, null=True)
+    
+    # --- Scope & Ownership ---
+    # If both are null, it's a Global Group (Super Admin only)
+    municipality = models.ForeignKey(Municipality, on_delete=models.CASCADE, null=True, blank=True, related_name='groups')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, null=True, blank=True, related_name='groups')
+    
+    # --- Configuration ---
+    group_type = models.CharField(max_length=20, choices=GroupType.choices, default=GroupType.OPEN)
+    target_member_type = models.CharField(max_length=20, choices=MemberType.choices, default=MemberType.YOUTH)
+    
+    # System Groups are managed by code, not admins
+    is_system_group = models.BooleanField(default=False)
+    system_group_type = models.CharField(max_length=20, choices=SystemGroupType.choices, default=SystemGroupType.NONE)
+
+    # --- Eligibility Rules (Criteria) ---
+    # Age Range (Null means no limit)
+    min_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    max_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    
+    # Grades: stored as a list of integers, e.g., [7, 8, 9]
+    grades = models.JSONField(default=list, blank=True, help_text="List of allowed grades")
+    
+    # Genders: stored as a list, e.g., ["FEMALE", "OTHER"]
+    genders = models.JSONField(default=list, blank=True, help_text="List of allowed genders")
+    
+    # Interests: Users must match at least one (M2M)
+    interests = models.ManyToManyField(Interest, blank=True, related_name='targeted_groups')
+    
+    # Custom Fields Rules: e.g. {"field_id_5": true, "field_id_10": "Option A"}
+    custom_field_rules = models.JSONField(default=dict, blank=True, help_text="Rules based on custom field values")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_group_type_display()})"
+
+class GroupMembership(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Approval'
+        APPROVED = 'APPROVED', 'Approved (Active)'
+        REJECTED = 'REJECTED', 'Rejected'
+    
+    class Role(models.TextChoices):
+        MEMBER = 'MEMBER', 'Member'
+        ADMIN = 'ADMIN', 'Group Admin'
+
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='group_memberships')
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.APPROVED)
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
+    
+    joined_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('group', 'user')
+
+    def __str__(self):
+        return f"{self.user} in {self.group}"
+--- END OF FILE: ./backend/groups/models.py ---
+
+
+--- START OF FILE: ./backend/groups/serializers.py ---
+from rest_framework import serializers
+from .models import Group, GroupMembership
+from organization.serializers import InterestSerializer
+from users.models import User  # Import User
+
+class GroupMembershipSerializer(serializers.ModelSerializer):
+    """
+    Shows which user is in a group and their status (Pending/Approved).
+    """
+    user_name = serializers.SerializerMethodField()
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    user_avatar = serializers.ImageField(source='user.avatar', read_only=True)
+    # NEW: Group Name for the requests list
+    group_name = serializers.CharField(source='group.name', read_only=True)
+
+    class Meta:
+        model = GroupMembership
+        fields = ['id', 'user', 'user_name', 'user_email', 'user_avatar', 'group', 'group_name', 'status', 'role', 'joined_at']
+
+    def get_user_name(self, obj):
+        return f"{obj.user.first_name} {obj.user.last_name}"
+
+class GroupSerializer(serializers.ModelSerializer):
+    interests_details = InterestSerializer(source='interests', many=True, read_only=True)
+    municipality_name = serializers.CharField(source='municipality.name', read_only=True)
+    club_name = serializers.CharField(source='club.name', read_only=True)
+    
+    member_count = serializers.SerializerMethodField()
+    pending_request_count = serializers.SerializerMethodField()
+
+    # NEW: Write-only field to accept a list of User IDs to add immediately
+    members_to_add = serializers.ListField(
+        child=serializers.IntegerField(), 
+        write_only=True, 
+        required=False
+    )
+
+    class Meta:
+        model = Group
+        fields = [
+            'id', 'name', 'description', 'avatar',
+            'municipality', 'municipality_name',
+            'club', 'club_name',
+            'group_type', 'target_member_type',
+            'is_system_group', 'system_group_type',
+            'min_age', 'max_age', 'grades', 'genders',
+            'interests', 'interests_details',
+            'custom_field_rules',
+            'member_count', 'pending_request_count', 'created_at',
+            'members_to_add'  # Add to fields
+        ]
+
+    def get_member_count(self, obj):
+        return obj.memberships.filter(status='APPROVED').count()
+
+    def get_pending_request_count(self, obj):
+        return obj.memberships.filter(status='PENDING').count()
+
+    def create(self, validated_data):
+        # Extract members data
+        members_ids = validated_data.pop('members_to_add', [])
+        interests = validated_data.pop('interests', [])
+        
+        # Create group
+        group = Group.objects.create(**validated_data)
+        group.interests.set(interests)
+        
+        # Add members
+        for user_id in members_ids:
+            # We use get_or_create to allow "updating" lists safely
+            GroupMembership.objects.get_or_create(
+                group=group, 
+                user_id=user_id, 
+                defaults={'status': 'APPROVED', 'role': 'MEMBER'}
+            )
+            
+        return group
+
+    def update(self, instance, validated_data):
+        members_ids = validated_data.pop('members_to_add', [])
+        interests = validated_data.pop('interests', None)
+        
+        # Update standard fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update interests if provided
+        if interests is not None:
+            instance.interests.set(interests)
+        
+        # Add NEW members (we do not remove existing ones here to be safe)
+        for user_id in members_ids:
+            GroupMembership.objects.get_or_create(
+                group=instance, 
+                user_id=user_id, 
+                defaults={'status': 'APPROVED', 'role': 'MEMBER'}
+            )
+            
+        return instance
+--- END OF FILE: ./backend/groups/serializers.py ---
+
+
+--- START OF FILE: ./backend/groups/apps.py ---
+from django.apps import AppConfig
+
+class GroupsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'groups'
+
+    def ready(self):
+        import groups.signals
+--- END OF FILE: ./backend/groups/apps.py ---
+
+
+--- START OF FILE: ./backend/groups/admin.py ---
+from django.contrib import admin
+from .models import Group, GroupMembership
+
+class MembershipInline(admin.TabularInline):
+    model = GroupMembership
+    extra = 0
+    raw_id_fields = ('user',) # Useful if you have thousands of users
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'group_type', 'target_member_type', 'is_system_group', 'municipality', 'club')
+    list_filter = ('group_type', 'is_system_group', 'municipality', 'club')
+    search_fields = ('name', 'description')
+    filter_horizontal = ('interests',) # Makes selecting many interests easier
+    inlines = [MembershipInline] # Allows editing members directly inside the Group page
+
+@admin.register(GroupMembership)
+class GroupMembershipAdmin(admin.ModelAdmin):
+    list_display = ('user', 'group', 'status', 'role', 'joined_at')
+    list_filter = ('status', 'role', 'group')
+    search_fields = ('user__email', 'user__first_name', 'group__name')
+--- END OF FILE: ./backend/groups/admin.py ---
+
+
+--- START OF FILE: ./backend/groups/permissions.py ---
+from rest_framework import permissions
+
+class IsGroupAdminOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to ensure:
+    - Super Admins can do anything.
+    - Muni Admins can edit groups in their municipality.
+    - Club Admins can edit groups in their club.
+    - Others can only read (SAFE_METHODS).
+    """
+    def has_permission(self, request, view):
+        # Allow anyone logged in to view the list (filtering happens in get_queryset)
+        if request.method in permissions.SAFE_METHODS:
+            return request.user and request.user.is_authenticated
+        
+        # Only Admins can create/edit/delete
+        return request.user.role in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']
+
+    def has_object_permission(self, request, view, obj):
+        # Read permissions are allowed to any authenticated user
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        user = request.user
+        if user.role == 'SUPER_ADMIN':
+            return True
+        
+        # Muni Admin can edit if group belongs to their muni OR a club in their muni
+        if user.role == 'MUNICIPALITY_ADMIN':
+            if obj.municipality == user.assigned_municipality:
+                return True
+            if obj.club and obj.club.municipality == user.assigned_municipality:
+                return True
+                
+        # Club Admin can edit if group belongs to their club
+        if user.role == 'CLUB_ADMIN':
+            if obj.club == user.assigned_club:
+                return True
+
+        return False
+
+class IsGroupMembershipAdmin(permissions.BasePermission):
+    """
+    Permission for managing Group Memberships (Approving/Rejecting).
+    """
+    def has_permission(self, request, view):
+        # Only admins can access this endpoint
+        return request.user.is_authenticated and request.user.role in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']
+
+    def has_object_permission(self, request, view, obj):
+        # obj is a GroupMembership instance
+        user = request.user
+        group = obj.group
+        
+        if user.role == 'SUPER_ADMIN':
+            return True
+        
+        # Muni Admin: Owns the group directly OR owns the club the group belongs to
+        if user.role == 'MUNICIPALITY_ADMIN':
+            return (group.municipality == user.assigned_municipality) or \
+                   (group.club and group.club.municipality == user.assigned_municipality)
+                
+        # Club Admin: Owns the club the group belongs to
+        if user.role == 'CLUB_ADMIN':
+            return group.club == user.assigned_club
+
+        return False
+--- END OF FILE: ./backend/groups/permissions.py ---
+
+
+--- START OF FILE: ./backend/groups/tests.py ---
+from django.test import TestCase
+
+# Create your tests here.
+
+--- END OF FILE: ./backend/groups/tests.py ---
+
+
+--- START OF FILE: ./backend/groups/views.py ---
+from rest_framework import viewsets, status, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.db.models import Q, Count
+from django.utils import timezone
+from datetime import timedelta, date
+import json
+from .models import Group, GroupMembership
+from .serializers import GroupSerializer, GroupMembershipSerializer
+from .permissions import IsGroupAdminOrReadOnly, IsGroupMembershipAdmin
+from users.models import User
+from users.serializers import CustomUserSerializer
+
+class GroupViewSet(viewsets.ModelViewSet):
+    serializer_class = GroupSerializer
+    permission_classes = [IsGroupAdminOrReadOnly]
+
+    def get_queryset(self):
+        """
+        Filter groups based on who is asking.
+        """
+        user = self.request.user
+        
+        # 1. Super Admins see ALL groups
+        if user.role == 'SUPER_ADMIN':
+            return Group.objects.all().order_by('-created_at')
+
+        # 2. Municipality Admins see groups in their scope
+        if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            return Group.objects.filter(
+                Q(municipality=user.assigned_municipality) |
+                Q(club__municipality=user.assigned_municipality)
+            ).distinct().order_by('-created_at')
+
+        # 3. Club Admins see groups in their club
+        if user.role == 'CLUB_ADMIN' and user.assigned_club:
+            return Group.objects.filter(club=user.assigned_club).order_by('-created_at')
+
+        # 4. Regular Members (Youth/Guardian)
+        return Group.objects.filter(
+            Q(group_type='OPEN') | 
+            Q(memberships__user=user)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.role == 'MUNICIPALITY_ADMIN':
+            serializer.save(municipality=user.assigned_municipality)
+        elif user.role == 'CLUB_ADMIN':
+            serializer.save(club=user.assigned_club)
+        else:
+            serializer.save()
+
+    # --- Actions for Members ---
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def join(self, request, pk=None):
+        group = self.get_object()
+        user = request.user
+
+        if GroupMembership.objects.filter(group=group, user=user).exists():
+            return Response({"message": "Already a member or application pending."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if group.group_type == 'CLOSED':
+            return Response({"message": "Cannot join a closed group."}, status=status.HTTP_403_FORBIDDEN)
+
+        membership_status = 'APPROVED' if group.group_type == 'OPEN' else 'PENDING'
+        
+        GroupMembership.objects.create(
+            group=group,
+            user=user,
+            status=membership_status,
+            role='MEMBER'
+        )
+        
+        msg = "Joined successfully" if membership_status == 'APPROVED' else "Application sent"
+        return Response({"message": msg, "status": membership_status})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def leave(self, request, pk=None):
+        group = self.get_object()
+        user = request.user
+        
+        if group.is_system_group:
+             return Response({"message": "Cannot leave a system-managed group manually."}, status=status.HTTP_403_FORBIDDEN)
+
+        deleted_count, _ = GroupMembership.objects.filter(group=group, user=user).delete()
+        
+        if deleted_count > 0:
+            return Response({"message": "Left group successfully."})
+        return Response({"message": "You are not in this group."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # --- Actions for Admins ---
+
+    @action(detail=True, methods=['post'], url_path='duplicate')
+    def duplicate(self, request, pk=None):
+        original = self.get_object()
+        
+        original.pk = None
+        original.id = None
+        original.name = f"{original.name} (Copy)"
+        original.is_system_group = False 
+        original.save()
+        
+        original.interests.set(self.get_object().interests.all())
+        
+        return Response(GroupSerializer(original).data)
+
+    @action(detail=True, methods=['get'])
+    def members(self, request, pk=None):
+        """
+        Get list of members. ADMIN ONLY.
+        """
+        if request.user.role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+
+        group = self.get_object()
+        status_param = request.query_params.get('status') # Optional: filter by PENDING/APPROVED
+        
+        queryset = group.memberships.select_related('user').order_by('-joined_at')
+        
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+            
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = GroupMembershipSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = GroupMembershipSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def analytics(self, request, pk=None):
+        """
+        Get stats for the group. ADMIN ONLY.
+        """
+        if request.user.role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+
+        group = self.get_object()
+        memberships = group.memberships.filter(status='APPROVED')
+        
+        # 1. Total
+        total = memberships.count()
+        
+        # 2. New this week
+        week_ago = timezone.now() - timedelta(days=7)
+        new_this_week = memberships.filter(joined_at__gte=week_ago).count()
+        
+        # 3. Gender Dist
+        gender_dist = memberships.values('user__legal_gender').annotate(count=Count('id'))
+        gender_data = {item['user__legal_gender']: item['count'] for item in gender_dist}
+        
+        # 4. Grade Dist (Youth only)
+        grade_dist = memberships.exclude(user__grade__isnull=True).values('user__grade').annotate(count=Count('id'))
+        grade_data = {item['user__grade']: item['count'] for item in grade_dist}
+        
+        return Response({
+            "total_members": total,
+            "new_this_week": new_this_week,
+            "gender_distribution": gender_data,
+            "grade_distribution": grade_data,
+        })
+    
+    @action(detail=True, methods=['post'], url_path='approve_member')
+    def approve_member(self, request, pk=None):
+        """
+        Approve a pending member. Payload: { "membership_id": 123 }
+        """
+        membership_id = request.data.get('membership_id')
+        try:
+            membership = GroupMembership.objects.get(id=membership_id, group_id=pk)
+            membership.status = 'APPROVED'
+            membership.save()
+            return Response({"status": "approved"})
+        except GroupMembership.DoesNotExist:
+            return Response({"error": "Membership not found"}, status=404)
+
+    @action(detail=True, methods=['post'], url_path='remove_member')
+    def remove_member(self, request, pk=None):
+        """
+        Remove/Deny a member. Payload: { "membership_id": 123 }
+        """
+        membership_id = request.data.get('membership_id')
+        try:
+            GroupMembership.objects.get(id=membership_id, group_id=pk).delete()
+            return Response({"status": "removed"})
+        except GroupMembership.DoesNotExist:
+            return Response({"error": "Membership not found"}, status=404)
+
+    @action(detail=False, methods=['get'])
+    def search_candidates(self, request):
+        """
+        Returns users who MATCH the provided criteria (age, grade, custom fields)
+        AND fall within the Admin's scope.
+        """
+        user = request.user
+        
+        # 1. Base Scope: Filter by Admin Role
+        queryset = User.objects.filter(is_active=True)
+        
+        if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            queryset = queryset.filter(
+                Q(preferred_club__municipality=user.assigned_municipality) |
+                Q(assigned_municipality=user.assigned_municipality)
+            )
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            queryset = queryset.filter(preferred_club=user.assigned_club)
+        
+        # 2. Filter by Member Type
+        member_type = request.query_params.get('target_member_type', 'YOUTH')
+        if member_type == 'YOUTH':
+            queryset = queryset.filter(role='YOUTH_MEMBER')
+        elif member_type == 'GUARDIAN':
+            queryset = queryset.filter(role='GUARDIAN')
+
+        # 3. Filter by Grade
+        grades_param = request.query_params.get('grades')
+        if grades_param:
+            try:
+                grade_list = [int(g) for g in grades_param.split(',') if g.strip()]
+                if grade_list:
+                    queryset = queryset.filter(grade__in=grade_list)
+            except ValueError:
+                pass
+
+        # 4. Filter by Gender
+        genders_param = request.query_params.get('genders')
+        if genders_param:
+            gender_list = [g.strip() for g in genders_param.split(',') if g.strip()]
+            if gender_list:
+                queryset = queryset.filter(legal_gender__in=gender_list)
+
+        # 5. Filter by Interests
+        interests_param = request.query_params.get('interests')
+        if interests_param:
+            try:
+                interest_ids = [int(i) for i in interests_param.split(',') if i.strip()]
+                if interest_ids:
+                    queryset = queryset.filter(interests__id__in=interest_ids).distinct()
+            except ValueError:
+                pass
+
+        # 6. Filter by Age Range
+        min_age = request.query_params.get('min_age')
+        max_age = request.query_params.get('max_age')
+        if min_age or max_age:
+            today = date.today()
+            if min_age:
+                max_dob = today.replace(year=today.year - int(min_age))
+                queryset = queryset.filter(date_of_birth__lte=max_dob)
+            if max_age:
+                min_dob = today.replace(year=today.year - int(max_age) - 1)
+                queryset = queryset.filter(date_of_birth__gt=min_dob)
+
+        # 7. Text Search
+        search = request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) | 
+                Q(last_name__icontains=search) | 
+                Q(email__icontains=search)
+            )
+
+        # 8. Exclude existing
+        group_id = request.query_params.get('exclude_group')
+        if group_id:
+            queryset = queryset.exclude(group_memberships__group_id=group_id)
+
+        # 9. NEW: Filter by Custom Fields
+        # Format: {"field_id": "value", "field_id": true}
+        custom_rules_str = request.query_params.get('custom_field_rules')
+        if custom_rules_str:
+            try:
+                custom_rules = json.loads(custom_rules_str)
+                for field_id, value in custom_rules.items():
+                    # We look for users who have a CustomFieldValue entry matching this field and value
+                    # Note: 'value' is a JSONField in DB, so strict equality works for strings/bools
+                    # For lists (Multi-Select), we might need logic changes, but let's assume single match for now.
+                    if isinstance(value, bool):
+                        # Handle booleans safely
+                        queryset = queryset.filter(
+                            custom_field_values__field_id=field_id,
+                            custom_field_values__value=value
+                        )
+                    else:
+                        # String matching
+                        queryset = queryset.filter(
+                            custom_field_values__field_id=field_id,
+                            custom_field_values__value__icontains=str(value)
+                        )
+            except (ValueError, json.JSONDecodeError):
+                pass
+
+        # Paginate results
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = CustomUserSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = CustomUserSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class GroupMembershipViewSet(viewsets.ModelViewSet):
+    """
+    Dedicated endpoint for managing pending join requests across ALL groups.
+    """
+    serializer_class = GroupMembershipSerializer
+    permission_classes = [IsGroupMembershipAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Base: Only return Pending requests
+        queryset = GroupMembership.objects.filter(status='PENDING').select_related('group', 'user')
+
+        # 1. Scope Filtering
+        if user.role == 'SUPER_ADMIN':
+            pass # See all
+        elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            queryset = queryset.filter(
+                Q(group__municipality=user.assigned_municipality) |
+                Q(group__club__municipality=user.assigned_municipality)
+            )
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            queryset = queryset.filter(group__club=user.assigned_club)
+        else:
+            return GroupMembership.objects.none()
+
+        # 2. Filter by Group Name (Frontend Search)
+        group_name = self.request.query_params.get('group_name')
+        if group_name:
+            queryset = queryset.filter(group__name__icontains=group_name)
+
+        return queryset.order_by('-joined_at')
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        membership = self.get_object()
+        membership.status = 'APPROVED'
+        membership.save()
+        return Response({'status': 'approved', 'message': 'Request approved successfully.'})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        membership = self.get_object()
+        membership.delete() # Or set status='REJECTED'
+        return Response({'status': 'rejected', 'message': 'Request rejected.'})
+--- END OF FILE: ./backend/groups/views.py ---
+
+
+--- START OF FILE: ./backend/groups/management/commands/init_system_groups.py ---
+from django.core.management.base import BaseCommand
+from groups.models import Group
+
+class Command(BaseCommand):
+    help = 'Creates default system groups'
+
+    def handle(self, *args, **kwargs):
+        system_groups = [
+            {
+                'name': 'All Registered Members', 
+                'type': 'REGISTERED', 
+                'desc': 'Automatically populated with all new users.'
+            },
+            {
+                'name': 'Active Members', 
+                'type': 'ACTIVE', 
+                'desc': 'Users who have logged in at least once.'
+            },
+            {
+                'name': 'Verified Members', 
+                'type': 'VERIFIED', 
+                'desc': 'Users who have completed identity verification.'
+            },
+        ]
+
+        for data in system_groups:
+            group, created = Group.objects.get_or_create(
+                system_group_type=data['type'],
+                defaults={
+                    'name': data['name'],
+                    'description': data['desc'],
+                    'is_system_group': True,
+                    'group_type': 'CLOSED', # Hidden/System controlled
+                    'target_member_type': 'YOUTH' # Default, can be changed
+                }
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"✅ Created group: {data['name']}"))
+            else:
+                self.stdout.write(f"ℹ️ Group already exists: {data['name']}")
+--- END OF FILE: ./backend/groups/management/commands/init_system_groups.py ---
 
 
 --- START OF FILE: ./backend/news/models.py ---
@@ -22233,16 +25193,19 @@ from .views import HealthCheckView
 from users.views import UserViewSet
 from system_messages.views import SystemMessageViewSet
 from news.views import NewsArticleViewSet, NewsTagViewSet
-# --- Import the new view ---
 from custom_fields.views import CustomFieldDefinitionViewSet
+# Update Import
+from groups.views import GroupViewSet, GroupMembershipViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'messages', SystemMessageViewSet)
 router.register(r'news', NewsArticleViewSet)
 router.register(r'news_tags', NewsTagViewSet)
-# --- Register the new endpoint ---
 router.register(r'custom-fields', CustomFieldDefinitionViewSet, basename='custom-fields')
+router.register(r'groups', GroupViewSet, basename='groups')
+# NEW
+router.register(r'group-requests', GroupMembershipViewSet, basename='group-requests')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),
