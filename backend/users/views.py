@@ -390,6 +390,22 @@ class PublicRegistrationView(generics.CreateAPIView):
     authentication_classes = ()  # Skip authentication entirely for public endpoint (use tuple)
 
 
+class CheckEmailView(APIView):
+    """
+    Checks if an email is already registered (for Youth Registration Step 2).
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = ()
+
+    def post(self, request):
+        email = request.data.get('email', '').lower().strip()
+        if not email:
+            return Response({"exists": False})
+        
+        exists = User.objects.filter(email=email).exists()
+        return Response({"exists": exists})
+
+
 class CheckGuardianView(APIView):
     """
     Checks if a guardian email exists.

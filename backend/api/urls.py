@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import HealthCheckView
-from users.views import UserViewSet, PublicRegistrationView, CheckGuardianView
+from users.views import UserViewSet, PublicRegistrationView, CheckEmailView, CheckGuardianView
 from system_messages.views import SystemMessageViewSet
 from news.views import NewsArticleViewSet, NewsTagViewSet
 from custom_fields.views import CustomFieldDefinitionViewSet, PublicCustomFieldListView
@@ -29,11 +29,18 @@ urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
+    
+    # --- PUBLIC ENDPOINTS ---
+    # These must go before router to prevent conflicts (e.g. custom-fields/public vs custom-fields/1)
+    path('register/youth/', PublicRegistrationView.as_view(), name='public-youth-register'),
+    path('register/check-guardian/', CheckGuardianView.as_view(), name='check-guardian'),
+    
+    # NEW: Generic Email Check
+    path('register/check-email/', CheckEmailView.as_view(), name='check-email'),
+    
+    path('custom-fields/public/', PublicCustomFieldListView.as_view(), name='public-custom-fields'),
+    
+    # --- ROUTER ENDPOINTS ---
     path('', include(router.urls)), 
     path('', include('organization.urls')),
-    # Add the Registration URL explicitly:
-    path('register/youth/', PublicRegistrationView.as_view(), name='public-youth-register'),
-    # NEW ROUTES
-    path('register/check-guardian/', CheckGuardianView.as_view(), name='check-guardian'),
-    path('custom-fields/public/', PublicCustomFieldListView.as_view(), name='public-custom-fields'),
 ]

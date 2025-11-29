@@ -62,6 +62,14 @@ export default function YouthRegistrationWizard() {
   const [loadingYouthFields, setLoadingYouthFields] = useState(false);
   const [loadingGuardianFields, setLoadingGuardianFields] = useState(false);
 
+  // --- CAPTCHA STATE ---
+  const [captchaParams, setCaptchaParams] = useState({ num1: 0, num2: 0 });
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+
+  // --- NEW STATE FOR EMAIL CHECK ---
+  const [emailTaken, setEmailTaken] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
   // --- Form Data ---
   const [formData, setFormData] = useState({
     // Account
@@ -115,7 +123,18 @@ export default function YouthRegistrationWizard() {
     }).catch(err => {
       console.error('Failed to fetch interests:', err);
     });
+
+    // 3. Generate initial captcha
+    generateCaptcha();
   }, []);
+
+  const generateCaptcha = () => {
+    setCaptchaParams({
+        num1: Math.floor(Math.random() * 10) + 1,
+        num2: Math.floor(Math.random() * 10) + 1
+    });
+    setCaptchaAnswer('');
+  };
 
   // --- Fetch Clubs when Muni changes ---
   useEffect(() => {
@@ -188,6 +207,27 @@ export default function YouthRegistrationWizard() {
     }
   }, [selectedClub]);
 
+  // --- NEW HANDLER: Check User Email (Step 2) ---
+  const checkEmailAvailability = async () => {
+    if (!formData.email || !formData.email.includes('@')) return;
+    setCheckingEmail(true);
+    try {
+        const res = await api.post('/register/check-email/', { email: formData.email }, {
+          skipAuth: true
+        } as any);
+        if (res.data.exists) {
+            setEmailTaken(true);
+            setToast({ message: 'This email is already registered.', type: 'error', isVisible: true });
+        } else {
+            setEmailTaken(false);
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setCheckingEmail(false);
+    }
+  };
+
   // --- Guardian Check Logic ---
   const checkGuardianEmail = async () => {
     if (!formData.guardian_email || !formData.guardian_email.includes('@')) return;
@@ -205,6 +245,33 @@ export default function YouthRegistrationWizard() {
     } finally {
         setCheckingGuardian(false);
     }
+  };
+
+  // --- Password Validation Logic ---
+  const getPasswordValidation = () => {
+    const pw = formData.password;
+    return {
+        length: pw.length >= 8,
+        number: /\d/.test(pw),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(pw),
+        match: pw && pw === formData.confirm_password
+    };
+  };
+  const pwValid = getPasswordValidation();
+  const isPasswordValid = pwValid.length && pwValid.number && pwValid.special && pwValid.match;
+
+  // --- Captcha Validation ---
+  const isCaptchaValid = () => {
+      if (!captchaAnswer) return false;
+      const answer = parseInt(captchaAnswer);
+      const correctAnswer = captchaParams.num1 + captchaParams.num2;
+      return answer === correctAnswer;
+  };
+
+  // --- Helper to check if we can leave Step 2 ---
+  const isStep2Valid = () => {
+      // Must have email, email NOT taken, not currently checking, valid passwords, and correct captcha
+      return formData.email && !emailTaken && !checkingEmail && isPasswordValid && isCaptchaValid();
   };
 
   // --- Helpers ---
@@ -230,6 +297,13 @@ export default function YouthRegistrationWizard() {
     if (!formData.terms_accepted) {
       setToast({ message: 'You must accept the terms.', type: 'error', isVisible: true });
       return;
+    }
+    
+    // Captcha Check (double-check even though it's validated in step 2)
+    if (!isCaptchaValid()) {
+        setToast({ message: 'Incorrect math answer. Are you a robot?', type: 'error', isVisible: true });
+        generateCaptcha();
+        return;
     }
 
     setLoading(true);
@@ -386,13 +460,71 @@ export default function YouthRegistrationWizard() {
             </div>
         )}
 
-        {/* STEP 2: ACCOUNT */}
+        {/* STEP 2: ACCOUNT & SECURITY */}
         {step === 2 && (
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-gray-800">Login Details</h3>
-                <input type="email" placeholder="Email" className="w-full border p-3 rounded-lg" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                <input type="password" placeholder="Password" className="w-full border p-3 rounded-lg" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                <input type="password" placeholder="Confirm Password" className="w-full border p-3 rounded-lg" value={formData.confirm_password} onChange={e => setFormData({...formData, confirm_password: e.target.value})} />
+                
+                {/* MODIFIED EMAIL INPUT */}
+                <div>
+                    <input 
+                        type="email" 
+                        placeholder="Email" 
+                        className={`w-full border p-3 rounded-lg transition-colors ${emailTaken ? 'border-red-500 bg-red-50 text-red-900' : ''}`}
+                        value={formData.email} 
+                        onChange={e => { 
+                            setFormData({...formData, email: e.target.value}); 
+                            setEmailTaken(false); // Reset error while typing
+                        }}
+                        onBlur={checkEmailAvailability} 
+                    />
+                    {checkingEmail && <p className="text-xs text-gray-500 mt-1">Checking availability...</p>}
+                    {emailTaken && (
+                        <p className="text-xs text-red-600 mt-1 font-bold">
+                            ❌ This email is already registered. <a href="/login" className="underline hover:text-red-800">Log in instead?</a>
+                        </p>
+                    )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <input type="password" placeholder="Password" className="w-full border p-3 rounded-lg" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                    </div>
+                    <div>
+                        <input type="password" placeholder="Confirm Password" className={`w-full border p-3 rounded-lg ${formData.confirm_password && !pwValid.match ? 'border-red-500 bg-red-50' : ''}`} value={formData.confirm_password} onChange={e => setFormData({...formData, confirm_password: e.target.value})} />
+                    </div>
+                </div>
+
+                {/* Password Requirements Checklist */}
+                <div className="bg-gray-50 p-3 rounded text-sm text-gray-600">
+                    <p className="font-bold mb-2">Password must contain:</p>
+                    <ul className="space-y-1">
+                        <li className={pwValid.length ? 'text-green-600' : ''}>{pwValid.length ? '✅' : '○'} At least 8 characters</li>
+                        <li className={pwValid.number ? 'text-green-600' : ''}>{pwValid.number ? '✅' : '○'} At least 1 number</li>
+                        <li className={pwValid.special ? 'text-green-600' : ''}>{pwValid.special ? '✅' : '○'} At least 1 special char (!@#$...)</li>
+                        <li className={pwValid.match && formData.confirm_password ? 'text-green-600' : ''}>{pwValid.match && formData.confirm_password ? '✅' : '○'} Passwords match</li>
+                    </ul>
+                </div>
+
+                {/* Math Captcha */}
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                    <label className="block text-sm font-bold text-blue-900 mb-1">Human Check: What is {captchaParams.num1} + {captchaParams.num2}?</label>
+                    <div className="flex items-center gap-2">
+                        <input 
+                            type="number" 
+                            placeholder="Answer" 
+                            className={`w-24 border p-2 rounded ${captchaAnswer && !isCaptchaValid() ? 'border-red-500 bg-red-50' : ''}`}
+                            value={captchaAnswer}
+                            onChange={e => setCaptchaAnswer(e.target.value)}
+                        />
+                        {captchaAnswer && isCaptchaValid() && (
+                            <span className="text-green-600 font-bold">✅</span>
+                        )}
+                        {captchaAnswer && !isCaptchaValid() && (
+                            <span className="text-red-600 text-sm">❌ Incorrect</span>
+                        )}
+                    </div>
+                </div>
             </div>
         )}
 
@@ -531,9 +663,21 @@ export default function YouthRegistrationWizard() {
       <div className="bg-gray-50 px-6 py-4 border-t flex justify-between">
         {step > 1 ? <button onClick={() => setStep(step - 1)} className="text-gray-600 font-bold">Back</button> : <div/>}
         {step < 5 ? (
-            <button onClick={() => setStep(step + 1)} disabled={step === 1 && !selectedClub} className="bg-blue-600 text-white px-6 py-2 rounded font-bold disabled:opacity-50">Next</button>
+            <button 
+                onClick={() => setStep(step + 1)} 
+                disabled={(step === 1 && !selectedClub) || (step === 2 && !isStep2Valid())} 
+                className="bg-blue-600 text-white px-6 py-2 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                Next
+            </button>
         ) : (
-            <button onClick={handleSubmit} disabled={loading || !formData.terms_accepted} className="bg-green-600 text-white px-6 py-2 rounded font-bold">Complete</button>
+            <button 
+                onClick={handleSubmit} 
+                disabled={loading || !formData.terms_accepted} 
+                className="bg-green-600 text-white px-6 py-2 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {loading ? 'Creating...' : 'Complete'}
+            </button>
         )}
       </div>
 

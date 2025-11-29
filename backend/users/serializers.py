@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils.crypto import get_random_string
 from organization.models import Club
 from custom_fields.models import CustomFieldDefinition, CustomFieldValue
+import re
 
 class CustomUserSerializer(serializers.ModelSerializer):
     """
@@ -229,8 +230,19 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         # 1. Password Check
-        if attrs['password'] != attrs['password_confirm']:
+        password = attrs.get('password')
+        confirm = attrs.get('password_confirm')
+
+        if password != confirm:
             raise serializers.ValidationError({"password": "Passwords do not match."})
+        
+        # Complexity Checks
+        if len(password) < 8:
+            raise serializers.ValidationError({"password": "Password must be at least 8 characters long."})
+        if not re.search(r'\d', password):
+            raise serializers.ValidationError({"password": "Password must contain at least one number."})
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            raise serializers.ValidationError({"password": "Password must contain at least one special character."})
         
         # Clean up empty strings - convert to None for optional fields
         for field in ['nickname', 'preferred_gender', 'date_of_birth', 'grade']:
