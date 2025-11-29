@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../utils';
@@ -11,10 +12,29 @@ interface RewardDetailProps {
 }
 
 export default function RewardDetailView({ rewardId, basePath }: RewardDetailProps) {
+  const searchParams = useSearchParams();
   const [reward, setReward] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams();
+    const page = searchParams.get('page');
+    const search = searchParams.get('search');
+    const scope = searchParams.get('scope');
+    const status = searchParams.get('status');
+    const expired = searchParams.get('expired');
+    
+    if (page && page !== '1') params.set('page', page);
+    if (search) params.set('search', search);
+    if (scope) params.set('scope', scope);
+    if (status) params.set('status', status);
+    if (expired) params.set('expired', expired);
+    
+    const queryString = params.toString();
+    return queryString ? `${path}?${queryString}` : path;
+  };
 
   useEffect(() => {
     if (rewardId) {
@@ -74,10 +94,10 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
             </p>
 
             <div className="flex gap-2">
-              <Link href={`${basePath}/edit/${reward.id}`} className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-200">
+              <Link href={buildUrlWithParams(`${basePath}/edit/${reward.id}`)} className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-200">
                 Edit Reward
               </Link>
-              <Link href={basePath} className="text-gray-500 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50">
+              <Link href={buildUrlWithParams(basePath)} className="text-gray-500 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50">
                 Back to List
               </Link>
             </div>

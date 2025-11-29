@@ -8,14 +8,23 @@ class GroupMembershipSerializer(serializers.ModelSerializer):
     Shows which user is in a group and their status (Pending/Approved).
     """
     user_name = serializers.SerializerMethodField()
+    user_first_name = serializers.CharField(source='user.first_name', read_only=True)
+    user_last_name = serializers.CharField(source='user.last_name', read_only=True)
     user_email = serializers.CharField(source='user.email', read_only=True)
     user_avatar = serializers.ImageField(source='user.avatar', read_only=True)
     # NEW: Group Name for the requests list
     group_name = serializers.CharField(source='group.name', read_only=True)
+    # NEW: Municipality and Club info for filtering
+    group_municipality = serializers.IntegerField(source='group.municipality.id', read_only=True, allow_null=True)
+    group_municipality_name = serializers.CharField(source='group.municipality.name', read_only=True, allow_null=True)
+    group_club = serializers.IntegerField(source='group.club.id', read_only=True, allow_null=True)
+    group_club_name = serializers.CharField(source='group.club.name', read_only=True, allow_null=True)
 
     class Meta:
         model = GroupMembership
-        fields = ['id', 'user', 'user_name', 'user_email', 'user_avatar', 'group', 'group_name', 'status', 'role', 'joined_at']
+        fields = ['id', 'user', 'user_name', 'user_first_name', 'user_last_name', 'user_email', 'user_avatar', 'group', 'group_name', 
+                  'group_municipality', 'group_municipality_name', 'group_club', 'group_club_name',
+                  'status', 'role', 'joined_at']
 
     def get_user_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}"

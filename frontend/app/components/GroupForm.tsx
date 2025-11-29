@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '../../lib/api';
 import Toast from './Toast';
 import MemberSelector from './MemberSelector';
@@ -26,6 +26,7 @@ const GENDERS = [
 
 export default function GroupForm({ initialData, redirectPath }: GroupFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [interestsList, setInterestsList] = useState<Interest[]>([]);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
@@ -118,8 +119,17 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
       }
       
       // Delay redirect slightly to show toast
+      // Use redirectPath as-is if it already contains query parameters
+      // Otherwise, append current search params
+      let finalRedirectPath = redirectPath;
+      if (!redirectPath.includes('?')) {
+        const currentSearchParams = searchParams.toString();
+        if (currentSearchParams) {
+          finalRedirectPath = `${redirectPath}?${currentSearchParams}`;
+        }
+      }
       setTimeout(() => {
-        router.push(redirectPath);
+        router.push(finalRedirectPath);
       }, 1000);
 
     } catch (err) {

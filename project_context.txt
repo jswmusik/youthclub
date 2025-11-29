@@ -2203,8 +2203,8 @@ export default function EditPostPage() {
 
             <PostForm 
                 initialData={post}
-                role="club" 
-                onSuccess={() => router.push(`/admin/club/posts/${post.id}`)} // Redirect to View Page
+                role="club" // <--- Ensures Distribution UI is hidden entirely (auto-assigned)
+                onSuccess={() => router.push(`/admin/club/posts/${post.id}`)} 
             />
         </div>
     );
@@ -2534,7 +2534,7 @@ export default function CreatePostPage() {
             </div>
 
             <PostForm 
-                role="club" 
+                role="club" // <--- This ensures the Global/Muni options are HIDDEN
                 onSuccess={() => router.push('/admin/club/posts')} 
             />
         </div>
@@ -15347,8 +15347,8 @@ export default function EditPostPage() {
 
             <PostForm 
                 initialData={post}
-                role="municipality" 
-                onSuccess={() => router.push(`/admin/municipality/posts/${post.id}`)} // Redirect to View Page
+                role="municipality" // <--- Ensures "Global" option is HIDDEN
+                onSuccess={() => router.push(`/admin/municipality/posts/${post.id}`)} 
             />
         </div>
     );
@@ -15678,7 +15678,7 @@ export default function CreatePostPage() {
             </div>
 
             <PostForm 
-                role="municipality" 
+                role="municipality" // <--- This ensures only Municipality options are shown
                 onSuccess={() => router.push('/admin/municipality/posts')} 
             />
         </div>
@@ -24406,7 +24406,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     const { user: currentUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
         message: '', type: 'success', isVisible: false,
     });
 
@@ -24418,49 +24418,22 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     const [availableCustomFields, setAvailableCustomFields] = useState<any[]>([]);
 
     // --- 1. Distribution (Scope) State ---
-    // Initialize based on role and initial data, pre-select assigned values
     const getInitialDistributionMode = (): 'GLOBAL' | 'MUNICIPALITY' | 'CLUB' => {
-        if (initialData?.is_global) return 'GLOBAL';
-        if (initialData?.target_municipalities?.length) return 'MUNICIPALITY';
-        if (initialData?.target_clubs?.length) return 'CLUB';
-        // For club admin, default to CLUB
-        if (role === 'club') return 'CLUB';
-        // For municipality admin, default to MUNICIPALITY
+        if (initialData) {
+            if (initialData.is_global) return 'GLOBAL';
+            if (initialData.target_municipalities?.length) return 'MUNICIPALITY';
+            return 'CLUB';
+        }
+        if (role === 'super') return 'GLOBAL';
         if (role === 'municipality') return 'MUNICIPALITY';
         return 'CLUB';
     };
     
     const [distributionMode, setDistributionMode] = useState<'GLOBAL' | 'MUNICIPALITY' | 'CLUB'>(getInitialDistributionMode());
+    const [selectedMunis, setSelectedMunis] = useState<number[]>(initialData?.target_municipalities || []);
+    const [selectedClubs, setSelectedClubs] = useState<number[]>(initialData?.target_clubs || []);
     
-    // Initialize selected values - pre-select assigned club/municipality for non-super admins
-    const getInitialSelectedMunis = (): number[] => {
-        if (initialData?.target_municipalities?.length) return initialData.target_municipalities;
-        // Pre-select municipality admin's assigned municipality
-        if (role === 'municipality' && currentUser?.assigned_municipality) {
-            const muniId = typeof currentUser.assigned_municipality === 'object' 
-                ? currentUser.assigned_municipality.id 
-                : currentUser.assigned_municipality;
-            return muniId ? [muniId] : [];
-        }
-        return [];
-    };
-    
-    const getInitialSelectedClubs = (): number[] => {
-        if (initialData?.target_clubs?.length) return initialData.target_clubs;
-        // Pre-select club admin's assigned club
-        if (role === 'club' && currentUser?.assigned_club) {
-            const clubId = typeof currentUser.assigned_club === 'object' 
-                ? currentUser.assigned_club.id 
-                : currentUser.assigned_club;
-            return clubId ? [clubId] : [];
-        }
-        return [];
-    };
-    
-    const [selectedMunis, setSelectedMunis] = useState<number[]>(getInitialSelectedMunis());
-    const [selectedClubs, setSelectedClubs] = useState<number[]>(getInitialSelectedClubs());
-
-    // For Muni Admin: "All Clubs" means selecting ALL clubs in their muni
+    // For Muni Admin: "All Clubs" vs "Specific"
     const [muniScope, setMuniScope] = useState<'ALL' | 'SPECIFIC'>(
         (initialData?.target_clubs && initialData.target_clubs.length > 0) ? 'SPECIFIC' : 'ALL'
     );
@@ -24493,102 +24466,46 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     const [selectedInterests, setSelectedInterests] = useState<number[]>(initialData?.target_interests || []);
     const [customFieldRules, setCustomFieldRules] = useState<Record<string, any>>(initialData?.target_custom_fields || {});
 
-    // --- 5. Comment Settings ---
+    // --- 5. Settings ---
     const [allowComments, setAllowComments] = useState(initialData?.allow_comments ?? true);
     const [requireModeration, setRequireModeration] = useState(initialData?.require_moderation ?? false);
     const [allowReplies, setAllowReplies] = useState(initialData?.allow_replies ?? true);
     const [limitComments, setLimitComments] = useState(initialData?.limit_comments_per_user || 0);
-
-    // --- 6. Push Notifications ---
     const [sendPush, setSendPush] = useState(initialData?.send_push_notification || false);
     const [pushTitle, setPushTitle] = useState(initialData?.push_title || '');
     const [pushMessage, setPushMessage] = useState(initialData?.push_message || '');
-
-    // Update existing images when initialData changes
-    useEffect(() => {
-        if (initialData?.images) {
-            setExistingImages(initialData.images);
-            setImagesToDelete([]);
-        }
-    }, [initialData?.id]);
-
-    // Pre-select assigned club/municipality when component mounts or user data loads
-    useEffect(() => {
-        if (!initialData && currentUser) {
-            if (role === 'club' && currentUser.assigned_club) {
-                const clubId = typeof currentUser.assigned_club === 'object' 
-                    ? currentUser.assigned_club.id 
-                    : currentUser.assigned_club;
-                if (clubId && !selectedClubs.includes(clubId)) {
-                    setSelectedClubs([clubId]);
-                }
-                // Force CLUB mode for club admins
-                if (distributionMode !== 'CLUB') {
-                    setDistributionMode('CLUB');
-                }
-            } else if (role === 'municipality' && currentUser.assigned_municipality) {
-                const muniId = typeof currentUser.assigned_municipality === 'object' 
-                    ? currentUser.assigned_municipality.id 
-                    : currentUser.assigned_municipality;
-                if (muniId && !selectedMunis.includes(muniId)) {
-                    setSelectedMunis([muniId]);
-                }
-                // Force MUNICIPALITY mode for municipality admins (they can't use GLOBAL)
-                if (distributionMode === 'GLOBAL') {
-                    setDistributionMode('MUNICIPALITY');
-                }
-            }
-        }
-    }, [role, currentUser?.assigned_club, currentUser?.assigned_municipality, initialData, distributionMode, selectedClubs, selectedMunis]);
 
     // --- Data Fetching ---
     useEffect(() => {
         const loadData = async () => {
             try {
-                // Parallel fetching of options
-                const promises = [
-                    api.get('/groups/'),
-                    api.get('/interests/'),
-                    api.get('/custom-fields/')
-                ];
-                
-                // Fetch municipalities for super and municipality admins
-                if (role === 'super' || role === 'municipality') {
-                    promises.push(api.get('/municipalities/'));
-                }
-                
-                // Fetch clubs for all roles (super sees all, muni sees theirs, club sees theirs)
-                promises.push(api.get('/clubs/?page_size=1000'));
+                // 1. Basic Lists
+                const groupsRes = await api.get('/groups/');
+                setAvailableGroups(Array.isArray(groupsRes.data) ? groupsRes.data : groupsRes.data.results || []);
 
-                const results = await Promise.allSettled(promises);
-                
-                // Helper to safely extract data
-                const getResult = (index: number) => {
-                    if (results[index].status === 'fulfilled') {
-                        const val = (results[index] as PromiseFulfilledResult<any>).value;
-                        return Array.isArray(val.data) ? val.data : (val.data.results || []);
-                    }
-                    return [];
-                };
+                const interestsRes = await api.get('/interests/');
+                setAvailableInterests(Array.isArray(interestsRes.data) ? interestsRes.data : interestsRes.data.results || []);
 
-                setAvailableGroups(getResult(0));
-                setAvailableInterests(getResult(1));
-                
-                const allFields = getResult(2);
+                const fieldsRes = await api.get('/custom-fields/');
+                const allFields = Array.isArray(fieldsRes.data) ? fieldsRes.data : fieldsRes.data.results || [];
                 setAvailableCustomFields(allFields.filter((f: any) => 
                     ['BOOLEAN', 'SINGLE_SELECT', 'MULTI_SELECT'].includes(f.field_type)
                 ));
 
+                // 2. Admin Specific Lists
                 if (role === 'super') {
-                    setMunicipalities(getResult(3));
-                    setClubs(getResult(4));
-                } else if (role === 'municipality') {
-                    setMunicipalities(getResult(3)); // Municipalities are index 3
-                    setClubs(getResult(4)); // Clubs are index 4
-                } else if (role === 'club') {
-                    setMunicipalities([]); // Club admins don't need municipalities list
-                    setClubs(getResult(3)); // Clubs are index 3 (no municipalities fetched)
+                    const muniRes = await api.get('/municipalities/');
+                    setMunicipalities(Array.isArray(muniRes.data) ? muniRes.data : muniRes.data.results || []);
+                    
+                    const clubRes = await api.get('/clubs/?page_size=1000');
+                    setClubs(Array.isArray(clubRes.data) ? clubRes.data : clubRes.data.results || []);
+                } 
+                else if (role === 'municipality') {
+                    // Municipality Admins only need the clubs in their muni (API handles filtering)
+                    const clubRes = await api.get('/clubs/?page_size=1000');
+                    setClubs(Array.isArray(clubRes.data) ? clubRes.data : clubRes.data.results || []);
                 }
+                // Club admins don't need to fetch external clubs or munis
 
             } catch (err) {
                 console.error("Failed to load form data", err);
@@ -24601,17 +24518,6 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     const toggleSelection = (id: any, list: any[], setList: (l: any[]) => void) => {
         if (list.includes(id)) setList(list.filter(item => item !== id));
         else setList([...list, id]);
-    };
-
-    const handleCustomFieldChange = (fieldId: number, value: any) => {
-        setCustomFieldRules(prev => {
-            if (value === '' || value === false) {
-                const copy = { ...prev };
-                delete copy[fieldId];
-                return copy;
-            }
-            return { ...prev, [fieldId]: value };
-        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -24627,88 +24533,43 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         if (videoUrl) formData.append('video_url', videoUrl);
 
         // 2. Distribution Logic
-        // Prevent non-super admins from using GLOBAL
-        if (distributionMode === 'GLOBAL' && role !== 'super') {
-            // Force municipality admin to MUNICIPALITY mode, club admin to CLUB mode
-            if (role === 'municipality') {
-                formData.append('is_global', 'false');
-                const muniId = currentUser?.assigned_municipality 
-                    ? (typeof currentUser.assigned_municipality === 'object' 
-                        ? currentUser.assigned_municipality.id 
-                        : currentUser.assigned_municipality)
+        let isGlobal = false;
+        let targetMunis: number[] = [];
+        let targetClubs: number[] = [];
+
+        if (role === 'super') {
+            if (distributionMode === 'GLOBAL') isGlobal = true;
+            else if (distributionMode === 'MUNICIPALITY') targetMunis = selectedMunis;
+            else targetClubs = selectedClubs;
+        } 
+        else if (role === 'municipality') {
+            // Ensure we force 'false' for global
+            isGlobal = false;
+            if (muniScope === 'ALL') {
+                 // If targeting entire municipality, we pass the municipality ID but NO specific clubs
+                 const muniId = currentUser?.assigned_municipality 
+                    ? (typeof currentUser.assigned_municipality === 'object' ? currentUser.assigned_municipality.id : currentUser.assigned_municipality)
                     : null;
-                if (muniId) {
-                    formData.append('target_municipalities', muniId.toString());
-                }
-                // Don't append empty string for target_clubs
-            } else if (role === 'club') {
-                formData.append('is_global', 'false');
-                // Don't append empty string for target_municipalities
-                const clubId = currentUser?.assigned_club 
-                    ? (typeof currentUser.assigned_club === 'object' 
-                        ? currentUser.assigned_club.id 
-                        : currentUser.assigned_club)
-                    : null;
-                if (clubId) {
-                    formData.append('target_clubs', clubId.toString());
-                }
+                 if (muniId) targetMunis = [muniId];
+            } else {
+                // Specific clubs
+                targetClubs = selectedClubs;
             }
-        } else if (distributionMode === 'GLOBAL') {
-            formData.append('is_global', 'true');
-            // Don't append empty strings for ManyToMany fields - just omit them
-        } else if (distributionMode === 'MUNICIPALITY') {
-            formData.append('is_global', 'false');
-            // For municipality admin, ensure their assigned municipality is included
-            const finalMunis = [...selectedMunis];
-            if (role === 'municipality' && currentUser?.assigned_municipality) {
-                const muniId = typeof currentUser.assigned_municipality === 'object' 
-                    ? currentUser.assigned_municipality.id 
-                    : currentUser.assigned_municipality;
-                if (muniId && !finalMunis.includes(muniId)) {
-                    finalMunis.push(muniId);
-                }
-            }
-            // Always append municipalities (even if empty, backend will handle it)
-            // But ensure at least the assigned municipality is there for municipality admins
-            if (finalMunis.length > 0) {
-                finalMunis.forEach(id => formData.append('target_municipalities', id.toString()));
-            } else if (role === 'municipality' && currentUser?.assigned_municipality) {
-                // Fallback: if somehow no municipalities selected, use assigned municipality
-                const muniId = typeof currentUser.assigned_municipality === 'object' 
-                    ? currentUser.assigned_municipality.id 
-                    : currentUser.assigned_municipality;
-                if (muniId) {
-                    formData.append('target_municipalities', muniId.toString());
-                }
-            }
-            // Don't append empty string for target_clubs
-        } else { // CLUB
-            formData.append('is_global', 'false');
-            // Don't append empty string for target_municipalities
-            // For club admin, ensure their assigned club is included
-            const finalClubs = [...selectedClubs];
-            if (role === 'club' && currentUser?.assigned_club) {
-                const clubId = typeof currentUser.assigned_club === 'object' 
-                    ? currentUser.assigned_club.id 
-                    : currentUser.assigned_club;
-                if (clubId && !finalClubs.includes(clubId)) {
-                    finalClubs.push(clubId);
-                }
-            }
-            // Always append clubs (even if empty, backend will handle it)
-            // But ensure at least the assigned club is there for club admins
-            if (finalClubs.length > 0) {
-                finalClubs.forEach(id => formData.append('target_clubs', id.toString()));
-            } else if (role === 'club' && currentUser?.assigned_club) {
-                // Fallback: if somehow no clubs selected, use assigned club
-                const clubId = typeof currentUser.assigned_club === 'object' 
-                    ? currentUser.assigned_club.id 
-                    : currentUser.assigned_club;
-                if (clubId) {
-                    formData.append('target_clubs', clubId.toString());
-                }
-            }
+        } 
+        else if (role === 'club') {
+            isGlobal = false;
+            // The backend automatically assigns the club, but passing it here helps validity
+            const clubId = currentUser?.assigned_club
+                ? (typeof currentUser.assigned_club === 'object' ? currentUser.assigned_club.id : currentUser.assigned_club)
+                : null;
+            if (clubId) targetClubs = [clubId];
         }
+
+        formData.append('is_global', isGlobal.toString());
+        
+        // Only append IDs if we have them (avoids sending empty strings)
+        targetMunis.forEach(id => formData.append('target_municipalities', id.toString()));
+        targetClubs.forEach(id => formData.append('target_clubs', id.toString()));
 
         // 3. Status
         formData.append('status', status);
@@ -24720,25 +24581,21 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         formData.append('target_member_type', memberType);
         if (targetMode === 'GROUPS') {
             selectedGroups.forEach(id => formData.append('target_groups', id.toString()));
-            // Reset attrs
-            formData.append('target_grades', JSON.stringify([]));
-            formData.append('target_genders', JSON.stringify([]));
-            formData.append('target_custom_fields', JSON.stringify({}));
+            formData.append('target_grades', '[]');
+            formData.append('target_genders', '[]');
+            formData.append('target_custom_fields', '{}');
         } else {
-            // Reset groups
-            if (selectedGroups.length === 0) {
-                formData.append('target_groups', '');
-            } else {
-                selectedGroups.forEach(id => formData.append('target_groups', id.toString()));
+            // Important: Don't append empty strings for ManyToMany logic in Django Rest Framework
+            if (selectedGroups.length > 0) {
+                 selectedGroups.forEach(id => formData.append('target_groups', id.toString()));
             }
+            
             if (minAge) formData.append('target_min_age', minAge.toString());
             if (maxAge) formData.append('target_max_age', maxAge.toString());
             formData.append('target_grades', JSON.stringify(selectedGrades));
             formData.append('target_genders', JSON.stringify(selectedGenders));
-            // Only append interests if there are any
-            if (selectedInterests.length > 0) {
-                selectedInterests.forEach(id => formData.append('target_interests', id.toString()));
-            }
+            
+            selectedInterests.forEach(id => formData.append('target_interests', id.toString()));
             formData.append('target_custom_fields', JSON.stringify(customFieldRules));
         }
 
@@ -24769,7 +24626,14 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
             }
             setTimeout(() => onSuccess(), 1000);
         } catch (err: any) {
-            const msg = err.response?.data?.detail || err.response?.data?.message || 'Failed to save post.';
+            console.error(err);
+            // Extract error message safely
+            let msg = 'Failed to save post.';
+            if (err.response?.data) {
+               if (typeof err.response.data === 'string') msg = err.response.data;
+               else if (err.response.data.detail) msg = err.response.data.detail;
+               else msg = JSON.stringify(err.response.data);
+            }
             setError(msg);
             setToast({ message: msg, type: 'error', isVisible: true });
         } finally {
@@ -24784,148 +24648,86 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                 {error && <p className="text-red-600 bg-red-50 p-2 rounded text-sm">{error}</p>}
             </div>
 
-            {/* --- DISTRIBUTION SECTION (New) --- */}
+            {/* --- DISTRIBUTION SECTION --- */}
             <div className="bg-blue-50 p-5 rounded-lg border border-blue-100 space-y-4">
                 <h3 className="text-lg font-bold text-blue-900">Distribution Scope</h3>
                 
-                {/* Distribution Mode Selection - All roles see this, but some options are disabled */}
-                <div className="flex gap-4 mb-4">
-                    <label 
-                        className={`flex items-center px-3 py-2 rounded border ${
-                            role === 'super' 
-                                ? 'cursor-pointer bg-white hover:border-blue-300' 
-                                : 'cursor-not-allowed bg-gray-100 opacity-50'
-                        }`}
-                        onClick={(e) => {
-                            if (role !== 'super') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }
-                        }}
-                    >
-                        <input 
-                            type="radio" 
-                            name="dist" 
-                            checked={distributionMode === 'GLOBAL'} 
-                            onChange={(e) => {
-                                if (role === 'super') {
-                                    setDistributionMode('GLOBAL');
-                                } else {
-                                    e.preventDefault();
-                                }
-                            }} 
-                            disabled={role !== 'super'}
-                            className="mr-2" 
-                        />
-                        <span className="font-medium">Global (All Users)</span>
-                    </label>
-                    <label 
-                        className={`flex items-center px-3 py-2 rounded border ${
-                            (role === 'super' || role === 'municipality')
-                                ? 'cursor-pointer bg-white hover:border-blue-300' 
-                                : 'cursor-not-allowed bg-gray-100 opacity-50'
-                        }`}
-                        onClick={(e) => {
-                            if (role === 'club') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }
-                        }}
-                    >
-                        <input 
-                            type="radio" 
-                            name="dist" 
-                            checked={distributionMode === 'MUNICIPALITY'} 
-                            onChange={(e) => {
-                                if (role === 'super' || role === 'municipality') {
-                                    setDistributionMode('MUNICIPALITY');
-                                } else {
-                                    e.preventDefault();
-                                }
-                            }} 
-                            disabled={role === 'club'}
-                            className="mr-2" 
-                        />
-                        <span className="font-medium">Specific Municipalities</span>
-                    </label>
-                    <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
-                        <input 
-                            type="radio" 
-                            name="dist" 
-                            checked={distributionMode === 'CLUB'} 
-                            onChange={() => setDistributionMode('CLUB')} 
-                            className="mr-2" 
-                        />
-                        <span className="font-medium">Specific Clubs</span>
-                    </label>
-                </div>
+                {/* SUPER ADMIN UI */}
+                {role === 'super' && (
+                    <>
+                        <div className="flex gap-4 mb-4">
+                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
+                                <input type="radio" checked={distributionMode === 'GLOBAL'} onChange={() => setDistributionMode('GLOBAL')} className="mr-2" />
+                                <span className="font-medium">Global (All Users)</span>
+                            </label>
+                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
+                                <input type="radio" checked={distributionMode === 'MUNICIPALITY'} onChange={() => setDistributionMode('MUNICIPALITY')} className="mr-2" />
+                                <span className="font-medium">Specific Municipalities</span>
+                            </label>
+                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
+                                <input type="radio" checked={distributionMode === 'CLUB'} onChange={() => setDistributionMode('CLUB')} className="mr-2" />
+                                <span className="font-medium">Specific Clubs</span>
+                            </label>
+                        </div>
 
-                {/* Municipality Selector - Show for super and municipality admins */}
-                {distributionMode === 'MUNICIPALITY' && (role === 'super' || role === 'municipality') && (
-                    <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
-                        {municipalities.map(m => {
-                            // For municipality admin, their assigned municipality should be pre-selected and disabled
-                            const userMuniId = currentUser?.assigned_municipality 
-                                ? (typeof currentUser.assigned_municipality === 'object' 
-                                    ? currentUser.assigned_municipality.id 
-                                    : currentUser.assigned_municipality)
-                                : null;
-                            const isAssigned = role === 'municipality' && userMuniId === m.id;
-                            const isChecked = selectedMunis.includes(m.id);
-                            
-                            return (
-                                <label 
-                                    key={m.id} 
-                                    className={`flex items-center space-x-2 text-sm ${
-                                        isAssigned ? 'opacity-75' : ''
-                                    }`}
-                                >
-                                    <input 
-                                        type="checkbox" 
-                                        checked={isChecked} 
-                                        onChange={() => !isAssigned && toggleSelection(m.id, selectedMunis, setSelectedMunis)} 
-                                        disabled={isAssigned}
-                                        className="mr-2" 
-                                    />
-                                    <span>{m.name} {isAssigned && '(Your Municipality)'}</span>
-                                </label>
-                            );
-                        })}
-                    </div>
+                        {distributionMode === 'MUNICIPALITY' && (
+                            <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
+                                {municipalities.map(m => (
+                                    <label key={m.id} className="flex items-center space-x-2 text-sm">
+                                        <input type="checkbox" checked={selectedMunis.includes(m.id)} onChange={() => toggleSelection(m.id, selectedMunis, setSelectedMunis)} />
+                                        <span>{m.name}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                        {distributionMode === 'CLUB' && (
+                            <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
+                                {clubs.map(c => (
+                                    <label key={c.id} className="flex items-center space-x-2 text-sm">
+                                        <input type="checkbox" checked={selectedClubs.includes(c.id)} onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)} />
+                                        <span>{c.name}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
 
-                {/* Club Selector - Show for all roles when CLUB mode is selected */}
-                {distributionMode === 'CLUB' && (
-                    <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
-                        {clubs.map(c => {
-                            // For club admin, their assigned club should be pre-selected and disabled
-                            const userClubId = currentUser?.assigned_club 
-                                ? (typeof currentUser.assigned_club === 'object' 
-                                    ? currentUser.assigned_club.id 
-                                    : currentUser.assigned_club)
-                                : null;
-                            const isAssigned = role === 'club' && userClubId === c.id;
-                            const isChecked = selectedClubs.includes(c.id);
-                            
-                            return (
-                                <label 
-                                    key={c.id} 
-                                    className={`flex items-center space-x-2 text-sm ${
-                                        isAssigned ? 'opacity-75' : ''
-                                    }`}
-                                >
-                                    <input 
-                                        type="checkbox" 
-                                        checked={isChecked} 
-                                        onChange={() => !isAssigned && toggleSelection(c.id, selectedClubs, setSelectedClubs)} 
-                                        disabled={isAssigned}
-                                        className="mr-2" 
-                                    />
-                                    <span>{c.name} {isAssigned && '(Your Club)'}</span>
-                                </label>
-                            );
-                        })}
-                        {clubs.length === 0 && <p className="text-sm text-gray-500">No clubs available.</p>}
+                {/* MUNICIPALITY ADMIN UI */}
+                {role === 'municipality' && (
+                    <>
+                        <div className="flex gap-4 mb-4">
+                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
+                                <input type="radio" checked={muniScope === 'ALL'} onChange={() => setMuniScope('ALL')} className="mr-2" />
+                                <span className="font-medium">Entire Municipality</span>
+                            </label>
+                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
+                                <input type="radio" checked={muniScope === 'SPECIFIC'} onChange={() => setMuniScope('SPECIFIC')} className="mr-2" />
+                                <span className="font-medium">Specific Clubs</span>
+                            </label>
+                        </div>
+
+                        {muniScope === 'SPECIFIC' && (
+                            <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
+                                {clubs.map(c => (
+                                    <label key={c.id} className="flex items-center space-x-2 text-sm">
+                                        <input type="checkbox" checked={selectedClubs.includes(c.id)} onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)} />
+                                        <span>{c.name}</span>
+                                    </label>
+                                ))}
+                                {clubs.length === 0 && <p className="text-sm text-gray-500">No clubs found.</p>}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* CLUB ADMIN UI */}
+                {role === 'club' && (
+                    <div className="bg-white p-4 rounded border border-blue-200">
+                         <p className="text-sm text-blue-800 font-medium flex items-center gap-2">
+                            <span className="text-lg">📢</span>
+                            This post will be visible to members of your assigned club.
+                        </p>
                     </div>
                 )}
             </div>
@@ -24996,6 +24798,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                 {g.name}
                             </label>
                         ))}
+                        {availableGroups.length === 0 && <p className="text-sm text-gray-500">No groups available.</p>}
                     </div>
                 ) : (
                     <div className="space-y-4 bg-gray-50 p-4 rounded border">
@@ -25092,11 +24895,6 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                     </div>
                     {status === 'SCHEDULED' && <input type="datetime-local" className="w-full border p-2 rounded" value={publishedAt} onChange={e => setPublishedAt(e.target.value)} />}
                     
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Expiration Date (Optional)</label>
-                        <input type="datetime-local" value={visibilityEndDate} onChange={e => setVisibilityEndDate(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-                    </div>
-                    
                     <label className="flex items-center gap-2">
                         <input type="checkbox" checked={isPinned} onChange={e => setIsPinned(e.target.checked)} />
                         Pin to top
@@ -25108,10 +24906,6 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                         <div className="pl-6 space-y-2 text-sm">
                             <label className="flex items-center gap-2"><input type="checkbox" checked={requireModeration} onChange={e => setRequireModeration(e.target.checked)} /> Moderation</label>
                             <label className="flex items-center gap-2"><input type="checkbox" checked={allowReplies} onChange={e => setAllowReplies(e.target.checked)} /> Replies</label>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Max Comments Per User (0 = Unlimited)</label>
-                                <input type="number" value={limitComments} onChange={e => setLimitComments(parseInt(e.target.value) || 0)} className="w-24 rounded-md border p-1" />
-                            </div>
                         </div>
                     )}
                     <label className="flex items-center gap-2 mt-4 font-bold"><input type="checkbox" checked={sendPush} onChange={e => setSendPush(e.target.checked)} /> Send Push Notification</label>
@@ -25135,7 +24929,6 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         </form>
     );
 }
-
 --- END OF FILE: ./frontend/app/components/posts/PostForm.tsx ---
 
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '../../lib/api';
 import Toast from './Toast';
 import { getMediaUrl } from '../utils';
@@ -29,6 +29,7 @@ const TRIGGERS = [
 
 export default function RewardForm({ initialData, redirectPath }: RewardFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   
   // Dropdown Data
@@ -143,11 +144,21 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
         data.append(key, JSON.stringify(value));
         return;
       }
-      if (value === null || value === '') return; // Skip empty
+      // Handle boolean values
+      if (key === 'is_active') {
+        data.append(key, value ? 'true' : 'false');
+        return;
+      }
+      // Skip null/empty for optional fields, but include them for PATCH to clear values if needed
+      if (value === null || value === '') {
+        // For PATCH, we might want to send empty strings to clear fields, but let's skip for now
+        return;
+      }
       data.append(key, value.toString());
     });
 
     // Append Arrays (ManyToMany fields - DRF handles multiple values automatically)
+    // For PATCH, if arrays are empty, we still need to send them to clear existing relationships
     formData.target_groups.forEach(id => data.append('target_groups', id.toString()));
     formData.target_interests.forEach(id => data.append('target_interests', id.toString()));
     
@@ -161,17 +172,38 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
     if (imageFile) data.append('image', imageFile);
 
     try {
+      // For FormData, we need to let axios set Content-Type automatically with boundary
+      // Override the default 'application/json' header
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
+
       if (initialData) {
-        await api.patch(`/rewards/${initialData.id}/`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await api.patch(`/rewards/${initialData.id}/`, data, config);
         setToast({ message: 'Reward updated!', type: 'success', isVisible: true });
       } else {
-        await api.post('/rewards/', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await api.post('/rewards/', data, config);
         setToast({ message: 'Reward created!', type: 'success', isVisible: true });
       }
-      setTimeout(() => router.push(redirectPath), 1000);
-    } catch (err) {
-      console.error(err);
-      setToast({ message: 'Operation failed.', type: 'error', isVisible: true });
+      // Preserve pagination and filter state when redirecting
+      let finalRedirectPath = redirectPath;
+      if (!redirectPath.includes('?')) {
+        const currentSearchParams = searchParams.toString();
+        if (currentSearchParams) {
+          finalRedirectPath = `${redirectPath}?${currentSearchParams}`;
+        }
+      }
+      setTimeout(() => router.push(finalRedirectPath), 1000);
+    } catch (err: any) {
+      console.error('Reward save error:', err);
+      const errorMessage = err?.response?.data?.detail || 
+                          err?.response?.data?.message || 
+                          (typeof err?.response?.data === 'object' ? JSON.stringify(err.response.data) : null) ||
+                          err?.message || 
+                          'Operation failed.';
+      setToast({ message: errorMessage, type: 'error', isVisible: true });
       setLoading(false);
     }
   };

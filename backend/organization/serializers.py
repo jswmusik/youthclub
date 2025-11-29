@@ -65,6 +65,7 @@ class MunicipalitySerializer(serializers.ModelSerializer):
             'website_link',
             'social_media',
             'allow_self_registration',
+            'created_at',
         ]
 
 class ClubSerializer(serializers.ModelSerializer):
@@ -85,7 +86,8 @@ class ClubSerializer(serializers.ModelSerializer):
             'avatar', 'hero_image', 'address', 
             'latitude', 'longitude', 
             'allowed_age_groups', 'club_categories',
-            'regular_hours', 'closures', 'date_overrides'
+            'regular_hours', 'closures', 'date_overrides',
+            'created_at'
         ]
 
 class InterestSerializer(serializers.ModelSerializer):

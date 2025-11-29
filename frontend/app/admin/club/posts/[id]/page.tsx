@@ -2,14 +2,33 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import api from '../../../../../lib/api';
 import { Post } from '../../../../../types/post';
 
 export default function PostDetailPage() {
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const postId = params?.id as string;
+    
+    const buildBackUrl = () => {
+        const urlParams = new URLSearchParams();
+        const page = searchParams.get('page');
+        const search = searchParams.get('search');
+        const scope = searchParams.get('scope');
+        const type = searchParams.get('type');
+        const status = searchParams.get('status');
+        
+        if (page && page !== '1') urlParams.set('page', page);
+        if (search) urlParams.set('search', search);
+        if (scope) urlParams.set('scope', scope);
+        if (type) urlParams.set('type', type);
+        if (status) urlParams.set('status', status);
+        
+        const queryString = urlParams.toString();
+        return queryString ? `/admin/club/posts?${queryString}` : '/admin/club/posts';
+    };
     
     const [post, setPost] = useState<Post | null>(null);
     const [comments, setComments] = useState<any[]>([]);
@@ -89,7 +108,7 @@ export default function PostDetailPage() {
             {/* --- HEADER --- */}
             <div className="flex justify-between items-start">
                 <div>
-                    <button onClick={() => router.push('/admin/super/posts')} className="text-sm text-gray-500 mb-1 hover:underline">← Back to List</button>
+                    <button onClick={() => router.push(buildBackUrl())} className="text-sm text-gray-500 mb-1 hover:underline">← Back to List</button>
                     <h1 className="text-3xl font-bold text-gray-900">{post.title}</h1>
                     <div className="flex items-center gap-3 mt-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${
@@ -105,7 +124,7 @@ export default function PostDetailPage() {
                 </div>
                 <div className="flex gap-3">
                     <Link 
-                        href={`/admin/super/posts/edit/${post.id}`}
+                        href={`/admin/club/posts/edit/${post.id}?${searchParams.toString()}`}
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
                     >
                         Edit Post

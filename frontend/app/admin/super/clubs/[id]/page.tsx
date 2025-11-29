@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense, useMemo } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Script from 'next/script';
 import { GoogleMap, Marker, LoadScript } from '@react-google-maps/api';
 import api from '../../../../../lib/api';
 import { getMediaUrl } from '../../../../utils';
@@ -22,11 +21,26 @@ const CYCLES = [
 function ClubViewPageContent() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const clubId = params?.id as string;
 
   const [club, setClub] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const buildUrlWithParams = (path: string) => {
+    const urlParams = new URLSearchParams();
+    const page = searchParams.get('page');
+    const search = searchParams.get('search');
+    const municipality = searchParams.get('municipality');
+    
+    if (page && page !== '1') urlParams.set('page', page);
+    if (search) urlParams.set('search', search);
+    if (municipality) urlParams.set('municipality', municipality);
+    
+    const queryString = urlParams.toString();
+    return queryString ? `${path}?${queryString}` : path;
+  };
 
   useEffect(() => {
     if (clubId) {
@@ -62,7 +76,7 @@ function ClubViewPageContent() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <p className="text-red-800">{error || 'Club not found'}</p>
         </div>
-        <Link href="/admin/super/clubs" className="text-blue-600 hover:text-blue-800">
+        <Link href={buildUrlWithParams("/admin/super/clubs")} className="text-blue-600 hover:text-blue-800">
           ← Back to Clubs
         </Link>
       </div>
@@ -73,13 +87,13 @@ function ClubViewPageContent() {
     <div className="p-8">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
-        <Link href="/admin/super/clubs" className="text-blue-600 hover:text-blue-800 font-medium">
+        <Link href={buildUrlWithParams("/admin/super/clubs")} className="text-blue-600 hover:text-blue-800 font-medium">
           ← Back to Clubs
         </Link>
         <div className="flex gap-4">
           <button
-            onClick={() => router.push(`/admin/super/clubs?edit=${club.id}`)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            onClick={() => router.push(buildUrlWithParams(`/admin/super/clubs/edit/${club.id}`))}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow"
           >
             Edit Club
           </button>
@@ -235,9 +249,6 @@ function ClubViewPageContent() {
                           {hour.title && (
                             <p className="text-sm text-gray-600 italic ml-28">{hour.title}</p>
                           )}
-                          {hour.description && (
-                            <p className="text-xs text-gray-500 mt-1 ml-28">{hour.description}</p>
-                          )}
                         </div>
                         <div className="flex gap-2 items-center">
                           {hour.restriction_mode !== 'NONE' && hour.min_value && hour.max_value && (
@@ -307,13 +318,13 @@ function ClubViewPageContent() {
             <h3 className="text-lg font-bold text-gray-800 mb-4">Actions</h3>
             <div className="space-y-2">
               <button
-                onClick={() => router.push(`/admin/super/clubs?edit=${club.id}`)}
+                onClick={() => router.push(buildUrlWithParams(`/admin/super/clubs/edit/${club.id}`))}
                 className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-center"
               >
                 Edit Club
               </button>
               <Link
-                href="/admin/super/clubs"
+                href={buildUrlWithParams("/admin/super/clubs")}
                 className="block w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 text-center"
               >
                 Back to List
@@ -326,11 +337,10 @@ function ClubViewPageContent() {
   );
 }
 
-export default function ClubViewPage() {
+export default function Page() {
   return (
     <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
       <ClubViewPageContent />
     </Suspense>
   );
 }
-

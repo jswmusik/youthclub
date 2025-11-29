@@ -143,6 +143,19 @@ class InterestViewSet(viewsets.ModelViewSet):
     queryset = Interest.objects.all()
     serializer_class = InterestSerializer
 
+    def get_queryset(self):
+        queryset = Interest.objects.all()
+        
+        # Search filter
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(icon__icontains=search)
+            )
+        
+        return queryset.order_by('name')
+
     def get_permissions(self):
         # Allow anyone to read the list (needed for registration forms)
         if self.action in ['list', 'retrieve']:

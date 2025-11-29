@@ -34,7 +34,8 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     // --- 1. Distribution (Scope) State ---
     const getInitialDistributionMode = (): 'GLOBAL' | 'MUNICIPALITY' | 'CLUB' => {
         if (initialData) {
-            if (initialData.is_global) return 'GLOBAL';
+            // Municipality and club admins cannot have global posts
+            if (initialData.is_global && role === 'super') return 'GLOBAL';
             if (initialData.target_municipalities?.length) return 'MUNICIPALITY';
             return 'CLUB';
         }
@@ -157,8 +158,14 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
             else targetClubs = selectedClubs;
         } 
         else if (role === 'municipality') {
-            // Ensure we force 'false' for global
+            // Municipality admins CANNOT create global posts - force false
             isGlobal = false;
+            // Also prevent GLOBAL mode from being set
+            if (distributionMode === 'GLOBAL') {
+                setError('Municipality admins cannot create global posts.');
+                setLoading(false);
+                return;
+            }
             if (muniScope === 'ALL') {
                  // If targeting entire municipality, we pass the municipality ID but NO specific clubs
                  const muniId = currentUser?.assigned_municipality 
@@ -254,6 +261,20 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
             setLoading(false);
         }
     };
+
+    // Prevent municipality and club admins from editing global posts
+    if (initialData?.is_global && role !== 'super') {
+        return (
+            <div className="space-y-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">Edit Post</h2>
+                    <p className="text-red-600 bg-red-50 p-4 rounded text-sm border border-red-200">
+                        <strong>Access Denied:</strong> You do not have permission to edit global posts. Only super admins can create and edit global posts.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100">

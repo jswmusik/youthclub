@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import api from '../../../../../../lib/api';
 import PostForm from '../../../../../components/posts/PostForm';
 import { Post } from '../../../../../../types/post';
@@ -9,7 +9,26 @@ import { Post } from '../../../../../../types/post';
 export default function EditPostPage() {
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const postId = params?.id as string;
+    
+    const buildUrlWithParams = (path: string) => {
+        const urlParams = new URLSearchParams();
+        const page = searchParams.get('page');
+        const search = searchParams.get('search');
+        const scope = searchParams.get('scope');
+        const type = searchParams.get('type');
+        const status = searchParams.get('status');
+        
+        if (page && page !== '1') urlParams.set('page', page);
+        if (search) urlParams.set('search', search);
+        if (scope) urlParams.set('scope', scope);
+        if (type) urlParams.set('type', type);
+        if (status) urlParams.set('status', status);
+        
+        const queryString = urlParams.toString();
+        return queryString ? `${path}?${queryString}` : path;
+    };
     
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
@@ -50,7 +69,7 @@ export default function EditPostPage() {
             <PostForm 
                 initialData={post}
                 role="club" // <--- Ensures Distribution UI is hidden entirely (auto-assigned)
-                onSuccess={() => router.push(`/admin/club/posts/${post.id}`)} 
+                onSuccess={() => router.push(buildUrlWithParams(`/admin/club/posts/${post.id}`))} 
             />
         </div>
     );

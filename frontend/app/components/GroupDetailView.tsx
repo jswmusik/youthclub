@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '../../lib/api';
 import Toast from './Toast';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -14,6 +14,7 @@ interface GroupDetailProps {
 
 export default function GroupDetailView({ groupId, basePath }: GroupDetailProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [group, setGroup] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
@@ -23,6 +24,24 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
   // Actions
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
   const [memberToRemove, setMemberToRemove] = useState<number | null>(null);
+
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams();
+    const page = searchParams.get('page');
+    const search = searchParams.get('search');
+    const municipality = searchParams.get('municipality');
+    const club = searchParams.get('club');
+    const type = searchParams.get('type');
+    
+    if (page && page !== '1') params.set('page', page);
+    if (search) params.set('search', search);
+    if (municipality) params.set('municipality', municipality);
+    if (club) params.set('club', club);
+    if (type) params.set('type', type);
+    
+    const queryString = params.toString();
+    return queryString ? `${path}?${queryString}` : path;
+  };
 
   useEffect(() => {
     fetchData();
@@ -52,7 +71,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
     try {
       await api.post(`/groups/${groupId}/duplicate/`);
       setToast({ message: 'Group duplicated! Check the list.', type: 'success', isVisible: true });
-      setTimeout(() => router.push(basePath), 1000);
+      setTimeout(() => router.push(buildUrlWithParams(basePath)), 1000);
     } catch (err) {
       setToast({ message: 'Failed to duplicate.', type: 'error', isVisible: true });
     }
@@ -126,7 +145,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
           {!group.is_system_group && (
             <>
               <Link 
-                href={`${basePath}/edit/${group.id}`}
+                href={buildUrlWithParams(`${basePath}/edit/${group.id}`)}
                 className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200"
               >
                 Edit

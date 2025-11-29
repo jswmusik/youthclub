@@ -1,9 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import RewardDetailView from '@/app/components/RewardDetailView';
 
-export default function RewardDetailPage() {
+function RewardDetailPageContent() {
   const params = useParams();
   const id = params?.id as string;
 
@@ -14,5 +15,13 @@ export default function RewardDetailPage() {
         basePath="/admin/super/rewards" 
       />
     </div>
+  );
+}
+
+export default function RewardDetailPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <RewardDetailPageContent />
+    </Suspense>
   );
 }

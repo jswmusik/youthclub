@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { GoogleMap, Marker, LoadScript } from '@react-google-maps/api';
 import api from '../../../../../lib/api';
@@ -21,11 +21,24 @@ const CYCLES = [
 function ClubViewPageContent() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const clubId = params?.id as string;
 
   const [club, setClub] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const buildUrlWithParams = (path: string) => {
+    const urlParams = new URLSearchParams();
+    const page = searchParams.get('page');
+    const search = searchParams.get('search');
+    
+    if (page && page !== '1') urlParams.set('page', page);
+    if (search) urlParams.set('search', search);
+    
+    const queryString = urlParams.toString();
+    return queryString ? `${path}?${queryString}` : path;
+  };
 
   useEffect(() => {
     if (clubId) {
@@ -62,7 +75,7 @@ function ClubViewPageContent() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <p className="text-red-800">{error || 'Club not found'}</p>
         </div>
-        <Link href="/admin/municipality/clubs" className="text-purple-600 hover:text-purple-800">
+        <Link href={buildUrlWithParams("/admin/municipality/clubs")} className="text-purple-600 hover:text-purple-800">
           ← Back to Clubs
         </Link>
       </div>
@@ -73,12 +86,12 @@ function ClubViewPageContent() {
     <div className="p-8">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
-        <Link href="/admin/municipality/clubs" className="text-purple-600 hover:text-purple-800 font-medium">
+        <Link href={buildUrlWithParams("/admin/municipality/clubs")} className="text-purple-600 hover:text-purple-800 font-medium">
           ← Back to My Clubs
         </Link>
         <div className="flex gap-4">
           <button
-            onClick={() => router.push(`/admin/municipality/clubs?edit=${club.id}`)}
+            onClick={() => router.push(buildUrlWithParams(`/admin/municipality/clubs/edit/${club.id}`))}
             className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 shadow"
           >
             Edit Club
@@ -304,13 +317,13 @@ function ClubViewPageContent() {
             <h3 className="text-lg font-bold text-gray-800 mb-4">Actions</h3>
             <div className="space-y-2">
               <button
-                onClick={() => router.push(`/admin/municipality/clubs?edit=${club.id}`)}
+                onClick={() => router.push(buildUrlWithParams(`/admin/municipality/clubs/edit/${club.id}`))}
                 className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-center"
               >
                 Edit Club
               </button>
               <Link
-                href="/admin/municipality/clubs"
+                href={buildUrlWithParams("/admin/municipality/clubs")}
                 className="block w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 text-center"
               >
                 Back to List
