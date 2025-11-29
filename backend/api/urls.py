@@ -1,10 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import HealthCheckView
-from users.views import UserViewSet, PublicRegistrationView
+from users.views import UserViewSet, PublicRegistrationView, CheckGuardianView
 from system_messages.views import SystemMessageViewSet
 from news.views import NewsArticleViewSet, NewsTagViewSet
-from custom_fields.views import CustomFieldDefinitionViewSet
+from custom_fields.views import CustomFieldDefinitionViewSet, PublicCustomFieldListView
 # Update Import
 from groups.views import GroupViewSet, GroupMembershipViewSet
 from rewards.views import RewardViewSet
@@ -33,4 +33,7 @@ urlpatterns = [
     path('', include('organization.urls')),
     # Add the Registration URL explicitly:
     path('register/youth/', PublicRegistrationView.as_view(), name='public-youth-register'),
+    # NEW ROUTES
+    path('register/check-guardian/', CheckGuardianView.as_view(), name='check-guardian'),
+    path('custom-fields/public/', PublicCustomFieldListView.as_view(), name='public-custom-fields'),
 ]

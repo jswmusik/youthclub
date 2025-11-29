@@ -1,7 +1,8 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import AllowAny
 from django.db.models import Q
 # Import User to check roles if needed, though request.user is sufficient
 from .models import CustomFieldDefinition, CustomFieldValue
@@ -435,3 +436,60 @@ class CustomFieldDefinitionViewSet(viewsets.ModelViewSet):
                 continue
                 
         return Response({"results": results})
+
+
+class PublicCustomFieldListView(generics.ListAPIView):
+    """
+    Returns custom fields for a specific context (Club/Muni)
+    so they can be rendered in the registration form.
+    """
+    serializer_class = CustomFieldDefinitionSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = ()  # Skip authentication entirely for public endpoint (use tuple)
+    pagination_class = None  # Return all at once
+
+    def get_queryset(self):
+        club_id = self.request.query_params.get('club_id')
+        role = self.request.query_params.get('target_role')  # e.g. YOUTH_MEMBER or GUARDIAN
+
+        if not club_id:
+            return CustomFieldDefinition.objects.none()
+
+        from organization.models import Club
+        try:
+            club = Club.objects.get(id=club_id)
+        except Club.DoesNotExist:
+            return CustomFieldDefinition.objects.none()
+
+        # Logic: Get fields owned by the Club OR the Municipality
+        # AND targeting the specific role (Youth or Guardian)
+        queryset = CustomFieldDefinition.objects.filter(
+            is_published=True,
+            context='USER_PROFILE'  # We only care about profile fields here
+        )
+
+        # Filter Scope:
+        # 1. Fields owned by this Club
+        # 2. Fields owned by Municipality (and either global OR specifically linked to this club)
+        # 3. Global fields (SUPER_ADMIN owned)
+        queryset = queryset.filter(
+            Q(club=club) |  # Club fields
+            Q(owner_role='SUPER_ADMIN') |  # Global fields
+            Q(municipality=club.municipality, specific_clubs=None) |  # Municipality fields (global to all clubs)
+            Q(municipality=club.municipality, specific_clubs=club)  # Municipality fields (specific to this club)
+        ).distinct()
+
+        # Filter by Role - try JSONField lookup first, fallback to Python filtering
+        # Since target_roles is a JSON list ["A", "B"], we need to check if role is in the list
+        # For better database compatibility, we'll filter in Python
+        final_fields = []
+        for field in queryset:
+            allowed_roles = field.target_roles if isinstance(field.target_roles, list) else []
+            if "ALL" in allowed_roles or role in allowed_roles:
+                final_fields.append(field)
+        
+        # Return as queryset by filtering by IDs
+        if final_fields:
+            field_ids = [f.id for f in final_fields]
+            return CustomFieldDefinition.objects.filter(id__in=field_ids)
+        return CustomFieldDefinition.objects.none()

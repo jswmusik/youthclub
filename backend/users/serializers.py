@@ -4,6 +4,7 @@ from django.http import QueryDict
 from django.db import transaction
 from django.utils.crypto import get_random_string
 from organization.models import Club
+from custom_fields.models import CustomFieldDefinition, CustomFieldValue
 
 class CustomUserSerializer(serializers.ModelSerializer):
     """
@@ -197,6 +198,8 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
     guardian_first_name = serializers.CharField(required=False, write_only=True)
     guardian_last_name = serializers.CharField(required=False, write_only=True)
     guardian_phone = serializers.CharField(required=False, write_only=True)
+    # NEW: Guardian Gender
+    guardian_legal_gender = serializers.ChoiceField(choices=User.Gender.choices, required=False, write_only=True)
     
     # Selection
     preferred_club_id = serializers.IntegerField(write_only=True)
@@ -209,6 +212,10 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
         allow_empty=True
     )
 
+    # NEW: Custom Fields (Dict of {field_id: value})
+    custom_fields = serializers.DictField(required=False, write_only=True)
+    guardian_custom_fields = serializers.DictField(required=False, write_only=True)
+
     class Meta:
         model = User
         fields = [
@@ -216,8 +223,8 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'nickname',
             'date_of_birth', 'legal_gender', 'preferred_gender',
             'grade', 'preferred_club_id',
-            'guardian_email', 'guardian_first_name', 'guardian_last_name', 'guardian_phone',
-            'interests'
+            'guardian_email', 'guardian_first_name', 'guardian_last_name', 'guardian_phone', 'guardian_legal_gender',
+            'interests', 'custom_fields', 'guardian_custom_fields'
         ]
 
     def validate(self, attrs):
@@ -268,11 +275,16 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
         # Pop interests (ManyToMany field - set after creation)
         interests = validated_data.pop('interests', [])
         
+        # Pop Custom Fields
+        youth_cf_data = validated_data.pop('custom_fields', {})
+        guardian_cf_data = validated_data.pop('guardian_custom_fields', {})
+        
         # Pop Guardian Data
         g_email = validated_data.pop('guardian_email', None)
         g_first = validated_data.pop('guardian_first_name', '')
         g_last = validated_data.pop('guardian_last_name', '')
         g_phone = validated_data.pop('guardian_phone', '')
+        g_gender = validated_data.pop('guardian_legal_gender', 'MALE')  # Default fallback
 
         # 1. Create Youth User
         user = User.objects.create_user(
@@ -287,6 +299,9 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
         # Set interests if provided
         if interests:
             user.interests.set(interests)
+
+        # 1b. Save Youth Custom Fields
+        self._save_custom_fields(user, youth_cf_data)
 
         # 2. Handle Guardian Logic
         if g_email:
@@ -304,10 +319,13 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
                     first_name=g_first,
                     last_name=g_last,
                     phone_number=g_phone,
+                    legal_gender=g_gender,  # Save Gender
                     role=User.Role.GUARDIAN,
                     is_active=False, # Inactive until they claim account
                     verification_status=User.VerificationStatus.UNVERIFIED
                 )
+                # Save Guardian Custom Fields (Only for new shadow users)
+                self._save_custom_fields(guardian_user, guardian_cf_data)
             
             # Create Link (Pending by default)
             GuardianYouthLink.objects.create(
@@ -319,3 +337,18 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
             )
 
         return user
+
+    def _save_custom_fields(self, user, data_dict):
+        """Helper to save custom field values"""
+        if not data_dict:
+            return
+        for field_id, value in data_dict.items():
+            try:
+                field = CustomFieldDefinition.objects.get(id=int(field_id))
+                CustomFieldValue.objects.update_or_create(
+                    user=user,
+                    field=field,
+                    defaults={'value': value}
+                )
+            except (CustomFieldDefinition.DoesNotExist, ValueError):
+                continue

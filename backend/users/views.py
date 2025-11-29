@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters, permissions, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import timedelta, date
@@ -386,3 +387,22 @@ class PublicRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = YouthRegistrationSerializer
     permission_classes = [permissions.AllowAny]
+    authentication_classes = ()  # Skip authentication entirely for public endpoint (use tuple)
+
+
+class CheckGuardianView(APIView):
+    """
+    Checks if a guardian email exists.
+    Returns { "exists": true/false }
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = ()  # Skip authentication entirely for public endpoint (use tuple)
+
+    def post(self, request):
+        email = request.data.get('email', '').lower().strip()
+        if not email:
+            return Response({"exists": False})
+        
+        # Check if a user with this email exists (any role, but usually guardians)
+        exists = User.objects.filter(email=email).exists()
+        return Response({"exists": exists})

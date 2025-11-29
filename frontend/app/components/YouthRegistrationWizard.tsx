@@ -25,6 +25,16 @@ interface Interest extends Option {
   icon: string;
 }
 
+// Custom Field Interfaces
+interface CustomFieldDef {
+    id: number;
+    name: string;
+    field_type: 'TEXT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'BOOLEAN';
+    options: string[];
+    required: boolean;
+    help_text?: string;
+}
+
 export default function YouthRegistrationWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -35,10 +45,22 @@ export default function YouthRegistrationWizard() {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [interestsList, setInterestsList] = useState<Interest[]>([]);
+  
+  // Custom Fields Schema
+  const [youthCustomFields, setYouthCustomFields] = useState<CustomFieldDef[]>([]);
+  const [guardianCustomFields, setGuardianCustomFields] = useState<CustomFieldDef[]>([]);
 
   // --- Selection State ---
   const [selectedMuni, setSelectedMuni] = useState<Municipality | null>(null);
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
+
+  // Guardian Lookup State
+  const [guardianExists, setGuardianExists] = useState(false);
+  const [checkingGuardian, setCheckingGuardian] = useState(false);
+  
+  // Loading states for custom fields
+  const [loadingYouthFields, setLoadingYouthFields] = useState(false);
+  const [loadingGuardianFields, setLoadingGuardianFields] = useState(false);
 
   // --- Form Data ---
   const [formData, setFormData] = useState({
@@ -56,12 +78,19 @@ export default function YouthRegistrationWizard() {
     legal_gender: 'MALE',
     preferred_gender: '',
     interests: [] as number[],
+    
+    // Custom Fields Values (Key = Field ID)
+    custom_field_values: {} as Record<string, any>,
 
     // Guardian
     guardian_email: '',
     guardian_first_name: '',
     guardian_last_name: '',
     guardian_phone: '',
+    guardian_legal_gender: 'MALE',
+    
+    // Guardian Custom Fields
+    guardian_custom_field_values: {} as Record<string, any>,
     
     // Consents
     terms_accepted: false,
@@ -74,11 +103,17 @@ export default function YouthRegistrationWizard() {
       const data = Array.isArray(res.data) ? res.data : res.data.results;
       // Filter out municipalities that block self-registration entirely (optional optimization)
       setMunicipalities(data);
+    }).catch(err => {
+      console.error('Failed to fetch municipalities:', err);
     });
 
     // 2. Fetch Interests
     api.get('/interests/').then(res => {
-      setInterestsList(Array.isArray(res.data) ? res.data : res.data.results);
+      const interests = Array.isArray(res.data) ? res.data : res.data.results || [];
+      console.log('Interests fetched:', interests);
+      setInterestsList(interests);
+    }).catch(err => {
+      console.error('Failed to fetch interests:', err);
     });
   }, []);
 
@@ -96,7 +131,90 @@ export default function YouthRegistrationWizard() {
     }
   }, [selectedMuni]);
 
-  // --- Handlers ---
+  // --- Fetch Custom Fields when Club Selected ---
+  useEffect(() => {
+    if (selectedClub) {
+        console.log('Fetching custom fields for club:', selectedClub.id);
+        setLoadingYouthFields(true);
+        setLoadingGuardianFields(true);
+        
+        // Fetch Youth Fields (public endpoint - no auth required)
+        api.get(`/custom-fields/public/?club_id=${selectedClub.id}&target_role=YOUTH_MEMBER`, {
+          skipAuth: true
+        } as any)
+           .then(res => {
+             console.log('Full response for youth fields:', res);
+             console.log('Response data:', res.data);
+             console.log('Response data type:', typeof res.data, 'Is array:', Array.isArray(res.data));
+             const fields = Array.isArray(res.data) ? res.data : (res.data?.results || res.data || []);
+             console.log('Parsed youth custom fields:', fields, 'Count:', fields.length);
+             setYouthCustomFields(fields);
+             setLoadingYouthFields(false);
+           })
+           .catch(err => {
+             console.error('Failed to fetch youth custom fields:', err);
+             console.error('Error response:', err.response);
+             console.error('Error details:', err.response?.data);
+             setYouthCustomFields([]);
+             setLoadingYouthFields(false);
+           });
+
+        // Fetch Guardian Fields (public endpoint - no auth required)
+        api.get(`/custom-fields/public/?club_id=${selectedClub.id}&target_role=GUARDIAN`, {
+          skipAuth: true
+        } as any)
+           .then(res => {
+             console.log('Full response for guardian fields:', res);
+             console.log('Response data:', res.data);
+             console.log('Response data type:', typeof res.data, 'Is array:', Array.isArray(res.data));
+             const fields = Array.isArray(res.data) ? res.data : (res.data?.results || res.data || []);
+             console.log('Parsed guardian custom fields:', fields, 'Count:', fields.length);
+             setGuardianCustomFields(fields);
+             setLoadingGuardianFields(false);
+           })
+           .catch(err => {
+             console.error('Failed to fetch guardian custom fields:', err);
+             console.error('Error response:', err.response);
+             console.error('Error details:', err.response?.data);
+             setGuardianCustomFields([]);
+             setLoadingGuardianFields(false);
+           });
+    } else {
+      // Reset when no club selected
+      setYouthCustomFields([]);
+      setGuardianCustomFields([]);
+      setLoadingYouthFields(false);
+      setLoadingGuardianFields(false);
+    }
+  }, [selectedClub]);
+
+  // --- Guardian Check Logic ---
+  const checkGuardianEmail = async () => {
+    if (!formData.guardian_email || !formData.guardian_email.includes('@')) return;
+    setCheckingGuardian(true);
+    try {
+        const res = await api.post('/register/check-guardian/', { email: formData.guardian_email }, {
+          skipAuth: true
+        } as any);
+        setGuardianExists(res.data.exists);
+        if (res.data.exists) {
+            setToast({ message: 'Guardian found! We will link your account.', type: 'success', isVisible: true });
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setCheckingGuardian(false);
+    }
+  };
+
+  // --- Helpers ---
+  const updateCF = (fieldId: number, value: any, isGuardian = false) => {
+    const key = isGuardian ? 'guardian_custom_field_values' : 'custom_field_values';
+    setFormData(prev => ({
+        ...prev,
+        [key]: { ...prev[key], [fieldId]: value }
+    }));
+  };
   
   const handleInterestToggle = (id: number) => {
     setFormData(prev => {
@@ -125,6 +243,7 @@ export default function YouthRegistrationWizard() {
         last_name: formData.last_name,
         preferred_club_id: selectedClub?.id,
         legal_gender: formData.legal_gender,
+        custom_fields: formData.custom_field_values,
       };
       
       // Add optional fields only if they have values
@@ -141,14 +260,21 @@ export default function YouthRegistrationWizard() {
       // Guardian fields (only send if filled)
       if (formData.guardian_email) {
         payload.guardian_email = formData.guardian_email;
-        if (formData.guardian_first_name) payload.guardian_first_name = formData.guardian_first_name;
-        if (formData.guardian_last_name) payload.guardian_last_name = formData.guardian_last_name;
-        if (formData.guardian_phone) payload.guardian_phone = formData.guardian_phone;
+        // Only send full details if guardian is NEW
+        if (!guardianExists) {
+            payload.guardian_first_name = formData.guardian_first_name;
+            payload.guardian_last_name = formData.guardian_last_name;
+            payload.guardian_phone = formData.guardian_phone;
+            payload.guardian_legal_gender = formData.guardian_legal_gender;
+            payload.guardian_custom_fields = formData.guardian_custom_field_values;
+        }
       }
 
-      await api.post('/register/youth/', payload); // Public Endpoint
+      await api.post('/register/youth/', payload, {
+        skipAuth: true
+      } as any); // Public Endpoint
       
-      setToast({ message: 'Registration Successful! Please login.', type: 'success', isVisible: true });
+      setToast({ message: 'Registration Successful!', type: 'success', isVisible: true });
       setTimeout(() => router.push('/login'), 2000);
 
     } catch (err: any) {
@@ -159,25 +285,67 @@ export default function YouthRegistrationWizard() {
     }
   };
 
-  // --- Step Navigation Validation ---
-  const canProceed = () => {
-    switch(step) {
-      case 1: return !!selectedClub;
-      case 2: 
-        return formData.email && formData.password && 
-               formData.password === formData.confirm_password && 
-               formData.password.length >= 8;
-      case 3:
-        return formData.first_name && formData.last_name && 
-               formData.date_of_birth && formData.grade;
-      case 4:
-        // If Guardian is REQUIRED, check fields. If Optional, always allow.
-        if (selectedClub?.effective_require_guardian) {
-           return formData.guardian_email && formData.guardian_first_name;
-        }
-        return true;
-      default: return true;
-    }
+  // --- Renderers ---
+  const renderCustomFields = (fields: CustomFieldDef[], isGuardian = false) => {
+    return fields.map(field => (
+        <div key={field.id} className="mb-3">
+            <label className="block text-sm font-bold text-gray-700 mb-1">
+                {field.name} {field.required && <span className="text-red-500">*</span>}
+            </label>
+            {field.field_type === 'TEXT' && (
+                <input 
+                    type="text" 
+                    className="w-full border p-2 rounded"
+                    value={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || ''}
+                    onChange={e => updateCF(field.id, e.target.value, isGuardian)}
+                />
+            )}
+            {field.field_type === 'BOOLEAN' && (
+                <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-blue-600 rounded"
+                    checked={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || false}
+                    onChange={e => updateCF(field.id, e.target.checked, isGuardian)}
+                />
+            )}
+            {(field.field_type === 'SINGLE_SELECT') && (
+                <select 
+                    className="w-full border p-2 rounded"
+                    value={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || ''}
+                    onChange={e => updateCF(field.id, e.target.value, isGuardian)}
+                >
+                    <option value="">Select...</option>
+                    {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+            )}
+            {(field.field_type === 'MULTI_SELECT') && (
+                <div className="space-y-2">
+                    {field.options.map(opt => {
+                        const currentValues = (isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || [];
+                        const isChecked = Array.isArray(currentValues) && currentValues.includes(opt);
+                        return (
+                            <label key={opt} className="flex items-center space-x-2">
+                                <input 
+                                    type="checkbox" 
+                                    checked={isChecked}
+                                    className="w-4 h-4 text-blue-600 rounded"
+                                    onChange={e => {
+                                        const current = (isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || [];
+                                        const updated = e.target.checked 
+                                            ? [...(Array.isArray(current) ? current : []), opt]
+                                            : (Array.isArray(current) ? current.filter((v: string) => v !== opt) : []);
+                                        updateCF(field.id, updated, isGuardian);
+                                    }}
+                                />
+                                <span className="text-sm">{opt}</span>
+                            </label>
+                        );
+                    })}
+                </div>
+            )}
+            {field.help_text && <p className="text-xs text-gray-500 mt-1">{field.help_text}</p>}
+        </div>
+    ));
   };
 
   return (
@@ -199,46 +367,20 @@ export default function YouthRegistrationWizard() {
         {step === 1 && (
             <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-gray-800">Where do you hang out?</h3>
-                <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Select Municipality</label>
-                    <select 
-                        className="w-full border p-3 rounded-lg bg-white"
-                        onChange={(e) => {
-                            const m = municipalities.find(m => m.id === parseInt(e.target.value));
-                            setSelectedMuni(m || null);
-                            setSelectedClub(null);
-                        }}
-                    >
-                        <option value="">-- Choose Area --</option>
-                        {municipalities.map(m => (
-                            <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                    </select>
-                </div>
-
+                <select className="w-full border p-3 rounded-lg" onChange={(e) => {
+                    const m = municipalities.find(m => m.id === parseInt(e.target.value));
+                    setSelectedMuni(m || null); setSelectedClub(null);
+                }}>
+                    <option value="">-- Choose Municipality --</option>
+                    {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
                 {selectedMuni && (
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Select Youth Club</label>
-                        {clubs.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {clubs.map(club => (
-                                    <div 
-                                        key={club.id}
-                                        onClick={() => setSelectedClub(club)}
-                                        className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedClub?.id === club.id ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'hover:border-gray-300'}`}
-                                    >
-                                        <div className="font-bold text-gray-800">{club.name}</div>
-                                        {club.effective_require_guardian && (
-                                            <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded mt-2 inline-block">
-                                                Requires Guardian
-                                            </span>
-                                        )}
-                                    </div>
-                                ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {clubs.map(club => (
+                            <div key={club.id} onClick={() => setSelectedClub(club)} className={`p-4 border rounded-lg cursor-pointer ${selectedClub?.id === club.id ? 'border-blue-500 bg-blue-50' : ''}`}>
+                                <div className="font-bold">{club.name}</div>
                             </div>
-                        ) : (
-                           <p className="text-gray-500 italic">No clubs available for registration in this area.</p>
-                        )}
+                        ))}
                     </div>
                 )}
             </div>
@@ -247,46 +389,25 @@ export default function YouthRegistrationWizard() {
         {/* STEP 2: ACCOUNT */}
         {step === 2 && (
             <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-gray-800">Create your Login</h3>
-                <input 
-                    type="email" placeholder="Email Address"
-                    className="w-full border p-3 rounded-lg"
-                    value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
-                />
-                <input 
-                    type="password" placeholder="Password (Min 8 chars)"
-                    className="w-full border p-3 rounded-lg"
-                    value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})}
-                />
-                <input 
-                    type="password" placeholder="Confirm Password"
-                    className="w-full border p-3 rounded-lg"
-                    value={formData.confirm_password} onChange={e => setFormData({...formData, confirm_password: e.target.value})}
-                />
+                <h3 className="text-2xl font-bold text-gray-800">Login Details</h3>
+                <input type="email" placeholder="Email" className="w-full border p-3 rounded-lg" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <input type="password" placeholder="Password" className="w-full border p-3 rounded-lg" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                <input type="password" placeholder="Confirm Password" className="w-full border p-3 rounded-lg" value={formData.confirm_password} onChange={e => setFormData({...formData, confirm_password: e.target.value})} />
             </div>
         )}
 
-        {/* STEP 3: PROFILE */}
+        {/* STEP 3: PROFILE & CUSTOM FIELDS */}
         {step === 3 && (
             <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-gray-800">Tell us about you</h3>
+                <h3 className="text-2xl font-bold text-gray-800">About You</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <input type="text" placeholder="First Name" className="border p-3 rounded-lg" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
                     <input type="text" placeholder="Last Name" className="border p-3 rounded-lg" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
                 </div>
-                <input type="text" placeholder="Nickname (Optional)" className="w-full border p-3 rounded-lg" value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} />
-                
                 <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase">Birth Date</label>
-                        <input type="date" className="w-full border p-3 rounded-lg" value={formData.date_of_birth} onChange={e => setFormData({...formData, date_of_birth: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase">Grade</label>
-                        <input type="number" placeholder="e.g. 7" className="w-full border p-3 rounded-lg" value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} />
-                    </div>
+                    <input type="date" className="border p-3 rounded-lg" value={formData.date_of_birth} onChange={e => setFormData({...formData, date_of_birth: e.target.value})} />
+                    <input type="number" placeholder="Grade" className="border p-3 rounded-lg" value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                     <select className="border p-3 rounded-lg" value={formData.legal_gender} onChange={e => setFormData({...formData, legal_gender: e.target.value})}>
                         <option value="MALE">Male</option>
@@ -295,107 +416,124 @@ export default function YouthRegistrationWizard() {
                     </select>
                     <input type="text" placeholder="Preferred Gender (Optional)" className="border p-3 rounded-lg" value={formData.preferred_gender} onChange={e => setFormData({...formData, preferred_gender: e.target.value})} />
                 </div>
+                <input type="text" placeholder="Nickname (Optional)" className="w-full border p-3 rounded-lg" value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} />
 
-                <div className="pt-4">
+                {/* INTERESTS */}
+                <div className="pt-2">
                     <label className="block text-sm font-bold text-gray-700 mb-2">Interests</label>
-                    <div className="flex flex-wrap gap-2">
-                        {interestsList.map(interest => (
-                            <button 
-                                key={interest.id}
-                                onClick={() => handleInterestToggle(interest.id)}
-                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${formData.interests.includes(interest.id) ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                            >
-                                {interest.icon} {interest.name}
-                            </button>
-                        ))}
-                    </div>
+                    {interestsList.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                            {interestsList.map(i => (
+                                <button 
+                                    key={i.id} 
+                                    onClick={() => handleInterestToggle(i.id)} 
+                                    className={`px-4 py-1.5 rounded-full text-sm font-medium ${formData.interests.includes(i.id) ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
+                                >
+                                    {i.icon} {i.name}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500 italic">No interests available</p>
+                    )}
                 </div>
+
+                {/* YOUTH CUSTOM FIELDS */}
+                {loadingYouthFields ? (
+                    <div className="pt-4 border-t mt-4">
+                        <p className="text-sm text-gray-500">Loading custom fields...</p>
+                    </div>
+                ) : youthCustomFields.length > 0 ? (
+                    <div className="pt-4 border-t mt-4">
+                        <h4 className="font-bold text-gray-800 mb-3">Additional Questions</h4>
+                        {renderCustomFields(youthCustomFields, false)}
+                    </div>
+                ) : (
+                    <div className="pt-4 border-t mt-4">
+                        <p className="text-xs text-gray-400">No custom fields configured for this club (Debug: {youthCustomFields.length} fields)</p>
+                    </div>
+                )}
             </div>
         )}
 
         {/* STEP 4: GUARDIAN */}
         {step === 4 && (
             <div className="space-y-6">
-                <div>
-                    <h3 className="text-2xl font-bold text-gray-800">Parent / Guardian</h3>
-                    {selectedClub?.effective_require_guardian ? (
-                        <p className="text-orange-600 text-sm mt-1 font-medium">⚠️ This club requires a guardian to register.</p>
-                    ) : (
-                        <p className="text-gray-500 text-sm mt-1">Optional. You can add this later.</p>
-                    )}
+                <h3 className="text-2xl font-bold text-gray-800">Guardian</h3>
+                
+                {/* Email Check */}
+                <div className="flex gap-2">
+                    <input 
+                        type="email" 
+                        placeholder="Guardian Email" 
+                        className={`w-full border p-3 rounded-lg ${guardianExists ? 'bg-green-50 border-green-300 text-green-800' : ''}`}
+                        value={formData.guardian_email} 
+                        onChange={e => {
+                            setFormData({...formData, guardian_email: e.target.value});
+                            setGuardianExists(false); // Reset if they change email
+                        }}
+                        onBlur={checkGuardianEmail}
+                    />
                 </div>
-
-                <div className="space-y-4">
-                    <input type="email" placeholder="Guardian Email" className="w-full border p-3 rounded-lg" value={formData.guardian_email} onChange={e => setFormData({...formData, guardian_email: e.target.value})} />
-                    <div className="grid grid-cols-2 gap-4">
-                        <input type="text" placeholder="Guardian First Name" className="border p-3 rounded-lg" value={formData.guardian_first_name} onChange={e => setFormData({...formData, guardian_first_name: e.target.value})} />
-                        <input type="text" placeholder="Guardian Last Name" className="border p-3 rounded-lg" value={formData.guardian_last_name} onChange={e => setFormData({...formData, guardian_last_name: e.target.value})} />
+                
+                {/* Conditional Fields */}
+                {formData.guardian_email && !guardianExists && !checkingGuardian && (
+                    <div className="space-y-4 animate-fade-in">
+                        <div className="grid grid-cols-2 gap-4">
+                            <input type="text" placeholder="First Name" className="border p-3 rounded-lg" value={formData.guardian_first_name} onChange={e => setFormData({...formData, guardian_first_name: e.target.value})} />
+                            <input type="text" placeholder="Last Name" className="border p-3 rounded-lg" value={formData.guardian_last_name} onChange={e => setFormData({...formData, guardian_last_name: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <input type="text" placeholder="Phone" className="border p-3 rounded-lg" value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
+                            <select className="border p-3 rounded-lg" value={formData.guardian_legal_gender} onChange={e => setFormData({...formData, guardian_legal_gender: e.target.value})}>
+                                <option value="MALE">Male</option>
+                                <option value="FEMALE">Female</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                        
+                        {/* GUARDIAN CUSTOM FIELDS */}
+                        {guardianCustomFields.length > 0 && (
+                            <div className="pt-4 border-t mt-4">
+                                <h4 className="font-bold text-gray-800 mb-3">Guardian Details</h4>
+                                {renderCustomFields(guardianCustomFields, true)}
+                            </div>
+                        )}
                     </div>
-                    <input type="text" placeholder="Guardian Phone" className="w-full border p-3 rounded-lg" value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
-                </div>
+                )}
+
+                {guardianExists && (
+                    <div className="p-4 bg-green-50 text-green-800 rounded-lg text-sm border border-green-200">
+                        ✅ Account found! We will link you to this guardian automatically.
+                    </div>
+                )}
             </div>
         )}
 
         {/* STEP 5: REVIEW */}
         {step === 5 && (
-            <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-gray-800">Final Step</h3>
-                
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
-                    <p>You are registering for <strong>{selectedClub?.name}</strong>.</p>
-                    <p className="mt-1">Your account status will be <strong>UNVERIFIED</strong> until you visit the club.</p>
+            <div className="space-y-4">
+                <h3 className="text-2xl font-bold text-gray-800">Finish Up</h3>
+                <div className="border p-4 rounded text-sm text-gray-600 max-h-40 overflow-y-auto">
+                    <strong>Terms:</strong> {selectedMuni?.terms_and_conditions} <br/><br/>
+                    <strong>Policies:</strong> {selectedClub?.club_policies}
                 </div>
-
-                <div className="space-y-4 border rounded-lg p-4 max-h-40 overflow-y-auto text-xs text-gray-600">
-                    <p className="font-bold">Municipality Terms:</p>
-                    <p>{selectedMuni?.terms_and_conditions}</p>
-                    <div className="border-t my-2"></div>
-                    <p className="font-bold">Club Policies:</p>
-                    <p>{selectedClub?.club_policies}</p>
-                </div>
-
-                <label className="flex items-center space-x-3 cursor-pointer">
-                    <input 
-                        type="checkbox" 
-                        checked={formData.terms_accepted} 
-                        onChange={e => setFormData({...formData, terms_accepted: e.target.checked})} 
-                        className="w-5 h-5 text-blue-600 rounded"
-                    />
-                    <span className="text-gray-700 font-medium">I agree to the Terms & Conditions and Club Policies.</span>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.terms_accepted} onChange={e => setFormData({...formData, terms_accepted: e.target.checked})} className="w-5 h-5" />
+                    <span>I accept the Terms & Conditions</span>
                 </label>
             </div>
         )}
 
       </div>
 
-      {/* FOOTER NAV */}
+      {/* Footer Nav */}
       <div className="bg-gray-50 px-6 py-4 border-t flex justify-between">
-        {step > 1 && (
-            <button onClick={() => setStep(step - 1)} className="px-6 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded-lg">
-                Back
-            </button>
-        )}
-        {step === 1 && <div></div>}
-
+        {step > 1 ? <button onClick={() => setStep(step - 1)} className="text-gray-600 font-bold">Back</button> : <div/>}
         {step < 5 ? (
-            <button 
-                onClick={() => setStep(step + 1)} 
-                disabled={!canProceed()}
-                className="px-8 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {/* Change button text for Guardian step if optional */}
-                {step === 4 && !selectedClub?.effective_require_guardian && !formData.guardian_email 
-                    ? 'Skip & Next' 
-                    : 'Next'}
-            </button>
+            <button onClick={() => setStep(step + 1)} disabled={step === 1 && !selectedClub} className="bg-blue-600 text-white px-6 py-2 rounded font-bold disabled:opacity-50">Next</button>
         ) : (
-            <button 
-                onClick={handleSubmit} 
-                disabled={loading || !formData.terms_accepted}
-                className="px-8 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-                {loading ? 'Creating Account...' : 'Complete Registration'}
-            </button>
+            <button onClick={handleSubmit} disabled={loading || !formData.terms_accepted} className="bg-green-600 text-white px-6 py-2 rounded font-bold">Complete</button>
         )}
       </div>
 

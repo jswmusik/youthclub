@@ -17,12 +17,15 @@ export default function Home() {
     fetch('http://localhost:8000/api/clubs/')
       .then((res) => res.json())
       .then((data) => {
-        setClubs(data);
+        // Handle both paginated and non-paginated responses
+        const clubsData = Array.isArray(data) ? data : (data.results || []);
+        setClubs(clubsData);
         setLoadingClubs(false);
       })
       .catch((err) => {
         console.error('Error fetching clubs:', err);
         setLoadingClubs(false);
+        setClubs([]); // Set to empty array on error
       });
   }, []);
 
