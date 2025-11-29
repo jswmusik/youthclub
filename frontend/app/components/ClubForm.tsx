@@ -93,6 +93,9 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
     club_categories: initialData?.club_categories || '',
     terms_and_conditions: initialData?.terms_and_conditions || '',
     club_policies: initialData?.club_policies || '',
+    // Override Fields (Convert null to empty string for Select input)
+    allow_self_registration_override: initialData?.allow_self_registration_override === null ? '' : String(initialData?.allow_self_registration_override),
+    require_guardian_override: initialData?.require_guardian_override === null ? '' : String(initialData?.require_guardian_override),
   });
 
   useEffect(() => {
@@ -288,8 +291,23 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
       // Append optional fields
       if (formData.address?.trim()) data.append('address', formData.address.trim());
       if (formData.club_categories?.trim()) data.append('club_categories', formData.club_categories.trim());
-      if (formData.latitude?.trim()) data.append('latitude', formData.latitude.trim());
-      if (formData.longitude?.trim()) data.append('longitude', formData.longitude.trim());
+      // Latitude and longitude are numbers, convert to string
+      if (formData.latitude !== '' && formData.latitude != null) data.append('latitude', String(formData.latitude));
+      if (formData.longitude !== '' && formData.longitude != null) data.append('longitude', String(formData.longitude));
+      
+      // Handle Override Fields Logic
+      // If value is empty string, send empty string (backend serializer should convert "" to None)
+      if (formData.allow_self_registration_override === '') {
+        data.append('allow_self_registration_override', '');
+      } else {
+        data.append('allow_self_registration_override', formData.allow_self_registration_override);
+      }
+
+      if (formData.require_guardian_override === '') {
+        data.append('require_guardian_override', '');
+      } else {
+        data.append('require_guardian_override', formData.require_guardian_override);
+      }
       
       // Clean up opening hours data before sending
       const cleanedHours = openingHours.map(hour => {
@@ -372,6 +390,37 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
             <div><label className="block text-sm font-bold mb-1">Description</label><textarea required rows={3} className="w-full border p-2 rounded" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
             <div><label className="block text-sm font-bold mb-1">Address</label><input type="text" className="w-full border p-2 rounded" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} /></div>
+            
+            {/* Registration Settings Section */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 space-y-3">
+                <h4 className="text-sm font-bold text-blue-800 uppercase">Registration Rules (Overrides)</h4>
+                
+                <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Allow Self Registration</label>
+                    <select 
+                        className="w-full border p-2 rounded text-sm"
+                        value={formData.allow_self_registration_override}
+                        onChange={e => setFormData({...formData, allow_self_registration_override: e.target.value})}
+                    >
+                        <option value="">Use Municipality Default</option>
+                        <option value="true">Yes, Allow (Override)</option>
+                        <option value="false">No, Block (Override)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Require Guardian</label>
+                    <select 
+                        className="w-full border p-2 rounded text-sm"
+                        value={formData.require_guardian_override}
+                        onChange={e => setFormData({...formData, require_guardian_override: e.target.value})}
+                    >
+                        <option value="">Use Municipality Default</option>
+                        <option value="true">Yes, Require (Override)</option>
+                        <option value="false">No, Optional (Override)</option>
+                    </select>
+                </div>
+            </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div><label className="block text-sm font-bold mb-1">Latitude</label><input type="number" step="any" className="w-full border p-2 rounded" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} /></div>

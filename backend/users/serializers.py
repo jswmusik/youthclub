@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import User, GuardianYouthLink
 from django.http import QueryDict
+from django.db import transaction
+from django.utils.crypto import get_random_string
+from organization.models import Club
 
 class CustomUserSerializer(serializers.ModelSerializer):
     """
@@ -179,3 +182,140 @@ class UserManagementSerializer(serializers.ModelSerializer):
                 )
             
         return instance
+
+
+class YouthRegistrationSerializer(serializers.ModelSerializer):
+    """
+    Handles public registration for Youth Members.
+    Includes logic for 'Shadow Guardians'.
+    """
+    password = serializers.CharField(write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+    
+    # Guardian Fields (Optional in serializer, validated based on club rules)
+    guardian_email = serializers.EmailField(required=False, write_only=True)
+    guardian_first_name = serializers.CharField(required=False, write_only=True)
+    guardian_last_name = serializers.CharField(required=False, write_only=True)
+    guardian_phone = serializers.CharField(required=False, write_only=True)
+    
+    # Selection
+    preferred_club_id = serializers.IntegerField(write_only=True)
+    
+    # Interests (ManyToMany) - will be handled in create method
+    interests = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        write_only=True,
+        allow_empty=True
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            'email', 'password', 'password_confirm',
+            'first_name', 'last_name', 'nickname',
+            'date_of_birth', 'legal_gender', 'preferred_gender',
+            'grade', 'preferred_club_id',
+            'guardian_email', 'guardian_first_name', 'guardian_last_name', 'guardian_phone',
+            'interests'
+        ]
+
+    def validate(self, attrs):
+        # 1. Password Check
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+        
+        # Clean up empty strings - convert to None for optional fields
+        for field in ['nickname', 'preferred_gender', 'date_of_birth', 'grade']:
+            if field in attrs and attrs[field] == '':
+                attrs[field] = None
+        
+        # Handle grade - convert to None if invalid
+        if 'grade' in attrs:
+            try:
+                if attrs['grade'] is not None:
+                    attrs['grade'] = int(attrs['grade'])
+            except (ValueError, TypeError):
+                attrs['grade'] = None
+            
+        # 2. Club Validation
+        try:
+            club = Club.objects.get(id=attrs['preferred_club_id'])
+        except Club.DoesNotExist:
+            raise serializers.ValidationError({"preferred_club_id": "Invalid Club ID."})
+            
+        # Check if registration is allowed
+        if not club.is_registration_allowed:
+            raise serializers.ValidationError({"preferred_club_id": "This club does not accept online registrations."})
+            
+        # 3. Guardian Requirement Check
+        if club.should_require_guardian:
+            if not attrs.get('guardian_email'):
+                raise serializers.ValidationError({"guardian_email": "This club requires a guardian to register."})
+                
+        attrs['preferred_club'] = club
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        # Pop non-model fields
+        email = validated_data.pop('email')
+        password = validated_data.pop('password')
+        validated_data.pop('password_confirm')
+        club = validated_data.pop('preferred_club')
+        validated_data.pop('preferred_club_id')
+        
+        # Pop interests (ManyToMany field - set after creation)
+        interests = validated_data.pop('interests', [])
+        
+        # Pop Guardian Data
+        g_email = validated_data.pop('guardian_email', None)
+        g_first = validated_data.pop('guardian_first_name', '')
+        g_last = validated_data.pop('guardian_last_name', '')
+        g_phone = validated_data.pop('guardian_phone', '')
+
+        # 1. Create Youth User
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            role=User.Role.YOUTH_MEMBER,
+            verification_status=User.VerificationStatus.UNVERIFIED,
+            preferred_club=club,
+            **validated_data
+        )
+        
+        # Set interests if provided
+        if interests:
+            user.interests.set(interests)
+
+        # 2. Handle Guardian Logic
+        if g_email:
+            g_email = g_email.lower().strip()
+            # Check if guardian exists
+            guardian_user = User.objects.filter(email=g_email).first()
+            
+            if not guardian_user:
+                # CREATE SHADOW GUARDIAN
+                # We create an inactive user with a random unusable password
+                random_password = get_random_string(50)  # Generate a random password
+                guardian_user = User.objects.create_user(
+                    email=g_email,
+                    password=random_password,
+                    first_name=g_first,
+                    last_name=g_last,
+                    phone_number=g_phone,
+                    role=User.Role.GUARDIAN,
+                    is_active=False, # Inactive until they claim account
+                    verification_status=User.VerificationStatus.UNVERIFIED
+                )
+            
+            # Create Link (Pending by default)
+            GuardianYouthLink.objects.create(
+                youth=user,
+                guardian=guardian_user,
+                relationship_type='GUARDIAN', # Can be updated later
+                status='PENDING',
+                is_primary_guardian=True
+            )
+
+        return user

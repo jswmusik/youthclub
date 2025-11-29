@@ -61,7 +61,10 @@ class Municipality(models.Model):
     phone = models.CharField(max_length=50, blank=True, null=True)
     website_link = models.URLField(blank=True, null=True)
     social_media = models.JSONField(default=dict, blank=True)
+    
+    # --- REGISTRATION SETTINGS ---
     allow_self_registration = models.BooleanField(default=True)
+    require_guardian_at_registration = models.BooleanField(default=False)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -104,11 +107,29 @@ class Club(models.Model):
     allowed_age_groups = models.CharField(max_length=100, blank=True, null=True)
     club_categories = models.CharField(max_length=255, blank=True, null=True)
 
+    # --- REGISTRATION SETTINGS (OVERRIDES) ---
+    # Null = Use Municipality Default, True/False = Override
+    allow_self_registration_override = models.BooleanField(null=True, blank=True)
+    require_guardian_override = models.BooleanField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.name} ({self.municipality.name})"
+
+    # Helper property to get the "Effective" setting easily in code
+    @property
+    def should_require_guardian(self):
+        if self.require_guardian_override is not None:
+            return self.require_guardian_override
+        return self.municipality.require_guardian_at_registration
+
+    @property
+    def is_registration_allowed(self):
+        if self.allow_self_registration_override is not None:
+            return self.allow_self_registration_override
+        return self.municipality.allow_self_registration
 
 class RegularOpeningHour(models.Model):
     """

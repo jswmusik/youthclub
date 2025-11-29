@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import HealthCheckView
-from users.views import UserViewSet
+from users.views import UserViewSet, PublicRegistrationView
 from system_messages.views import SystemMessageViewSet
 from news.views import NewsArticleViewSet, NewsTagViewSet
 from custom_fields.views import CustomFieldDefinitionViewSet
@@ -31,4 +31,6 @@ urlpatterns = [
     path('auth/', include('djoser.urls.jwt')),
     path('', include(router.urls)), 
     path('', include('organization.urls')),
+    # Add the Registration URL explicitly:
+    path('register/youth/', PublicRegistrationView.as_view(), name='public-youth-register'),
 ]

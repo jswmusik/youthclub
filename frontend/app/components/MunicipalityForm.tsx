@@ -30,6 +30,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
     phone: initialData?.phone || '',
     website_link: initialData?.website_link || '',
     allow_self_registration: initialData?.allow_self_registration ?? true,
+    require_guardian_at_registration: initialData?.require_guardian_at_registration ?? false,
     
     // Social Media (Parsed from JSON if editing)
     facebook: '',
@@ -107,6 +108,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
       data.append('phone', formData.phone);
       data.append('website_link', formData.website_link);
       data.append('allow_self_registration', formData.allow_self_registration.toString());
+      data.append('require_guardian_at_registration', formData.require_guardian_at_registration.toString());
 
       // Social Media JSON
       const socialMediaJson = JSON.stringify({
@@ -168,10 +170,33 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                     <label className="block text-sm font-bold mb-1 text-gray-700">Municipality Code</label>
                     <input type="text" className="w-full border p-2 rounded" value={formData.municipality_code} onChange={e => setFormData({...formData, municipality_code: e.target.value})} />
                 </div>
-                <div className="flex items-center pt-6">
-                    <label className="flex items-center space-x-2 cursor-pointer bg-gray-50 px-4 py-2 rounded border hover:bg-gray-100 w-full">
-                        <input type="checkbox" checked={formData.allow_self_registration} onChange={e => setFormData({...formData, allow_self_registration: e.target.checked})} className="text-blue-600 h-5 w-5" />
-                        <span className="text-sm font-bold text-gray-700">Allow Self Registration</span>
+                
+                {/* Registration Settings Block */}
+                <div className="pt-6 space-y-3">
+                    <label className="flex items-center space-x-3 cursor-pointer bg-gray-50 px-4 py-2 rounded border hover:bg-gray-100 transition-colors">
+                        <input 
+                            type="checkbox" 
+                            checked={formData.allow_self_registration} 
+                            onChange={e => setFormData({...formData, allow_self_registration: e.target.checked})} 
+                            className="text-blue-600 h-5 w-5 rounded focus:ring-blue-500" 
+                        />
+                        <div>
+                            <span className="block text-sm font-bold text-gray-700">Allow Self Registration</span>
+                            <span className="block text-xs text-gray-500">Public can join clubs via app</span>
+                        </div>
+                    </label>
+
+                    <label className="flex items-center space-x-3 cursor-pointer bg-gray-50 px-4 py-2 rounded border hover:bg-gray-100 transition-colors">
+                        <input 
+                            type="checkbox" 
+                            checked={formData.require_guardian_at_registration} 
+                            onChange={e => setFormData({...formData, require_guardian_at_registration: e.target.checked})} 
+                            className="text-red-600 h-5 w-5 rounded focus:ring-red-500" 
+                        />
+                        <div>
+                            <span className="block text-sm font-bold text-gray-700">Require Guardian</span>
+                            <span className="block text-xs text-gray-500">Youth cannot register without linking a parent immediately</span>
+                        </div>
                     </label>
                 </div>
             </div>

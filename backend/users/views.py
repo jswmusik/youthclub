@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters, permissions
+from rest_framework import viewsets, filters, permissions, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import timedelta, date
 
 from .models import User, GuardianYouthLink, UserLoginHistory
-from .serializers import CustomUserSerializer, UserManagementSerializer
+from .serializers import CustomUserSerializer, UserManagementSerializer, YouthRegistrationSerializer
 from .permissions import IsSuperAdmin, IsMunicipalityAdmin, IsClubOrMunicipalityAdmin
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -376,3 +376,13 @@ class UserViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"status": "logged"})
+
+
+class PublicRegistrationView(generics.CreateAPIView):
+    """
+    Public endpoint for new Youth Members to register.
+    Permission: AllowAny (No login required)
+    """
+    queryset = User.objects.all()
+    serializer_class = YouthRegistrationSerializer
+    permission_classes = [permissions.AllowAny]

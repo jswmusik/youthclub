@@ -65,6 +65,7 @@ class MunicipalitySerializer(serializers.ModelSerializer):
             'website_link',
             'social_media',
             'allow_self_registration',
+            'require_guardian_at_registration',
             'created_at',
         ]
 
@@ -77,6 +78,10 @@ class ClubSerializer(serializers.ModelSerializer):
     closures = ClubClosureSerializer(many=True, read_only=True)
     date_overrides = DateOverrideSerializer(many=True, read_only=True)
 
+    # Add calculated properties so frontend doesn't have to do the math
+    effective_require_guardian = serializers.BooleanField(source='should_require_guardian', read_only=True)
+    effective_registration_allowed = serializers.BooleanField(source='is_registration_allowed', read_only=True)
+
     class Meta:
         model = Club
         fields = [
@@ -87,6 +92,12 @@ class ClubSerializer(serializers.ModelSerializer):
             'latitude', 'longitude', 
             'allowed_age_groups', 'club_categories',
             'regular_hours', 'closures', 'date_overrides',
+            # New fields:
+            'allow_self_registration_override', 
+            'require_guardian_override',
+            # Computed fields:
+            'effective_require_guardian',
+            'effective_registration_allowed',
             'created_at'
         ]
 
@@ -111,8 +122,20 @@ class ClubManagementSerializer(serializers.ModelSerializer):
             'avatar', 'hero_image',
             'address', 'latitude', 'longitude',
             'club_categories',  # Removed allowed_age_groups as it's now handled per hour
+            'allow_self_registration_override',
+            'require_guardian_override',
             'regular_hours_data'
         ]
+
+    def to_internal_value(self, data):
+        # Convert empty strings to None for override fields (FormData sends empty strings)
+        if 'allow_self_registration_override' in data and data['allow_self_registration_override'] == '':
+            data = data.copy()
+            data['allow_self_registration_override'] = None
+        if 'require_guardian_override' in data and data['require_guardian_override'] == '':
+            data = data.copy()
+            data['require_guardian_override'] = None
+        return super().to_internal_value(data)
 
     def create(self, validated_data):
         hours_json = validated_data.pop('regular_hours_data', None)
