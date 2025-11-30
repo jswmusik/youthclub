@@ -13,6 +13,20 @@ class GroupAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')
     filter_horizontal = ('interests',) # Makes selecting many interests easier
     inlines = [MembershipInline] # Allows editing members directly inside the Group page
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'avatar', 'background_image')
+        }),
+        ('Scope & Ownership', {
+            'fields': ('municipality', 'club')
+        }),
+        ('Configuration', {
+            'fields': ('group_type', 'target_member_type', 'is_system_group', 'system_group_type')
+        }),
+        ('Eligibility Rules', {
+            'fields': ('min_age', 'max_age', 'grades', 'genders', 'interests', 'custom_field_rules')
+        }),
+    )
 
 @admin.register(GroupMembership)
 class GroupMembershipAdmin(admin.ModelAdmin):

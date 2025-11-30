@@ -5,7 +5,15 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '../../lib/api';
 import Toast from './Toast';
-import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ConfirmationModal from './ConfirmationModal';
+import { getMediaUrl } from '../utils';
+
+// Helper function to get initials from first and last name
+const getInitials = (first?: string | null, last?: string | null): string => {
+  const firstInitial = first?.charAt(0)?.toUpperCase() || '';
+  const lastInitial = last?.charAt(0)?.toUpperCase() || '';
+  return `${firstInitial}${lastInitial}` || '?';
+};
 
 interface GroupDetailProps {
   groupId: string;
@@ -18,6 +26,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
   const [group, setGroup] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
+  const [customFields, setCustomFields] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'MEMBERS' | 'SETTINGS'>('DASHBOARD');
   const [loading, setLoading] = useState(true);
   
@@ -50,14 +59,17 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [groupRes, analyticsRes, membersRes] = await Promise.all([
+      const [groupRes, analyticsRes, membersRes, customFieldsRes] = await Promise.all([
         api.get(`/groups/${groupId}/`),
         api.get(`/groups/${groupId}/analytics/`),
-        api.get(`/groups/${groupId}/members/`)
+        api.get(`/groups/${groupId}/members/`),
+        api.get('/custom-fields/').catch(() => ({ data: [] })) // Fetch custom fields, but don't fail if it errors
       ]);
       setGroup(groupRes.data);
       setAnalytics(analyticsRes.data);
       setMembers(membersRes.data.results || membersRes.data);
+      const fieldsData = Array.isArray(customFieldsRes.data) ? customFieldsRes.data : customFieldsRes.data.results;
+      setCustomFields(fieldsData || []);
     } catch (err) {
       console.error(err);
       setToast({ message: 'Failed to load group details.', type: 'error', isVisible: true });
@@ -240,10 +252,10 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {m.user_avatar ? (
-                        <img src={m.user_avatar} className="w-8 h-8 rounded-full object-cover" />
+                        <img src={getMediaUrl(m.user_avatar) || m.user_avatar} className="w-8 h-8 rounded-full object-cover" alt={m.user_name} />
                       ) : (
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold">
-                          {m.user_name.charAt(0)}
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                          {getInitials(m.user_first_name, m.user_last_name)}
                         </div>
                       )}
                       <span className="font-medium text-gray-900">{m.user_name}</span>
@@ -330,18 +342,39 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                 )}
               </div>
             </div>
+            {group.custom_field_rules && Object.keys(group.custom_field_rules).length > 0 && (
+              <div className="col-span-2">
+                <span className="block text-gray-500 font-bold uppercase text-xs mb-2">Custom Field Rules</span>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(group.custom_field_rules).map(([fieldId, value]: [string, any]) => {
+                    const field = customFields.find((f: any) => f.id.toString() === fieldId);
+                    const fieldName = field?.name || `Field #${fieldId}`;
+                    let displayValue = value;
+                    if (typeof value === 'boolean') {
+                      displayValue = value ? 'Yes' : 'No';
+                    }
+                    return (
+                      <span key={fieldId} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md text-xs font-medium border border-blue-100">
+                        <b>{fieldName}</b>: {displayValue}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* MODALS */}
-      <DeleteConfirmationModal
+      <ConfirmationModal
         isVisible={!!memberToRemove}
         onClose={() => setMemberToRemove(null)}
         onConfirm={handleRemoveMember}
         title="Remove Member"
         message="Are you sure you want to remove this member from the group?"
         confirmButtonText="Remove"
+        variant="warning"
       />
 
       <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} />

@@ -186,6 +186,139 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
     
+    @action(detail=False, methods=['get'], url_path='group_feed')
+    def group_feed(self, request):
+        """
+        Returns posts for a SPECIFIC group (group ID passed as query parameter).
+        Filters posts that target this group, then applies PostEngine filters
+        but bypasses group membership check (since we're already filtering by group).
+        Also includes posts authored by the current user.
+        """
+        user = request.user
+        group_id = request.query_params.get('group')
+        
+        if not group_id:
+            return Response(
+                {"error": "group query parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            group_id = int(group_id)
+        except ValueError:
+            return Response(
+                {"error": "group must be a valid integer"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 1. Filter posts that target this group OR are authored by the user
+        group_posts = Post.objects.filter(
+            Q(target_groups__id=group_id) | Q(author=user)
+        ).distinct()
+        
+        # 2. Apply PostEngine to get posts user can see (this includes group membership check)
+        # Then manually add back posts that target this group but user might not be member of
+        engine_posts = PostEngine.get_posts_for_user(user, queryset=group_posts)
+        engine_post_ids = set(engine_posts.values_list('id', flat=True))
+        
+        # 3. Also include posts that target this group and pass other checks (age, gender, etc.)
+        # but bypass group membership requirement
+        now = timezone.now()
+        additional_posts = group_posts.filter(
+            status=Post.Status.PUBLISHED
+        ).filter(
+            Q(published_at__isnull=True) | Q(published_at__lte=now)
+        ).filter(
+            Q(visibility_start_date__isnull=True) | Q(visibility_start_date__lte=now)
+        ).filter(
+            Q(visibility_end_date__isnull=True) | Q(visibility_end_date__gte=now)
+        ).filter(
+            target_groups__id=group_id  # Must target this group
+        )
+        
+        # Apply other PostEngine checks manually (member type, age, gender, interests)
+        # but skip group membership check
+        from users.models import User
+        from datetime import date
+        
+        matching_additional_ids = []
+        for post in additional_posts:
+            if post.id in engine_post_ids:
+                continue  # Already included
+            
+            # Check member type
+            if user.role == User.Role.YOUTH_MEMBER:
+                if post.target_member_type not in [Post.TargetMemberType.YOUTH, Post.TargetMemberType.BOTH]:
+                    continue
+            elif user.role == User.Role.GUARDIAN:
+                if post.target_member_type not in [Post.TargetMemberType.GUARDIAN, Post.TargetMemberType.BOTH]:
+                    continue
+            
+            # Check age (if specified)
+            if user.date_of_birth and (post.target_min_age or post.target_max_age):
+                today = date.today()
+                age = today.year - user.date_of_birth.year - ((today.month, today.day) < (user.date_of_birth.month, user.date_of_birth.day))
+                if post.target_min_age and age < post.target_min_age:
+                    continue
+                if post.target_max_age and age > post.target_max_age:
+                    continue
+            
+            # Check gender (if specified)
+            if post.target_genders and len(post.target_genders) > 0:
+                if user.legal_gender not in post.target_genders:
+                    continue
+            
+            # Check interests (if specified)
+            if post.target_interests.exists():
+                user_interest_ids = set(user.interests.values_list('id', flat=True))
+                post_interest_ids = set(post.target_interests.values_list('id', flat=True))
+                if not user_interest_ids.intersection(post_interest_ids):
+                    continue
+            
+            # Check grades (if specified)
+            if post.target_grades and len(post.target_grades) > 0:
+                if user.grade not in post.target_grades:
+                    continue
+            
+            matching_additional_ids.append(post.id)
+        
+        # Combine both sets of posts
+        all_post_ids = list(engine_post_ids) + matching_additional_ids
+        
+        # If no posts found, return empty queryset
+        if not all_post_ids:
+            queryset = Post.objects.none()
+        else:
+            queryset = Post.objects.filter(id__in=all_post_ids)
+        
+        # 4. Add annotations (same as feed)
+        queryset = queryset.annotate(
+            comment_count=Count('comments', filter=Q(comments__is_approved=True)),
+            reaction_count=Count('reactions')
+        )
+        
+        # Add user_has_reacted annotation
+        queryset = queryset.annotate(
+            user_has_reacted=Exists(
+                PostReaction.objects.filter(
+                    post=OuterRef('pk'),
+                    user=user
+                )
+            )
+        )
+        
+        # Order by published_at (or created_at as fallback)
+        queryset = queryset.order_by('-is_pinned', '-published_at', '-created_at')
+        
+        # 5. Pagination & Serialization
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    
     @action(detail=False, methods=['get'])
     def interacted(self, request):
         """

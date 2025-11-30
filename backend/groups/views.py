@@ -17,12 +17,15 @@ class GroupViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Filter groups based on who is asking.
+        Filter groups based on visibility scope.
         """
         user = self.request.user
-        queryset = Group.objects.none()
+        
+        # Unauthenticated or Swagger generation
+        if not user.is_authenticated:
+            return Group.objects.none()
 
-        # 1. Determine Base Scope based on Role
+        # 1. Admins see everything in their jurisdiction (No changes here)
         if user.role == 'SUPER_ADMIN':
             queryset = Group.objects.all().order_by('-created_at')
 
@@ -36,20 +39,40 @@ class GroupViewSet(viewsets.ModelViewSet):
             queryset = Group.objects.filter(club=user.assigned_club).order_by('-created_at')
 
         else:
-            # 4. Regular Members (Youth/Guardian)
-            # They see OPEN groups, APPLICATION groups (so they can apply), OR groups they are already in.
-            queryset = Group.objects.filter(
-                Q(group_type='OPEN') | 
-                Q(group_type='APPLICATION') |  # Add this so they can see/apply
-                Q(memberships__user=user)
-            ).distinct()
+            # 2. Youth / Guardians (The Search Logic)
+            
+            # Start with groups the user is ALREADY in (so they don't disappear)
+            base_query = Q(memberships__user=user)
 
-        # --- NEW: Filter by specific Club (for Club Profile Page) ---
+            # Add PUBLICLY visible groups based on Scope
+            # Scope A: Global Groups
+            scope_query = Q(municipality__isnull=True, club__isnull=True)
+            
+            # Scope B: My Municipality (Groups created directly by Muni)
+            if user.assigned_municipality:
+                scope_query |= Q(municipality=user.assigned_municipality, club__isnull=True)
+
+            # Scope C: My Primary Club
+            if user.assigned_club:
+                scope_query |= Q(club=user.assigned_club)
+
+            # Scope D: Followed Clubs (NEW)
+            # We get the IDs of clubs the user follows
+            if hasattr(user, 'followed_clubs'):
+                scope_query |= Q(club__in=user.followed_clubs.all())
+
+            # Combine: (Am Member) OR ((In Scope) AND (Is Open/App))
+            # We filter for OPEN/APPLICATION because 'CLOSED' groups shouldn't show up in search unless you are already a member.
+            final_query = base_query | (scope_query & Q(group_type__in=['OPEN', 'APPLICATION']))
+
+            queryset = Group.objects.filter(final_query).distinct().order_by('-created_at')
+
+        # --- Filter by specific Club (for Club Profile Page) ---
         club_param = self.request.query_params.get('club')
         if club_param:
             queryset = queryset.filter(club_id=club_param)
 
-        return queryset
+        return queryset.distinct()
 
     def perform_create(self, serializer):
         user = self.request.user

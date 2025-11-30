@@ -6,6 +6,7 @@ import api from '../../lib/api';
 import Toast from './Toast';
 import MemberSelector from './MemberSelector';
 import CustomRuleBuilder from './CustomRuleBuilder';
+import { getMediaUrl } from '../utils';
 
 interface Interest {
   id: number;
@@ -30,6 +31,12 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
   const [loading, setLoading] = useState(false);
   const [interestsList, setInterestsList] = useState<Interest[]>([]);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  
+  // File uploads
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [backgroundImageFile, setBackgroundImageFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -68,8 +75,28 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
         custom_field_rules: initialData.custom_field_rules || {}, // Load existing rules
         members_to_add: [],
       });
+      
+      // Set previews for existing images
+      if (initialData.avatar) {
+        setAvatarPreview(getMediaUrl(initialData.avatar));
+      }
+      if (initialData.background_image) {
+        setBackgroundPreview(getMediaUrl(initialData.background_image));
+      }
     }
   }, [initialData]);
+  
+  // Clean up object URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (avatarPreview && avatarPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+      if (backgroundPreview && backgroundPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(backgroundPreview);
+      }
+    };
+  }, [avatarPreview, backgroundPreview]);
 
   // --- Handlers ---
 
@@ -97,24 +124,80 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
     });
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (avatarPreview && avatarPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setAvatarPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBackgroundChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (backgroundPreview && backgroundPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(backgroundPreview);
+      }
+      setBackgroundImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setBackgroundPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const payload = {
-      ...formData,
-      min_age: formData.min_age ? parseInt(formData.min_age as string) : null,
-      max_age: formData.max_age ? parseInt(formData.max_age as string) : null,
-    };
-
     try {
+      const data = new FormData();
+      
+      // Basic fields
+      data.append('name', formData.name);
+      data.append('description', formData.description);
+      data.append('group_type', formData.group_type);
+      data.append('target_member_type', formData.target_member_type);
+      
+      if (formData.min_age) {
+        data.append('min_age', parseInt(formData.min_age as string).toString());
+      }
+      if (formData.max_age) {
+        data.append('max_age', parseInt(formData.max_age as string).toString());
+      }
+      
+      // Arrays
+      data.append('grades', JSON.stringify(formData.grades));
+      data.append('genders', JSON.stringify(formData.genders));
+      formData.interests.forEach(id => data.append('interests', id.toString()));
+      
+      // Custom field rules - always send, even if empty
+      data.append('custom_field_rules', JSON.stringify(formData.custom_field_rules || {}));
+      
+      // File uploads - only append if new files are selected
+      if (avatarFile) {
+        data.append('avatar', avatarFile);
+      }
+      if (backgroundImageFile) {
+        data.append('background_image', backgroundImageFile);
+      }
+      
+      // Members to add
+      formData.members_to_add.forEach(id => data.append('members_to_add', id.toString()));
+
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+
       if (initialData) {
         // Update
-        await api.patch(`/groups/${initialData.id}/`, payload);
+        await api.patch(`/groups/${initialData.id}/`, data, config);
         setToast({ message: 'Group updated successfully!', type: 'success', isVisible: true });
       } else {
         // Create
-        await api.post('/groups/', payload);
+        await api.post('/groups/', data, config);
         setToast({ message: 'Group created successfully!', type: 'success', isVisible: true });
       }
       
@@ -181,6 +264,48 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
             value={formData.description}
             onChange={e => setFormData({...formData, description: e.target.value})}
           />
+        </div>
+
+        {/* Avatar Upload */}
+        <div>
+          <label className="block text-sm font-bold mb-1">Avatar Image</label>
+          <div className="flex items-center gap-4">
+            {avatarPreview && (
+              <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="flex-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="w-full border p-2 rounded-lg text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">Square image recommended (e.g., 400x400px)</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Background Image Upload */}
+        <div>
+          <label className="block text-sm font-bold mb-1">Background Image</label>
+          <div className="flex items-center gap-4">
+            {backgroundPreview && (
+              <div className="w-32 h-20 rounded-lg overflow-hidden border border-gray-200">
+                <img src={backgroundPreview} alt="Background preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="flex-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBackgroundChange}
+                className="w-full border p-2 rounded-lg text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">Wide image recommended (e.g., 1200x400px)</p>
+            </div>
+          </div>
         </div>
       </div>
 

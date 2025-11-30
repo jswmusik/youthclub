@@ -28,7 +28,14 @@ export default function CustomRuleBuilder({ currentRules, onChange }: CustomRule
     // Fetch fields available to this admin
     api.get('/custom-fields/').then(res => {
       const data = Array.isArray(res.data) ? res.data : res.data.results;
-      setFields(data || []);
+      // Filter to only include BOOLEAN, SINGLE_SELECT, and MULTI_SELECT fields (exclude TEXT)
+      const filteredFields = (data || []).filter(
+        (field: CustomField) => 
+          field.field_type === 'BOOLEAN' || 
+          field.field_type === 'SINGLE_SELECT' || 
+          field.field_type === 'MULTI_SELECT'
+      );
+      setFields(filteredFields);
       setLoading(false);
     });
   }, []);
@@ -107,15 +114,6 @@ export default function CustomRuleBuilder({ currentRules, onChange }: CustomRule
             </select>
           )}
 
-          {selectedField && selectedField.field_type === 'TEXT' && (
-            <input 
-              type="text" 
-              className="w-full border p-2 rounded text-sm" 
-              placeholder="Type value..."
-              value={selectedValue}
-              onChange={e => setSelectedValue(e.target.value)}
-            />
-          )}
         </div>
 
         {/* Add Button */}

@@ -24,6 +24,7 @@ class Group(models.Model):
     description = models.TextField(blank=True)
     # Using the same file validator you used in other apps
     avatar = models.FileField(upload_to='groups/avatars/', blank=True, null=True)
+    background_image = models.FileField(upload_to='groups/backgrounds/', blank=True, null=True)
     
     # --- Scope & Ownership ---
     # If both are null, it's a Global Group (Super Admin only)

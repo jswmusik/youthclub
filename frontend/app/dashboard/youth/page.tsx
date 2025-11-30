@@ -106,74 +106,102 @@ export default function YouthDashboard() {
     return (
         <div className="min-h-screen bg-gray-100">
             <NavBar />
-            <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto p-4 lg:p-8">
-            {/* Sidebar (Navigation) - You can extract this to a component */}
-            <aside className="lg:w-1/4 hidden lg:block">
-                <div className="sticky top-20 space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <h3 className="font-bold text-gray-800 mb-4">Menu</h3>
-                        <ul className="space-y-3 text-gray-600">
-                            {/* Your Feed - Current page, just scroll to top */}
-                            <li 
-                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="font-bold text-blue-600 hover:text-blue-700 cursor-pointer transition-colors"
+            <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
+            <div className="flex flex-col md:flex-row gap-8">
+            {/* Sidebar (Navigation) - Styled like groups page */}
+            <aside className="w-full md:w-64 flex-shrink-0 space-y-8 md:sticky md:top-[72px] md:self-start md:max-h-[calc(100vh-88px)] md:overflow-y-auto">
+                {/* Header */}
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                    <p className="text-sm text-gray-500 mt-1">Your Activity & Navigation</p>
+                </div>
+
+                {/* Navigation Menu */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Navigation</label>
+                    <div className="space-y-1">
+                        {/* Your Feed - Current page, just scroll to top */}
+                        <button
+                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors bg-blue-50 text-blue-700 font-medium"
+                        >
+                            Your Feed
+                        </button>
+                        
+                        {/* Groups - Link to groups page */}
+                        <button
+                            onClick={() => router.push('/dashboard/youth/groups')}
+                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50 flex items-center justify-between group"
+                        >
+                            <span className="group-hover:text-blue-600">Groups</span>
+                            {(() => {
+                                const memberships = (user as any)?.my_memberships || [];
+                                const approvedCount = memberships.filter((m: any) => m.status === 'APPROVED').length;
+                                return approvedCount > 0 ? (
+                                    <span className="bg-yellow-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                        {approvedCount}
+                                    </span>
+                                ) : null;
+                            })()}
+                        </button>
+                        
+                        {/* My Groups - Link to profile clubs tab */}
+                        <button
+                            onClick={() => router.push('/dashboard/youth/profile?tab=clubs')}
+                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50"
+                        >
+                            My Groups
+                        </button>
+                        
+                        {/* My Guardians */}
+                        <button
+                            onClick={() => router.push('/dashboard/youth/profile?tab=guardians')}
+                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50"
+                        >
+                            My Guardians
+                        </button>
+                        
+                        {/* My Club - Link to preferred club */}
+                        {user?.preferred_club?.id ? (
+                            <button
+                                onClick={() => router.push(`/dashboard/youth/club/${user.preferred_club.id}`)}
+                                className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50"
                             >
-                                Your Feed
-                            </li>
-                            
-                            {/* My Groups - Link to profile clubs tab */}
-                            <li 
-                                onClick={() => router.push('/dashboard/youth/profile?tab=clubs')}
-                                className="hover:text-blue-600 cursor-pointer transition-colors flex items-center justify-between group"
+                                My Club
+                            </button>
+                        ) : (
+                            <button
+                                disabled
+                                className="w-full text-left px-3 py-2 rounded-md text-sm text-gray-400 cursor-not-allowed"
                             >
-                                <span className="group-hover:text-blue-600">My Groups</span>
-                                {(() => {
-                                    const memberships = (user as any)?.my_memberships || [];
-                                    const approvedCount = memberships.filter((m: any) => m.status === 'APPROVED').length;
-                                    return approvedCount > 0 ? (
-                                        <span className="bg-yellow-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                                            {approvedCount}
-                                        </span>
-                                    ) : null;
-                                })()}
-                            </li>
-                            
-                            {/* My Guardians - NEW */}
-                            <li 
-                                onClick={() => router.push('/dashboard/youth/profile?tab=guardians')}
-                                className="hover:text-blue-600 cursor-pointer transition-colors flex items-center gap-2"
-                            >
-                                <span>My Guardians</span>
-                            </li>
-                            
-                            {/* My Club - Link to preferred club */}
-                            {user?.preferred_club?.id ? (
-                                <li 
-                                    onClick={() => router.push(`/dashboard/youth/club/${user.preferred_club.id}`)}
-                                    className="hover:text-blue-600 cursor-pointer transition-colors"
-                                >
-                                    My Club
-                                </li>
-                            ) : (
-                                <li className="text-gray-400 cursor-not-allowed">
-                                    My Club
-                                </li>
-                            )}
-                            
-                            {/* Events - No link, but show badge */}
-                            <li className="flex items-center justify-between">
-                                <span className="text-gray-400 cursor-not-allowed">Events</span>
-                                <span className="bg-yellow-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                                    6
-                                </span>
-                            </li>
-                        </ul>
+                                My Club
+                            </button>
+                        )}
+                        
+                        {/* News */}
+                        <button
+                            onClick={() => router.push('/dashboard/youth/news')}
+                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50"
+                        >
+                            News
+                        </button>
+                        
+                        {/* Events - No link, but show badge */}
+                        <button
+                            disabled
+                            className="w-full text-left px-3 py-2 rounded-md text-sm text-gray-400 cursor-not-allowed flex items-center justify-between"
+                        >
+                            <span>Events</span>
+                            <span className="bg-yellow-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                6
+                            </span>
+                        </button>
                     </div>
                 </div>
             </aside>
 
             {/* Main Feed */}
-            <main className="lg:w-1/2 flex-1">
+            <main className="flex-1">
                 {/* Welcome Banner */}
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg mb-8">
                     <h1 className="text-2xl font-bold mb-2">Welcome back! 👋</h1>
@@ -220,7 +248,7 @@ export default function YouthDashboard() {
 
             {/* Right Sidebar (Trending/Events) */}
             <aside className="lg:w-1/4 hidden lg:block">
-                <div className="sticky top-20">
+                <div className="sticky top-[72px] self-start max-h-[calc(100vh-88px)] overflow-y-auto">
                     {/* Preferred Club Card */}
                     <PreferredClubCard club={user?.preferred_club || null} />
                     
@@ -231,6 +259,7 @@ export default function YouthDashboard() {
                     </div>
                 </div>
             </aside>
+            </div>
         </div>
         </div>
     );

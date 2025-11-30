@@ -34,29 +34,48 @@ export interface Club {
     longitude?: number | null;
 }
 
+export interface Eligibility {
+    is_eligible: boolean;
+    reasons: string[];
+}
+
 export interface Group {
     id: number;
     name: string;
     description: string;
     avatar: string | null;
-    municipality: number | null;
-    municipality_name?: string;
-    club: number | null;
-    club_name?: string;
+    background_image: string | null;
     group_type: 'OPEN' | 'APPLICATION' | 'CLOSED';
-    target_member_type: 'YOUTH' | 'GUARDIAN';
-    is_system_group: boolean;
+    
+    // Ownership
+    municipality?: number | { id: number; name: string }; // Depending on how you expand it
+    club?: number | { id: number; name: string };
+    
+    // Display fields from Serializer
+    club_name?: string;
+    municipality_name?: string;
+
+    // Criteria
+    min_age: number | null;
+    max_age: number | null;
+    grades: number[];
+    genders: string[];
+    
+    // Computed fields
+    eligibility: Eligibility;
+    membership_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+    
+    // Optional fields (for admin views or detailed views)
+    target_member_type?: 'YOUTH' | 'GUARDIAN';
+    is_system_group?: boolean;
     system_group_type?: string;
-    min_age?: number | null;
-    max_age?: number | null;
-    grades?: number[];
-    genders?: string[];
     interests?: number[];
     interests_details?: Array<{ id: number; name: string }>;
     custom_field_rules?: Record<string, any>;
-    member_count: number;
-    pending_request_count: number;
-    user_status?: 'APPROVED' | 'PENDING' | null; // User's membership status
+    member_count?: number;
+    pending_request_count?: number;
+    user_status?: 'APPROVED' | 'PENDING' | null; // User's membership status (legacy)
+    
     created_at: string;
 }
 
