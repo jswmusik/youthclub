@@ -80,7 +80,18 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
       const iId = typeof id === 'object' ? id.id : id;
       return interests.find(x => x.id === iId);
   }).filter(Boolean) || [];
-  const userGuardians = user.guardians?.map((id: number) => guardians.find(g => g.id === id)).filter(Boolean) || [];
+  
+  // Guardians: The serializer returns full objects, not just IDs
+  const userGuardians = user.guardians?.map((guardian: any) => {
+    // If it's already an object with first_name, use it directly
+    if (guardian && typeof guardian === 'object' && guardian.first_name) {
+      return guardian;
+    }
+    // Otherwise, try to find it in the guardiansList (fallback)
+    const guardianId = typeof guardian === 'object' ? guardian.id : guardian;
+    return guardians.find(g => g.id === guardianId);
+  }).filter(Boolean) || [];
+  
   const age = calculateAge(user.date_of_birth);
 
   return (
@@ -108,9 +119,16 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           </Link>
         </div>
 
-        {/* Cover Section with Gradient */}
+        {/* Cover Section with Background Image or Gradient */}
         <div className="relative mb-32 md:mb-40">
-          <div className="h-48 md:h-64 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl shadow-2xl overflow-hidden">
+          <div 
+            className="h-48 md:h-64 rounded-2xl shadow-2xl overflow-hidden bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
+            style={{
+              backgroundImage: user.background_image ? `url(${getMediaUrl(user.background_image)})` : undefined,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          >
             <div className="absolute inset-0 bg-black/10"></div>
           </div>
 
@@ -152,12 +170,19 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
                         </span>
                       )}
                     </h1>
-                    <p className="text-base md:text-lg text-gray-600 mb-4 flex items-center gap-2 flex-wrap">
+                    <p className="text-base md:text-lg text-gray-600 mb-3 flex items-center gap-2 flex-wrap">
                       <svg className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                       <span className="break-all">{user.email}</span>
                     </p>
+                    {/* Mood Status */}
+                    {user.mood_status && (
+                      <div className="mb-4 flex items-center gap-2 text-sm md:text-base text-gray-700 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200 w-fit">
+                        <span className="text-gray-500">💬</span>
+                        <span className="font-medium">{user.mood_status}</span>
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold ${
                         user.verification_status === 'VERIFIED' ? 'bg-green-100 text-green-800' :

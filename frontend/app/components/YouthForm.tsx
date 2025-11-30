@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
-import { getMediaUrl } from '../../app/utils';
+import { getMediaUrl } from '../utils';
 import Toast from './Toast';
 import CustomFieldsForm from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
@@ -34,9 +34,14 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
   const [interestSearchTerm, setInterestSearchTerm] = useState('');
   const [showInterestDropdown, setShowInterestDropdown] = useState(false);
 
-  // Files
+  // --- VISUALS STATE ---
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(initialData?.avatar ? getMediaUrl(initialData.avatar) : null);
+  
+  const [bgFile, setBgFile] = useState<File | null>(null);
+  const [bgPreview, setBgPreview] = useState<string | null>(initialData?.background_image ? getMediaUrl(initialData.background_image) : null);
+  
+  const [mood, setMood] = useState(initialData?.mood_status || '');
 
   // Main Form Data
   const [formData, setFormData] = useState({
@@ -96,6 +101,13 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
     if (e.target.files?.[0]) {
       setAvatarFile(e.target.files[0]);
       setAvatarPreview(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const handleBgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setBgFile(e.target.files[0]);
+      setBgPreview(URL.createObjectURL(e.target.files[0]));
     }
   };
 
@@ -174,7 +186,18 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
       // Fixed Role
       data.append('role', 'YOUTH_MEMBER');
       
-      if (avatarFile) data.append('avatar', avatarFile);
+      // Visuals - only append files if they're new uploads
+      // For updates, if no new file is selected, backend will keep existing image
+      if (avatarFile) {
+        data.append('avatar', avatarFile);
+      }
+      if (bgFile) {
+        data.append('background_image', bgFile);
+      }
+      // Always append mood_status (can be empty string)
+      if (mood !== undefined) {
+        data.append('mood_status', mood);
+      }
 
       // Auto-assign context for Club Admin if they didn't select one (though dropdown handles it)
       if (scope === 'CLUB' && currentUser?.assigned_club && !formData.preferred_club) {
@@ -217,6 +240,81 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
       
       <form onSubmit={handleSubmit} className="space-y-6">
         
+        {/* --- 0. VISUALS SECTION --- */}
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="font-bold text-gray-700">Profile Visuals</h3>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Background Image */}
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Cover Image</label>
+                    <div 
+                        className="h-32 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:bg-gray-50 transition"
+                    >
+                        {bgPreview ? (
+                            <img src={bgPreview} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                            <div className="text-center text-gray-400">
+                                <svg className="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <span className="text-xs">Upload Cover</span>
+                            </div>
+                        )}
+                        {/* Hover Overlay */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition pointer-events-none">
+                            <span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded">Change</span>
+                        </div>
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                            onChange={handleBgChange}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                </div>
+
+                {/* Avatar & Mood */}
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Avatar</label>
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-full bg-gray-100 border border-gray-200 overflow-hidden relative group">
+                                {avatarPreview ? (
+                                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                    </div>
+                                )}
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                    onChange={handleAvatarChange}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-xs text-gray-500 mb-1">Click image to change</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Mood Status</label>
+                        <input 
+                            type="text" 
+                            placeholder="e.g. Playing FIFA..." 
+                            className="w-full border p-2 rounded text-sm"
+                            value={mood}
+                            onChange={(e) => setMood(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {/* 1. IDENTITY */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <input required type="text" placeholder="First Name" className="border p-2 rounded" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
@@ -449,13 +547,6 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     </>
                 )}
             </div>
-        </div>
-
-        {/* 5. AVATAR */}
-        <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Avatar</label>
-            <input type="file" accept="image/*" className="w-full border p-2 rounded" onChange={handleAvatarChange} />
-            {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
         </div>
 
         {/* 6. CUSTOM FIELDS */}
