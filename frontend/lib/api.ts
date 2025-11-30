@@ -215,6 +215,44 @@ export const fetchUserActivityFeed = async (page = 1) => {
     return api.get(`/posts/interactions/?page=${page}`); 
 };
 
+// --- YOUTH GUARDIANS MANAGEMENT ---
+
+export const fetchMyGuardians = () => api.get('/youth/guardians/');
+
+export const inviteGuardian = (data: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    relationship_type: string;
+    is_primary_guardian: boolean;
+    phone_number?: string;
+    legal_gender?: string;
+}) => api.post('/youth/guardians/', data);
+
+export const removeGuardianLink = (linkId: number) => api.delete(`/youth/guardians/${linkId}/`);
+
+// --- ADMIN GUARDIAN RELATIONSHIP MANAGEMENT ---
+export const fetchGuardianRelationships = async (params?: { guardian_id?: number; youth_id?: number; status?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.guardian_id) queryParams.append('guardian', params.guardian_id.toString());
+    if (params?.youth_id) queryParams.append('youth', params.youth_id.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    const query = queryParams.toString();
+    return api.get(`/admin/guardian-relationships/${query ? `?${query}` : ''}`);
+};
+
+export const verifyGuardianRelationship = async (linkId: number) => {
+    return api.post(`/admin/guardian-relationships/${linkId}/verify/`);
+};
+
+export const rejectGuardianRelationship = async (linkId: number) => {
+    return api.post(`/admin/guardian-relationships/${linkId}/reject/`);
+};
+
+export const resetGuardianRelationship = async (linkId: number) => {
+    return api.post(`/admin/guardian-relationships/${linkId}/reset/`);
+};
+
 // --- ADMIN USER MANAGEMENT ---
 
 /**

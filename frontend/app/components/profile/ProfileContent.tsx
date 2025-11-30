@@ -7,8 +7,9 @@ import { getMediaUrl } from '@/app/utils';
 import ActivityFeed from './tabs/ActivityFeed';
 import ClubsAndGroups from './tabs/ClubsAndGroups';
 import WalletGrid from './tabs/WalletGrid';
+import YouthGuardianManager from '../youth/guardians/YouthGuardianManager';
 
-const VALID_TABS = ['overview', 'clubs', 'wallet', 'timeline'];
+const VALID_TABS = ['overview', 'clubs', 'guardians', 'wallet', 'timeline'];
 
 export default function ProfileContent({ user }: { user: any }) {
   const searchParams = useSearchParams();
@@ -53,9 +54,11 @@ export default function ProfileContent({ user }: { user: any }) {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab user={user} getAge={getAge} />;
+        return <OverviewTab user={user} getAge={getAge} onSwitchTab={handleTabChange} />;
       case 'clubs':
         return <ClubsAndGroups user={user} />;
+      case 'guardians':
+        return <YouthGuardianManager />;
       case 'wallet':
         return <WalletGrid user={user} />;
       case 'timeline':
@@ -81,7 +84,7 @@ export default function ProfileContent({ user }: { user: any }) {
 
 // --- SUB-COMPONENTS (We can move these to separate files later) ---
 
-function OverviewTab({ user, getAge }: { user: any, getAge: (d: string) => number | null }) {
+function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: string) => number | null, onSwitchTab: (t: string) => void }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       
@@ -146,12 +149,28 @@ function OverviewTab({ user, getAge }: { user: any, getAge: (d: string) => numbe
 
         {/* Guardians Card */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h3 className="font-bold text-gray-900 mb-4">My Guardians</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-gray-900">My Guardians</h3>
+            {/* Manage Button */}
+            <button 
+                onClick={() => onSwitchTab('guardians')}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline"
+            >
+                Manage
+            </button>
+          </div>
+          
           <div className="space-y-3">
             {/* We map guardians here. If none, show placeholder */}
             {(!user.guardians || user.guardians.length === 0) ? (
                <div className="text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                  <p className="text-sm text-gray-500">No guardians linked.</p>
+                  <p className="text-sm text-gray-500 mb-2">No guardians linked.</p>
+                  <button 
+                    onClick={() => onSwitchTab('guardians')}
+                    className="text-xs bg-white border border-gray-300 px-3 py-1 rounded-md text-gray-700 hover:bg-gray-50"
+                  >
+                    Add Guardian
+                  </button>
                </div>
             ) : (
                user.guardians.map((guardian: any) => {

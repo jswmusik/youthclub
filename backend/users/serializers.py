@@ -10,6 +10,62 @@ from groups.models import GroupMembership
 from rewards.models import RewardUsage
 import re
 
+
+class GuardianYouthLinkSerializer(serializers.ModelSerializer):
+    """
+    Serializer for GuardianYouthLink objects.
+    Includes guardian details for display.
+    """
+    guardian_email = serializers.EmailField(source='guardian.email', read_only=True)
+    guardian_first_name = serializers.CharField(source='guardian.first_name', read_only=True)
+    guardian_last_name = serializers.CharField(source='guardian.last_name', read_only=True)
+    guardian_avatar = serializers.SerializerMethodField()
+    guardian_phone = serializers.CharField(source='guardian.phone_number', read_only=True)
+    # Youth details (for admin views)
+    youth = serializers.IntegerField(source='youth.id', read_only=True)
+    youth_id = serializers.IntegerField(source='youth.id', read_only=True)
+    youth_email = serializers.EmailField(source='youth.email', read_only=True)
+    youth_first_name = serializers.CharField(source='youth.first_name', read_only=True)
+    youth_last_name = serializers.CharField(source='youth.last_name', read_only=True)
+    youth_grade = serializers.IntegerField(source='youth.grade', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = GuardianYouthLink
+        fields = [
+            'id', 'guardian', 'guardian_email', 'guardian_first_name', 
+            'guardian_last_name', 'guardian_avatar', 'guardian_phone',
+            'youth', 'youth_id', 'youth_email', 'youth_first_name', 'youth_last_name', 'youth_grade',
+            'relationship_type', 'is_primary_guardian', 'status',
+            'created_at', 'verified_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'verified_at']
+    
+    def get_guardian_avatar(self, obj):
+        if obj.guardian.avatar:
+            return obj.guardian.avatar.url
+        return None
+
+
+class GuardianLinkCreateSerializer(serializers.Serializer):
+    """
+    Serializer for creating a new guardian link.
+    Handles the "search vs. create" logic.
+    """
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required=True, max_length=150)
+    last_name = serializers.CharField(required=True, max_length=150)
+    relationship_type = serializers.ChoiceField(
+        choices=GuardianYouthLink.RELATIONSHIP_CHOICES,
+        default='GUARDIAN'
+    )
+    is_primary_guardian = serializers.BooleanField(default=False)
+    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    legal_gender = serializers.ChoiceField(
+        choices=User.Gender.choices,
+        required=False,
+        allow_blank=True
+    )
+
 class CustomUserSerializer(serializers.ModelSerializer):
     """
     Standard serializer for reading user data.
@@ -66,8 +122,23 @@ class CustomUserSerializer(serializers.ModelSerializer):
         ]
 
     def get_youth_members(self, obj):
-        # If obj is a Guardian, return their youth
-        return list(obj.youth_links.values_list('youth_id', flat=True))
+        # If obj is a Guardian, return their youth with relationship details
+        youth_links = obj.youth_links.select_related('youth').all()
+        return [
+            {
+                'id': link.youth.id,
+                'first_name': link.youth.first_name,
+                'last_name': link.youth.last_name,
+                'email': link.youth.email,
+                'relationship_id': link.id,  # ID of the GuardianYouthLink
+                'relationship_type': link.relationship_type,
+                'status': link.status,
+                'is_primary_guardian': link.is_primary_guardian,
+                'verified_at': link.verified_at.isoformat() if link.verified_at else None,
+                'created_at': link.created_at.isoformat() if link.created_at else None,
+            }
+            for link in youth_links
+        ]
 
     def get_custom_field_values(self, obj):
         # Return custom field values as a list of {field: field_id, value: value}
@@ -172,6 +243,42 @@ class UserManagementSerializer(serializers.ModelSerializer):
             'background_image', 
             'mood_status'
         ]
+        extra_kwargs = {
+            'grade': {'required': False, 'allow_null': True},
+            'preferred_club': {'required': False, 'allow_null': True},
+            'assigned_club': {'required': False, 'allow_null': True},
+            'assigned_municipality': {'required': False, 'allow_null': True},
+            'interests': {'required': False},
+        }
+    
+    def validate(self, attrs):
+        """
+        Clean up fields based on user role.
+        """
+        role = attrs.get('role') or (self.instance.role if self.instance else None)
+        
+        # For guardians, remove fields that don't apply
+        if role == 'GUARDIAN':
+            # Remove youth-specific fields
+            attrs.pop('grade', None)
+            attrs.pop('preferred_club', None)
+            attrs.pop('interests', None)
+            # These should already be None, but ensure they are
+            if 'assigned_club' in attrs:
+                attrs['assigned_club'] = None
+            if 'assigned_municipality' in attrs:
+                attrs['assigned_municipality'] = None
+        
+        # Clean up empty strings - convert to None for optional fields
+        for field in ['nickname', 'preferred_gender', 'phone_number', 'profession', 'background_image', 'mood_status']:
+            if field in attrs and attrs[field] == '':
+                attrs[field] = None
+        
+        # Ensure role is set correctly (should already be set, but double-check)
+        if self.instance and not attrs.get('role'):
+            attrs['role'] = self.instance.role
+        
+        return attrs
 
     def _filter_youth_ids_by_scope(self, youth_ids):
         if not youth_ids:
@@ -254,21 +361,27 @@ class UserManagementSerializer(serializers.ModelSerializer):
                     raw = request_data.getlist('youth_members')
                     if raw: youth_ids = [int(i) for i in raw if i.strip()]
 
-        youth_ids = self._filter_youth_ids_by_scope(youth_ids)
+        # Only filter youth_ids if they exist and instance is a guardian
+        if youth_ids is not None and instance.role == 'GUARDIAN':
+            youth_ids = self._filter_youth_ids_by_scope(youth_ids) if youth_ids else None
 
         if password:
             instance.set_password(password)
         
+        # Only set attributes that are in validated_data and not None (unless explicitly None)
         for attr, value in validated_data.items():
+            # Skip fields that shouldn't be set on guardians
+            if instance.role == 'GUARDIAN' and attr in ['grade', 'preferred_club', 'assigned_club', 'assigned_municipality']:
+                continue
             setattr(instance, attr, value)
         
         instance.save()
         
-        if interests is not None:
+        if interests is not None and instance.role != 'GUARDIAN':
             instance.interests.set(interests)
             
         # Sync Guardians (If User is Youth)
-        if guardian_ids is not None:
+        if guardian_ids is not None and instance.role == 'YOUTH_MEMBER':
             instance.guardian_links.all().delete()
             for gid in guardian_ids:
                 GuardianYouthLink.objects.create(
@@ -276,7 +389,7 @@ class UserManagementSerializer(serializers.ModelSerializer):
                 )
 
         # Sync Youth (If User is Guardian)
-        if youth_ids is not None:
+        if youth_ids is not None and instance.role == 'GUARDIAN':
             instance.youth_links.all().delete()
             for yid in youth_ids:
                 GuardianYouthLink.objects.create(

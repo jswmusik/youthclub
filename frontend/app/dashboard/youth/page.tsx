@@ -138,6 +138,14 @@ export default function YouthDashboard() {
                                 })()}
                             </li>
                             
+                            {/* My Guardians - NEW */}
+                            <li 
+                                onClick={() => router.push('/dashboard/youth/profile?tab=guardians')}
+                                className="hover:text-blue-600 cursor-pointer transition-colors flex items-center gap-2"
+                            >
+                                <span>My Guardians</span>
+                            </li>
+                            
                             {/* My Club - Link to preferred club */}
                             {user?.preferred_club?.id ? (
                                 <li 

@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters, permissions, generics
+from rest_framework import viewsets, filters, permissions, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,7 +7,10 @@ from django.utils import timezone
 from datetime import timedelta, date
 
 from .models import User, GuardianYouthLink, UserLoginHistory
-from .serializers import CustomUserSerializer, UserManagementSerializer, YouthRegistrationSerializer
+from .serializers import (
+    CustomUserSerializer, UserManagementSerializer, YouthRegistrationSerializer,
+    GuardianYouthLinkSerializer, GuardianLinkCreateSerializer
+)
 from .permissions import IsSuperAdmin, IsMunicipalityAdmin, IsClubOrMunicipalityAdmin
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -16,6 +19,20 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     permission_classes = [IsClubOrMunicipalityAdmin]
     lookup_field = 'id'
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Override to add better error handling and logging.
+        """
+        try:
+            return super().update(request, *args, **kwargs)
+        except Exception as e:
+            import traceback
+            print(f"Error updating user: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
+            print(f"Request data: {request.data}")
+            print(f"Request user: {request.user}")
+            raise
 
     def get_queryset(self):
         queryset = User.objects.all().order_by('-date_joined')
@@ -146,14 +163,23 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
+        instance = serializer.instance
+        
         if getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
-            role = serializer.instance.role
+            role = instance.role
             if role == 'YOUTH_MEMBER':
                 serializer.save(preferred_club=user.assigned_club)
+            elif role == 'GUARDIAN':
+                # Guardians don't have assigned_club - save without it
+                serializer.save()
             else:
                 serializer.save(assigned_club=user.assigned_club)
         elif getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
-            serializer.save(assigned_municipality=user.assigned_municipality)
+            # Only set municipality for non-guardian roles (guardians don't have assigned_municipality)
+            if instance.role != 'GUARDIAN':
+                serializer.save(assigned_municipality=user.assigned_municipality)
+            else:
+                serializer.save()
         else:
             serializer.save()
 
@@ -388,6 +414,231 @@ class PublicRegistrationView(generics.CreateAPIView):
     serializer_class = YouthRegistrationSerializer
     permission_classes = [permissions.AllowAny]
     authentication_classes = ()  # Skip authentication entirely for public endpoint (use tuple)
+
+
+class YouthGuardiansViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for youth members to manage their guardians.
+    GET: Returns list of GuardianYouthLink objects for the current user
+    POST: Creates a new guardian link (with search vs. create logic)
+    DELETE: Removes a guardian link
+    """
+    serializer_class = GuardianYouthLinkSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        Return only GuardianYouthLink objects where the current user is the youth.
+        """
+        user = self.request.user
+        if user.role != User.Role.YOUTH_MEMBER:
+            return GuardianYouthLink.objects.none()
+        return GuardianYouthLink.objects.filter(youth=user).select_related('guardian').order_by('-created_at')
+    
+    def create(self, request, *args, **kwargs):
+        """
+        POST /api/youth/guardians/
+        Creates a guardian link. If guardian exists, links them. If not, creates a shadow guardian.
+        """
+        user = request.user
+        
+        # Only youth members can add guardians
+        if user.role != User.Role.YOUTH_MEMBER:
+            return Response(
+                {"error": "Only youth members can add guardians."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = GuardianLinkCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        email = serializer.validated_data['email'].lower().strip()
+        first_name = serializer.validated_data['first_name']
+        last_name = serializer.validated_data['last_name']
+        relationship_type = serializer.validated_data.get('relationship_type', 'GUARDIAN')
+        is_primary_guardian = serializer.validated_data.get('is_primary_guardian', False)
+        phone_number = serializer.validated_data.get('phone_number', '')
+        legal_gender = serializer.validated_data.get('legal_gender', 'MALE')  # Default to MALE if not provided
+        
+        # Check if link already exists
+        existing_link = GuardianYouthLink.objects.filter(
+            youth=user,
+            guardian__email=email
+        ).first()
+        
+        if existing_link:
+            return Response(
+                {"error": "This guardian is already linked to your account."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Search for existing guardian by email
+        guardian_user = User.objects.filter(email=email).first()
+        guardian_existed = guardian_user is not None
+        
+        if not guardian_user:
+            # CREATE SHADOW GUARDIAN
+            # Create an inactive user with a random unusable password
+            from django.utils.crypto import get_random_string
+            random_password = get_random_string(50)
+            guardian_user = User.objects.create_user(
+                email=email,
+                password=random_password,
+                first_name=first_name,
+                last_name=last_name,
+                phone_number=phone_number,
+                legal_gender=legal_gender,
+                role=User.Role.GUARDIAN,
+                is_active=False,  # Inactive until they claim account
+                verification_status=User.VerificationStatus.UNVERIFIED
+            )
+        
+        # Create the link
+        link = GuardianYouthLink.objects.create(
+            youth=user,
+            guardian=guardian_user,
+            relationship_type=relationship_type,
+            is_primary_guardian=is_primary_guardian,
+            status='PENDING'  # Default to pending for youth-added guardians
+        )
+        
+        # If this is set as primary, unset others
+        if is_primary_guardian:
+            GuardianYouthLink.objects.filter(
+                youth=user,
+                is_primary_guardian=True
+            ).exclude(id=link.id).update(is_primary_guardian=False)
+        
+        response_serializer = GuardianYouthLinkSerializer(link)
+        response_data = response_serializer.data
+        # Add metadata about whether guardian existed
+        response_data['guardian_existed'] = guardian_existed
+        response_data['guardian_is_active'] = guardian_user.is_active if guardian_existed else False
+        return Response(response_data, status=status.HTTP_201_CREATED)
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        DELETE /api/youth/guardians/{id}/
+        Removes a guardian link.
+        """
+        user = request.user
+        
+        # Only youth members can remove their own guardian links
+        if user.role != User.Role.YOUTH_MEMBER:
+            return Response(
+                {"error": "Only youth members can remove guardian links."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        link = self.get_object()
+        
+        # Verify the link belongs to the current user
+        if link.youth != user:
+            return Response(
+                {"error": "You can only remove your own guardian links."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        link.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GuardianRelationshipViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for admins to manage guardian-youth relationships.
+    Allows admins to verify, reject, or view relationships.
+    """
+    serializer_class = GuardianYouthLinkSerializer
+    permission_classes = [IsClubOrMunicipalityAdmin]
+    
+    def get_queryset(self):
+        """
+        Return GuardianYouthLink objects based on admin scope and query parameters.
+        """
+        user = self.request.user
+        queryset = GuardianYouthLink.objects.select_related('guardian', 'youth').all()
+        
+        # Filter by guardian_id if provided
+        guardian_id = self.request.query_params.get('guardian')
+        if guardian_id:
+            try:
+                queryset = queryset.filter(guardian_id=int(guardian_id))
+            except (ValueError, TypeError):
+                pass
+        
+        # Filter by youth_id if provided
+        youth_id = self.request.query_params.get('youth')
+        if youth_id:
+            try:
+                queryset = queryset.filter(youth_id=int(youth_id))
+            except (ValueError, TypeError):
+                pass
+        
+        # Filter by status if provided
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Apply admin scope filtering
+        if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            # Municipality admin sees relationships for youth in their municipality
+            queryset = queryset.filter(
+                youth__preferred_club__municipality=user.assigned_municipality
+            )
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            # Club admin sees relationships for youth in their club
+            queryset = queryset.filter(
+                youth__preferred_club=user.assigned_club
+            )
+        # Super admin sees all relationships
+        
+        return queryset.distinct().order_by('-created_at')
+    
+    @action(detail=True, methods=['post'])
+    def verify(self, request, pk=None):
+        """
+        POST /api/admin/guardian-relationships/{id}/verify/
+        Verify a guardian-youth relationship.
+        Sets status to ACTIVE and records verification timestamp.
+        """
+        link = self.get_object()
+        
+        link.status = 'ACTIVE'
+        link.verified_at = timezone.now()
+        link.save()
+        
+        serializer = self.get_serializer(link)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """
+        POST /api/admin/guardian-relationships/{id}/reject/
+        Reject a guardian-youth relationship.
+        Sets status to REJECTED.
+        """
+        link = self.get_object()
+        
+        link.status = 'REJECTED'
+        link.save()
+        
+        serializer = self.get_serializer(link)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def reset(self, request, pk=None):
+        """
+        POST /api/admin/guardian-relationships/{id}/reset/
+        Reset a relationship back to PENDING status.
+        """
+        link = self.get_object()
+        
+        link.status = 'PENDING'
+        link.verified_at = None
+        link.save()
+        
+        serializer = self.get_serializer(link)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CheckEmailView(APIView):

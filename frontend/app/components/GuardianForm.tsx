@@ -7,6 +7,8 @@ import { getMediaUrl } from '../../app/utils';
 import Toast from './Toast';
 import CustomFieldsForm from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
+import { fetchGuardianRelationships, verifyGuardianRelationship, rejectGuardianRelationship, resetGuardianRelationship } from '../../lib/api';
+import ConfirmationModal from './ConfirmationModal';
 
 interface YouthOption { id: number; first_name: string; last_name: string; email: string; grade?: number; }
 
@@ -24,6 +26,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
 
   // Dropdown Data
   const [youthList, setYouthList] = useState<YouthOption[]>([]);
+  const [relationships, setRelationships] = useState<any[]>([]);
 
   // Search States
   const [youthSearchTerm, setYouthSearchTerm] = useState('');
@@ -42,8 +45,11 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
     phone_number: initialData?.phone_number || '',
     legal_gender: initialData?.legal_gender || 'MALE',
     verification_status: initialData?.verification_status || 'UNVERIFIED',
-    // In Django serializer, 'youth_members' is a list of IDs
-    youth_members: initialData?.youth_members ? initialData.youth_members : [], 
+    // In Django serializer, 'youth_members' can be a list of IDs or objects with relationship details
+    // Normalize to just IDs for form state
+    youth_members: initialData?.youth_members 
+      ? initialData.youth_members.map((item: any) => typeof item === 'object' && item !== null ? item.id : item).filter((id: any) => id != null)
+      : [], 
   });
 
   // Custom Fields State
@@ -60,6 +66,22 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             });
             setCustomFieldValues(values);
         }).catch(console.error);
+        
+        // Load relationships for this guardian
+        if (initialData.id) {
+            fetchGuardianRelationships({ guardian_id: initialData.id })
+                .then(res => {
+                    const relData = res.data.results || res.data || [];
+                    // Deduplicate by relationship ID to avoid showing the same relationship multiple times
+                    const uniqueRelationships = Array.isArray(relData) 
+                        ? relData.filter((rel: any, index: number, self: any[]) => 
+                            index === self.findIndex((r: any) => r.id === rel.id)
+                          )
+                        : [];
+                    setRelationships(uniqueRelationships);
+                })
+                .catch(err => console.error('Error fetching relationships:', err));
+        }
     }
   }, [initialData]);
 
@@ -124,15 +146,37 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
     try {
       const data = new FormData();
       
-      // Basic Fields
+      // Fields that should NOT be sent for guardians
+      const guardianExcludedFields = ['grade', 'preferred_club', 'interests', 'assigned_club', 'assigned_municipality'];
+      
+      // Basic Fields - only send fields that are defined and not empty (except password)
       Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'password' && !value) return;
-        if (key === 'youth_members') return;
+        if (key === 'password' && !value) return; // Skip empty password on update
+        if (key === 'youth_members') return; // Handle separately
+        if (guardianExcludedFields.includes(key)) return; // Skip guardian-inapplicable fields
+        
+        // Handle empty strings - convert to null for optional fields, or skip
+        if (value === null || value === undefined || value === '') {
+          // For optional fields like phone_number, send empty string (backend will handle it)
+          if (key === 'phone_number') {
+            data.append(key, '');
+          }
+          return;
+        }
+        
         data.append(key, value.toString());
       });
 
-      // Arrays
-      formData.youth_members.forEach((id: number) => data.append('youth_members', id.toString()));
+      // Arrays - only append if there are youth members
+      if (formData.youth_members && formData.youth_members.length > 0) {
+        formData.youth_members.forEach((item: any) => {
+          // Handle both object format {id: number} and plain number
+          const id = typeof item === 'object' && item !== null ? item.id : item;
+          if (id && !isNaN(Number(id))) {
+            data.append('youth_members', id.toString());
+          }
+        });
+      }
       
       data.append('role', 'GUARDIAN');
       
@@ -142,9 +186,55 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
       let userId: number;
 
       if (initialData) {
-        await api.patch(`/users/${initialData.id}/`, data, config);
-        userId = initialData.id;
-        setToast({ message: 'Guardian updated!', type: 'success', isVisible: true });
+        try {
+          // Debug: Log what we're sending
+          console.log('FormData being sent:');
+          for (const [key, value] of data.entries()) {
+            console.log(`${key}:`, value);
+          }
+          
+          await api.patch(`/users/${initialData.id}/`, data, config);
+          userId = initialData.id;
+          setToast({ message: 'Guardian updated!', type: 'success', isVisible: true });
+        } catch (patchErr: any) {
+          console.error('Update error:', patchErr);
+          console.error('Error response:', patchErr.response?.data);
+          console.error('Error status:', patchErr.response?.status);
+          console.error('Error headers:', patchErr.response?.headers);
+          
+          // Try to extract error message from various possible locations
+          let errorMsg = 'Failed to update guardian';
+          if (patchErr.response?.data) {
+            if (patchErr.response.data.detail) {
+              errorMsg = patchErr.response.data.detail;
+            } else if (patchErr.response.data.error) {
+              errorMsg = patchErr.response.data.error;
+            } else if (typeof patchErr.response.data === 'string') {
+              errorMsg = patchErr.response.data;
+            } else if (typeof patchErr.response.data === 'object') {
+              // Try to extract first error message from validation errors
+              const errorKeys = Object.keys(patchErr.response.data);
+              if (errorKeys.length > 0) {
+                const firstError = patchErr.response.data[errorKeys[0]];
+                if (Array.isArray(firstError)) {
+                  errorMsg = `${errorKeys[0]}: ${firstError[0]}`;
+                } else if (typeof firstError === 'string') {
+                  errorMsg = `${errorKeys[0]}: ${firstError}`;
+                } else {
+                  errorMsg = JSON.stringify(patchErr.response.data);
+                }
+              } else {
+                errorMsg = JSON.stringify(patchErr.response.data);
+              }
+            }
+          } else if (patchErr.message) {
+            errorMsg = patchErr.message;
+          }
+          
+          setToast({ message: errorMsg, type: 'error', isVisible: true });
+          setLoading(false);
+          return;
+        }
       } else {
         const res = await api.post('/users/', data, config);
         userId = res.data.id;
@@ -209,7 +299,80 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             </div>
         </div>
 
-        {/* 3. ASSIGN YOUTH */}
+        {/* 3. EXISTING RELATIONSHIPS (Edit Mode Only) */}
+        {initialData && relationships.length > 0 && (
+            <div className="mb-6">
+                <label className="block text-sm font-bold mb-3">Existing Relationships</label>
+                <div className="space-y-3">
+                    {relationships
+                        .filter((rel: any) => {
+                            // Only show relationships for this specific guardian
+                            const relGuardianId = rel.guardian || (typeof rel.guardian === 'object' ? rel.guardian?.id : null);
+                            return relGuardianId === initialData.id || rel.guardian_id === initialData.id;
+                        })
+                        .map((rel: any) => {
+                            const youthId = rel.youth || rel.youth_id;
+                            const youth = youthList.find((y: any) => y.id === youthId);
+                            if (!youth) {
+                                // If youth not in list, use data from relationship serializer
+                                return (
+                                    <RelationshipCard
+                                        key={rel.id}
+                                        relationship={rel}
+                                        youth={{
+                                            id: youthId,
+                                            first_name: rel.youth_first_name || 'Unknown',
+                                            last_name: rel.youth_last_name || '',
+                                            email: rel.youth_email || '',
+                                            grade: rel.youth_grade || undefined,
+                                        }}
+                                        onUpdate={() => {
+                                            // Refresh relationships after update
+                                            fetchGuardianRelationships({ guardian_id: initialData.id })
+                                                .then(res => {
+                                                    const relData = res.data.results || res.data || [];
+                                                    // Deduplicate
+                                                    const uniqueRelationships = Array.isArray(relData) 
+                                                        ? relData.filter((r: any, index: number, self: any[]) => 
+                                                            index === self.findIndex((rel: any) => rel.id === r.id)
+                                                          )
+                                                        : [];
+                                                    setRelationships(uniqueRelationships);
+                                                })
+                                                .catch(err => console.error('Error refreshing relationships:', err));
+                                        }}
+                                    />
+                                );
+                            }
+                            
+                            return (
+                                <RelationshipCard
+                                    key={rel.id}
+                                    relationship={rel}
+                                    youth={youth}
+                                    onUpdate={() => {
+                                        // Refresh relationships after update
+                                        fetchGuardianRelationships({ guardian_id: initialData.id })
+                                            .then(res => {
+                                                const relData = res.data.results || res.data || [];
+                                                // Deduplicate
+                                                const uniqueRelationships = Array.isArray(relData) 
+                                                    ? relData.filter((r: any, index: number, self: any[]) => 
+                                                        index === self.findIndex((rel: any) => rel.id === r.id)
+                                                      )
+                                                    : [];
+                                                setRelationships(uniqueRelationships);
+                                            })
+                                            .catch(err => console.error('Error refreshing relationships:', err));
+                                    }}
+                                />
+                            );
+                        })}
+                </div>
+            </div>
+        )}
+
+        {/* 4. ASSIGN YOUTH */}
         <div>
             <label className="block text-sm font-bold mb-2">Assign Youth Members</label>
             
@@ -298,14 +461,14 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             </div>
         </div>
 
-        {/* 4. AVATAR */}
+        {/* 5. AVATAR */}
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Avatar</label>
             <input type="file" accept="image/*" className="w-full border p-2 rounded" onChange={handleAvatarChange} />
             {avatarPreview && <img src={avatarPreview} alt="Preview" className="w-16 h-16 mt-2 rounded-full object-cover border" />}
         </div>
 
-        {/* 5. CUSTOM FIELDS */}
+        {/* 6. CUSTOM FIELDS */}
         <CustomFieldsForm
             targetRole="GUARDIAN"
             context="USER_PROFILE"
@@ -331,5 +494,185 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
       </form>
       <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>
+  );
+}
+
+// Relationship Card Component for Edit Form
+function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any; youth: YouthOption; onUpdate: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+    message: '',
+    type: 'success',
+    isVisible: false,
+  });
+  const [showResetModal, setShowResetModal] = useState(false);
+
+  const status = relationship.status || 'PENDING';
+  const relationshipType = relationship.relationship_type || 'GUARDIAN';
+  const isPrimary = relationship.is_primary_guardian || false;
+
+  const handleVerify = async () => {
+    setLoading(true);
+    try {
+      await verifyGuardianRelationship(relationship.id);
+      setToast({ message: 'Relationship verified successfully!', type: 'success', isVisible: true });
+      setTimeout(() => {
+        onUpdate();
+        setToast({ ...toast, isVisible: false });
+      }, 1000);
+    } catch (err: any) {
+      setToast({ 
+        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to verify relationship', 
+        type: 'error', 
+        isVisible: true 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!confirm('Are you sure you want to reject this relationship?')) return;
+    setLoading(true);
+    try {
+      await rejectGuardianRelationship(relationship.id);
+      setToast({ message: 'Relationship rejected.', type: 'success', isVisible: true });
+      setTimeout(() => {
+        onUpdate();
+        setToast({ ...toast, isVisible: false });
+      }, 1000);
+    } catch (err: any) {
+      setToast({ 
+        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to reject relationship', 
+        type: 'error', 
+        isVisible: true 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetClick = () => {
+    setShowResetModal(true);
+  };
+
+  const handleResetConfirm = async () => {
+    setShowResetModal(false);
+    setLoading(true);
+    try {
+      await resetGuardianRelationship(relationship.id);
+      setToast({ message: 'Relationship reset to pending.', type: 'success', isVisible: true });
+      setTimeout(() => {
+        onUpdate();
+        setToast({ ...toast, isVisible: false });
+      }, 1000);
+    } catch (err: any) {
+      setToast({ 
+        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to reset relationship', 
+        type: 'error', 
+        isVisible: true 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100">
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex-1">
+            <p className="font-bold text-gray-900 mb-1">{youth.first_name} {youth.last_name}</p>
+            <p className="text-sm text-gray-600 mb-2">{youth.email} {youth.grade && `• Grade ${youth.grade}`}</p>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-full text-xs font-semibold text-purple-800 border border-purple-200">
+                {relationshipType.toLowerCase()}
+              </span>
+              {isPrimary && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-100 rounded-full text-xs font-semibold text-yellow-800 border border-yellow-200">
+                  Primary
+                </span>
+              )}
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                status === 'ACTIVE' ? 'bg-green-100 text-green-800 border-green-200' :
+                status === 'REJECTED' ? 'bg-red-100 text-red-800 border-red-200' :
+                'bg-yellow-100 text-yellow-800 border-yellow-200'
+              }`}>
+                {status}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-3 pt-3 border-t border-indigo-200">
+          {status === 'PENDING' && (
+            <>
+              <button
+                type="button"
+                onClick={handleVerify}
+                disabled={loading}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Processing...' : 'Verify'}
+              </button>
+              <button
+                type="button"
+                onClick={handleReject}
+                disabled={loading}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Processing...' : 'Reject'}
+              </button>
+            </>
+          )}
+          {status === 'ACTIVE' && (
+            <button
+              type="button"
+              onClick={handleResetClick}
+              disabled={loading}
+              className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : 'Reset to Pending'}
+            </button>
+          )}
+          {status === 'REJECTED' && (
+            <>
+              <button
+                type="button"
+                onClick={handleVerify}
+                disabled={loading}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Processing...' : 'Approve'}
+              </button>
+              <button
+                type="button"
+                onClick={handleResetClick}
+                disabled={loading}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Processing...' : 'Reset'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      <ConfirmationModal
+        isVisible={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={handleResetConfirm}
+        title="Reset Relationship"
+        message="Are you sure you want to reset this relationship back to pending status?"
+        confirmButtonText="Reset to Pending"
+        cancelButtonText="Cancel"
+        isLoading={loading}
+        variant="warning"
+      />
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={() => setToast({ ...toast, isVisible: false })} 
+      />
+    </>
   );
 }

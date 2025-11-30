@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import HealthCheckView
-from users.views import UserViewSet, PublicRegistrationView, CheckEmailView, CheckGuardianView
+from users.views import UserViewSet, PublicRegistrationView, CheckEmailView, CheckGuardianView, YouthGuardiansViewSet, GuardianRelationshipViewSet
 from system_messages.views import SystemMessageViewSet
 from news.views import NewsArticleViewSet, NewsTagViewSet
 from custom_fields.views import CustomFieldDefinitionViewSet, PublicCustomFieldListView
@@ -24,6 +24,10 @@ router.register(r'rewards', RewardViewSet, basename='rewards')
 # --- ADD THESE TWO LINES ---
 router.register(r'posts', PostViewSet, basename='posts')
 router.register(r'post-comments', PostCommentViewSet, basename='post-comments')
+# Youth Guardians endpoint
+router.register(r'youth/guardians', YouthGuardiansViewSet, basename='youth-guardians')
+# Admin Guardian Relationships endpoint
+router.register(r'admin/guardian-relationships', GuardianRelationshipViewSet, basename='guardian-relationships')
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health_check'),

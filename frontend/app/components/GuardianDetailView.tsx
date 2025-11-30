@@ -6,6 +6,9 @@ import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import CustomFieldsDisplay from './CustomFieldsDisplay';
+import { verifyGuardianRelationship, rejectGuardianRelationship, resetGuardianRelationship } from '../../lib/api';
+import Toast from './Toast';
+import ConfirmationModal from './ConfirmationModal';
 
 interface GuardianDetailProps {
   userId: string;
@@ -17,6 +20,7 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [youthList, setYouthList] = useState<any[]>([]);
+  const [relationships, setRelationships] = useState<any[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -27,6 +31,17 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
         ]);
         setUser(uRes.data);
         setYouthList(Array.isArray(yRes.data) ? yRes.data : []);
+        
+        // If user is a guardian and youth_members is empty or only IDs, fetch relationships
+        if (uRes.data?.role === 'GUARDIAN') {
+          try {
+            const relRes = await api.get(`/admin/guardian-relationships/?guardian=${userId}`);
+            const relData = relRes.data.results || relRes.data || [];
+            setRelationships(Array.isArray(relData) ? relData : []);
+          } catch (relErr) {
+            console.error('Error fetching relationships:', relErr);
+          }
+        }
       } catch (err) { console.error(err); } 
       finally { setLoading(false); }
     };
@@ -58,8 +73,76 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
   if (loading) return <div className="p-12 text-center">Loading...</div>;
   if (!user) return <div className="p-12 text-center text-red-500">User not found.</div>;
 
-  // Map youth IDs to actual youth objects
-  const connectedYouth = user.youth_members?.map((id: number) => youthList.find(y => y.id === id)).filter(Boolean) || [];
+  // Build connected youth list from multiple sources
+  let connectedYouth: any[] = [];
+  
+  // First, try to use youth_members from user object (new serializer format with full details)
+  if (Array.isArray(user.youth_members) && user.youth_members.length > 0) {
+    // Check if first item is an object with relationship details (new format)
+    if (typeof user.youth_members[0] === 'object' && user.youth_members[0] !== null && 'first_name' in user.youth_members[0]) {
+      // Already full objects with relationship details - use directly
+      connectedYouth = user.youth_members;
+    } else {
+      // Legacy format: array of IDs - map to youth objects and merge with relationships
+      const youthFromIds = user.youth_members
+        .map((id: number) => {
+          const youth = youthList.find((y: any) => y.id === id);
+          if (youth) {
+            // Try to find relationship data for this youth
+            const relationship = relationships.find((r: any) => r.guardian === parseInt(userId) && r.youth === id);
+            return {
+              ...youth,
+              relationship_id: relationship?.id,
+              relationship_type: relationship?.relationship_type || 'GUARDIAN',
+              status: relationship?.status || 'PENDING',
+              is_primary_guardian: relationship?.is_primary_guardian || false,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+      connectedYouth = youthFromIds;
+    }
+  }
+  
+  // If we have relationships from the API but no youth_members, use relationships
+  if (connectedYouth.length === 0 && relationships.length > 0) {
+    connectedYouth = relationships.map((rel: any) => {
+      const youthId = rel.youth || rel.youth_id;
+      const youth = youthList.find((y: any) => y.id === youthId);
+      if (youth) {
+        return {
+          ...youth,
+          relationship_id: rel.id,
+          relationship_type: rel.relationship_type || 'GUARDIAN',
+          status: rel.status || 'PENDING',
+          is_primary_guardian: rel.is_primary_guardian || false,
+          verified_at: rel.verified_at,
+          created_at: rel.created_at,
+        };
+      }
+      // If youth not in list, use data from relationship serializer
+      return {
+        id: youthId,
+        first_name: rel.youth_first_name || 'Unknown',
+        last_name: rel.youth_last_name || '',
+        email: rel.youth_email || '',
+        grade: rel.youth_grade || null,
+        relationship_id: rel.id,
+        relationship_type: rel.relationship_type || 'GUARDIAN',
+        status: rel.status || 'PENDING',
+        is_primary_guardian: rel.is_primary_guardian || false,
+        verified_at: rel.verified_at,
+        created_at: rel.created_at,
+      };
+    });
+  }
+  
+  // Debug logging
+  console.log('Guardian user:', user);
+  console.log('youth_members:', user.youth_members);
+  console.log('relationships:', relationships);
+  console.log('connectedYouth:', connectedYouth);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-12">
@@ -289,7 +372,7 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
           {/* Sidebar - Right Column */}
           <div className="space-y-6">
             
-            {/* Connected Youth Card */}
+            {/* Connected Youth Card with Relationship Management */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
               <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,28 +383,59 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
               </h3>
               {connectedYouth.length > 0 ? (
                 <div className="space-y-3">
-                  {connectedYouth.map((y: any) => (
-                    <div 
-                      key={y.id} 
-                      className="p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 hover:shadow-md transition-all"
-                    >
-                      <p className="font-bold text-gray-900 mb-1 break-words">{y.first_name} {y.last_name}</p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1.5 mb-2">
-                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                        <span className="break-all">{y.email}</span>
-                      </p>
-                      {y.grade && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-full text-xs font-semibold text-blue-800 border border-blue-200">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                          </svg>
-                          Grade {y.grade}
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                  {connectedYouth.map((y: any) => {
+                    const relationshipId = y.relationship_id;
+                    const status = y.status || 'PENDING';
+                    const relationshipType = y.relationship_type || 'GUARDIAN';
+                    const isPrimary = y.is_primary_guardian || false;
+                    
+                    return (
+                      <div 
+                        key={y.id} 
+                        className="p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 hover:shadow-md transition-all"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <p className="font-bold text-gray-900 mb-1 break-words">{y.first_name} {y.last_name}</p>
+                            <p className="text-sm text-gray-600 flex items-center gap-1.5 mb-2">
+                              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                              <span className="break-all">{y.email}</span>
+                            </p>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-full text-xs font-semibold text-purple-800 border border-purple-200">
+                                {relationshipType.toLowerCase()}
+                              </span>
+                              {isPrimary && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-100 rounded-full text-xs font-semibold text-yellow-800 border border-yellow-200">
+                                  Primary
+                                </span>
+                              )}
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                                status === 'ACTIVE' ? 'bg-green-100 text-green-800 border-green-200' :
+                                status === 'REJECTED' ? 'bg-red-100 text-red-800 border-red-200' :
+                                'bg-yellow-100 text-yellow-800 border-yellow-200'
+                              }`}>
+                                {status}
+                              </span>
+                            </div>
+                            {y.grade && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-full text-xs font-semibold text-blue-800 border border-blue-200">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                                Grade {y.grade}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {relationshipId && (
+                          <RelationshipActions relationshipId={relationshipId} currentStatus={status} onUpdate={() => window.location.reload()} />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-gray-400 italic">No youth connected.</p>
@@ -331,5 +445,148 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
         </div>
       </div>
     </div>
+  );
+}
+
+// Relationship Actions Component
+function RelationshipActions({ relationshipId, currentStatus, onUpdate }: { relationshipId: number; currentStatus: string; onUpdate: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+    message: '',
+    type: 'success',
+    isVisible: false,
+  });
+  const [showResetModal, setShowResetModal] = useState(false);
+
+  const handleVerify = async () => {
+    setLoading(true);
+    try {
+      await verifyGuardianRelationship(relationshipId);
+      setToast({ message: 'Relationship verified successfully!', type: 'success', isVisible: true });
+      setTimeout(() => {
+        onUpdate();
+      }, 1000);
+    } catch (err: any) {
+      setToast({ 
+        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to verify relationship', 
+        type: 'error', 
+        isVisible: true 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!confirm('Are you sure you want to reject this relationship?')) return;
+    setLoading(true);
+    try {
+      await rejectGuardianRelationship(relationshipId);
+      setToast({ message: 'Relationship rejected.', type: 'success', isVisible: true });
+      setTimeout(() => {
+        onUpdate();
+      }, 1000);
+    } catch (err: any) {
+      setToast({ 
+        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to reject relationship', 
+        type: 'error', 
+        isVisible: true 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetClick = () => {
+    setShowResetModal(true);
+  };
+
+  const handleResetConfirm = async () => {
+    setShowResetModal(false);
+    setLoading(true);
+    try {
+      await resetGuardianRelationship(relationshipId);
+      setToast({ message: 'Relationship reset to pending.', type: 'success', isVisible: true });
+      setTimeout(() => {
+        onUpdate();
+      }, 1000);
+    } catch (err: any) {
+      setToast({ 
+        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to reset relationship', 
+        type: 'error', 
+        isVisible: true 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex gap-2 mt-3 pt-3 border-t border-indigo-200">
+        {currentStatus === 'PENDING' && (
+          <>
+            <button
+              onClick={handleVerify}
+              disabled={loading}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : 'Verify'}
+            </button>
+            <button
+              onClick={handleReject}
+              disabled={loading}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : 'Reject'}
+            </button>
+          </>
+        )}
+        {currentStatus === 'ACTIVE' && (
+          <button
+            onClick={handleResetClick}
+            disabled={loading}
+            className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Processing...' : 'Reset to Pending'}
+          </button>
+        )}
+        {currentStatus === 'REJECTED' && (
+          <>
+            <button
+              onClick={handleVerify}
+              disabled={loading}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : 'Approve'}
+            </button>
+            <button
+              onClick={handleResetClick}
+              disabled={loading}
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : 'Reset'}
+            </button>
+          </>
+        )}
+      </div>
+      <ConfirmationModal
+        isVisible={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={handleResetConfirm}
+        title="Reset Relationship"
+        message="Are you sure you want to reset this relationship back to pending status?"
+        confirmButtonText="Reset to Pending"
+        cancelButtonText="Cancel"
+        isLoading={loading}
+        variant="warning"
+      />
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={() => setToast({ ...toast, isVisible: false })} 
+      />
+    </>
   );
 }
