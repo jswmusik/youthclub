@@ -17,8 +17,13 @@ export default function NavBar() {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Implement search functionality
-        console.log('Search:', searchQuery);
+        if (!searchQuery.trim()) return;
+        
+        // Redirect to a dedicated search page with the query
+        router.push(`/dashboard/youth/search?q=${encodeURIComponent(searchQuery)}`);
+        
+        // Optional: Clear search after navigating
+        // setSearchQuery('');
     };
 
     const handleLogout = () => {

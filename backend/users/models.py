@@ -109,6 +109,16 @@ class User(AbstractUser):
         Club, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='members'
     )
+    
+    # --- NEW FIELD ---
+    followed_clubs = models.ManyToManyField(
+        Club, 
+        blank=True, 
+        related_name='followers',
+        help_text="Clubs the youth follows in addition to their preferred club."
+    )
+    # -----------------
+    
     preferred_gender = models.CharField(max_length=50, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
 

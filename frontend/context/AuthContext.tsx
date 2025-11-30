@@ -25,6 +25,7 @@ interface User {
   assigned_club?: number | { id: number } | null;
   // Type it loosely or strictly depending on your API response depth
   preferred_club?: any;
+  followed_clubs_ids?: number[];
 }
 
 interface AuthContextType {
@@ -34,6 +35,7 @@ interface AuthContextType {
   loading: boolean;
   messageCount: number;
   refreshMessageCount: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,6 +100,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUser = async () => {
+    const token = Cookies.get('access_token');
+    if (!token) {
+      setUser(null);
+      return;
+    }
+    
+    try {
+      const res = await api.get('/auth/users/me/');
+      setUser(res.data);
+    } catch (error) {
+      console.error('Failed to refresh user', error);
+      // If token is invalid, clear user
+      Cookies.remove('access_token');
+      Cookies.remove('refresh_token');
+      setUser(null);
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       // 1. Get Token
@@ -153,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, messageCount, refreshMessageCount }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, messageCount, refreshMessageCount, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

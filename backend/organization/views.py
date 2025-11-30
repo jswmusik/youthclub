@@ -1,5 +1,7 @@
-from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db.models import Q
 from users.permissions import IsSuperAdmin, IsMunicipalityAdmin, IsClubOrMunicipalityAdmin
 from .models import Country, Municipality, Club, Interest
@@ -120,6 +122,10 @@ class ClubViewSet(viewsets.ModelViewSet):
             return [IsMunicipalityAdmin()]
         if self.action in ['update', 'partial_update']:
             return [IsClubOrMunicipalityAdmin()]
+        if self.action in ['follow', 'unfollow']:
+            return [IsAuthenticated()]
+        if self.action in ['followers', 'remove_follower']:
+            return [IsAuthenticated()]
         return [IsMunicipalityAdmin()]
 
     def get_serializer_class(self):
@@ -133,6 +139,101 @@ class ClubViewSet(viewsets.ModelViewSet):
             serializer.save(municipality=user.assigned_municipality)
         else:
             serializer.save()
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def follow(self, request, pk=None):
+        """
+        Allows a youth member to follow a club.
+        """
+        club = self.get_object()
+        user = request.user
+
+        if user.role != 'YOUTH_MEMBER':
+            return Response({"error": "Only youth members can follow clubs."}, status=status.HTTP_403_FORBIDDEN)
+
+        if user.preferred_club and user.preferred_club.id == club.id:
+            return Response({"message": "You cannot follow your home club (you are already a member)."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.followed_clubs.add(club)
+        return Response({"status": "followed", "club": club.name})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def unfollow(self, request, pk=None):
+        """
+        Allows a youth member to unfollow a club.
+        """
+        club = self.get_object()
+        user = request.user
+
+        user.followed_clubs.remove(club)
+        return Response({"status": "unfollowed", "club": club.name})
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def followers(self, request, pk=None):
+        """
+        Admin endpoint to view followers of a specific club.
+        """
+        club = self.get_object()
+        user = request.user
+
+        # Permission Logic: Who can see followers?
+        allow = False
+        if user.role == 'SUPER_ADMIN':
+            allow = True
+        elif user.role == 'MUNICIPALITY_ADMIN':
+            if user.assigned_municipality == club.municipality:
+                allow = True
+        elif user.role == 'CLUB_ADMIN':
+            if user.assigned_club == club:
+                allow = True
+
+        if not allow:
+            return Response({"error": "You do not have permission to view followers for this club."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Fetch followers (excluding home members, as they are technically 'members' not just 'followers')
+        followers = club.followers.all()
+        
+        # Use a simple serializer to return basic user info
+        from users.serializers import CustomUserSerializer
+        serializer = CustomUserSerializer(followers, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def remove_follower(self, request, pk=None):
+        """
+        Admin endpoint to remove a user from the club's followers.
+        """
+        club = self.get_object()
+        user = request.user
+
+        # Permission Logic: Who can remove followers?
+        allow = False
+        if user.role == 'SUPER_ADMIN':
+            allow = True
+        elif user.role == 'MUNICIPALITY_ADMIN':
+            if user.assigned_municipality == club.municipality:
+                allow = True
+        elif user.role == 'CLUB_ADMIN':
+            if user.assigned_club == club:
+                allow = True
+
+        if not allow:
+            return Response({"error": "You do not have permission to remove followers from this club."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Get the user_id from request data
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({"error": "user_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from users.models import User
+            follower_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Remove the user from followers
+        club.followers.remove(follower_user)
+        return Response({"status": "removed", "user": f"{follower_user.first_name} {follower_user.last_name}", "club": club.name})
 
 class InterestViewSet(viewsets.ModelViewSet):
     """

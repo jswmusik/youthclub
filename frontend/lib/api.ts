@@ -332,3 +332,25 @@ export const fetchNewsDetail = async (id: number) => {
 export const fetchNewsTags = async () => {
     return api.get('/news_tags/');
 };
+
+// --- CLUB FOLLOWING ---
+
+export const followClub = async (clubId: number | string) => {
+  const response = await api.post(`/clubs/${clubId}/follow/`);
+  return response.data;
+};
+
+export const unfollowClub = async (clubId: number | string) => {
+  const response = await api.post(`/clubs/${clubId}/unfollow/`);
+  return response.data;
+};
+
+export const getClubFollowers = async (clubId: number | string) => {
+  const response = await api.get(`/clubs/${clubId}/followers/`);
+  return response.data;
+};
+
+export const removeClubFollower = async (clubId: number | string, userId: number) => {
+  const response = await api.post(`/clubs/${clubId}/remove_follower/`, { user_id: userId });
+  return response.data;
+};

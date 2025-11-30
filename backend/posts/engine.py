@@ -52,27 +52,31 @@ class PostEngine:
         # 1. Global posts (visible to everyone)
         conditions |= Q(is_global=True)
         
-        # 2. Municipality/Club targeting
-        # If a post has specific club targeting, it should ONLY show to users from that club
-        # If a post has municipality targeting but no club targeting, show to all users in that municipality
-        club_condition = Q()
+        # 2. Club & Municipality Targeting (UPDATED)
+        # We collect all club IDs the user has access to: Home + Followed
+        allowed_club_ids = []
         if user.preferred_club:
-            # User's preferred club
-            club_condition |= Q(target_clubs=user.preferred_club)
-            # Municipality of user's preferred club (only if post doesn't have specific club targeting)
-            if user.preferred_club.municipality:
-                # Posts with municipality targeting but no specific club targeting
-                club_condition |= Q(
-                    target_municipalities=user.preferred_club.municipality,
-                    target_clubs__isnull=True
-                ) | Q(
-                    target_municipalities=user.preferred_club.municipality,
-                    target_clubs=None
-                )
+            allowed_club_ids.append(user.preferred_club.id)
         
-        # Only add club condition if user has a preferred club
-        if user.preferred_club:
-            conditions |= club_condition
+        # Add followed clubs to the allowed list
+        allowed_club_ids.extend(user.followed_clubs.values_list('id', flat=True))
+
+        club_condition = Q()
+        
+        if allowed_club_ids:
+            # Condition A: Post targets a specific club the user follows (or is home member of)
+            club_condition |= Q(target_clubs__id__in=allowed_club_ids)
+
+        if user.preferred_club and user.preferred_club.municipality:
+            # Condition B: Post targets the user's HOME Municipality (Generic Muni news)
+            # STRICT RULE: We do NOT include municipalities of followed clubs here.
+            # Only show muni posts if they don't target specific clubs (general announcements)
+            club_condition |= (
+                Q(target_municipalities=user.preferred_club.municipality) &
+                (Q(target_clubs__isnull=True) | Q(target_clubs=None))
+            )
+        
+        conditions |= club_condition
         
         # 3. Member type targeting
         if user.role == User.Role.YOUTH_MEMBER:
@@ -125,21 +129,24 @@ class PostEngine:
         # Now we need to filter by JSON fields (gender, grade, custom fields) and enforce club/group targeting in Python
         matching_post_ids = []
         
+        # Get these IDs once for the loop
+        user_allowed_club_ids = set(allowed_club_ids)
+        
         for post in queryset:
-            # IMPORTANT: Check club targeting first - if post targets specific clubs, user MUST be in one of them
+            # IMPORTANT: Club Targeting Check (UPDATED)
             if post.target_clubs.exists():
-                # Post has specific club targeting
-                if not user.preferred_club or not post.target_clubs.filter(id=user.preferred_club.id).exists():
-                    # User is not in any of the targeted clubs, skip this post
+                # If the post targets specific clubs, the user MUST follow (or be home member of) ONE of them
+                post_target_ids = set(post.target_clubs.values_list('id', flat=True))
+                if not user_allowed_club_ids.intersection(post_target_ids):
                     continue
             
-            # Check municipality targeting (only if no specific club targeting)
+            # Municipality Targeting Check
             if not post.target_clubs.exists() and post.target_municipalities.exists():
-                # Post targets municipalities but not specific clubs
+                # If no specific club is targeted, check municipality
+                # STRICT RULE: User only sees generic muni posts from their HOME municipality
                 if not user.preferred_club or not user.preferred_club.municipality:
                     continue
                 if not post.target_municipalities.filter(id=user.preferred_club.municipality.id).exists():
-                    # User's municipality is not in the targeted municipalities
                     continue
             
             # IMPORTANT: Check group targeting - if post targets specific groups, user MUST be in one of them
@@ -292,12 +299,30 @@ class PostEngine:
         if post.is_global:
             return True
         
-        # Check municipality/club targeting
+        # Check Club/Muni Targeting (UPDATED)
+        allowed_club_ids = set()
         if user.preferred_club:
-            if post.target_clubs.filter(id=user.preferred_club.id).exists():
-                return True
-            if user.preferred_club.municipality and post.target_municipalities.filter(id=user.preferred_club.municipality.id).exists():
-                return True
+            allowed_club_ids.add(user.preferred_club.id)
+        allowed_club_ids.update(user.followed_clubs.values_list('id', flat=True))
+
+        has_club_access = False
+        
+        # 1. Check direct club targeting
+        if post.target_clubs.exists():
+            post_clubs = set(post.target_clubs.values_list('id', flat=True))
+            if allowed_club_ids.intersection(post_clubs):
+                has_club_access = True
+        
+        # 2. Check municipality targeting (only if no specific club targeting)
+        elif post.target_municipalities.exists():
+            # Only allow HOME municipality
+            if user.preferred_club and user.preferred_club.municipality:
+                 if post.target_municipalities.filter(id=user.preferred_club.municipality.id).exists():
+                     has_club_access = True
+        
+        # If the post had geo-targeting and we failed both checks, return False
+        if (post.target_clubs.exists() or post.target_municipalities.exists()) and not has_club_access:
+            return False
         
         # Check member type
         if user.role == User.Role.YOUTH_MEMBER:

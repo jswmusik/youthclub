@@ -22,6 +22,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     my_memberships = serializers.SerializerMethodField()
     my_rewards = serializers.SerializerMethodField()
     preferred_club = ClubSerializer(read_only=True)
+    followed_clubs_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -39,9 +40,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'mood_status',
             'my_memberships',
             'my_rewards',
-            'notification_email_enabled'
+            'notification_email_enabled',
+            'followed_clubs_ids'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
+
+    def get_followed_clubs_ids(self, obj):
+        return list(obj.followed_clubs.values_list('id', flat=True))
 
     def get_guardians(self, obj):
         # If obj is a Youth, return their guardians with full details

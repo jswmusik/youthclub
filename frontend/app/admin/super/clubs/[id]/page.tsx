@@ -91,6 +91,12 @@ function ClubViewPageContent() {
           ← Back to Clubs
         </Link>
         <div className="flex gap-4">
+          <Link 
+            href={`/admin/super/clubs/${club.id}/followers`} 
+            className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 shadow-sm font-medium"
+          >
+            View Followers
+          </Link>
           <button
             onClick={() => router.push(buildUrlWithParams(`/admin/super/clubs/edit/${club.id}`))}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow"
@@ -317,6 +323,12 @@ function ClubViewPageContent() {
           <div className="bg-white rounded-xl shadow p-6">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Actions</h3>
             <div className="space-y-2">
+              <Link
+                href={`/admin/super/clubs/${club.id}/followers`}
+                className="block w-full bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 text-center font-medium"
+              >
+                View Followers
+              </Link>
               <button
                 onClick={() => router.push(buildUrlWithParams(`/admin/super/clubs/edit/${club.id}`))}
                 className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-center"
