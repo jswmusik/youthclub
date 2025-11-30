@@ -52,17 +52,25 @@ def distribute_system_message(sender, instance, created, **kwargs):
 def distribute_news_article(sender, instance, created, **kwargs):
     """
     When a NewsArticle is Published, notify target audience.
+    Handles both new publications and when a draft is published later.
     """
     # Only notify if it is published
     if instance.is_published:
-        # Avoid spamming updates: 
-        # Ideally, we check if it was JUST published, but for now we assume 
-        # if 'created' is True and 'published' is True, it's new. 
-        # Or if you change a draft to published.
+        # Check if we should notify:
+        # 1. If it's a new article (created=True) and published immediately
+        # 2. If it's an update and no notification exists yet (draft was just published)
+        should_notify = created
         
-        # Simple Logic: Only run on Create (New Publish) to avoid spam on edits
-        # You can expand this logic later if needed.
-        if created: 
+        # If not created, check if there's already a notification for this article
+        # If no notification exists, it means this is the first time it's being published
+        if not created:
+            existing_notification = Notification.objects.filter(
+                category=Notification.Category.NEWS,
+                action_url=f"/dashboard/youth/news/{instance.id}"
+            ).first()
+            should_notify = existing_notification is None
+        
+        if should_notify:
             target_roles = instance.target_roles if isinstance(instance.target_roles, list) else []
             
             users_to_notify = User.objects.none()
@@ -76,8 +84,8 @@ def distribute_news_article(sender, instance, created, **kwargs):
                     recipient=user,
                     category=Notification.Category.NEWS,
                     title=f"News: {instance.title}",
-                    body=instance.excerpt,
-                    action_url=f"/dashboard/news/{instance.id}"
+                    body=instance.excerpt[:200] + "..." if len(instance.excerpt) > 200 else instance.excerpt,
+                    action_url=f"/dashboard/youth/news/{instance.id}"
                 )
                 for user in users_to_notify
             ]

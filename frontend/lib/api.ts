@@ -308,3 +308,27 @@ export const markAllNotificationsRead = () => {
 export const deleteNotification = (id: number) => {
     return api.delete(`/notifications/${id}/`);
 };
+
+// --- NEWS ENDPOINTS ---
+
+export const fetchNews = async (page = 1, tagId?: number | null, search?: string) => {
+    let url = `/news/?page=${page}`;
+    if (tagId) url += `&tag=${tagId}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    // We exclude the hero from the main list so it doesn't appear twice
+    url += '&exclude_hero=true';
+    return api.get(url);
+};
+
+export const fetchHeroNews = async () => {
+    // Returns 200 with object or 200 with null (if no hero)
+    return api.get('/news/hero/');
+};
+
+export const fetchNewsDetail = async (id: number) => {
+    return api.get(`/news/${id}/`);
+};
+
+export const fetchNewsTags = async () => {
+    return api.get('/news_tags/');
+};

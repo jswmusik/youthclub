@@ -136,18 +136,6 @@ export default function NavBar() {
 
                     {/* Right: Notifications, News, Messages, User */}
                     <div className="flex items-center gap-2 flex-1 justify-end">
-                        {/* --- NOTIFICATIONS WITH BADGE --- */}
-                        <NavIcon
-                            icon={
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                            }
-                            label="Notifications"
-                            onClick={() => router.push('/dashboard/youth/notifications')}
-                            badge={unreadCount} // <--- PASS BADGE COUNT
-                        />
-                        
                         <NavIcon
                             icon={
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,11 +154,24 @@ export default function NavBar() {
                             label="Messages"
                             onClick={() => router.push('/dashboard/youth/messages')}
                         />
-                        {/* User Avatar */}
-                        <button
-                            onClick={() => router.push('/dashboard/youth/profile')}
-                            className="flex-shrink-0 ml-2"
-                        >
+                        
+                        {/* --- NOTIFICATIONS WITH BADGE (closer to avatar) --- */}
+                        <div className="flex items-center gap-1">
+                            <NavIcon
+                                icon={
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                }
+                                label="Notifications"
+                                onClick={() => router.push('/dashboard/youth/notifications')}
+                                badge={unreadCount}
+                            />
+                            {/* User Avatar */}
+                            <button
+                                onClick={() => router.push('/dashboard/youth/profile')}
+                                className="flex-shrink-0"
+                            >
                             {user ? (
                                 <Avatar
                                     src={user.avatar || null}
@@ -182,7 +183,8 @@ export default function NavBar() {
                             ) : (
                                 <div className="w-8 h-8 rounded-full bg-gray-300"></div>
                             )}
-                        </button>
+                            </button>
+                        </div>
 
                         {/* Three Dots Menu */}
                         <div className="relative" ref={menuRef}>
