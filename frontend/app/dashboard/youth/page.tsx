@@ -9,6 +9,7 @@ import { useAuth } from '../../../context/AuthContext';
 import Cookies from 'js-cookie';
 import NavBar from '../../components/NavBar';
 import RecommendedClubs from '../../components/RecommendedClubs';
+import PreferredClubCard from '../../components/PreferredClubCard';
 
 export default function YouthDashboard() {
     const [posts, setPosts] = useState<Post[]>([]);
@@ -110,6 +111,9 @@ export default function YouthDashboard() {
             {/* Right Sidebar (Trending/Events) */}
             <aside className="lg:w-1/4 hidden lg:block">
                 <div className="sticky top-20">
+                    {/* Preferred Club Card */}
+                    <PreferredClubCard club={user?.preferred_club || null} />
+                    
                     {/* Placeholders for upcoming features */}
                     <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                         <h3 className="font-bold text-gray-800 mb-4">Upcoming Events</h3>

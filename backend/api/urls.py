@@ -43,4 +43,5 @@ urlpatterns = [
     # --- ROUTER ENDPOINTS ---
     path('', include(router.urls)), 
     path('', include('organization.urls')),
+    path('notifications/', include('notifications.urls')),
 ]

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'groups',
     'rewards',
     'posts',
+    'notifications',
 ]
 
 MIDDLEWARE = [

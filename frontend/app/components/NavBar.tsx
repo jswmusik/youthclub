@@ -1,16 +1,18 @@
+// frontend/app/components/NavBar.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from './posts/PostCard';
-import { getMediaUrl } from '../utils';
+import { fetchUnreadNotificationCount } from '../../lib/api'; // <--- NEW IMPORT
 
 export default function NavBar() {
     const router = useRouter();
     const { user, logout } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [showMenu, setShowMenu] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0); // <--- NEW STATE
     const menuRef = useRef<HTMLDivElement>(null);
 
     const handleSearch = (e: React.FormEvent) => {
@@ -23,6 +25,26 @@ export default function NavBar() {
         logout();
         router.push('/login');
     };
+
+    // --- NEW: Fetch Unread Count ---
+    useEffect(() => {
+        const loadUnreadCount = async () => {
+            if (!user) return;
+
+            try {
+                const res = await fetchUnreadNotificationCount();
+                setUnreadCount(res.data.count);
+            } catch (error) {
+                console.error("Failed to load notification count", error);
+            }
+        };
+
+        loadUnreadCount();
+        
+        // Optional: Poll every 60 seconds to keep it fresh
+        const interval = setInterval(loadUnreadCount, 60000);
+        return () => clearInterval(interval);
+    }, [user]);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -53,7 +75,7 @@ export default function NavBar() {
                         </button>
 
                         {/* Search Bar */}
-                        <form onSubmit={handleSearch} className="flex-1 max-w-md">
+                        <form onSubmit={handleSearch} className="flex-1 max-w-md hidden md:block">
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -100,7 +122,7 @@ export default function NavBar() {
                             label="Rewards"
                             onClick={() => router.push('/dashboard/youth/rewards')}
                         />
-                        <NavIcon
+                        {/* <NavIcon
                             icon={
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -108,11 +130,13 @@ export default function NavBar() {
                             }
                             label="Booking"
                             onClick={() => router.push('/dashboard/youth/booking')}
-                        />
+                        /> 
+                        */}
                     </div>
 
                     {/* Right: Notifications, News, Messages, User */}
                     <div className="flex items-center gap-2 flex-1 justify-end">
+                        {/* --- NOTIFICATIONS WITH BADGE --- */}
                         <NavIcon
                             icon={
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,7 +145,9 @@ export default function NavBar() {
                             }
                             label="Notifications"
                             onClick={() => router.push('/dashboard/youth/notifications')}
+                            badge={unreadCount} // <--- PASS BADGE COUNT
                         />
+                        
                         <NavIcon
                             icon={
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,7 +169,7 @@ export default function NavBar() {
                         {/* User Avatar */}
                         <button
                             onClick={() => router.push('/dashboard/youth/profile')}
-                            className="flex-shrink-0"
+                            className="flex-shrink-0 ml-2"
                         >
                             {user ? (
                                 <Avatar
@@ -211,13 +237,16 @@ export default function NavBar() {
     );
 }
 
+// --- UPDATED NAV ICON COMPONENT ---
+
 interface NavIconProps {
     icon: React.ReactNode;
     label: string;
     onClick: () => void;
+    badge?: number; // <--- NEW PROP
 }
 
-function NavIcon({ icon, label, onClick }: NavIconProps) {
+function NavIcon({ icon, label, onClick, badge }: NavIconProps) {
     return (
         <button
             onClick={onClick}
@@ -225,11 +254,18 @@ function NavIcon({ icon, label, onClick }: NavIconProps) {
             title={label}
         >
             {icon}
+            
+            {/* --- BADGE RENDERER --- */}
+            {badge !== undefined && badge > 0 && (
+                <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border border-white">
+                    {badge > 9 ? '9+' : badge}
+                </span>
+            )}
+
             {/* Tooltip on hover */}
-            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                 {label}
             </span>
         </button>
     );
 }
-

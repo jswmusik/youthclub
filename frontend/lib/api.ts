@@ -284,3 +284,27 @@ export const updateYouth = async (id: number, data: any) => {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
+
+// --- Notification API ---
+
+export const fetchNotifications = (categoryFilter: string = 'ALL') => {
+    // If filter is ALL, don't send a param, otherwise send ?category=X
+    const query = categoryFilter !== 'ALL' ? `?category=${categoryFilter}` : '';
+    return api.get(`/notifications/${query}`);
+};
+
+export const fetchUnreadNotificationCount = () => {
+    return api.get('/notifications/unread_count/');
+};
+
+export const markNotificationRead = (id: number) => {
+    return api.post(`/notifications/${id}/mark_read/`);
+};
+
+export const markAllNotificationsRead = () => {
+    return api.post('/notifications/mark_all_read/');
+};
+
+export const deleteNotification = (id: number) => {
+    return api.delete(`/notifications/${id}/`);
+};
