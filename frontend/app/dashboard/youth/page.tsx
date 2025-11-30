@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchYouthFeed } from '../../../lib/api';
 import PostCard from '../../components/posts/PostCard';
@@ -14,7 +14,11 @@ import PreferredClubCard from '../../components/PreferredClubCard';
 export default function YouthDashboard() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const observerTarget = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const { user } = useAuth();
 
@@ -32,14 +36,29 @@ export default function YouthDashboard() {
             return;
         }
         
-        loadFeed();
+        loadFeed(1, false);
     }, [user, router]);
 
-    const loadFeed = async () => {
+    const loadFeed = useCallback(async (pageNum: number, append: boolean = false) => {
         try {
-            setError(null);
-            const res = await fetchYouthFeed();
-            setPosts(res.data.results || res.data); // Handle pagination structure
+            if (append) {
+                setLoadingMore(true);
+            } else {
+                setError(null);
+                setLoading(true);
+            }
+            
+            const res = await fetchYouthFeed(pageNum);
+            const newPosts = res.data.results || res.data;
+            
+            if (append) {
+                setPosts(prev => [...prev, ...newPosts]);
+            } else {
+                setPosts(newPosts);
+            }
+            
+            // Check if there are more pages
+            setHasMore(!!res.data.next);
         } catch (err: any) {
             console.error('Failed to load feed:', err);
             if (err?.response?.status === 401) {
@@ -55,8 +74,34 @@ export default function YouthDashboard() {
             }
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
-    };
+    }, [router]);
+
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+                    const nextPage = page + 1;
+                    setPage(nextPage);
+                    loadFeed(nextPage, true);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasMore, loadingMore, loading, page, loadFeed]);
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -68,10 +113,52 @@ export default function YouthDashboard() {
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <h3 className="font-bold text-gray-800 mb-4">Menu</h3>
                         <ul className="space-y-3 text-gray-600">
-                            <li className="font-bold text-blue-600">News Feed</li>
-                            <li className="hover:text-blue-600 cursor-pointer">My Groups</li>
-                            <li className="hover:text-blue-600 cursor-pointer">My Club</li>
-                            <li className="hover:text-blue-600 cursor-pointer">Events</li>
+                            {/* Your Feed - Current page, just scroll to top */}
+                            <li 
+                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                className="font-bold text-blue-600 hover:text-blue-700 cursor-pointer transition-colors"
+                            >
+                                Your Feed
+                            </li>
+                            
+                            {/* My Groups - Link to profile clubs tab */}
+                            <li 
+                                onClick={() => router.push('/dashboard/youth/profile?tab=clubs')}
+                                className="hover:text-blue-600 cursor-pointer transition-colors flex items-center justify-between group"
+                            >
+                                <span className="group-hover:text-blue-600">My Groups</span>
+                                {(() => {
+                                    const memberships = (user as any)?.my_memberships || [];
+                                    const approvedCount = memberships.filter((m: any) => m.status === 'APPROVED').length;
+                                    return approvedCount > 0 ? (
+                                        <span className="bg-yellow-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                                            {approvedCount}
+                                        </span>
+                                    ) : null;
+                                })()}
+                            </li>
+                            
+                            {/* My Club - Link to preferred club */}
+                            {user?.preferred_club?.id ? (
+                                <li 
+                                    onClick={() => router.push(`/dashboard/youth/club/${user.preferred_club.id}`)}
+                                    className="hover:text-blue-600 cursor-pointer transition-colors"
+                                >
+                                    My Club
+                                </li>
+                            ) : (
+                                <li className="text-gray-400 cursor-not-allowed">
+                                    My Club
+                                </li>
+                            )}
+                            
+                            {/* Events - No link, but show badge */}
+                            <li className="flex items-center justify-between">
+                                <span className="text-gray-400 cursor-not-allowed">Events</span>
+                                <span className="bg-yellow-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                                    6
+                                </span>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -104,6 +191,21 @@ export default function YouthDashboard() {
                                 {index === 0 && <RecommendedClubs />}
                             </div>
                         ))}
+                        
+                        {/* Infinite Scroll Trigger */}
+                        <div ref={observerTarget} className="h-10 flex items-center justify-center">
+                            {loadingMore && (
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                    <span className="text-sm">Loading more posts...</span>
+                                </div>
+                            )}
+                            {!hasMore && posts.length > 0 && (
+                                <p className="text-sm text-gray-500 text-center py-4">
+                                    You've reached the end of your feed
+                                </p>
+                            )}
+                        </div>
                     </div>
                 )}
             </main>

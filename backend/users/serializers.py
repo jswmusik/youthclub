@@ -22,6 +22,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
     my_memberships = serializers.SerializerMethodField()
     my_rewards = serializers.SerializerMethodField()
     preferred_club = ClubSerializer(read_only=True)
+    # This sends the full club objects, not just IDs, so we can show them in the profile
+    followed_clubs = ClubSerializer(many=True, read_only=True)
     followed_clubs_ids = serializers.SerializerMethodField()
 
     class Meta:
@@ -41,6 +43,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'my_memberships',
             'my_rewards',
             'notification_email_enabled',
+            'followed_clubs',
             'followed_clubs_ids'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']

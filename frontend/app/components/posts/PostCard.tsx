@@ -6,6 +6,7 @@ import { Post } from '../../../types/post';
 import { addPostReaction, updatePostReaction, removePostReaction, fetchPostComments, createPostComment, deletePostComment } from '../../../lib/api';
 import { getMediaUrl } from '../../utils';
 import { useAuth } from '../../../context/AuthContext';
+import ConfirmationModal from '../ConfirmationModal';
 
 // Helper function to convert YouTube URLs to embed format
 const getYouTubeEmbedUrl = (url: string): string => {
@@ -168,6 +169,9 @@ export default function PostCard({ post }: PostCardProps) {
     const [commentSubmitted, setCommentSubmitted] = useState(false);
     const [isContentExpanded, setIsContentExpanded] = useState(false);
     const [shouldTruncate, setShouldTruncate] = useState(false);
+    const [showDeleteCommentModal, setShowDeleteCommentModal] = useState(false);
+    const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
+    const [isDeletingComment, setIsDeletingComment] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const pickerRef = useRef<HTMLDivElement>(null);
     const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -307,18 +311,26 @@ export default function PostCard({ post }: PostCardProps) {
         }
     };
 
-    const handleDeleteComment = async (commentId: number, isReply: boolean = false) => {
-        if (!confirm('Are you sure you want to delete this comment?')) {
-            return;
-        }
+    const handleDeleteComment = (commentId: number, isReply: boolean = false) => {
+        setCommentToDelete(commentId);
+        setShowDeleteCommentModal(true);
+    };
+
+    const handleDeleteCommentConfirm = async () => {
+        if (!commentToDelete) return;
 
         try {
-            await deletePostComment(commentId);
+            setIsDeletingComment(true);
+            await deletePostComment(commentToDelete);
             // Reload comments - this will update the count correctly
             await loadComments();
+            setShowDeleteCommentModal(false);
+            setCommentToDelete(null);
         } catch (error) {
             console.error('Failed to delete comment:', error);
             alert('Failed to delete comment. Please try again.');
+        } finally {
+            setIsDeletingComment(false);
         }
     };
 
@@ -944,6 +956,24 @@ export default function PostCard({ post }: PostCardProps) {
                     )}
                 </div>
             )}
+
+            {/* Delete Comment Confirmation Modal */}
+            <ConfirmationModal
+                isVisible={showDeleteCommentModal}
+                onClose={() => {
+                    if (!isDeletingComment) {
+                        setShowDeleteCommentModal(false);
+                        setCommentToDelete(null);
+                    }
+                }}
+                onConfirm={handleDeleteCommentConfirm}
+                title="Delete Comment"
+                message="Are you sure you want to delete this comment? This action cannot be undone."
+                confirmButtonText="Delete"
+                cancelButtonText="Cancel"
+                isLoading={isDeletingComment}
+                variant="danger"
+            />
         </div>
     );
 }

@@ -26,6 +26,13 @@ interface User {
   // Type it loosely or strictly depending on your API response depth
   preferred_club?: any;
   followed_clubs_ids?: number[];
+  my_memberships?: Array<{
+    id: number;
+    group_id: number;
+    group_name: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    role: string;
+  }>;
 }
 
 interface AuthContextType {

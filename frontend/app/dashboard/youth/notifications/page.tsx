@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import NavBar from '../../../components/NavBar';
 import NotificationItem from '../../../components/notifications/NotificationItem';
 import NotificationSidebar from '../../../components/notifications/NotificationSidebar';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import { 
     fetchNotifications, 
     markNotificationRead, 
@@ -18,6 +19,9 @@ export default function NotificationPage() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [filter, setFilter] = useState<string>('ALL');
     const [loading, setLoading] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [notificationToDelete, setNotificationToDelete] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const router = useRouter();
 
     // 1. Fetch Data
@@ -49,12 +53,25 @@ export default function NotificationPage() {
         if (notif.action_url) router.push(notif.action_url);
     };
 
-    const handleDelete = async (id: number) => {
-        if (!confirm("Delete this notification?")) return;
+    const handleDeleteClick = (id: number) => {
+        setNotificationToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!notificationToDelete) return;
+        
         try {
-            await deleteNotification(id);
-            setNotifications(prev => prev.filter(n => n.id !== id));
-        } catch (e) { console.error(e); }
+            setIsDeleting(true);
+            await deleteNotification(notificationToDelete);
+            setNotifications(prev => prev.filter(n => n.id !== notificationToDelete));
+            setShowDeleteModal(false);
+            setNotificationToDelete(null);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     return (
@@ -99,13 +116,31 @@ export default function NotificationPage() {
                                     key={notif.id}
                                     notification={notif}
                                     onClick={handleItemClick}
-                                    onDelete={handleDelete}
+                                    onDelete={handleDeleteClick}
                                 />
                             ))
                         )}
                     </div>
                 </main>
             </div>
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isVisible={showDeleteModal}
+                onClose={() => {
+                    if (!isDeleting) {
+                        setShowDeleteModal(false);
+                        setNotificationToDelete(null);
+                    }
+                }}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Notification"
+                message="Are you sure you want to delete this notification? This action cannot be undone."
+                confirmButtonText="Delete"
+                cancelButtonText="Cancel"
+                isLoading={isDeleting}
+                variant="danger"
+            />
         </div>
     );
 }
