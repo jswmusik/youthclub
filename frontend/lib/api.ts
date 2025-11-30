@@ -160,3 +160,127 @@ export const deletePostComment = async (commentId: number) => {
 export const fetchClubsByMunicipality = async (municipalityId: number) => {
   return api.get(`/clubs/?municipality=${municipalityId}`);
 };
+
+// --- USER PROFILE ENDPOINTS ---
+
+/**
+ * Updates the current user's profile.
+ * Automatically handles file uploads (FormData) if images are present.
+ */
+export const updateUserProfile = async (data: { 
+  first_name?: string;
+  last_name?: string; 
+  nickname?: string;
+  phone_number?: string;
+  mood_status?: string;
+  avatar?: File;            // Expect a File object for uploads
+  background_image?: File;  // Expect a File object for uploads
+  preferred_language?: string;
+  date_of_birth?: string;   // ISO date string (YYYY-MM-DD)
+  grade?: number | null;
+  legal_gender?: string;
+  preferred_gender?: string;
+  notification_email_enabled?: boolean;
+}) => {
+  const formData = new FormData();
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      // Handle different value types for FormData
+      if (value instanceof File || value instanceof Blob) {
+        formData.append(key, value);
+      } else if (typeof value === 'boolean') {
+        formData.append(key, value.toString());
+      } else {
+        formData.append(key, value as string);
+      }
+    }
+  });
+
+  // We use PATCH to only update the fields we send
+  return api.patch('/auth/users/me/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+// --- TIMELINE / ACTIVITY ENDPOINTS ---
+
+/**
+ * Fetches posts the user has interacted with (Liked or Commented).
+ * Uses the /posts/interactions/ endpoint.
+ */
+export const fetchUserActivityFeed = async (page = 1) => {
+    return api.get(`/posts/interactions/?page=${page}`); 
+};
+
+// --- ADMIN USER MANAGEMENT ---
+
+/**
+ * Admin Create Youth
+ * Creates a new youth user with support for file uploads and arrays.
+ */
+export const createYouth = async (data: any) => {
+  const formData = new FormData();
+
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+
+    if (value !== null && value !== undefined) {
+      if (key === 'interests' || key === 'guardians') {
+        // Handle arrays - DRF ListField expects multiple keys: interests=1&interests=2
+        if (Array.isArray(value)) {
+          value.forEach(v => formData.append(key, v));
+        }
+      } else {
+        formData.append(key, value);
+      }
+    }
+  });
+
+  return api.post('/users/users/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+/**
+ * Admin Update Youth
+ * Updates an existing youth user with support for file uploads and arrays.
+ * Skips string values for image fields (existing URLs) - only sends File objects.
+ */
+/**
+ * Save custom field values for the current user
+ */
+export const saveCustomFieldValues = async (values: Record<string, any>) => {
+  return api.post('/custom-fields/save_values/', values);
+};
+
+export const updateYouth = async (id: number, data: any) => {
+  const formData = new FormData();
+
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+
+    if (value !== null && value !== undefined) {
+      // If updating images, only append if it's a File object (new upload)
+      // If it is a string (existing URL), skip it - backend will keep existing image
+      if ((key === 'avatar' || key === 'background_image') && typeof value === 'string') {
+        return; 
+      }
+
+      if (key === 'interests' || key === 'guardians') {
+        // Handle arrays - DRF ListField expects multiple keys
+        if (Array.isArray(value)) {
+          value.forEach(v => formData.append(key, v));
+        }
+      } else {
+        formData.append(key, value);
+      }
+    }
+  });
+
+  return api.patch(`/users/users/${id}/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};

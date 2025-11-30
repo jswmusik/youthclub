@@ -39,21 +39,32 @@ export default function RecommendedClubs() {
         }
 
         try {
-            // Get user's club to get municipality
-            const userClubRes = await api.get(`/clubs/${user.preferred_club}/`);
-            const userClub = userClubRes.data;
+            // preferred_club is now an object (from ClubSerializer), not just an ID
+            const preferredClub = typeof user.preferred_club === 'object' 
+                ? user.preferred_club 
+                : null;
             
-            if (!userClub.municipality) {
+            if (!preferredClub || !preferredClub.id) {
                 setLoading(false);
                 return;
             }
 
-            // Fetch all clubs in the same municipality
-            const response = await fetchClubsByMunicipality(userClub.municipality);
+            // Get municipality ID from the preferred_club object
+            // municipality should be an ID (number), but handle both object and ID cases
+            const municipalityId = typeof preferredClub.municipality === 'object' 
+                ? preferredClub.municipality.id || preferredClub.municipality
+                : preferredClub.municipality;
+            
+            if (!municipalityId) {
+                setLoading(false);
+                return;
+            }
+            
+            const response = await fetchClubsByMunicipality(municipalityId);
             const allClubs = response.data.results || response.data || [];
             
             // Filter out user's current club
-            const otherClubs = allClubs.filter((club: Club) => club.id !== user.preferred_club);
+            const otherClubs = allClubs.filter((club: Club) => club.id !== preferredClub.id);
             
             setClubs(otherClubs);
         } catch (error) {

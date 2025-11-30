@@ -10,10 +10,21 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
+  nickname: string; // Added
+  grade: number | null; // Added
   role: string;
   avatar: string | null;
+  
+  // --- NEW FIELDS ---
+  background_image: string | null;
+  mood_status: string;
+  verification_status: string; // Useful for the badge
+  // ------------------
+
   assigned_municipality?: number | { id: number } | null;
   assigned_club?: number | { id: number } | null;
+  // Type it loosely or strictly depending on your API response depth
+  preferred_club?: any;
 }
 
 interface AuthContextType {

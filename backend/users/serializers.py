@@ -4,7 +4,10 @@ from django.http import QueryDict
 from django.db import transaction
 from django.utils.crypto import get_random_string
 from organization.models import Club
+from organization.serializers import InterestSerializer, ClubSerializer
 from custom_fields.models import CustomFieldDefinition, CustomFieldValue
+from groups.models import GroupMembership
+from rewards.models import RewardUsage
 import re
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -15,6 +18,10 @@ class CustomUserSerializer(serializers.ModelSerializer):
     # Add youth_members for Guardians viewing their profile
     youth_members = serializers.SerializerMethodField()
     custom_field_values = serializers.SerializerMethodField()
+    interests = InterestSerializer(many=True, read_only=True)
+    my_memberships = serializers.SerializerMethodField()
+    my_rewards = serializers.SerializerMethodField()
+    preferred_club = ClubSerializer(read_only=True)
 
     class Meta:
         model = User
@@ -26,13 +33,29 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'legal_gender', 'preferred_gender', 'date_of_birth',
             'avatar', 'preferred_language', 'is_active',
             'date_joined', 'last_login', 'hide_contact_info', 'interests',
-            'verification_status', 'guardians', 'youth_members', 'custom_field_values'
+            'verification_status', 'guardians', 'youth_members', 'custom_field_values',
+            # --- NEW FIELDS ---
+            'background_image', 
+            'mood_status',
+            'my_memberships',
+            'my_rewards',
+            'notification_email_enabled'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
 
     def get_guardians(self, obj):
-        # If obj is a Youth, return their guardians
-        return list(obj.guardian_links.values_list('guardian_id', flat=True))
+        # If obj is a Youth, return their guardians with full details
+        guardian_links = obj.guardian_links.select_related('guardian').all()
+        return [
+            {
+                'id': link.guardian.id,
+                'first_name': link.guardian.first_name,
+                'last_name': link.guardian.last_name,
+                'email': link.guardian.email,
+                'avatar': link.guardian.avatar.url if link.guardian.avatar else None,
+            }
+            for link in guardian_links
+        ]
 
     def get_youth_members(self, obj):
         # If obj is a Guardian, return their youth
@@ -46,6 +69,72 @@ class CustomUserSerializer(serializers.ModelSerializer):
             {'field': cfv.field.id, 'value': cfv.value}
             for cfv in values
         ]
+
+    def get_my_memberships(self, obj):
+        """
+        Returns a simplified list of groups the user belongs to.
+        """
+        memberships = GroupMembership.objects.filter(user=obj).select_related('group')
+        data = []
+        for m in memberships:
+            data.append({
+                'id': m.id,
+                'group_id': m.group.id,
+                'group_name': m.group.name,
+                'group_avatar': m.group.avatar.url if m.group.avatar else None,
+                'status': m.status,   # 'PENDING', 'APPROVED', etc.
+                'role': m.role,       # 'MEMBER', 'ADMIN'
+                'joined_at': m.joined_at
+            })
+        return data
+
+    def get_my_rewards(self, obj):
+        """
+        Returns rewards assigned to the user.
+        """
+        # Use the reverse relationship for better performance
+        # Get all rewards for this user, ordered by 'not redeemed' first, then by date
+        try:
+            usages = obj.reward_usages.select_related('reward').order_by('is_redeemed', '-created_at')
+        except AttributeError:
+            # Fallback if reverse relationship doesn't exist
+            from rewards.models import RewardUsage
+            usages = RewardUsage.objects.filter(user=obj).select_related('reward').order_by('is_redeemed', '-created_at')
+        
+        data = []
+        for u in usages:
+            # Safely get image URL
+            reward_image = None
+            if u.reward and u.reward.image:
+                try:
+                    reward_image = u.reward.image.url
+                except (ValueError, AttributeError):
+                    reward_image = None
+            
+            # Safely get dates (convert to ISO format strings)
+            redeemed_at = None
+            if u.redeemed_at:
+                redeemed_at = u.redeemed_at.isoformat()
+            
+            created_at = u.created_at.isoformat() if u.created_at else None
+            
+            expiration_date = None
+            if u.reward and u.reward.expiration_date:
+                expiration_date = u.reward.expiration_date.isoformat()
+            
+            data.append({
+                'id': u.id,  # RewardUsage ID
+                'reward_id': u.reward.id if u.reward else None,  # Reward ID for redemption endpoint
+                'reward_name': u.reward.name if u.reward else 'Unknown Reward',
+                'reward_image': reward_image,
+                'description': u.reward.description if u.reward else '',
+                'is_redeemed': u.is_redeemed,
+                'redeemed_at': redeemed_at,
+                'created_at': created_at,
+                'expiration_date': expiration_date,
+                'sponsor': u.reward.sponsor_name if u.reward else ''
+            })
+        return data
 
 
 class UserManagementSerializer(serializers.ModelSerializer):
@@ -70,7 +159,10 @@ class UserManagementSerializer(serializers.ModelSerializer):
             'nickname', 'legal_gender', 'preferred_gender',
             'date_of_birth', 'hide_contact_info', 'avatar',
             'verification_status', 'guardians', 'youth_members',
-            'preferred_language'
+            'preferred_language',
+            # --- NEW FIELDS ADDED HERE FOR ADMINS ---
+            'background_image', 
+            'mood_status'
         ]
 
     def _filter_youth_ids_by_scope(self, youth_ids):

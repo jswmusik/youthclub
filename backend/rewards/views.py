@@ -16,6 +16,7 @@ class RewardViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter rewards based on the Admin's scope (Section 2).
+        For regular users, allow access to rewards they have usages for (for redemption).
         """
         user = self.request.user
         queryset = Reward.objects.all().order_by('-created_at')
@@ -35,8 +36,13 @@ class RewardViewSet(viewsets.ModelViewSet):
         if user.role == 'CLUB_ADMIN' and user.assigned_club:
             return queryset.filter(club=user.assigned_club)
 
-        # Regular users (Youth/Guardian) should not access this management endpoint
-        # They will use a separate endpoint later to "see available rewards"
+        # Regular users (Youth/Guardian) can only see rewards they have usages for
+        # This allows them to redeem rewards via the redeem action
+        if user.role in ['YOUTH_MEMBER', 'GUARDIAN']:
+            # Get reward IDs that the user has usages for
+            reward_ids = RewardUsage.objects.filter(user=user).values_list('reward_id', flat=True).distinct()
+            return queryset.filter(id__in=reward_ids)
+        
         return Reward.objects.none()
 
     def perform_create(self, serializer):

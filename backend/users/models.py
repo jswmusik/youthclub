@@ -8,6 +8,9 @@ from datetime import date
 # Define allowed file types for user avatars
 user_avatar_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'svg', 'gif'])
 
+# Define allowed file types for background images
+background_image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -56,6 +59,23 @@ class User(AbstractUser):
         null=True,
         validators=[user_avatar_validator]
     )
+    
+    # --- NEW FIELDS START ---
+    background_image = models.FileField(
+        upload_to='users/backgrounds/',
+        blank=True,
+        null=True,
+        validators=[background_image_validator],
+        help_text="Profile header background image"
+    )
+    
+    mood_status = models.CharField(
+        max_length=100, 
+        blank=True, 
+        help_text="Short status message, e.g. 'Playing FIFA' or 'Studying'"
+    )
+    # --- NEW FIELDS END ---
+    
     notification_email_enabled = models.BooleanField(default=True)
     
     # --- Verification Field ---

@@ -135,6 +135,102 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
     
+    @action(detail=False, methods=['get'])
+    def interacted(self, request):
+        """
+        Returns posts that the current user has interacted with (reacted or commented).
+        Falls back to standard feed if no interacted posts exist.
+        """
+        user = request.user
+        
+        # Only allow Youth Members and Guardians to use this endpoint
+        if user.role not in ['YOUTH_MEMBER', 'GUARDIAN']:
+            raise PermissionDenied("Interacted posts are only available for Youth Members and Guardians.")
+        
+        # Get posts where user has reacted OR commented
+        posts_interacted = Post.objects.filter(
+            Q(reactions__user=user) | Q(comments__author=user)
+        ).distinct()
+        
+        # Apply PostEngine filtering to ensure user can see these posts
+        posts_interacted = PostEngine.get_posts_for_user(user, queryset=posts_interacted)
+        
+        # If no interacted posts exist, fallback to standard feed
+        if not posts_interacted.exists():
+            queryset = PostEngine.get_posts_for_user(user)
+        else:
+            queryset = posts_interacted
+        
+        # Order by published_at (or created_at as fallback)
+        queryset = queryset.order_by('-published_at', '-created_at')
+        
+        # Add annotations (same as feed)
+        queryset = queryset.annotate(
+            comment_count=Count('comments', filter=Q(comments__is_approved=True)),
+            reaction_count=Count('reactions')
+        )
+        
+        # Add user_has_reacted annotation
+        queryset = queryset.annotate(
+            user_has_reacted=Exists(
+                PostReaction.objects.filter(
+                    post=OuterRef('pk'),
+                    user=user
+                )
+            )
+        )
+        
+        # Paginate the results
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def interactions(self, request):
+        """
+        Return posts the user has interacted with (Reacted or Commented).
+        If no interactions found, falls back to the standard feed.
+        """
+        user = request.user
+        if not user.is_authenticated:
+            raise PermissionDenied()
+
+        # 1. Query for interactions (Reacted OR Commented)
+        queryset = Post.objects.filter(
+            Q(reactions__user=user) | 
+            Q(comments__author=user)
+        ).distinct().order_by('-published_at', '-created_at')
+
+        # 2. Fallback: If no interactions, show standard feed
+        if not queryset.exists():
+            # Use the engine to get relevant posts (same as /feed/)
+            queryset = PostEngine.get_posts_for_user(user)
+        
+        # 3. Apply Annotations (Critical for the PostCard to show like status)
+        queryset = queryset.annotate(
+            comment_count=Count('comments', filter=Q(comments__is_approved=True)),
+            reaction_count=Count('reactions'),
+            user_has_reacted=Exists(
+                PostReaction.objects.filter(
+                    post=OuterRef('pk'),
+                    user=user
+                )
+            )
+        )
+
+        # 4. Pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    
     @action(detail=True, methods=['post', 'delete', 'put'], url_path='react')
     def react(self, request, pk=None):
         """
