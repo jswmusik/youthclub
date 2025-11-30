@@ -1,13 +1,14 @@
 from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
-from django.db.models import Q, Count
+from rest_framework.exceptions import PermissionDenied, NotFound
+from django.db.models import Q, Count, Exists, OuterRef
 from django.utils import timezone
 from datetime import timedelta
 
-from .models import Post, PostComment
+from .models import Post, PostComment, PostReaction
 from .serializers import PostSerializer, PostCommentSerializer
+from .engine import PostEngine
 
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
@@ -19,7 +20,21 @@ class PostViewSet(viewsets.ModelViewSet):
         Filter posts based on Admin Role (Section 2 of Doc).
         """
         user = self.request.user
-        queryset = Post.objects.all().annotate(comment_count=Count('comments'))
+        queryset = Post.objects.all().annotate(
+            comment_count=Count('comments', filter=Q(comments__is_approved=True)),
+            reaction_count=Count('reactions')
+        )
+        
+        # Add user_has_reacted annotation if user is authenticated
+        if user.is_authenticated:
+            queryset = queryset.annotate(
+                user_has_reacted=Exists(
+                    PostReaction.objects.filter(
+                        post=OuterRef('pk'),
+                        user=user
+                    )
+                )
+            )
 
         # 1. Super Admin sees ALL posts
         if user.role == 'SUPER_ADMIN':
@@ -95,6 +110,153 @@ class PostViewSet(viewsets.ModelViewSet):
             "created_last_30_days": last_30_days,
             "average_views": round(avg_views, 1)
         })
+    
+    @action(detail=False, methods=['get'])
+    def feed(self, request):
+        """
+        Personalized feed endpoint for regular users (Youth Members and Guardians).
+        Uses PostEngine to filter posts based on targeting criteria.
+        """
+        user = request.user
+        
+        # Only allow Youth Members and Guardians to use the feed
+        if user.role not in ['YOUTH_MEMBER', 'GUARDIAN']:
+            raise PermissionDenied("Feed is only available for Youth Members and Guardians.")
+        
+        # Get posts using the PostEngine
+        queryset = PostEngine.get_posts_for_user(user)
+        
+        # Paginate the results
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post', 'delete', 'put'], url_path='react')
+    def react(self, request, pk=None):
+        """
+        Add, update, or remove a reaction to a post.
+        POST: Add a reaction (defaults to LIKE if not specified)
+        PUT: Update existing reaction to a different type
+        DELETE: Remove reaction
+        """
+        # Get the post directly, bypassing get_queryset restrictions
+        # This allows regular users to react to posts they can see
+        try:
+            post = Post.objects.get(pk=pk)
+        except Post.DoesNotExist:
+            raise NotFound("Post not found.")
+        
+        user = request.user
+        
+        # Check if user can see this post
+        if not PostEngine.user_can_see_post(user, post):
+            raise PermissionDenied("You do not have permission to react to this post.")
+        
+        # Get reaction type from request (defaults to LIKE)
+        reaction_type = request.data.get('reaction_type', 'LIKE')
+        if reaction_type not in [choice[0] for choice in PostReaction.ReactionType.choices]:
+            reaction_type = 'LIKE'
+        
+        if request.method == 'POST':
+            # Add a reaction (or update if user already reacted with different type)
+            reaction, created = PostReaction.objects.get_or_create(
+                post=post,
+                user=user,
+                defaults={'reaction_type': reaction_type}
+            )
+            
+            if not created:
+                # User already reacted, update the reaction type
+                reaction.reaction_type = reaction_type
+                reaction.save()
+            
+            # Get reaction breakdown
+            from django.db.models import Count
+            reaction_breakdown = post.reactions.values('reaction_type').annotate(count=Count('id'))
+            reaction_dict = {r['reaction_type']: r['count'] for r in reaction_breakdown}
+            
+            return Response({
+                "message": f"Reaction added successfully.",
+                "reaction_type": reaction_type,
+                "reaction_count": post.reactions.count(),
+                "reaction_breakdown": reaction_dict,
+                "user_reaction": reaction_type
+            }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        
+        elif request.method == 'PUT':
+            # Update existing reaction
+            try:
+                reaction = PostReaction.objects.get(post=post, user=user)
+                reaction.reaction_type = reaction_type
+                reaction.save()
+                
+                # Get reaction breakdown
+                from django.db.models import Count
+                reaction_breakdown = post.reactions.values('reaction_type').annotate(count=Count('id'))
+                reaction_dict = {r['reaction_type']: r['count'] for r in reaction_breakdown}
+                
+                return Response({
+                    "message": "Reaction updated successfully.",
+                    "reaction_type": reaction_type,
+                    "reaction_count": post.reactions.count(),
+                    "reaction_breakdown": reaction_dict,
+                    "user_reaction": reaction_type
+                }, status=status.HTTP_200_OK)
+            except PostReaction.DoesNotExist:
+                # Create new reaction if it doesn't exist
+                reaction = PostReaction.objects.create(
+                    post=post,
+                    user=user,
+                    reaction_type=reaction_type
+                )
+                
+                from django.db.models import Count
+                reaction_breakdown = post.reactions.values('reaction_type').annotate(count=Count('id'))
+                reaction_dict = {r['reaction_type']: r['count'] for r in reaction_breakdown}
+                
+                return Response({
+                    "message": "Reaction added successfully.",
+                    "reaction_type": reaction_type,
+                    "reaction_count": post.reactions.count(),
+                    "reaction_breakdown": reaction_dict,
+                    "user_reaction": reaction_type
+                }, status=status.HTTP_201_CREATED)
+        
+        elif request.method == 'DELETE':
+            # Remove reaction (optionally filter by reaction_type)
+            delete_reaction_type = request.data.get('reaction_type', None)
+            if delete_reaction_type:
+                deleted = PostReaction.objects.filter(
+                    post=post, 
+                    user=user, 
+                    reaction_type=delete_reaction_type
+                ).delete()[0]
+            else:
+                # Delete all reactions from this user for this post
+                deleted = PostReaction.objects.filter(post=post, user=user).delete()[0]
+            
+            if deleted:
+                from django.db.models import Count
+                reaction_breakdown = post.reactions.values('reaction_type').annotate(count=Count('id'))
+                reaction_dict = {r['reaction_type']: r['count'] for r in reaction_breakdown}
+                
+                return Response({
+                    "message": "Reaction removed successfully.",
+                    "reaction_count": post.reactions.count(),
+                    "reaction_breakdown": reaction_dict,
+                    "user_reaction": None
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "message": "No reaction found to remove.",
+                    "reaction_count": post.reactions.count(),
+                    "reaction_breakdown": {},
+                    "user_reaction": None
+                }, status=status.HTTP_200_OK)
 
 class PostCommentViewSet(viewsets.ModelViewSet):
     serializer_class = PostCommentSerializer
@@ -111,4 +273,11 @@ class PostCommentViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        # Get the post to check if moderation is required
+        post = serializer.validated_data.get('post')
+        
+        # If the post requires moderation, set is_approved to False
+        if post and post.require_moderation:
+            serializer.save(author=self.request.user, is_approved=False)
+        else:
+            serializer.save(author=self.request.user, is_approved=True)

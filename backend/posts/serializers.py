@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from django.db.models import Max
-from .models import Post, PostImage, PostComment
+from django.db.models import Max, Count, Exists, OuterRef
+from .models import Post, PostImage, PostComment, PostReaction
 from users.serializers import CustomUserSerializer # To show author details
 from organization.serializers import MunicipalitySerializer, ClubSerializer # Import these for display
 from organization.models import Municipality, Club
@@ -17,11 +17,28 @@ class PostCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostComment
         fields = ['id', 'post', 'author', 'content', 'parent', 'is_approved', 'created_at']
-        read_only_fields = ['is_approved', 'author']
+        read_only_fields = ['author']
+    
+    def validate_is_approved(self, value):
+        """Only allow admins to change is_approved status."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            # Allow super admins, municipality admins, and club admins to approve comments
+            if user.role in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+                return value
+            # Regular users cannot change approval status
+            if self.instance and self.instance.is_approved != value:
+                raise serializers.ValidationError("You don't have permission to change comment approval status.")
+        return value
 
 class PostSerializer(serializers.ModelSerializer):
     images = PostImageSerializer(many=True, read_only=True)
     author = CustomUserSerializer(read_only=True)
+    
+    # Organization info (for display instead of author)
+    organization_name = serializers.SerializerMethodField()
+    organization_avatar = serializers.SerializerMethodField()
     
     # Read-only details for the UI
     target_municipalities_details = MunicipalitySerializer(source='target_municipalities', many=True, read_only=True)
@@ -50,14 +67,83 @@ class PostSerializer(serializers.ModelSerializer):
     )
     
     comment_count = serializers.IntegerField(read_only=True)
+    reaction_count = serializers.SerializerMethodField()
+    user_has_reacted = serializers.SerializerMethodField()
+    user_reaction = serializers.SerializerMethodField()
+    reaction_breakdown = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = '__all__'
         read_only_fields = [
             'author', 'owner_role', 'municipality', 'club', 'view_count', 'comment_count',
-            'target_municipalities_details', 'target_clubs_details'
+            'target_municipalities_details', 'target_clubs_details', 'reaction_count', 
+            'user_has_reacted', 'user_reaction', 'reaction_breakdown', 
+            'organization_name', 'organization_avatar'
         ]
+    
+    def get_organization_name(self, obj):
+        """Get the organization name based on owner_role."""
+        if obj.owner_role == Post.OwnerRole.SUPER_ADMIN:
+            return "Ungdomsappen"
+        elif obj.owner_role == Post.OwnerRole.MUNICIPALITY_ADMIN and obj.municipality:
+            return obj.municipality.name
+        elif obj.owner_role == Post.OwnerRole.CLUB_ADMIN and obj.club:
+            return obj.club.name
+        # Fallback to author name if no organization
+        if obj.author:
+            return f"{obj.author.first_name} {obj.author.last_name}"
+        return "Unknown"
+    
+    def get_organization_avatar(self, obj):
+        """Get the organization avatar based on owner_role."""
+        if obj.owner_role == Post.OwnerRole.SUPER_ADMIN:
+            # Return site logo/avatar (you can set this in settings or use a default)
+            return None  # Or return a default site avatar URL
+        elif obj.owner_role == Post.OwnerRole.MUNICIPALITY_ADMIN and obj.municipality:
+            if obj.municipality.avatar:
+                return obj.municipality.avatar.url
+            return None
+        elif obj.owner_role == Post.OwnerRole.CLUB_ADMIN and obj.club:
+            if obj.club.avatar:
+                return obj.club.avatar.url
+            return None
+        # Fallback to author avatar
+        if obj.author and obj.author.avatar:
+            return obj.author.avatar.url
+        return None
+    
+    def get_reaction_count(self, obj):
+        """Get the total number of reactions for this post."""
+        if hasattr(obj, 'reaction_count'):
+            return obj.reaction_count
+        return obj.reactions.count()
+    
+    def get_user_has_reacted(self, obj):
+        """Check if the current user has reacted to this post."""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if hasattr(obj, 'user_has_reacted'):
+                return obj.user_has_reacted
+            return obj.reactions.filter(user=request.user).exists()
+        return False
+    
+    def get_user_reaction(self, obj):
+        """Get the current user's reaction type."""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            try:
+                reaction = obj.reactions.get(user=request.user)
+                return reaction.reaction_type
+            except PostReaction.DoesNotExist:
+                return None
+        return None
+    
+    def get_reaction_breakdown(self, obj):
+        """Get breakdown of reactions by type."""
+        from django.db.models import Count
+        breakdown = obj.reactions.values('reaction_type').annotate(count=Count('id'))
+        return {item['reaction_type']: item['count'] for item in breakdown}
     
     def validate(self, data):
         """

@@ -47,27 +47,43 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
     e.preventDefault();
     setLoading(true);
     
+    // Validate that at least one role is selected if not targeting all
+    if (!formData.target_all && formData.selected_roles.length === 0) {
+      setToast({ message: 'Please select at least one role or select "All Roles".', type: 'error', isVisible: true });
+      setLoading(false);
+      return;
+    }
+    
     // Calculate Expiration
     const expires = new Date();
     expires.setDate(expires.getDate() + parseInt(formData.days_active.toString()));
 
-    const payload = {
-      title: formData.title,
-      message: formData.message,
+    const payload: any = {
+      title: formData.title.trim(),
+      message: formData.message.trim(),
       message_type: formData.message_type,
       target_roles: formData.target_all ? ['ALL'] : formData.selected_roles,
       is_sticky: formData.is_sticky,
-      external_link: formData.external_link || null,
       expires_at: expires.toISOString()
     };
+
+    // Only include external_link if it has a value (don't send null or empty string)
+    if (formData.external_link && formData.external_link.trim()) {
+      payload.external_link = formData.external_link.trim();
+    }
 
     try {
       await api.post('/messages/', payload);
       setToast({ message: 'System message created!', type: 'success', isVisible: true });
       setTimeout(() => router.push(redirectPath), 1000);
     } catch (err: any) {
-      console.error(err);
-      setToast({ message: 'Failed to create message.', type: 'error', isVisible: true });
+      console.error('Error creating message:', err);
+      console.error('Error response:', err?.response?.data);
+      console.error('Payload sent:', payload);
+      const errorMessage = err?.response?.data?.message || 
+                          err?.response?.data?.detail || 
+                          (typeof err?.response?.data === 'object' ? JSON.stringify(err.response.data) : 'Failed to create message.');
+      setToast({ message: errorMessage, type: 'error', isVisible: true });
       setLoading(false);
     }
   };

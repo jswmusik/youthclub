@@ -139,3 +139,27 @@ class PostComment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.author} on {self.post}"
+
+
+class PostReaction(models.Model):
+    """
+    Stores user reactions to posts.
+    """
+    class ReactionType(models.TextChoices):
+        LIKE = 'LIKE', 'Like'
+        LOVE = 'LOVE', 'Love'
+        LAUGH = 'LAUGH', 'Laugh'
+        WOW = 'WOW', 'Wow'
+        SAD = 'SAD', 'Sad'
+        ANGRY = 'ANGRY', 'Angry'
+    
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reactions')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='post_reactions')
+    reaction_type = models.CharField(max_length=10, choices=ReactionType.choices, default=ReactionType.LIKE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('post', 'user', 'reaction_type') # One reaction type per user per post
+
+    def __str__(self):
+        return f"{self.user} {self.get_reaction_type_display()} {self.post}"

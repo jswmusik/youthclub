@@ -50,7 +50,24 @@ export interface Post {
         id: number;
         first_name: string;
         last_name: string;
+        avatar?: string | null;
     };
+    // Organization info (for display instead of author)
+    organization_name?: string;
+    organization_avatar?: string | null;
     images: PostImage[];
     created_at: string;
+    
+    // Reactions
+    reaction_count: number;
+    user_has_reacted: boolean;
+    user_reaction?: 'LIKE' | 'LOVE' | 'LAUGH' | 'WOW' | 'SAD' | 'ANGRY' | null;
+    reaction_breakdown?: {
+        LIKE?: number;
+        LOVE?: number;
+        LAUGH?: number;
+        WOW?: number;
+        SAD?: number;
+        ANGRY?: number;
+    };
 }

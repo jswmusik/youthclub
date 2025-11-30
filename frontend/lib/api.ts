@@ -3,6 +3,9 @@ import Cookies from 'js-cookie';
 
 const API_URL = 'http://localhost:8000/api';
 
+// Export for use in other files
+export { API_URL };
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -64,3 +67,91 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// Post feed and reactions
+export const fetchYouthFeed = async (page = 1) => {
+  return api.get(`/posts/feed/?page=${page}`);
+};
+
+export const addPostReaction = async (postId: number, reactionType: string = 'LIKE') => {
+  if (!postId) {
+    throw new Error('Post ID is required');
+  }
+  const url = `/posts/${postId}/react/`;
+  const fullUrl = `${API_URL}${url}`;
+  console.log('Adding reaction:', {
+    url,
+    fullUrl,
+    postId,
+    reactionType,
+    baseURL: api.defaults.baseURL
+  });
+  try {
+    const response = await api.post(url, { reaction_type: reactionType });
+    return response;
+  } catch (error: any) {
+    console.error('Add reaction error - Full error object:', error);
+    console.error('Error response:', error.response);
+    console.error('Error config:', error.config);
+    console.error('Error details:', {
+      url,
+      fullUrl,
+      postId,
+      reactionType,
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message,
+      requestUrl: error?.config?.url,
+      requestBaseURL: error?.config?.baseURL
+    });
+    throw error;
+  }
+};
+
+export const updatePostReaction = async (postId: number, reactionType: string) => {
+  if (!postId) {
+    throw new Error('Post ID is required');
+  }
+  const url = `/posts/${postId}/react/`;
+  console.log('Updating reaction - URL:', url, 'Type:', reactionType);
+  return api.put(url, { reaction_type: reactionType });
+};
+
+export const removePostReaction = async (postId: number, reactionType?: string) => {
+  if (!postId) {
+    throw new Error('Post ID is required');
+  }
+  const url = `/posts/${postId}/react/`;
+  console.log('Removing reaction - URL:', url, 'Type:', reactionType);
+  if (reactionType) {
+    return api.delete(url, { data: { reaction_type: reactionType } });
+  }
+  return api.delete(url);
+};
+
+// Legacy functions for backward compatibility
+export const togglePostLike = async (postId: number) => {
+  return addPostReaction(postId, 'LIKE');
+};
+
+export const unlikePost = async (postId: number) => {
+  return removePostReaction(postId);
+};
+
+// Comments
+export const fetchPostComments = async (postId: number) => {
+  return api.get(`/post-comments/?post_id=${postId}`);
+};
+
+export const createPostComment = async (postId: number, content: string, parentId?: number) => {
+  const data: any = { post: postId, content };
+  if (parentId) {
+    data.parent = parentId;
+  }
+  return api.post('/post-comments/', data);
+};
+
+export const deletePostComment = async (commentId: number) => {
+  return api.delete(`/post-comments/${commentId}/`);
+};
