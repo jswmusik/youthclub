@@ -118,19 +118,24 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
     return (
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6">
             <div className="flex items-center gap-4 mb-4">
-                {club.avatar ? (
-                    <img 
-                        src={getMediaUrl(club.avatar) || ''} 
-                        alt={club.name}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                    />
-                ) : (
-                    <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-200">
-                        <span className="text-blue-600 font-bold text-xl">
-                            {club.name.charAt(0).toUpperCase()}
-                        </span>
-                    </div>
-                )}
+                <button
+                    onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
+                    className="flex-shrink-0"
+                >
+                    {club.avatar ? (
+                        <img 
+                            src={getMediaUrl(club.avatar) || ''} 
+                            alt={club.name}
+                            className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                        />
+                    ) : (
+                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-200 hover:border-blue-400 transition-colors cursor-pointer">
+                            <span className="text-blue-600 font-bold text-xl">
+                                {club.name.charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                    )}
+                </button>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-gray-900 text-lg truncate">{club.name}</h3>
                     <p className="text-sm text-gray-500">My Club</p>
@@ -180,7 +185,7 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
 
             {/* View Club Button */}
             <button
-                onClick={() => router.push(`/dashboard/youth/clubs/${club.id}`)}
+                onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
                 className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
             >
                 View Club

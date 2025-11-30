@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { getMediaUrl } from '@/app/utils';
 
 interface GroupMembership {
@@ -16,11 +17,30 @@ interface ClubsAndGroupsProps {
 }
 
 export default function ClubsAndGroups({ user }: ClubsAndGroupsProps) {
+  const router = useRouter();
   const primaryClub = user.preferred_club;
   const memberships: GroupMembership[] = user.my_memberships || [];
   
   const activeGroups = memberships.filter(m => m.status === 'APPROVED');
   const pendingGroups = memberships.filter(m => m.status === 'PENDING');
+  
+  const handleClubClick = () => {
+    if (primaryClub?.id) {
+      router.push(`/dashboard/youth/club/${primaryClub.id}`);
+    }
+  };
+  
+  const handleContactClick = () => {
+    if (primaryClub?.id) {
+      router.push(`/dashboard/youth/club/${primaryClub.id}?tab=contact`);
+    }
+  };
+  
+  const handleHoursClick = () => {
+    if (primaryClub?.id) {
+      router.push(`/dashboard/youth/club/${primaryClub.id}?tab=hours`);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -50,12 +70,16 @@ export default function ClubsAndGroups({ user }: ClubsAndGroupsProps) {
             
             <div className="p-6 relative">
                {/* Club Avatar (Floating) */}
-               <div className="absolute -top-10 left-6">
+               <button
+                 onClick={handleClubClick}
+                 className="absolute -top-10 left-6 cursor-pointer hover:scale-105 transition-transform"
+               >
                  <div className="w-20 h-20 bg-white rounded-xl shadow-md p-1">
                    {primaryClub.avatar ? (
                      <img 
                        src={getMediaUrl(primaryClub.avatar)} 
                        className="w-full h-full object-cover rounded-lg"
+                       alt={primaryClub?.name || 'Club'}
                      />
                    ) : (
                      <div className="w-full h-full bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-2xl">
@@ -63,10 +87,15 @@ export default function ClubsAndGroups({ user }: ClubsAndGroupsProps) {
                      </div>
                    )}
                  </div>
-               </div>
+               </button>
 
                <div className="ml-24 pt-1">
-                 <h4 className="text-xl font-bold text-gray-900">{primaryClub?.name || 'Club'}</h4>
+                 <button
+                   onClick={handleClubClick}
+                   className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer text-left"
+                 >
+                   {primaryClub?.name || 'Club'}
+                 </button>
                  <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                    {primaryClub?.municipality_name || 'Municipality'}
@@ -74,10 +103,16 @@ export default function ClubsAndGroups({ user }: ClubsAndGroupsProps) {
                </div>
                
                <div className="mt-6 flex gap-3">
-                 <button className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2 rounded-lg text-sm font-medium transition border border-gray-200">
-                    View Schedule
+                 <button 
+                   onClick={handleHoursClick}
+                   className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2 rounded-lg text-sm font-medium transition border border-gray-200"
+                 >
+                    Opening Hours
                  </button>
-                 <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition shadow-sm shadow-blue-200">
+                 <button 
+                   onClick={handleContactClick}
+                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition shadow-sm shadow-blue-200"
+                 >
                     Contact Club
                  </button>
                </div>

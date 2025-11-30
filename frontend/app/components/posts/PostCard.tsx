@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Post } from '../../../types/post';
 import { addPostReaction, updatePostReaction, removePostReaction, fetchPostComments, createPostComment, deletePostComment } from '../../../lib/api';
 import { getMediaUrl } from '../../utils';
@@ -150,6 +151,7 @@ const REACTION_COLORS: Record<ReactionType, string> = {
 
 export default function PostCard({ post }: PostCardProps) {
     const { user } = useAuth();
+    const router = useRouter();
     const [userReaction, setUserReaction] = useState<ReactionType | null>(post.user_reaction || null);
     const [reactionBreakdown, setReactionBreakdown] = useState(post.reaction_breakdown || {});
     const [totalReactions, setTotalReactions] = useState(post.reaction_count);
@@ -433,6 +435,9 @@ export default function PostCard({ post }: PostCardProps) {
     
     // Check if we should show "UA" placeholder for Ungdomsappen
     const showUAPlaceholder = post.organization_name === 'Ungdomsappen' && !post.organization_avatar;
+    
+    // Check if this is a club post (has club ID)
+    const isClubPost = post.club !== null && post.club !== undefined;
 
     const publishedDate = post.published_at 
         ? new Date(post.published_at).toLocaleDateString('en-US', {
@@ -455,11 +460,21 @@ export default function PostCard({ post }: PostCardProps) {
                         <span className="text-white font-bold text-sm">UA</span>
                     </div>
                 ) : post.organization_avatar ? (
-                    <img 
-                        src={displayAvatar || '/default-avatar.png'} 
-                        alt={displayName} 
-                        className="w-10 h-10 rounded-full object-cover border border-gray-200"
-                    />
+                    <button
+                        onClick={() => {
+                            if (isClubPost && post.club) {
+                                router.push(`/dashboard/youth/club/${post.club}`);
+                            }
+                        }}
+                        className={isClubPost ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
+                        disabled={!isClubPost}
+                    >
+                        <img 
+                            src={displayAvatar || '/default-avatar.png'} 
+                            alt={displayName} 
+                            className={`w-10 h-10 rounded-full object-cover border border-gray-200 ${isClubPost ? 'hover:border-blue-400' : ''}`}
+                        />
+                    </button>
                 ) : post.author ? (
                     <Avatar
                         src={post.author.avatar}
@@ -474,7 +489,16 @@ export default function PostCard({ post }: PostCardProps) {
                     </div>
                 )}
                 <div className="flex-1">
-                    <h4 className="font-bold text-gray-900">{displayName}</h4>
+                    {isClubPost && post.club ? (
+                        <button
+                            onClick={() => router.push(`/dashboard/youth/club/${post.club}`)}
+                            className="text-left hover:opacity-80 transition-opacity"
+                        >
+                            <h4 className="font-bold text-gray-900 hover:text-blue-600">{displayName}</h4>
+                        </button>
+                    ) : (
+                        <h4 className="font-bold text-gray-900">{displayName}</h4>
+                    )}
                     <p className="text-xs text-gray-500">{publishedDate}</p>
                 </div>
                 {post.is_pinned && (

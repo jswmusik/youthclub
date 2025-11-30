@@ -55,6 +55,7 @@ export interface Post {
     // Organization info (for display instead of author)
     organization_name?: string;
     organization_avatar?: string | null;
+    club?: number | null; // Club ID if post is created by a club
     images: PostImage[];
     created_at: string;
     

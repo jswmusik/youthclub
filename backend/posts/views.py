@@ -135,6 +135,57 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
     
+    @action(detail=True, methods=['get'])
+    def club_feed(self, request, pk=None):
+        """
+        Returns the timeline for a SPECIFIC club (pk).
+        It filters posts to only those CREATED BY this club (not just targeted to it),
+        THEN applies the standard security engine (PostEngine) 
+        to ensure the user is allowed to see them (Age/Gender/Group).
+        """
+        user = request.user
+        
+        # 1. Initial Source Filter: Only posts CREATED BY this club
+        # We only show posts where the club field matches AND owner_role is CLUB_ADMIN
+        # This excludes posts from super admin or municipality admin that are just targeted to the club
+        club_posts = Post.objects.filter(
+            club_id=pk,
+            owner_role=Post.OwnerRole.CLUB_ADMIN
+        )
+        
+        # 2. Apply Security Engine
+        # This removes posts the user shouldn't see (e.g., wrong gender, too young)
+        # even if they are on the club's wall.
+        queryset = PostEngine.get_posts_for_user(user, queryset=club_posts)
+        
+        # 3. Add annotations (same as feed)
+        queryset = queryset.annotate(
+            comment_count=Count('comments', filter=Q(comments__is_approved=True)),
+            reaction_count=Count('reactions')
+        )
+        
+        # Add user_has_reacted annotation
+        queryset = queryset.annotate(
+            user_has_reacted=Exists(
+                PostReaction.objects.filter(
+                    post=OuterRef('pk'),
+                    user=user
+                )
+            )
+        )
+        
+        # Order by published_at (or created_at as fallback)
+        queryset = queryset.order_by('-is_pinned', '-published_at', '-created_at')
+        
+        # 4. Pagination & Serialization
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    
     @action(detail=False, methods=['get'])
     def interacted(self, request):
         """

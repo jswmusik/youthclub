@@ -36,6 +36,7 @@ class GroupSerializer(serializers.ModelSerializer):
     
     member_count = serializers.SerializerMethodField()
     pending_request_count = serializers.SerializerMethodField()
+    user_status = serializers.SerializerMethodField()  # NEW: User's membership status
 
     # NEW: Write-only field to accept a list of User IDs to add immediately
     members_to_add = serializers.ListField(
@@ -56,7 +57,7 @@ class GroupSerializer(serializers.ModelSerializer):
             'interests', 'interests_details',
             'custom_field_rules',
             'member_count', 'pending_request_count', 'created_at',
-            'members_to_add'  # Add to fields
+            'members_to_add', 'user_status'  # Add to fields
         ]
 
     def get_member_count(self, obj):
@@ -64,6 +65,22 @@ class GroupSerializer(serializers.ModelSerializer):
 
     def get_pending_request_count(self, obj):
         return obj.memberships.filter(status='PENDING').count()
+
+    def get_user_status(self, obj):
+        # Efficiently check if the requesting user is in the group
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return None
+        
+        user = request.user
+        
+        # We can look into the prefetch or filtered list if optimized, 
+        # but for now a direct lookup is safe for detail views.
+        try:
+            membership = obj.memberships.get(user=user)
+            return membership.status  # 'APPROVED', 'PENDING', etc.
+        except GroupMembership.DoesNotExist:
+            return None
 
     def create(self, validated_data):
         # Extract members data

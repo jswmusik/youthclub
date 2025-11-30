@@ -20,27 +20,36 @@ class GroupViewSet(viewsets.ModelViewSet):
         Filter groups based on who is asking.
         """
         user = self.request.user
-        
-        # 1. Super Admins see ALL groups
-        if user.role == 'SUPER_ADMIN':
-            return Group.objects.all().order_by('-created_at')
+        queryset = Group.objects.none()
 
-        # 2. Municipality Admins see groups in their scope
-        if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
-            return Group.objects.filter(
+        # 1. Determine Base Scope based on Role
+        if user.role == 'SUPER_ADMIN':
+            queryset = Group.objects.all().order_by('-created_at')
+
+        elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            queryset = Group.objects.filter(
                 Q(municipality=user.assigned_municipality) |
                 Q(club__municipality=user.assigned_municipality)
             ).distinct().order_by('-created_at')
 
-        # 3. Club Admins see groups in their club
-        if user.role == 'CLUB_ADMIN' and user.assigned_club:
-            return Group.objects.filter(club=user.assigned_club).order_by('-created_at')
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            queryset = Group.objects.filter(club=user.assigned_club).order_by('-created_at')
 
-        # 4. Regular Members (Youth/Guardian)
-        return Group.objects.filter(
-            Q(group_type='OPEN') | 
-            Q(memberships__user=user)
-        ).distinct()
+        else:
+            # 4. Regular Members (Youth/Guardian)
+            # They see OPEN groups, APPLICATION groups (so they can apply), OR groups they are already in.
+            queryset = Group.objects.filter(
+                Q(group_type='OPEN') | 
+                Q(group_type='APPLICATION') |  # Add this so they can see/apply
+                Q(memberships__user=user)
+            ).distinct()
+
+        # --- NEW: Filter by specific Club (for Club Profile Page) ---
+        club_param = self.request.query_params.get('club')
+        if club_param:
+            queryset = queryset.filter(club_id=club_param)
+
+        return queryset
 
     def perform_create(self, serializer):
         user = self.request.user
