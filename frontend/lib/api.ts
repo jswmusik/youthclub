@@ -155,3 +155,8 @@ export const createPostComment = async (postId: number, content: string, parentI
 export const deletePostComment = async (commentId: number) => {
   return api.delete(`/post-comments/${commentId}/`);
 };
+
+// Clubs
+export const fetchClubsByMunicipality = async (municipalityId: number) => {
+  return api.get(`/clubs/?municipality=${municipalityId}`);
+};

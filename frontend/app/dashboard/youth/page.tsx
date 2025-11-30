@@ -8,6 +8,7 @@ import { Post } from '../../../types/post';
 import { useAuth } from '../../../context/AuthContext';
 import Cookies from 'js-cookie';
 import NavBar from '../../components/NavBar';
+import RecommendedClubs from '../../components/RecommendedClubs';
 
 export default function YouthDashboard() {
     const [posts, setPosts] = useState<Post[]>([]);
@@ -61,15 +62,17 @@ export default function YouthDashboard() {
             <NavBar />
             <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto p-4 lg:p-8">
             {/* Sidebar (Navigation) - You can extract this to a component */}
-            <aside className="lg:w-1/4 hidden lg:block space-y-6">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h3 className="font-bold text-gray-800 mb-4">Menu</h3>
-                    <ul className="space-y-3 text-gray-600">
-                        <li className="font-bold text-blue-600">News Feed</li>
-                        <li className="hover:text-blue-600 cursor-pointer">My Groups</li>
-                        <li className="hover:text-blue-600 cursor-pointer">My Club</li>
-                        <li className="hover:text-blue-600 cursor-pointer">Events</li>
-                    </ul>
+            <aside className="lg:w-1/4 hidden lg:block">
+                <div className="sticky top-20 space-y-6">
+                    <div className="bg-white rounded-xl shadow-sm p-6">
+                        <h3 className="font-bold text-gray-800 mb-4">Menu</h3>
+                        <ul className="space-y-3 text-gray-600">
+                            <li className="font-bold text-blue-600">News Feed</li>
+                            <li className="hover:text-blue-600 cursor-pointer">My Groups</li>
+                            <li className="hover:text-blue-600 cursor-pointer">My Club</li>
+                            <li className="hover:text-blue-600 cursor-pointer">Events</li>
+                        </ul>
+                    </div>
                 </div>
             </aside>
 
@@ -93,8 +96,12 @@ export default function YouthDashboard() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {posts.map(post => (
-                            <PostCard key={post.id} post={post} />
+                        {posts.map((post, index) => (
+                            <div key={post.id}>
+                                <PostCard post={post} />
+                                {/* Show Recommended Clubs after the first post */}
+                                {index === 0 && <RecommendedClubs />}
+                            </div>
                         ))}
                     </div>
                 )}
@@ -102,11 +109,13 @@ export default function YouthDashboard() {
 
             {/* Right Sidebar (Trending/Events) */}
             <aside className="lg:w-1/4 hidden lg:block">
-                 {/* Placeholders for upcoming features */}
-                 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                    <h3 className="font-bold text-gray-800 mb-4">Upcoming Events</h3>
-                    <p className="text-sm text-gray-500">No events scheduled.</p>
-                 </div>
+                <div className="sticky top-20">
+                    {/* Placeholders for upcoming features */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                        <h3 className="font-bold text-gray-800 mb-4">Upcoming Events</h3>
+                        <p className="text-sm text-gray-500">No events scheduled.</p>
+                    </div>
+                </div>
             </aside>
         </div>
         </div>
