@@ -1,4 +1,5 @@
 import time
+import datetime
 from django.core.signing import Signer, BadSignature
 from django.utils import timezone
 from organization.models import RegularOpeningHour
@@ -26,6 +27,41 @@ class CheckInService:
         return data['club_id']
 
     @classmethod
+    def get_next_opening(cls, club):
+        """
+        Finds the next available opening slot for the club.
+        Returns a string like "Tuesday at 14:00" or None.
+        """
+        now = timezone.localtime()
+        today_weekday = now.isoweekday()
+        
+        # 1. Check later today
+        later_today = RegularOpeningHour.objects.filter(
+            club=club,
+            weekday=today_weekday,
+            open_time__gt=now.time()
+        ).order_by('open_time').first()
+        
+        if later_today:
+            return f"Today at {later_today.open_time.strftime('%H:%M')}"
+
+        # 2. Check upcoming days (Wrapping around the week)
+        for i in range(1, 8):
+            # (Current + i) wrapped to 1-7
+            next_day_num = (today_weekday + i - 1) % 7 + 1 
+            
+            next_opening = RegularOpeningHour.objects.filter(
+                club=club,
+                weekday=next_day_num
+            ).order_by('open_time').first()
+            
+            if next_opening:
+                day_name = next_opening.get_weekday_display()
+                return f"{day_name} at {next_opening.open_time.strftime('%H:%M')}"
+
+        return "Unknown"
+
+    @classmethod
     def can_user_enter(cls, user, club):
         """
         Validates if the user can enter based on:
@@ -49,7 +85,8 @@ class CheckInService:
 
         # --- STRICT CLOSURE CHECK ---
         if not active_hour:
-            return False, "Club is currently closed."
+            # We return a specific keyword in the message so the View can detect it
+            return False, "CLOSED"
 
         # 2. CHECK RESTRICTIONS (Age/Grade)
         if active_hour.restriction_mode == 'AGE':

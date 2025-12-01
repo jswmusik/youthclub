@@ -142,7 +142,21 @@ class VisitViewSet(viewsets.ModelViewSet):
         # 1. Check Age/Restrictions
         allowed, reason = CheckInService.can_user_enter(user, club)
         if not allowed:
-            return Response({"error": reason}, status=status.HTTP_403_FORBIDDEN)
+            response_data = {"error": reason}
+            
+            # If the specific reason is that the club is closed, fetch when it opens
+            if reason == "CLOSED":
+                next_opening = CheckInService.get_next_opening(club)
+                response_data["error"] = "Club is currently closed"
+                response_data["code"] = "CLUB_CLOSED"  # Error code for frontend
+                response_data["next_opening"] = next_opening
+                
+            # Log for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Check-in denied for user {user.id} at club {club.id}: {response_data}")
+            
+            return Response(response_data, status=status.HTTP_403_FORBIDDEN)
 
         # 2. Check for ANY active session (Global Check)
         active_session = CheckInSession.objects.filter(

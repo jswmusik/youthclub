@@ -111,7 +111,7 @@ export default function ClubDetailsPage() {
 
       {/* Tabs & Content - same spacing as youth profile */}
       <div className="mt-4">
-        <ClubTabs activeTab={activeTab} onChange={handleTabChange} />
+        <ClubTabs activeTab={activeTab} onChange={handleTabChange} excludeTabs={['visits']} />
         
         {/* Content Area */}
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">

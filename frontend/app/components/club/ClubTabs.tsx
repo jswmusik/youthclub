@@ -5,10 +5,11 @@ type TabType = 'overview' | 'groups' | 'visits' | 'hours' | 'events' | 'policies
 interface ClubTabsProps {
   activeTab: TabType;
   onChange: (tab: TabType) => void;
+  excludeTabs?: TabType[]; // Optional prop to exclude certain tabs
 }
 
-export default function ClubTabs({ activeTab, onChange }: ClubTabsProps) {
-  const tabs: { id: TabType; label: string }[] = [
+export default function ClubTabs({ activeTab, onChange, excludeTabs = [] }: ClubTabsProps) {
+  const allTabs: { id: TabType; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'groups', label: 'Groups' },
     { id: 'visits', label: 'Visits & Attendance' },
@@ -17,6 +18,9 @@ export default function ClubTabs({ activeTab, onChange }: ClubTabsProps) {
     { id: 'policies', label: 'Info & Policies' },
     { id: 'contact', label: 'Contact' },
   ];
+  
+  // Filter out excluded tabs
+  const tabs = allTabs.filter(tab => !excludeTabs.includes(tab.id));
 
   return (
     <div className="bg-white border-t border-gray-200 shadow-sm sticky top-14 z-40">

@@ -16,26 +16,32 @@ class Command(BaseCommand):
         count = 0
         for session in active_sessions:
             club = session.club
-
-            # Find today's closing time for this club
-            # Note: This is simplified. Real-world apps might check "DateOverride" or yesterday's late-night shifts.
-            today_weekday = now.isoweekday()
-
+            
+            # Use the weekday of the Check-In, not "Right Now".
+            # This ensures if I checked in on Monday, we look for Monday's closing time,
+            # even if the script runs early Tuesday morning.
+            session_local_time = timezone.localtime(session.check_in_at)
+            checkin_weekday = session_local_time.isoweekday()
+            
+            # Find the closing time for the day the user checked in
             opening_hours = RegularOpeningHour.objects.filter(
                 club=club, 
-                weekday=today_weekday
+                weekday=checkin_weekday
             ).order_by('-close_time').first()
 
             if opening_hours:
-                # Create a full datetime for today's closing
-                closing_dt = timezone.make_aware(datetime.datetime.combine(now.date(), opening_hours.close_time))
-
-                # Buffer: We check them out 30 mins AFTER closing to be sure they didn't just linger at the door
-                checkout_threshold = closing_dt + datetime.timedelta(minutes=30)
-
+                # Create the specific datetime for that closing
+                closing_dt = timezone.make_aware(
+                    datetime.datetime.combine(session_local_time.date(), opening_hours.close_time)
+                )
+                # Fix: Removed the 30-minute buffer so it checks out immediately at closing time.
+                # If you want a small grace period (e.g. 5 mins), change to minutes=5.
+                checkout_threshold = closing_dt + datetime.timedelta(minutes=0)
+                
+                # If the current time is past the closing time of the check-in day
                 if now > checkout_threshold:
-                    session.check_out_at = closing_dt # Set time to exact closing time
-                    session.method = 'MANUAL_ADMIN' # Or a new 'SYSTEM_AUTO' if you add that choice
+                    session.check_out_at = closing_dt  # Set checkout time to exact closing time
+                    session.method = 'MANUAL_ADMIN'    # Mark as system/admin auto-action
                     session.save()
                     count += 1
                     self.stdout.write(f"Auto-checked out {session.user} from {club.name}")
