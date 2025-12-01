@@ -66,50 +66,58 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
         setError('');
       }
       
-      // Fetch posts, visits, and reward redemptions
-      const [postsRes, visitsRes, rewardsRes] = await Promise.all([
-        fetchUserActivityFeed(pageNum, timeFilter),
-        visits.getMyVisits(),
-        rewards.getMyRedemptions()
-      ]);
+      // Fetch posts (always fetch on pagination)
+      const postsRes = await fetchUserActivityFeed(pageNum, timeFilter);
+      
+      // Only fetch visits and reward redemptions on initial load (not on pagination)
+      // This ensures they don't interfere with pagination and sorting
+      let visitsRes, rewardsRes;
+      if (!append) {
+        [visitsRes, rewardsRes] = await Promise.all([
+          visits.getMyVisits(),
+          rewards.getMyRedemptions()
+        ]);
+      }
       
       // Handle pagination results vs flat list for posts
       const newPosts = postsRes.data.results ? postsRes.data.results : postsRes.data;
       
-      // Handle visits (apply time filter on frontend)
-      const allVisits = visitsRes.data.results || visitsRes.data || [];
-      const now = new Date();
-      let filteredVisits = allVisits;
-      
-      // Handle reward redemptions (apply time filter on frontend)
-      const allRedemptions = rewardsRes.data || [];
-      let filteredRedemptions = allRedemptions;
-      
-      if (timeFilter !== 'forever') {
-        const thresholdDate = new Date();
-        if (timeFilter === 'day') {
-          thresholdDate.setDate(thresholdDate.getDate() - 1);
-        } else if (timeFilter === 'week') {
-          thresholdDate.setDate(thresholdDate.getDate() - 7);
-        } else if (timeFilter === 'month') {
-          thresholdDate.setDate(thresholdDate.getDate() - 30);
-        }
-        
-        filteredVisits = allVisits.filter((visit: Visit) => {
-          const visitDate = new Date(visit.check_in_at);
-          return visitDate >= thresholdDate;
-        });
-        
-        filteredRedemptions = allRedemptions.filter((redemption: RewardRedemption) => {
-          const redemptionDate = new Date(redemption.redeemed_at);
-          return redemptionDate >= thresholdDate;
-        });
-      }
-      
       if (append) {
+        // On pagination, only update posts
         setPosts(prev => [...prev, ...newPosts]);
       } else {
+        // On initial load, fetch and filter all data
         setPosts(newPosts);
+        
+        // Handle visits (apply time filter on frontend)
+        const allVisits = visitsRes?.data?.results || visitsRes?.data || [];
+        let filteredVisits = allVisits;
+        
+        // Handle reward redemptions (apply time filter on frontend)
+        const allRedemptions = rewardsRes?.data || [];
+        let filteredRedemptions = allRedemptions;
+        
+        if (timeFilter !== 'forever') {
+          const thresholdDate = new Date();
+          if (timeFilter === 'day') {
+            thresholdDate.setDate(thresholdDate.getDate() - 1);
+          } else if (timeFilter === 'week') {
+            thresholdDate.setDate(thresholdDate.getDate() - 7);
+          } else if (timeFilter === 'month') {
+            thresholdDate.setDate(thresholdDate.getDate() - 30);
+          }
+          
+          filteredVisits = allVisits.filter((visit: Visit) => {
+            const visitDate = new Date(visit.check_in_at);
+            return visitDate >= thresholdDate;
+          });
+          
+          filteredRedemptions = allRedemptions.filter((redemption: RewardRedemption) => {
+            const redemptionDate = new Date(redemption.redeemed_at);
+            return redemptionDate >= thresholdDate;
+          });
+        }
+        
         setVisitsData(filteredVisits);
         setRewardRedemptions(filteredRedemptions);
       }
@@ -157,21 +165,35 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
     // Add posts
     posts.forEach(post => {
       const postDate = post.published_at ? new Date(post.published_at) : new Date(post.created_at);
-      items.push({ type: 'post', date: postDate, data: post });
+      // Ensure date is valid
+      if (!isNaN(postDate.getTime())) {
+        items.push({ type: 'post', date: postDate, data: post });
+      }
     });
     
     // Add visits
     visitsData.forEach(visit => {
-      items.push({ type: 'visit', date: new Date(visit.check_in_at), data: visit });
+      const visitDate = new Date(visit.check_in_at);
+      if (!isNaN(visitDate.getTime())) {
+        items.push({ type: 'visit', date: visitDate, data: visit });
+      }
     });
     
     // Add reward redemptions
     rewardRedemptions.forEach(redemption => {
-      items.push({ type: 'reward_redemption', date: new Date(redemption.redeemed_at), data: redemption });
+      const redemptionDate = new Date(redemption.redeemed_at);
+      // Ensure date is valid and use redeemed_at (not created_at) for sorting
+      if (!isNaN(redemptionDate.getTime())) {
+        items.push({ type: 'reward_redemption', date: redemptionDate, data: redemption });
+      }
     });
     
-    // Sort by date (newest first)
-    return items.sort((a, b) => b.date.getTime() - a.date.getTime());
+    // Sort by date (newest first) - ensure proper numeric comparison
+    return items.sort((a, b) => {
+      const timeA = a.date.getTime();
+      const timeB = b.date.getTime();
+      return timeB - timeA; // Descending order (newest first)
+    });
   }, [posts, visitsData, rewardRedemptions]);
 
   const timeFilterOptions: { value: TimeFilter; label: string }[] = [
