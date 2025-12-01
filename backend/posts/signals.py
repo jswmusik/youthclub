@@ -22,6 +22,15 @@ def create_post_notification(sender, instance, created, **kwargs):
     if post.status != Post.Status.PUBLISHED:
         return
 
+    # Skip notifications for activity posts (posts authored by the user themselves)
+    # These are personal activity posts like "Joined Group" and shouldn't trigger notifications
+    # The user already gets a notification from the membership signal
+    # Check if it's an activity post: authored by the user AND title starts with "Joined "
+    if post.author and post.title and post.title.startswith('Joined '):
+        # Verify this is an activity post by checking if author matches the post's target
+        # Activity posts are created for the user's own feed, so they shouldn't get notifications
+        return
+
     # If updated, avoid duplicate massive notifications? 
     # A simple check: if notifications already exist for this post, skip.
     # This prevents editing a typo from spamming everyone again.

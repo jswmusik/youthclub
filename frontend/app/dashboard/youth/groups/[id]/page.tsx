@@ -38,8 +38,13 @@ export default function GroupDetailPage() {
     }, [groupId]);
 
     useEffect(() => {
-        if (group && group.membership_status === 'APPROVED') {
-            fetchPosts();
+        if (group) {
+            const membershipStatus = typeof group.membership_status === 'object' 
+                ? group.membership_status?.status 
+                : group.membership_status;
+            if (membershipStatus === 'APPROVED') {
+                fetchPosts();
+            }
         }
     }, [group]);
 
@@ -214,8 +219,18 @@ export default function GroupDetailPage() {
         );
     }
 
-    const isMember = group.membership_status === 'APPROVED';
-    const isPending = group.membership_status === 'PENDING';
+    // Handle both old format (string) and new format (object with status and rejection_count)
+    const membershipStatus = typeof group.membership_status === 'object' 
+        ? group.membership_status?.status 
+        : group.membership_status;
+    const rejectionCount = typeof group.membership_status === 'object' 
+        ? (group.membership_status?.rejection_count || 0)
+        : 0;
+    
+    const isMember = membershipStatus === 'APPROVED';
+    const isPending = membershipStatus === 'PENDING';
+    const isRejected = membershipStatus === 'REJECTED';
+    const maxRejectionsReached = isRejected && rejectionCount >= 3;
     const avatarUrl = group.avatar ? getMediaUrl(group.avatar) : null;
     const backgroundImageUrl = group.background_image ? getMediaUrl(group.background_image) : null;
 
@@ -333,17 +348,23 @@ export default function GroupDetailPage() {
                                         <span className="px-6 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">
                                             Application Pending
                                         </span>
+                                    ) : maxRejectionsReached ? (
+                                        <span className="px-6 py-2 bg-gray-200 text-gray-600 rounded-lg font-medium cursor-not-allowed">
+                                            Maximum Applications Reached
+                                        </span>
                                     ) : (
                                         <button 
                                             onClick={handleJoin} 
-                                            disabled={!group.eligibility.is_eligible}
+                                            disabled={!group.eligibility.is_eligible || maxRejectionsReached}
                                             className={`px-6 py-2 rounded-lg text-white font-bold shadow-sm transition ${
-                                                group.eligibility.is_eligible 
+                                                (group.eligibility.is_eligible && !maxRejectionsReached)
                                                     ? 'bg-blue-600 hover:bg-blue-700' 
                                                     : 'bg-gray-400 cursor-not-allowed'
                                             }`}
                                         >
-                                            {group.eligibility.is_eligible ? 'Join Group' : 'Not Eligible'}
+                                            {group.eligibility.is_eligible 
+                                                ? (group.group_type === 'OPEN' ? 'Join Group' : 'Apply to Join')
+                                                : 'Not Eligible'}
                                         </button>
                                     )}
                                 </div>

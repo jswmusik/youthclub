@@ -154,19 +154,50 @@ class GroupViewSet(viewsets.ModelViewSet):
         group = self.get_object()
         user = request.user
 
-        if GroupMembership.objects.filter(group=group, user=user).exists():
-            return Response({"message": "Already a member or application pending."}, status=status.HTTP_400_BAD_REQUEST)
+        # Check for existing membership
+        existing_membership = GroupMembership.objects.filter(group=group, user=user).first()
+        
+        if existing_membership:
+            # If approved, they're already a member
+            if existing_membership.status == GroupMembership.Status.APPROVED:
+                return Response({"message": "Already a member."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # If pending, they already have an application
+            if existing_membership.status == GroupMembership.Status.PENDING:
+                return Response({"message": "Application pending."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # If rejected, check if they can re-apply (max 3 rejections)
+            if existing_membership.status == GroupMembership.Status.REJECTED:
+                if existing_membership.rejection_count >= 3:
+                    return Response({
+                        "message": "Maximum application attempts reached. You cannot apply again.",
+                        "rejection_count": existing_membership.rejection_count
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Allow re-applying: reset status to PENDING (keep rejection_count)
+                membership_status = 'APPROVED' if group.group_type == 'OPEN' else 'PENDING'
+                existing_membership.status = membership_status
+                existing_membership.save(update_fields=['status', 'updated_at'])
+                
+                msg = "Joined successfully" if membership_status == 'APPROVED' else "Application sent"
+                return Response({
+                    "message": msg,
+                    "status": membership_status,
+                    "rejection_count": existing_membership.rejection_count
+                })
 
         if group.group_type == 'CLOSED':
             return Response({"message": "Cannot join a closed group."}, status=status.HTTP_403_FORBIDDEN)
 
+        # Create new membership
         membership_status = 'APPROVED' if group.group_type == 'OPEN' else 'PENDING'
         
         GroupMembership.objects.create(
             group=group,
             user=user,
             status=membership_status,
-            role='MEMBER'
+            role='MEMBER',
+            rejection_count=0
         )
         
         msg = "Joined successfully" if membership_status == 'APPROVED' else "Application sent"
@@ -563,5 +594,14 @@ class GroupMembershipViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
         membership = self.get_object()
-        membership.delete() # Or set status='REJECTED'
-        return Response({'status': 'rejected', 'message': 'Request rejected.'})
+        # CHANGED: We now mark it as rejected instead of deleting it.
+        # This allows us to trigger the signal for the notification.
+        # Increment rejection count when rejecting
+        membership.status = 'REJECTED'
+        membership.rejection_count += 1
+        membership.save(update_fields=['status', 'rejection_count', 'updated_at'])
+        return Response({
+            'status': 'rejected',
+            'message': 'Request rejected.',
+            'rejection_count': membership.rejection_count
+        })

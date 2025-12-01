@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { fetchUserActivityFeed, visits, rewards } from '@/lib/api';
 import PostCard from '@/app/components/posts/PostCard';
 import { Post } from '@/types/post';
@@ -35,12 +36,13 @@ interface RewardRedemption {
 }
 
 type TimelineItem = {
-  type: 'post' | 'visit' | 'reward_redemption';
+  type: 'post' | 'visit' | 'reward_redemption' | 'group_join';
   date: Date;
-  data: Post | Visit | RewardRedemption;
+  data: Post | Visit | RewardRedemption | Post; // group_join uses Post type
 };
 
 export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProps) {
+  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [visitsData, setVisitsData] = useState<Visit[]>([]);
   const [rewardRedemptions, setRewardRedemptions] = useState<RewardRedemption[]>([]);
@@ -162,12 +164,17 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
   const timelineItems = useMemo(() => {
     const items: TimelineItem[] = [];
     
-    // Add posts
+    // Add posts (check if it's a group join post)
     posts.forEach(post => {
       const postDate = post.published_at ? new Date(post.published_at) : new Date(post.created_at);
       // Ensure date is valid
       if (!isNaN(postDate.getTime())) {
-        items.push({ type: 'post', date: postDate, data: post });
+        // Check if this is a group join post (title starts with "Joined")
+        if (post.title && post.title.startsWith('Joined ')) {
+          items.push({ type: 'group_join', date: postDate, data: post });
+        } else {
+          items.push({ type: 'post', date: postDate, data: post });
+        }
       }
     });
     
@@ -279,7 +286,81 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
           <div className="space-y-6">
             <h3 className="text-lg font-bold text-gray-800 px-1">Latest Activity</h3>
             {timelineItems.map((item) => {
-              if (item.type === 'post') {
+              if (item.type === 'group_join') {
+                const groupPost = item.data as Post;
+                // Extract group name from title (format: "Joined {Group Name}")
+                const groupName = groupPost.title.replace('Joined ', '');
+                const joinDate = item.date;
+                const weekday = joinDate.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateStr = joinDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                const timeStr = joinDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                // Extract group image from post images if available
+                const groupImage = groupPost.images && groupPost.images.length > 0 
+                  ? groupPost.images[0].image 
+                  : null;
+                
+                // Extract group URL from post content (if available)
+                const contentMatch = groupPost.content?.match(/href=['"]([^'"]+)['"]/);
+                const groupUrl = contentMatch ? contentMatch[1] : null;
+                
+                return (
+                  <div key={`group-join-${groupPost.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500 p-6">
+                    <div className="flex items-start gap-4">
+                      {/* Group Image/Icon */}
+                      <div className="flex-shrink-0">
+                        {groupImage ? (
+                          <img 
+                            src={getMediaUrl(groupImage) || ''} 
+                            alt={groupName} 
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                            👥
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Group Join Details */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-gray-900">{groupName}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            Joined
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {weekday}, {dateStr} at {timeStr}
+                        </p>
+                        {groupUrl && (
+                          <button
+                            onClick={() => router.push(groupUrl)}
+                            className="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1 transition-colors"
+                          >
+                            View Group
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Group Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else if (item.type === 'post') {
                 return <PostCard key={`post-${item.data.id}`} post={item.data as Post} />;
               } else if (item.type === 'reward_redemption') {
                 const redemption = item.data as RewardRedemption;

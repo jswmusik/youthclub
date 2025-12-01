@@ -132,7 +132,9 @@ class PostViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Feed is only available for Youth Members and Guardians.")
         
         # 1. Get Posts (Standard Logic)
+        # Exclude posts authored by the user (activity posts should only appear in activity feed)
         queryset = PostEngine.get_posts_for_user(user)
+        queryset = queryset.exclude(author=user)
         
         # 2. Pagination
         page = self.paginate_queryset(queryset)
@@ -462,10 +464,31 @@ class PostViewSet(viewsets.ModelViewSet):
         else:  # 'forever' or invalid
             threshold_date = None
 
-        # 1. Query for interactions (Reacted OR Commented)
-        queryset = Post.objects.filter(
+        # 1. Query for interactions (Reacted OR Commented OR Authored)
+        # IMPORTANT: Posts authored by the user should ALWAYS be visible to them,
+        # regardless of PostEngine filtering, so we handle them separately
+        
+        # Get posts the user authored (activity posts like group joins)
+        # These are ALWAYS visible to the author, no PostEngine filtering needed
+        authored_posts = Post.objects.filter(
+            author=user,
+            status=Post.Status.PUBLISHED
+        )
+        
+        # Get posts the user interacted with (reacted or commented)
+        # These need PostEngine filtering to ensure user can see them
+        interacted_posts = Post.objects.filter(
             Q(reactions__user=user) | 
             Q(comments__author=user)
+        ).distinct()
+        
+        # Apply PostEngine filtering to interacted posts only
+        interacted_posts = PostEngine.get_posts_for_user(user, queryset=interacted_posts)
+        
+        # Combine both querysets - use Q objects for proper OR logic
+        queryset = Post.objects.filter(
+            Q(id__in=authored_posts.values_list('id', flat=True)) |
+            Q(id__in=interacted_posts.values_list('id', flat=True))
         ).distinct()
         
         # Apply time filter if specified

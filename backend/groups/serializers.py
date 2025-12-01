@@ -37,6 +37,12 @@ class GroupSerializer(serializers.ModelSerializer):
     membership_status = serializers.SerializerMethodField()
     club_name = serializers.CharField(source='club.name', read_only=True)
     municipality_name = serializers.CharField(source='municipality.name', read_only=True)
+    members_to_add = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="List of user IDs to add as members to the group"
+    )
 
     class Meta:
         model = Group
@@ -45,7 +51,7 @@ class GroupSerializer(serializers.ModelSerializer):
             'target_member_type', 'min_age', 'max_age', 'grades', 'genders', 'interests',
             'custom_field_rules', 'eligibility', 'membership_status', 'created_at', 
             'municipality', 'club', 'club_name', 'municipality_name',
-            'is_system_group'
+            'is_system_group', 'members_to_add'
         ]
         depth = 1
 
@@ -54,6 +60,26 @@ class GroupSerializer(serializers.ModelSerializer):
         Validate that JSON fields are dicts/lists.
         Handle both JSON strings (from FormData) and native types (from JSON API).
         """
+        # Handle members_to_add - FormData sends it as a list, but ensure it's a list of integers
+        if 'members_to_add' in data:
+            members_to_add = data['members_to_add']
+            # If it's a string (from FormData), try to parse it
+            if isinstance(members_to_add, str):
+                try:
+                    # Try parsing as JSON first
+                    members_to_add = json.loads(members_to_add)
+                except (json.JSONDecodeError, ValueError):
+                    # If not JSON, treat as comma-separated string
+                    members_to_add = [int(x.strip()) for x in members_to_add.split(',') if x.strip()]
+            # Ensure it's a list
+            if not isinstance(members_to_add, list):
+                members_to_add = [members_to_add] if members_to_add else []
+            # Convert all to integers
+            try:
+                data['members_to_add'] = [int(x) for x in members_to_add if x]
+            except (ValueError, TypeError):
+                raise serializers.ValidationError({"members_to_add": "Must be a list of valid user IDs."})
+        
         # Parse JSON strings if they come from FormData
         if 'custom_field_rules' in data:
             if isinstance(data['custom_field_rules'], str):
@@ -93,7 +119,11 @@ class GroupSerializer(serializers.ModelSerializer):
         # Optimization: In a real production app, you'd want to prefetch this in the view
         membership = obj.memberships.filter(user=request.user).first()
         if membership:
-            return membership.status  # 'PENDING', 'APPROVED', etc.
+            # Return status and rejection_count for frontend to use
+            return {
+                'status': membership.status,  # 'PENDING', 'APPROVED', 'REJECTED', etc.
+                'rejection_count': membership.rejection_count
+            }
         return None
 
     def get_eligibility(self, obj):
@@ -142,3 +172,49 @@ class GroupSerializer(serializers.ModelSerializer):
             "is_eligible": len(reasons) == 0,
             "reasons": reasons
         }
+    
+    def create(self, validated_data):
+        """Handle creating a group and adding members."""
+        members_to_add = validated_data.pop('members_to_add', [])
+        group = super().create(validated_data)
+        
+        # Add members if specified
+        if members_to_add:
+            self._add_members_to_group(group, members_to_add)
+        
+        return group
+    
+    def update(self, instance, validated_data):
+        """Handle updating a group and adding new members."""
+        members_to_add = validated_data.pop('members_to_add', [])
+        group = super().update(instance, validated_data)
+        
+        # Add new members if specified
+        if members_to_add:
+            self._add_members_to_group(group, members_to_add)
+        
+        return group
+    
+    def _add_members_to_group(self, group, user_ids):
+        """Helper method to add users to a group."""
+        from users.models import User
+        
+        for user_id in user_ids:
+            try:
+                user = User.objects.get(id=user_id)
+                # Get or create membership, update status to APPROVED if it exists
+                membership, created = GroupMembership.objects.get_or_create(
+                    group=group,
+                    user=user,
+                    defaults={
+                        'status': GroupMembership.Status.APPROVED,
+                        'role': GroupMembership.Role.MEMBER
+                    }
+                )
+                # If membership already exists, update it to APPROVED (in case it was REJECTED or PENDING)
+                if not created:
+                    membership.status = GroupMembership.Status.APPROVED
+                    membership.save(update_fields=['status', 'updated_at'])
+            except User.DoesNotExist:
+                # Skip invalid user IDs
+                continue

@@ -20,7 +20,7 @@ interface Group {
     club_name?: string;
     municipality_name?: string;
     eligibility: Eligibility;
-    membership_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+    membership_status: 'PENDING' | 'APPROVED' | 'REJECTED' | { status: 'PENDING' | 'APPROVED' | 'REJECTED'; rejection_count: number } | null;
     club?: { id: number; name: string };
     municipality?: { id: number; name: string };
 }
@@ -327,7 +327,18 @@ export default function GroupSearchPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {filteredGroups.map(group => {
                             const isEligible = group.eligibility.is_eligible;
-                            const isMember = !!group.membership_status;
+                            // Handle both old format (string) and new format (object)
+                            const membershipStatus = typeof group.membership_status === 'object' 
+                                ? group.membership_status?.status 
+                                : group.membership_status;
+                            const rejectionCount = typeof group.membership_status === 'object' 
+                                ? (group.membership_status?.rejection_count || 0)
+                                : 0;
+                            
+                            const isMember = membershipStatus === 'APPROVED';
+                            const isPending = membershipStatus === 'PENDING';
+                            const isRejected = membershipStatus === 'REJECTED';
+                            const maxRejectionsReached = isRejected && rejectionCount >= 3;
                             
                             // Visual Style: Gray out if ineligible AND not already a member
                             const cardStyle = (!isEligible && !isMember) ? 'opacity-70 grayscale-[0.3]' : 'opacity-100';
@@ -376,9 +387,9 @@ export default function GroupSearchPage() {
 
                                         {/* Footer Action */}
                                         <div className="mt-auto pt-4 border-t border-gray-100">
-                                            {group.membership_status ? (
+                                            {isMember ? (
                                                 <div className="flex justify-between items-center">
-                                                    <StatusBadge status={group.membership_status} />
+                                                    <StatusBadge status="APPROVED" />
                                                     <button 
                                                         onClick={() => router.push(`/dashboard/youth/groups/${group.id}`)}
                                                         className="text-xs text-blue-600 hover:underline"
@@ -386,14 +397,26 @@ export default function GroupSearchPage() {
                                                         Visit Group
                                                     </button>
                                                 </div>
+                                            ) : isPending ? (
+                                                <div className="flex justify-between items-center">
+                                                    <StatusBadge status="PENDING" />
+                                                    <span className="text-xs text-gray-500">Application Pending</span>
+                                                </div>
+                                            ) : maxRejectionsReached ? (
+                                                <button
+                                                    disabled={true}
+                                                    className="w-full py-2.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-200"
+                                                >
+                                                    Maximum Applications Reached
+                                                </button>
                                             ) : (
                                                 <button
                                                     onClick={() => handleJoin(group.id)}
-                                                    disabled={!isEligible}
+                                                    disabled={!isEligible || maxRejectionsReached}
                                                     className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm active:scale-95 ${
-                                                        isEligible 
-                                                        ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow' 
-                                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                                        (isEligible && !maxRejectionsReached)
+                                                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow' 
+                                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                                                     }`}
                                                 >
                                                     {isEligible 

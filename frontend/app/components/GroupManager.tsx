@@ -248,8 +248,8 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
   };
 
   const calculateStats = (data: Group[]) => {
-    const totalMembers = data.reduce((sum, g) => sum + g.member_count, 0);
-    const activeGroups = data.filter(g => g.member_count > 0).length;
+    const totalMembers = data.reduce((sum, g) => sum + (g.member_count || 0), 0);
+    const activeGroups = data.filter(g => (g.member_count || 0) > 0).length;
     
     setStats({
       totalGroups: data.length,
@@ -342,7 +342,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                     </svg>
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalGroups}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalGroups || 0}</p>
               </div>
 
               {/* Card 2: Total Members */}
@@ -355,7 +355,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                     </svg>
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalMembers}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalMembers || 0}</p>
               </div>
 
               {/* Card 3: Active Groups */}
@@ -368,7 +368,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                     </svg>
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.activeGroups}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.activeGroups || 0}</p>
               </div>
 
               {/* Card 4: Empty Groups */}
@@ -381,7 +381,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                     </svg>
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.emptyGroups}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.emptyGroups || 0}</p>
               </div>
             </div>
           </div>

@@ -78,6 +78,9 @@ class GroupMembership(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.APPROVED)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
     
+    # Track how many times the user has been rejected (allows re-applying up to 3 times)
+    rejection_count = models.IntegerField(default=0)
+    
     joined_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

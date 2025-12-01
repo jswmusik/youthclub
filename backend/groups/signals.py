@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save, pre_delete, pre_save
 from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
 from django.utils import timezone
@@ -7,6 +7,7 @@ from django.utils import timezone
 from users.models import User
 from .models import Group, GroupMembership
 from posts.models import Post, PostImage
+from notifications.models import Notification
 
 # 1. Registered Members (Triggered when a User is created)
 @receiver(post_save, sender=User)
@@ -150,3 +151,160 @@ def delete_group_announcement_posts(sender, instance, **kwargs):
     posts_targeting_group = Post.objects.filter(target_groups=instance)
     for post in posts_targeting_group:
         post.target_groups.remove(instance)
+
+
+# --- NEW SIGNALS FOR MEMBERSHIP NOTIFICATIONS ---
+
+# 6. Capture Previous Status (Pre-Save)
+@receiver(pre_save, sender=GroupMembership)
+def capture_membership_previous_state(sender, instance, **kwargs):
+    """
+    Before saving, check what the status currently is in the DB.
+    We store this as a temporary attribute on the instance.
+    """
+    if instance.pk:
+        try:
+            old_instance = GroupMembership.objects.get(pk=instance.pk)
+            instance._old_status = old_instance.status
+        except GroupMembership.DoesNotExist:
+            instance._old_status = None
+    else:
+        instance._old_status = None
+
+
+# 7. Send Notifications on Status Change (Post-Save)
+@receiver(post_save, sender=GroupMembership)
+def notify_membership_changes(sender, instance, created, **kwargs):
+    """
+    Triggers notifications when:
+    1. A Pending application is Approved.
+    2. A Pending application is Rejected.
+    3. A user is directly added to a CLOSED group.
+    
+    Also creates an activity post when a user is accepted to a group.
+    """
+    from posts.models import PostReaction
+    
+    # --- Scenario A: Status Change (Update) ---
+    if not created and hasattr(instance, '_old_status'):
+        old_status = instance._old_status
+        new_status = instance.status
+        
+        # 1. Application Approved
+        if old_status == 'PENDING' and new_status == 'APPROVED':
+            Notification.objects.create(
+                recipient=instance.user,
+                category=Notification.Category.SYSTEM,
+                title=f"Välkommen till {instance.group.name}!",
+                body=f"Din ansökan om att gå med i gruppen '{instance.group.name}' har godkänts.",
+                action_url=f"/dashboard/youth/groups/{instance.group.id}"
+            )
+            
+            # Create activity post for the user's feed
+            create_group_join_activity_post(instance)
+            
+        # 2. Application Rejected
+        elif old_status == 'PENDING' and new_status == 'REJECTED':
+            Notification.objects.create(
+                recipient=instance.user,
+                category=Notification.Category.SYSTEM,
+                title=f"Ansökan avslogs",
+                body=f"Din ansökan till gruppen '{instance.group.name}' blev tyvärr inte godkänd.",
+                action_url="/dashboard/youth/groups" # Redirect to list
+            )
+
+    # --- Scenario B: Direct Add or Join (Creation) ---
+    # When a user joins an OPEN group or is added to a CLOSED group, it is created as 'APPROVED' immediately.
+    if created and instance.status == 'APPROVED':
+        print(f"🔔 GroupMembership created: User {instance.user.email} joined group {instance.group.name} (type: {instance.group.group_type})")
+        
+        if instance.group.group_type == Group.GroupType.CLOSED:
+             Notification.objects.create(
+                recipient=instance.user,
+                category=Notification.Category.SYSTEM,
+                title=f"Du har lagts till i en grupp",
+                body=f"Du har blivit tillagd i den stängda gruppen '{instance.group.name}'.",
+                action_url=f"/dashboard/youth/groups/{instance.group.id}"
+            )
+        
+        # Create activity post for all joins (OPEN, APPLICATION, CLOSED)
+        # This includes both direct joins and approved applications
+        create_group_join_activity_post(instance)
+
+
+def create_group_join_activity_post(membership):
+    """
+    Creates a post that appears in the user's activity feed when they join a group.
+    This post is automatically "liked" by the user so it shows up in their interactions feed.
+    The post targets the group the user joined, ensuring it's visible to them.
+    """
+    from posts.models import Post, PostReaction
+    
+    group = membership.group
+    user = membership.user
+    join_date = membership.joined_at
+    
+    # Skip system groups - we don't want activity posts for automatic group memberships
+    if group.is_system_group:
+        return
+    
+    # Format the date nicely
+    date_str = join_date.strftime('%B %d, %Y')
+    
+    # Create the post content
+    post_content = (
+        f"<p>🎉 <strong>Joined {group.name}</strong></p>"
+        f"<p>Became a member on {date_str}</p>"
+    )
+    
+    # Determine owner role based on group scope
+    owner_role = Post.OwnerRole.SUPER_ADMIN
+    if group.club:
+        owner_role = Post.OwnerRole.CLUB_ADMIN
+    elif group.municipality:
+        owner_role = Post.OwnerRole.MUNICIPALITY_ADMIN
+    
+    try:
+        # Create the activity post
+        # Target the group so the user can see it (they're now a member)
+        activity_post = Post.objects.create(
+            title=f"Joined {group.name}",
+            content=post_content,
+            post_type=Post.PostType.IMAGE if (group.background_image or group.avatar) else Post.PostType.TEXT,
+            
+            # Ownership
+            author=user,  # The user is the author of their own activity
+            owner_role=owner_role,
+            club=group.club,
+            municipality=group.municipality,
+            is_global=(group.club is None and group.municipality is None),
+            
+            # Targeting - Target the group so user can see it (they're a member)
+            target_member_type=Post.TargetMemberType.YOUTH if user.role == 'YOUTH_MEMBER' else Post.TargetMemberType.GUARDIAN,
+            
+            # Settings
+            status=Post.Status.PUBLISHED,
+            published_at=join_date,  # Use join date for chronological ordering
+            allow_comments=False,  # Activity posts don't need comments
+            is_pinned=False
+        )
+        
+        # Target the group so the post is visible to group members
+        activity_post.target_groups.add(group)
+        
+        # Add group image if available
+        if group.background_image or group.avatar:
+            image_source = group.background_image or group.avatar
+            PostImage.objects.create(
+                post=activity_post,
+                image=image_source,
+                order=0
+            )
+        
+        # Note: We don't add an automatic reaction anymore
+        # The post will appear in interactions feed because author=user
+        print(f"✅ Created activity post for {user.email} joining group {group.name} (Post ID: {activity_post.id})")
+    except Exception as e:
+        print(f"❌ Error creating activity post for group join: {e}")
+        import traceback
+        traceback.print_exc()
