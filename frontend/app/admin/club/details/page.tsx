@@ -148,9 +148,17 @@ function ClubDetailsPageContent() {
           </div>
 
           {/* OPENING HOURS */}
-          {club.regular_hours && club.regular_hours.length > 0 && (
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Opening Hours</h2>
+          <div className="bg-white rounded-xl shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">Opening Hours</h2>
+              <Link
+                href="/admin/club/opening-hours"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm text-sm font-medium"
+              >
+                Edit Hours
+              </Link>
+            </div>
+            {club.regular_hours && club.regular_hours.length > 0 ? (
               <div className="space-y-3">
                 {WEEKDAYS.map((day) => {
                   const hours = club.regular_hours.filter((h: any) => h.weekday === day.id);
@@ -183,8 +191,18 @@ function ClubDetailsPageContent() {
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p className="mb-4">No opening hours set yet.</p>
+                <Link
+                  href="/admin/club/opening-hours"
+                  className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm text-sm font-medium"
+                >
+                  Add Opening Hours
+                </Link>
+              </div>
+            )}
+          </div>
 
           {/* POLICIES */}
           {(club.club_policies || club.terms_and_conditions) && (
@@ -289,6 +307,12 @@ function ClubDetailsPageContent() {
                 className="block w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-center"
               >
                 Edit Club
+              </Link>
+              <Link
+                href="/admin/club/opening-hours"
+                className="block w-full bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-center"
+              >
+                Manage Opening Hours
               </Link>
               <Link
                 href="/admin/club"

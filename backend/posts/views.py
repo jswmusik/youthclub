@@ -378,21 +378,51 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         Return posts the user has interacted with (Reacted or Commented).
         If no interactions found, falls back to the standard feed.
+        Supports time_filter query parameter: 'day', 'week', 'month', or 'forever' (default).
         """
         user = request.user
         if not user.is_authenticated:
             raise PermissionDenied()
 
+        # Get time filter from query params
+        time_filter = request.query_params.get('time_filter', 'forever')
+        now = timezone.now()
+        
+        # Calculate date threshold based on filter
+        if time_filter == 'day':
+            threshold_date = now - timedelta(days=1)
+        elif time_filter == 'week':
+            threshold_date = now - timedelta(days=7)
+        elif time_filter == 'month':
+            threshold_date = now - timedelta(days=30)
+        else:  # 'forever' or invalid
+            threshold_date = None
+
         # 1. Query for interactions (Reacted OR Commented)
         queryset = Post.objects.filter(
             Q(reactions__user=user) | 
             Q(comments__author=user)
-        ).distinct().order_by('-published_at', '-created_at')
+        ).distinct()
+        
+        # Apply time filter if specified
+        if threshold_date:
+            queryset = queryset.filter(
+                Q(published_at__gte=threshold_date) | 
+                Q(published_at__isnull=True, created_at__gte=threshold_date)
+            )
+        
+        queryset = queryset.order_by('-published_at', '-created_at')
 
         # 2. Fallback: If no interactions, show standard feed
         if not queryset.exists():
             # Use the engine to get relevant posts (same as /feed/)
             queryset = PostEngine.get_posts_for_user(user)
+            # Apply time filter to fallback feed as well
+            if threshold_date:
+                queryset = queryset.filter(
+                    Q(published_at__gte=threshold_date) | 
+                    Q(published_at__isnull=True, created_at__gte=threshold_date)
+                )
         
         # 3. Apply Annotations (Critical for the PostCard to show like status)
         queryset = queryset.annotate(

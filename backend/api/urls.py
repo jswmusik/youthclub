@@ -48,4 +48,5 @@ urlpatterns = [
     path('', include(router.urls)), 
     path('', include('organization.urls')),
     path('notifications/', include('notifications.urls')),
+    path('visits/', include('visits.urls')),
 ]

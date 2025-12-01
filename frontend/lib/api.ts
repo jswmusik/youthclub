@@ -210,9 +210,16 @@ export const updateUserProfile = async (data: {
 /**
  * Fetches posts the user has interacted with (Liked or Commented).
  * Uses the /posts/interactions/ endpoint.
+ * @param page - Page number for pagination
+ * @param timeFilter - Time filter: 'day', 'week', 'month', or 'forever'
  */
-export const fetchUserActivityFeed = async (page = 1) => {
-    return api.get(`/posts/interactions/?page=${page}`); 
+export const fetchUserActivityFeed = async (page = 1, timeFilter: 'day' | 'week' | 'month' | 'forever' = 'forever') => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    if (timeFilter !== 'forever') {
+        params.append('time_filter', timeFilter);
+    }
+    return api.get(`/posts/interactions/?${params.toString()}`); 
 };
 
 // --- YOUTH GUARDIANS MANAGEMENT ---
@@ -391,4 +398,61 @@ export const getClubFollowers = async (clubId: number | string) => {
 export const removeClubFollower = async (clubId: number | string, userId: number) => {
   const response = await api.post(`/clubs/${clubId}/remove_follower/`, { user_id: userId });
   return response.data;
+};
+
+// --- USER SEARCH ENDPOINTS ---
+
+export const users = {
+  // Search for users (typically used for manual check-in)
+  search: (query: string) => api.get(`/users/?search=${query}&role=YOUTH_MEMBER`),
+};
+
+// --- VISITS ENDPOINTS ---
+
+export const visits = {
+  // Get the rotating token for the Kiosk
+  getKioskToken: (clubId: number | string) => 
+    api.get<{token: string}>(`/visits/kiosk/token/?club_id=${clubId}`),
+
+  // Get current active sessions (for the dashboard)
+  getActiveSessions: (clubId: number | string) => 
+    api.get(`/visits/sessions/?club_id=${clubId}&active=true`),
+
+  // Get all visits for the current user (history)
+  getMyVisits: () => 
+    api.get('/visits/sessions/'),
+
+  // Get visit history with filters (for admin history log)
+  getHistory: (params?: { search?: string; start_date?: string; end_date?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
+    const query = queryParams.toString();
+    return api.get(`/visits/sessions/${query ? `?${query}` : ''}`);
+  },
+
+  // Get analytics data
+  getAnalytics: (params?: { start_date?: string; end_date?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
+    const query = queryParams.toString();
+    return api.get(`/visits/sessions/analytics/${query ? `?${query}` : ''}`);
+  },
+
+  // Get the CURRENT status of the logged-in user (Are they inside?)
+  getMyActiveVisit: () => api.get('/visits/sessions/active_status/'),
+
+  // The Scan Action
+  scan: (token: string, latitude?: number, longitude?: number) => 
+    api.post('/visits/sessions/scan/', { token, latitude, longitude }),
+
+  // Manual check-in (Admin types a name)
+  manualCheckIn: (data: { user_id: number }) => 
+    api.post('/visits/sessions/manual-entry/', data),
+
+  // Check out a specific session
+  checkOut: (sessionId: number) => 
+    api.post(`/visits/sessions/${sessionId}/checkout/`, {}),
 };

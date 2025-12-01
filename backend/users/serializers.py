@@ -66,6 +66,23 @@ class GuardianLinkCreateSerializer(serializers.Serializer):
         allow_blank=True
     )
 
+class UserListSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for listing users (e.g., in visit sessions).
+    Includes only essential fields for display.
+    """
+    avatar_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name', 'nickname', 'avatar_url', 'grade']
+        read_only_fields = ['id', 'email', 'first_name', 'last_name', 'nickname', 'avatar_url', 'grade']
+    
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            return obj.avatar.url
+        return None
+
 class CustomUserSerializer(serializers.ModelSerializer):
     """
     Standard serializer for reading user data.

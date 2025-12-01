@@ -46,8 +46,9 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
 
   const navigation = [
     { name: 'Overview', href: '/admin/club' },
-    { name: 'Club Settings', href: '/admin/club/settings' },
+    { name: 'Visits & Kiosk', href: '/admin/club/visits' },
     { name: 'Club Details', href: '/admin/club/details' },
+    { name: 'Manage Opening Hours', href: '/admin/club/opening-hours' },
     { name: 'Manage Admins', href: '/admin/club/admins' },
     { name: 'Manage Youth', href: '/admin/club/youth' },
     { name: 'Manage Guardians', href: '/admin/club/guardians' },

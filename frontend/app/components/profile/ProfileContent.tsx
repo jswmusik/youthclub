@@ -214,7 +214,7 @@ function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: str
       {/* Right Column: Activity Feed */}
       <div className="md:col-span-2">
         {/* Added the dynamic Feed */}
-        <ActivityFeed />
+        <ActivityFeed showTimeFilter={false} />
       </div>
     </div>
   );

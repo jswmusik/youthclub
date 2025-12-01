@@ -96,6 +96,12 @@ function ClubViewPageContent() {
           >
             View Followers
           </Link>
+          <Link 
+            href={`/admin/municipality/clubs/${club.id}/visits`} 
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 shadow-sm font-medium"
+          >
+            Visitors
+          </Link>
           <button
             onClick={() => router.push(buildUrlWithParams(`/admin/municipality/clubs/edit/${club.id}`))}
             className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 shadow"
@@ -138,6 +144,7 @@ function ClubViewPageContent() {
         </div>
       </div>
 
+      {/* MAIN CONTENT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* MAIN CONTENT */}
         <div className="lg:col-span-2 space-y-6">

@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'rewards',
     'posts',
     'notifications',
+    'visits',
 ]
 
 MIDDLEWARE = [

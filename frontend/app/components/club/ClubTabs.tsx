@@ -1,6 +1,6 @@
 import React from 'react';
 
-type TabType = 'overview' | 'groups' | 'hours' | 'events' | 'policies' | 'contact';
+type TabType = 'overview' | 'groups' | 'visits' | 'hours' | 'events' | 'policies' | 'contact';
 
 interface ClubTabsProps {
   activeTab: TabType;
@@ -11,6 +11,7 @@ export default function ClubTabs({ activeTab, onChange }: ClubTabsProps) {
   const tabs: { id: TabType; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'groups', label: 'Groups' },
+    { id: 'visits', label: 'Visits & Attendance' },
     { id: 'hours', label: 'Opening Hours' },
     { id: 'events', label: 'Events' },
     { id: 'policies', label: 'Info & Policies' },

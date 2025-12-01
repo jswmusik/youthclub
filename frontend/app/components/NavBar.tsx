@@ -5,14 +5,17 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from './posts/PostCard';
-import { fetchUnreadNotificationCount } from '../../lib/api'; // <--- NEW IMPORT
+import { fetchUnreadNotificationCount, visits } from '../../lib/api';
+import ActiveVisitModal from './visits/ActiveVisitModal';
 
 export default function NavBar() {
     const router = useRouter();
     const { user, logout } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [showMenu, setShowMenu] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0); // <--- NEW STATE
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [activeVisit, setActiveVisit] = useState<{id: number, is_checked_in: boolean, club_name?: string, check_in_at?: string} | null>(null);
+    const [showVisitModal, setShowVisitModal] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     const handleSearch = (e: React.FormEvent) => {
@@ -31,7 +34,7 @@ export default function NavBar() {
         router.push('/login');
     };
 
-    // --- NEW: Fetch Unread Count ---
+    // --- Fetch Unread Count ---
     useEffect(() => {
         const loadUnreadCount = async () => {
             if (!user) return;
@@ -48,6 +51,25 @@ export default function NavBar() {
         
         // Optional: Poll every 60 seconds to keep it fresh
         const interval = setInterval(loadUnreadCount, 60000);
+        return () => clearInterval(interval);
+    }, [user]);
+
+    // --- Check Active Visit Status (for Youth Members) ---
+    useEffect(() => {
+        if (!user || user.role !== 'YOUTH_MEMBER') return;
+
+        const checkStatus = async () => {
+            try {
+                const res = await visits.getMyActiveVisit();
+                setActiveVisit(res.data);
+            } catch (e) {
+                console.error(e);
+                setActiveVisit(null);
+            }
+        };
+        
+        checkStatus();
+        const interval = setInterval(checkStatus, 30000); // Poll every 30s
         return () => clearInterval(interval);
     }, [user]);
 
@@ -112,6 +134,15 @@ export default function NavBar() {
                         <NavIcon
                             icon={
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4h-4v-4H8m13-9v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2M5 3v2m0 12v2m0-6v2m14-8v2m0 6v2m-4-6h2m-6 0h2" />
+                                </svg>
+                            }
+                            label="Scan"
+                            onClick={() => router.push('/dashboard/youth/scan')}
+                        />
+                        <NavIcon
+                            icon={
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                             }
@@ -141,6 +172,33 @@ export default function NavBar() {
 
                     {/* Right: Notifications, News, Messages, User */}
                     <div className="flex items-center gap-2 flex-1 justify-end">
+                        {/* Active Visit Indicator - Compact Pill */}
+                        {activeVisit?.is_checked_in && (
+                            <>
+                                <button 
+                                    onClick={() => setShowVisitModal(true)}
+                                    className="hidden md:flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 hover:shadow-sm px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-200 transition-all group mr-2"
+                                    title={`Checked in at ${activeVisit.club_name}`}
+                                >
+                                    <div className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </div>
+                                    {/* Truncate text using Tailwind max-width */}
+                                    <span className="max-w-[100px] truncate">
+                                        {activeVisit.club_name}
+                                    </span>
+                                </button>
+                                
+                                {/* The Modal */}
+                                <ActiveVisitModal 
+                                    isOpen={showVisitModal} 
+                                    onClose={() => setShowVisitModal(false)}
+                                    visit={activeVisit}
+                                    onCheckout={() => setActiveVisit(null)} // Clear state immediately
+                                />
+                            </>
+                        )}
                         <NavIcon
                             icon={
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
