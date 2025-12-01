@@ -8,6 +8,7 @@ import { useAuth } from '../../../context/AuthContext';
 import Cookies from 'js-cookie';
 import NavBar from '../../components/NavBar';
 import RecommendedClubs from '../../components/RecommendedClubs';
+import RecommendedGroups from '../../components/RecommendedGroups';
 import PreferredClubCard from '../../components/PreferredClubCard';
 
 // Define interface for the mixed feed items
@@ -248,44 +249,53 @@ export default function YouthDashboard() {
                 ) : (
                     <div className="space-y-6">
                         {feedItems.map((item, index) => {
-                            if (item.feed_type === 'REWARD') {
+                            const postContent = item.feed_type === 'REWARD' ? (
                                 // RENDER REWARD CARD
-                                return (
-                                    <div key={item.id} className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 bg-white/20 px-3 py-1 rounded-bl-lg text-xs font-bold">
-                                            NEW REWARD
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-16 w-16 bg-white/20 rounded-lg flex items-center justify-center text-3xl">
-                                                🎁
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-bold">{item.title}</h3>
-                                                <p className="text-white/90 text-sm mt-1">{item.description}</p>
-                                                {item.sponsor && (
-                                                    <p className="text-xs text-white/70 mt-2">Sponsored by: {item.sponsor}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <button 
-                                            onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
-                                            className="mt-4 w-full bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-gray-100 transition-colors"
-                                        >
-                                            Claim in Wallet
-                                        </button>
+                                <div key={item.id} className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 bg-white/20 px-3 py-1 rounded-bl-lg text-xs font-bold">
+                                        NEW REWARD
                                     </div>
-                                );
-                            } else {
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-16 w-16 bg-white/20 rounded-lg flex items-center justify-center text-3xl">
+                                            🎁
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold">{item.title}</h3>
+                                            <p className="text-white/90 text-sm mt-1">{item.description}</p>
+                                            {item.sponsor && (
+                                                <p className="text-xs text-white/70 mt-2">Sponsored by: {item.sponsor}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
+                                        className="mt-4 w-full bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                    >
+                                        Claim in Wallet
+                                    </button>
+                                </div>
+                            ) : (
                                 // RENDER STANDARD POST CARD
-                                return (
-                                    <div key={item.id}>
-                                        <PostCard post={item as any} />
-                                        {/* Show Recommended Clubs after the first item */}
-                                        {index === 0 && <RecommendedClubs />}
-                                    </div>
-                                );
-                            }
+                                <PostCard post={item as any} />
+                            );
+
+                            return (
+                                <div key={item.id}>
+                                    {postContent}
+                                    
+                                    {/* Show Recommended Clubs after the first item */}
+                                    {index === 0 && <RecommendedClubs />}
+                                    
+                                    {/* Show Recommended Groups after the 4th item */}
+                                    {index === 3 && <RecommendedGroups />}
+                                </div>
+                            );
                         })}
+                        
+                        {/* Fallback: If total items < 4, show RecommendedGroups at the very end */}
+                        {feedItems.length < 4 && feedItems.length > 0 && (
+                            <RecommendedGroups />
+                        )}
                         
                         {/* Loading More Indicator */}
                         <div ref={observerTarget} className="h-10 flex items-center justify-center">

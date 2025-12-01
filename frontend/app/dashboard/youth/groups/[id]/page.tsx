@@ -9,6 +9,8 @@ import { Post } from '@/types/post';
 import NavBar from '@/app/components/NavBar';
 import PostCard from '@/app/components/posts/PostCard';
 import { getMediaUrl } from '@/app/utils';
+import SuccessModal from '@/app/components/SuccessModal';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
 
 export default function GroupDetailPage() {
     const { id } = useParams();
@@ -20,6 +22,14 @@ export default function GroupDetailPage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingPosts, setLoadingPosts] = useState(false);
+    
+    // Modal states
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+    const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [isLeaving, setIsLeaving] = useState(false);
 
     useEffect(() => {
         if (groupId) {
@@ -138,24 +148,40 @@ export default function GroupDetailPage() {
         if (!group) return;
         try {
             const res = await api.post(`/groups/${group.id}/join/`);
-            alert(res.data.message);
+            setSuccessMessage(res.data.message || 'Successfully joined group!');
+            setShowSuccessModal(true);
             await fetchGroupDetails();
             // After joining, fetch posts if membership is approved
             if (res.data.status === 'APPROVED') {
                 fetchPosts();
             }
         } catch (err: any) {
-            alert(err.response?.data?.message || "Failed to join");
+            setErrorMessage(err.response?.data?.message || "Failed to join group. Please try again.");
+            setShowErrorModal(true);
         }
     };
 
-    const handleLeave = async () => {
-        if (!group || !confirm("Are you sure you want to leave this group?")) return;
+    const handleLeaveClick = () => {
+        setShowLeaveConfirmModal(true);
+    };
+
+    const handleLeaveConfirm = async () => {
+        if (!group) return;
+        setIsLeaving(true);
         try {
             await api.post(`/groups/${group.id}/leave/`);
-            router.back();
+            setSuccessMessage('Successfully left the group.');
+            setShowSuccessModal(true);
+            setShowLeaveConfirmModal(false);
+            // Navigate back after a short delay to show success message
+            setTimeout(() => {
+                router.back();
+            }, 1500);
         } catch (err: any) {
-            alert(err.response?.data?.message || "Failed to leave");
+            setIsLeaving(false);
+            setShowLeaveConfirmModal(false);
+            setErrorMessage(err.response?.data?.message || "Failed to leave group. Please try again.");
+            setShowErrorModal(true);
         }
     };
 
@@ -298,7 +324,7 @@ export default function GroupDetailPage() {
                                 <div className="flex gap-3 mt-4 md:mt-0 md:ml-auto">
                                     {isMember ? (
                                         <button
-                                            onClick={handleLeave}
+                                            onClick={handleLeaveClick}
                                             className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition shadow-sm"
                                         >
                                             Leave Group
@@ -443,6 +469,61 @@ export default function GroupDetailPage() {
                     </div>
                 </div>
             </main>
+            
+            {/* Success Modal */}
+            <SuccessModal
+                isVisible={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                message={successMessage}
+                title="Success!"
+            />
+            
+            {/* Leave Confirmation Modal */}
+            <ConfirmationModal
+                isVisible={showLeaveConfirmModal}
+                onClose={() => setShowLeaveConfirmModal(false)}
+                onConfirm={handleLeaveConfirm}
+                title="Leave Group?"
+                message="Are you sure you want to leave this group? You'll need to join again to see posts and events."
+                confirmButtonText="Leave Group"
+                cancelButtonText="Cancel"
+                isLoading={isLeaving}
+                variant="warning"
+            />
+            
+            {/* Error Modal - Using SuccessModal with error styling */}
+            {showErrorModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl">
+                        {/* Header with error icon */}
+                        <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 text-white text-center">
+                            <div className="w-16 h-16 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-4">
+                                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-bold">Error</h2>
+                        </div>
+
+                        {/* Message */}
+                        <div className="p-6">
+                            <p className="text-gray-700 text-center leading-relaxed">
+                                {errorMessage}
+                            </p>
+                        </div>
+
+                        {/* Button */}
+                        <div className="p-6 pt-0">
+                            <button
+                                onClick={() => setShowErrorModal(false)}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition-colors"
+                            >
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

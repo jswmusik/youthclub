@@ -22,6 +22,22 @@ def track_dob_change(sender, instance, **kwargs):
             pass
 
 
+@receiver(pre_save, sender=User)
+def track_verification_status_change(sender, instance, **kwargs):
+    """
+    Checks if verification_status is changing to VERIFIED.
+    We attach a temporary flag '_verification_status_changed_to_verified' to the instance to check in post_save.
+    """
+    if instance.pk: # Only for existing users
+        try:
+            old_user = User.objects.get(pk=instance.pk)
+            # Only flag if status changed FROM something else TO VERIFIED
+            if old_user.verification_status != 'VERIFIED' and instance.verification_status == 'VERIFIED':
+                instance._verification_status_changed_to_verified = True
+        except User.DoesNotExist:
+            pass
+
+
 @receiver(post_save, sender=User)
 def check_reward_triggers(sender, instance, created, **kwargs):
     """
@@ -35,15 +51,36 @@ def check_reward_triggers(sender, instance, created, **kwargs):
         for reward in welcome_rewards:
             triggers = reward.active_triggers if isinstance(reward.active_triggers, list) else []
             if "WELCOME" in triggers:
-                grant_reward(user, reward)
+                # Fallback: Check if user has EVER received this WELCOME reward before
+                # (shouldn't happen on creation, but safety check to prevent duplicates)
+                has_ever_received = RewardUsage.objects.filter(
+                    user=user,
+                    reward=reward
+                ).exists()
+                
+                if not has_ever_received:
+                    grant_reward(user, reward)
+                else:
+                    print(f"-> Skipped granting '{reward.name}' to {user.email} - user has already received this WELCOME reward before")
 
-    # --- 2. VERIFIED TRIGGER (On Update) ---
-    if not created and user.verification_status == 'VERIFIED':
+    # --- 2. VERIFIED TRIGGER (On Update - Only when status changes TO VERIFIED) ---
+    if not created and getattr(instance, '_verification_status_changed_to_verified', False):
         verified_rewards = Reward.objects.filter(active_triggers__icontains="VERIFIED", is_active=True)
         for reward in verified_rewards:
             triggers = reward.active_triggers if isinstance(reward.active_triggers, list) else []
             if "VERIFIED" in triggers:
-                grant_reward(user, reward)
+                # Fallback: Check if user has EVER received this VERIFIED reward before
+                # (regardless of redemption status) to prevent re-granting if they become
+                # unverified and then verified again
+                has_ever_received = RewardUsage.objects.filter(
+                    user=user,
+                    reward=reward
+                ).exists()
+                
+                if not has_ever_received:
+                    grant_reward(user, reward)
+                else:
+                    print(f"-> Skipped granting '{reward.name}' to {user.email} - user has already received this VERIFIED reward before")
 
     # --- 3. BIRTHDAY TRIGGER (On DOB Change) ---
     if getattr(instance, '_dob_changed', False):

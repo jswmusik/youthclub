@@ -5,11 +5,13 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from datetime import timedelta, date
 import json
+import random
 from .models import Group, GroupMembership
 from .serializers import GroupSerializer, GroupMembershipSerializer
 from .permissions import IsGroupAdminOrReadOnly, IsGroupMembershipAdmin
 from users.models import User
 from users.serializers import CustomUserSerializer
+from custom_fields.models import CustomFieldValue
 
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
@@ -332,6 +334,127 @@ class GroupViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
 
         serializer = CustomUserSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def recommended(self, request):
+        """
+        Returns a list of groups recommended for the current user.
+        Logic parallels PostEngine:
+        1. Scope: Global, My Muni, My Club, Followed Clubs.
+        2. Status: Not 'CLOSED', Not already a member.
+        3. Eligibility: Strict checks on Age, Grade, Gender, Interests, Custom Fields.
+        """
+        user = request.user
+        if not user.is_authenticated:
+            return Response([])
+
+        # --- 1. Base Scope Candidate Generation ---
+        
+        # Start with groups user is NOT in
+        queryset = Group.objects.exclude(memberships__user=user)
+        
+        # Filter for OPEN or APPLICATION types only (Closed groups are invite-only)
+        queryset = queryset.filter(group_type__in=['OPEN', 'APPLICATION'])
+        
+        # Build Scope Query
+        scope_query = Q(municipality__isnull=True, club__isnull=True) # Global
+        
+        if user.assigned_municipality:
+            scope_query |= Q(municipality=user.assigned_municipality)
+            
+        if user.preferred_club:
+            scope_query |= Q(club=user.preferred_club)
+            
+        # Add Followed Clubs (Both Open and Application groups as requested)
+        if hasattr(user, 'followed_clubs'):
+            scope_query |= Q(club__in=user.followed_clubs.all())
+            
+        queryset = queryset.filter(scope_query).distinct().prefetch_related('interests')
+
+        # --- 2. Python-Side Eligibility Filtering (Strict) ---
+        # We process this in Python to handle JSON fields (grades, genders, custom rules) 
+        # consistent with PostEngine and SQLite limitations.
+
+        # Pre-fetch user data for comparisons
+        user_grade = user.grade
+        user_gender = user.legal_gender
+        user_age = user.age
+        user_interest_ids = set(user.interests.values_list('id', flat=True))
+        
+        # Get user custom fields for rule matching
+        user_custom_fields = CustomFieldValue.objects.filter(user=user).select_related('field')
+        user_cf_dict = {cfv.field_id: cfv.value for cfv in user_custom_fields}
+
+        valid_group_ids = []
+
+        for group in queryset:
+            # A. Member Type Check
+            if group.target_member_type == 'YOUTH' and user.role != 'YOUTH_MEMBER':
+                continue
+            if group.target_member_type == 'GUARDIAN' and user.role != 'GUARDIAN':
+                continue
+
+            # B. Age Check
+            if group.min_age is not None and user_age is not None and user_age < group.min_age:
+                continue
+            if group.max_age is not None and user_age is not None and user_age > group.max_age:
+                continue
+
+            # C. Gender Check
+            # If group has restricted genders, user MUST match one
+            if group.genders:
+                if not user_gender or user_gender not in group.genders:
+                    continue
+
+            # D. Grade Check
+            # If group has restricted grades, user MUST match one
+            if group.grades:
+                if user_grade is None or user_grade not in group.grades:
+                    continue
+
+            # E. Interest Check (Strict)
+            # If group requires interests, user MUST have at least one of them
+            group_interest_ids = set(group.interests.values_list('id', flat=True))
+            if group_interest_ids:
+                if not user_interest_ids.intersection(group_interest_ids):
+                    continue
+
+            # F. Custom Field Rules Check
+            # Rules format: {"field_id_5": true, "field_id_10": "Option A"}
+            if group.custom_field_rules:
+                matches_custom = True
+                for field_id_str, required_value in group.custom_field_rules.items():
+                    try:
+                        field_id = int(field_id_str)
+                        user_value = user_cf_dict.get(field_id)
+                        
+                        # Strict equality check
+                        if user_value is None or user_value != required_value:
+                            matches_custom = False
+                            break
+                    except (ValueError, TypeError):
+                        continue
+                
+                if not matches_custom:
+                    continue
+
+            # If we passed all checks, it's a valid recommendation
+            valid_group_ids.append(group.id)
+
+        # --- 3. Final Selection ---
+        # Return random selection of valid groups
+        if not valid_group_ids:
+            return Response([])
+
+        # Shuffle list
+        random.shuffle(valid_group_ids)
+        
+        # We fetch the full objects again to serialize them properly
+        # We limit to 10 candidates to allow the frontend to scroll through a few
+        final_groups = Group.objects.filter(id__in=valid_group_ids[:10])
+        
+        serializer = GroupSerializer(final_groups, many=True, context={'request': request})
         return Response(serializer.data)
 
 

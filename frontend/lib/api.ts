@@ -467,3 +467,6 @@ export const rewards = {
   redeem: (rewardId: number) => 
     api.post(`/rewards/${rewardId}/redeem/`),
 };
+
+// --- GROUPS ---
+export const fetchRecommendedGroups = () => api.get('/groups/recommended/');
