@@ -4,15 +4,21 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchYouthFeed } from '../../../lib/api';
 import PostCard from '../../components/posts/PostCard';
-import { Post } from '../../../types/post';
 import { useAuth } from '../../../context/AuthContext';
 import Cookies from 'js-cookie';
 import NavBar from '../../components/NavBar';
 import RecommendedClubs from '../../components/RecommendedClubs';
 import PreferredClubCard from '../../components/PreferredClubCard';
 
+// Define interface for the mixed feed items
+interface FeedItem {
+    id: any;
+    feed_type: 'POST' | 'REWARD';
+    [key: string]: any; // Allow other props
+}
+
 export default function YouthDashboard() {
-    const [posts, setPosts] = useState<Post[]>([]);
+    const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -49,12 +55,14 @@ export default function YouthDashboard() {
             }
             
             const res = await fetchYouthFeed(pageNum);
-            const newPosts = res.data.results || res.data;
+            
+            // Handle pagination response structure
+            const newItems = res.data.results || res.data;
             
             if (append) {
-                setPosts(prev => [...prev, ...newPosts]);
+                setFeedItems(prev => [...prev, ...newItems]);
             } else {
-                setPosts(newPosts);
+                setFeedItems(newItems);
             }
             
             // Check if there are more pages
@@ -233,32 +241,59 @@ export default function YouthDashboard() {
                     <div className="text-center py-10 bg-red-50 rounded-xl border border-red-200">
                         <p className="text-red-600 font-medium">{error}</p>
                     </div>
-                ) : posts.length === 0 ? (
+                ) : feedItems.length === 0 ? (
                     <div className="text-center py-10 bg-white rounded-xl border border-dashed">
                         No posts yet. Join some groups to see more!
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {posts.map((post, index) => (
-                            <div key={post.id}>
-                                <PostCard post={post} />
-                                {/* Show Recommended Clubs after the first post */}
-                                {index === 0 && <RecommendedClubs />}
-                            </div>
-                        ))}
+                        {feedItems.map((item, index) => {
+                            if (item.feed_type === 'REWARD') {
+                                // RENDER REWARD CARD
+                                return (
+                                    <div key={item.id} className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 bg-white/20 px-3 py-1 rounded-bl-lg text-xs font-bold">
+                                            NEW REWARD
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-16 w-16 bg-white/20 rounded-lg flex items-center justify-center text-3xl">
+                                                🎁
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold">{item.title}</h3>
+                                                <p className="text-white/90 text-sm mt-1">{item.description}</p>
+                                                {item.sponsor && (
+                                                    <p className="text-xs text-white/70 mt-2">Sponsored by: {item.sponsor}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
+                                            className="mt-4 w-full bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                        >
+                                            Claim in Wallet
+                                        </button>
+                                    </div>
+                                );
+                            } else {
+                                // RENDER STANDARD POST CARD
+                                return (
+                                    <div key={item.id}>
+                                        <PostCard post={item as any} />
+                                        {/* Show Recommended Clubs after the first item */}
+                                        {index === 0 && <RecommendedClubs />}
+                                    </div>
+                                );
+                            }
+                        })}
                         
-                        {/* Infinite Scroll Trigger */}
+                        {/* Loading More Indicator */}
                         <div ref={observerTarget} className="h-10 flex items-center justify-center">
                             {loadingMore && (
                                 <div className="flex items-center gap-2 text-gray-500">
                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                                    <span className="text-sm">Loading more posts...</span>
+                                    <span className="text-sm">Loading more...</span>
                                 </div>
-                            )}
-                            {!hasMore && posts.length > 0 && (
-                                <p className="text-sm text-gray-500 text-center py-4">
-                                    You've reached the end of your feed
-                                </p>
                             )}
                         </div>
                     </div>

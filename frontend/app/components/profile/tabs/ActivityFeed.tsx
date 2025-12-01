@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { fetchUserActivityFeed, visits } from '@/lib/api';
+import { fetchUserActivityFeed, visits, rewards } from '@/lib/api';
 import PostCard from '@/app/components/posts/PostCard';
 import { Post } from '@/types/post';
 import { getMediaUrl } from '@/app/utils';
@@ -22,15 +22,28 @@ interface Visit {
   method: string;
 }
 
+interface RewardRedemption {
+  id: number;
+  type: 'reward_redemption';
+  reward_id: number;
+  reward_name: string;
+  reward_description: string;
+  reward_image: string | null;
+  sponsor: string;
+  redeemed_at: string;
+  created_at: string;
+}
+
 type TimelineItem = {
-  type: 'post' | 'visit';
+  type: 'post' | 'visit' | 'reward_redemption';
   date: Date;
-  data: Post | Visit;
+  data: Post | Visit | RewardRedemption;
 };
 
 export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [visitsData, setVisitsData] = useState<Visit[]>([]);
+  const [rewardRedemptions, setRewardRedemptions] = useState<RewardRedemption[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
@@ -53,10 +66,11 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
         setError('');
       }
       
-      // Fetch both posts and visits
-      const [postsRes, visitsRes] = await Promise.all([
+      // Fetch posts, visits, and reward redemptions
+      const [postsRes, visitsRes, rewardsRes] = await Promise.all([
         fetchUserActivityFeed(pageNum, timeFilter),
-        visits.getMyVisits()
+        visits.getMyVisits(),
+        rewards.getMyRedemptions()
       ]);
       
       // Handle pagination results vs flat list for posts
@@ -66,6 +80,10 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
       const allVisits = visitsRes.data.results || visitsRes.data || [];
       const now = new Date();
       let filteredVisits = allVisits;
+      
+      // Handle reward redemptions (apply time filter on frontend)
+      const allRedemptions = rewardsRes.data || [];
+      let filteredRedemptions = allRedemptions;
       
       if (timeFilter !== 'forever') {
         const thresholdDate = new Date();
@@ -81,6 +99,11 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
           const visitDate = new Date(visit.check_in_at);
           return visitDate >= thresholdDate;
         });
+        
+        filteredRedemptions = allRedemptions.filter((redemption: RewardRedemption) => {
+          const redemptionDate = new Date(redemption.redeemed_at);
+          return redemptionDate >= thresholdDate;
+        });
       }
       
       if (append) {
@@ -88,6 +111,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
       } else {
         setPosts(newPosts);
         setVisitsData(filteredVisits);
+        setRewardRedemptions(filteredRedemptions);
       }
       
       // Check if there are more pages (only for posts)
@@ -141,9 +165,14 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
       items.push({ type: 'visit', date: new Date(visit.check_in_at), data: visit });
     });
     
+    // Add reward redemptions
+    rewardRedemptions.forEach(redemption => {
+      items.push({ type: 'reward_redemption', date: new Date(redemption.redeemed_at), data: redemption });
+    });
+    
     // Sort by date (newest first)
     return items.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [posts, visitsData]);
+  }, [posts, visitsData, rewardRedemptions]);
 
   const timeFilterOptions: { value: TimeFilter; label: string }[] = [
     { value: 'day', label: 'Last Day' },
@@ -230,6 +259,68 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
             {timelineItems.map((item) => {
               if (item.type === 'post') {
                 return <PostCard key={`post-${item.data.id}`} post={item.data as Post} />;
+              } else if (item.type === 'reward_redemption') {
+                const redemption = item.data as RewardRedemption;
+                const redemptionDate = new Date(redemption.redeemed_at);
+                const weekday = redemptionDate.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateStr = redemptionDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                const timeStr = redemptionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                return (
+                  <div key={`reward-${redemption.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-purple-500 p-6">
+                    <div className="flex items-start gap-4">
+                      {/* Reward Image/Icon */}
+                      <div className="flex-shrink-0">
+                        {redemption.reward_image ? (
+                          <img 
+                            src={getMediaUrl(redemption.reward_image) || ''} 
+                            alt={redemption.reward_name} 
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-lg">
+                            🎁
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Reward Details */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-gray-900">{redemption.reward_name}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            Redeemed
+                          </span>
+                        </div>
+                        {redemption.reward_description && (
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                            {redemption.reward_description}
+                          </p>
+                        )}
+                        {redemption.sponsor && (
+                          <p className="text-xs text-gray-500 mb-2">
+                            Sponsored by: {redemption.sponsor}
+                          </p>
+                        )}
+                        <p className="text-sm text-gray-600">
+                          {weekday}, {dateStr} at {timeStr}
+                        </p>
+                      </div>
+                      
+                      {/* Gift Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
               } else {
                 const visit = item.data as Visit;
                 const visitDate = new Date(visit.check_in_at);

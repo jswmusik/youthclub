@@ -7,7 +7,7 @@ from notifications.models import Notification
 # Import models from your other apps
 from system_messages.models import SystemMessage
 from news.models import NewsArticle
-from rewards.models import RewardUsage
+# RewardUsage import removed - reward notifications are now handled in rewards/utils.py
 
 User = get_user_model()
 
@@ -93,19 +93,23 @@ def distribute_news_article(sender, instance, created, **kwargs):
 
 
 # --- 3. REWARDS (Personal Notification) ---
-@receiver(post_save, sender=RewardUsage)
-def notify_reward_received(sender, instance, created, **kwargs):
-    """
-    When a user RECEIVES a reward (RewardUsage created), notify them.
-    This handles the 'targeting' naturally because the RewardUsage 
-    is linked to a specific user.
-    """
-    if created:
-        Notification.objects.create(
-            recipient=instance.user,
-            category=Notification.Category.REWARD,
-            title="You earned a Reward!",
-            body=f"Congratulations! You have received: {instance.reward.name}",
-            # Link to the specific reward detail
-            action_url=f"/dashboard/youth/rewards/{instance.reward.id}"
-        )
+# NOTE: Reward notifications are now handled in rewards/utils.py grant_reward() function
+# to avoid duplicate notifications. The notification is created there with the message
+# "🎁 New Reward Unlocked!" when a reward is granted to a user.
+#
+# @receiver(post_save, sender=RewardUsage)
+# def notify_reward_received(sender, instance, created, **kwargs):
+#     """
+#     When a user RECEIVES a reward (RewardUsage created), notify them.
+#     This handles the 'targeting' naturally because the RewardUsage 
+#     is linked to a specific user.
+#     """
+#     if created:
+#         Notification.objects.create(
+#             recipient=instance.user,
+#             category=Notification.Category.REWARD,
+#             title="You earned a Reward!",
+#             body=f"Congratulations! You have received: {instance.reward.name}",
+#             # Link to the specific reward detail
+#             action_url=f"/dashboard/youth/rewards/{instance.reward.id}"
+#         )

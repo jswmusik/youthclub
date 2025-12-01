@@ -199,3 +199,44 @@ class RewardViewSet(viewsets.ModelViewSet):
                 return Response({"error": "You are not eligible for this reward."}, status=403)
 
         return Response({"error": "No active reward to redeem."}, status=400)
+
+    @action(detail=False, methods=['get'], url_path='my-redemptions')
+    def my_redemptions(self, request):
+        """
+        Returns all redeemed rewards for the current user.
+        Used for activity feed - shows when rewards were redeemed.
+        """
+        user = request.user
+        
+        if user.role not in ['YOUTH_MEMBER', 'GUARDIAN']:
+            raise PermissionDenied("This endpoint is only available for Youth Members and Guardians.")
+        
+        # Get all redeemed rewards for this user, ordered by redemption date (newest first)
+        redemptions = RewardUsage.objects.filter(
+            user=user,
+            is_redeemed=True
+        ).select_related('reward').order_by('-redeemed_at')
+        
+        # Serialize the data for activity feed
+        data = []
+        for usage in redemptions:
+            reward_image = None
+            if usage.reward and usage.reward.image:
+                try:
+                    reward_image = usage.reward.image.url
+                except (ValueError, AttributeError):
+                    reward_image = None
+            
+            data.append({
+                'id': usage.id,
+                'type': 'reward_redemption',
+                'reward_id': usage.reward.id if usage.reward else None,
+                'reward_name': usage.reward.name if usage.reward else 'Unknown Reward',
+                'reward_description': usage.reward.description if usage.reward else '',
+                'reward_image': reward_image,
+                'sponsor': usage.reward.sponsor_name if usage.reward else '',
+                'redeemed_at': usage.redeemed_at.isoformat() if usage.redeemed_at else None,
+                'created_at': usage.created_at.isoformat() if usage.created_at else None,
+            })
+        
+        return Response(data)

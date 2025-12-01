@@ -456,3 +456,14 @@ export const visits = {
   checkOut: (sessionId: number) => 
     api.post(`/visits/sessions/${sessionId}/checkout/`, {}),
 };
+
+// --- REWARDS ---
+export const rewards = {
+  // Get redeemed rewards for activity feed
+  getMyRedemptions: () => 
+    api.get('/rewards/my-redemptions/'),
+  
+  // Redeem a reward
+  redeem: (rewardId: number) => 
+    api.post(`/rewards/${rewardId}/redeem/`),
+};

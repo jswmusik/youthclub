@@ -10,6 +10,9 @@ from .models import Post, PostComment, PostReaction
 from .serializers import PostSerializer, PostCommentSerializer
 from .engine import PostEngine
 
+# Import Reward models
+from rewards.models import RewardUsage
+
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -48,8 +51,14 @@ class PostViewSet(viewsets.ModelViewSet):
             ).order_by('-is_pinned', '-created_at')
 
         # 3. Club Admin sees ONLY their Club
+        # Show posts where:
+        # - The club field matches their assigned club (posts they own)
+        # - OR their club is in target_clubs (posts targeted to their club)
         if user.role == 'CLUB_ADMIN' and user.assigned_club:
-            return queryset.filter(club=user.assigned_club).order_by('-is_pinned', '-created_at')
+            return queryset.filter(
+                Q(club=user.assigned_club) | 
+                Q(target_clubs=user.assigned_club)
+            ).distinct().order_by('-is_pinned', '-created_at')
 
         # 4. If regular user (Fallback), show nothing (Admins only in this view)
         return Post.objects.none()
@@ -114,26 +123,81 @@ class PostViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def feed(self, request):
         """
-        Personalized feed endpoint for regular users (Youth Members and Guardians).
-        Uses PostEngine to filter posts based on targeting criteria.
+        Personalized feed for Youth Members/Guardians.
+        Now includes NEW (Unredeemed) REWARDS mixed with Posts.
         """
         user = request.user
         
-        # Only allow Youth Members and Guardians to use the feed
         if user.role not in ['YOUTH_MEMBER', 'GUARDIAN']:
             raise PermissionDenied("Feed is only available for Youth Members and Guardians.")
         
-        # Get posts using the PostEngine
+        # 1. Get Posts (Standard Logic)
         queryset = PostEngine.get_posts_for_user(user)
         
-        # Paginate the results
+        # 2. Pagination
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
+            feed_items = serializer.data
+            
+            # Tag these as 'POST' type
+            for item in feed_items:
+                item['feed_type'] = 'POST'
+        else:
+            serializer = self.get_serializer(queryset, many=True, context={'request': request})
+            feed_items = serializer.data
+            for item in feed_items:
+                item['feed_type'] = 'POST'
+
+        # 3. Inject Rewards (Only on Page 1)
+        # Fetch rewards only on the first page of results
+        current_page = request.query_params.get('page', '1')
+        if current_page == '1':
+            # Fetch unredeemed rewards
+            rewards = RewardUsage.objects.filter(
+                user=user, 
+                is_redeemed=False
+            ).select_related('reward').order_by('-created_at')
+
+            rewards_data = []
+            for usage in rewards:
+                # Construct simple reward object for the feed
+                rewards_data.append({
+                    'id': f"reward_{usage.id}",
+                    'feed_type': 'REWARD',
+                    'title': usage.reward.name,
+                    'description': usage.reward.description,
+                    'image': usage.reward.image.url if usage.reward.image else None,
+                    'created_at': usage.created_at.isoformat() if usage.created_at else None,
+                    'usage_id': usage.id,
+                    'sponsor': usage.reward.sponsor_name,
+                    # Add any other fields your frontend RewardCard needs
+                })
+            
+            # Combine rewards and posts, then sort chronologically (newest first)
+            all_items = rewards_data + feed_items
+            
+            # Sort by created_at in descending order (newest first)
+            # Posts use 'created_at' or 'published_at', rewards use 'created_at'
+            def get_sort_key(item):
+                # Prefer published_at for posts, fallback to created_at
+                date_str = item.get('published_at') or item.get('created_at') or ''
+                # Ensure it's a string for comparison
+                if isinstance(date_str, str):
+                    return date_str
+                # If it's a datetime object, convert to ISO format
+                if hasattr(date_str, 'isoformat'):
+                    return date_str.isoformat()
+                return ''
+            
+            all_items.sort(key=get_sort_key, reverse=True)
+            
+            feed_items = all_items
+
+        if page is not None:
+            return self.get_paginated_response(feed_items)
         
-        serializer = self.get_serializer(queryset, many=True, context={'request': request})
-        return Response(serializer.data)
+        return Response(feed_items)
     
     @action(detail=True, methods=['get'])
     def club_feed(self, request, pk=None):
