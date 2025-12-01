@@ -463,8 +463,26 @@ export default function PostCard({ post }: PostCardProps) {
             day: 'numeric'
           });
 
+    // Check if this is a group announcement post
+    const isGroupAnnouncement = post.title.startsWith('Ny Grupp:') || post.title.startsWith('New Group:');
+    
+    // Extract group ID from post content
+    const groupIdMatch = post.content?.match(/\/dashboard\/youth\/groups\/(\d+)/);
+    const groupId = groupIdMatch ? groupIdMatch[1] : null;
+    
+    // Extract group name from title
+    const groupName = isGroupAnnouncement && post.title.includes(':') 
+        ? post.title.split(':')[1].trim() 
+        : null;
+    
+    // Extract description excerpt from content (first paragraph after the title)
+    const descriptionMatch = post.content?.match(/<p>(.*?)<\/p>/g);
+    const descriptionExcerpt = descriptionMatch && descriptionMatch.length > 1 
+        ? descriptionMatch[1].replace(/<[^>]*>/g, '').substring(0, 100) + '...'
+        : null;
+
     return (
-        <div className="bg-gray-50 rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div className={`${isGroupAnnouncement ? 'bg-white' : 'bg-gray-50'} rounded-2xl shadow-sm border ${isGroupAnnouncement ? 'border-indigo-200' : 'border-gray-200'} overflow-hidden mb-6`}>
             {/* Header */}
             <div className="p-4 flex items-center gap-3">
                 {showUAPlaceholder ? (
@@ -513,36 +531,70 @@ export default function PostCard({ post }: PostCardProps) {
                     )}
                     <p className="text-xs text-gray-500">{publishedDate}</p>
                 </div>
-                {post.is_pinned && (
-                    <span className="ml-auto bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold">
-                        Pinned
-                    </span>
-                )}
+                <div className="ml-auto flex items-center gap-2">
+                    {isGroupAnnouncement && (
+                        <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Group
+                        </span>
+                    )}
+                    {post.is_pinned && (
+                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold">
+                            Pinned
+                        </span>
+                    )}
+                </div>
             </div>
 
-            {/* Content (Text) */}
-            <div className="px-4 pb-2">
-                <h3 className="text-lg font-bold mb-2">{post.title}</h3>
-                <div 
-                    ref={contentRef}
-                    className={`text-gray-700 prose prose-sm max-w-none overflow-hidden transition-all ${
-                        shouldTruncate && !isContentExpanded ? 'max-h-[144px]' : ''
-                    }`}
-                    dangerouslySetInnerHTML={{ __html: post.content }} 
-                />
-                {shouldTruncate && (
-                    <button
-                        onClick={() => setIsContentExpanded(!isContentExpanded)}
-                        className="mt-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
-                    >
-                        {isContentExpanded ? 'Show less' : 'Show more'}
-                    </button>
-                )}
-            </div>
+            {/* Content (Text) - Hidden for group announcements since we show it in the header */}
+            {!isGroupAnnouncement && (
+                <div className="px-4 pb-2">
+                    <h3 className="text-lg font-bold mb-2">{post.title}</h3>
+                    <div 
+                        ref={contentRef}
+                        className={`text-gray-700 prose prose-sm max-w-none overflow-hidden transition-all ${
+                            shouldTruncate && !isContentExpanded ? 'max-h-[144px]' : ''
+                        }`}
+                        dangerouslySetInnerHTML={{ __html: post.content }} 
+                    />
+                    {shouldTruncate && (
+                        <button
+                            onClick={() => setIsContentExpanded(!isContentExpanded)}
+                            className="mt-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
+                        >
+                            {isContentExpanded ? 'Show less' : 'Show more'}
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Group Announcement Header (above image) */}
+            {isGroupAnnouncement && groupName && (
+                <div className="px-4 pt-4 pb-3 bg-blue-50 border-b border-blue-100">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">{groupName}</h3>
+                            {descriptionExcerpt && (
+                                <p className="text-sm text-gray-600 line-clamp-2">{descriptionExcerpt}</p>
+                            )}
+                        </div>
+                        {groupId && (
+                            <button
+                                onClick={() => router.push(`/dashboard/youth/groups/${groupId}`)}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors whitespace-nowrap flex-shrink-0"
+                            >
+                                View Group
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Media Area */}
             {post.post_type === 'IMAGE' && post.images.length > 0 && (
-                <div className="mt-2 relative">
+                <div className={`${isGroupAnnouncement ? '' : 'mt-2'} relative`}>
                     {post.images.length === 1 ? (
                         // Single image
                         <img 

@@ -1,6 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db.models import Q
+import re
 from .models import Post
 from users.models import User
 from notifications.models import Notification
@@ -91,8 +92,29 @@ def create_post_notification(sender, instance, created, **kwargs):
     elif post.municipality:
         source_name = post.municipality.name
     
+    # Check if this is a group announcement post
+    is_group_announcement = post.title.startswith("Ny Grupp:") or post.title.startswith("New Group:")
+    
     # Truncate title for notification body
     display_title = post.title[:50] + "..." if len(post.title) > 50 else post.title
+    
+    # Extract group name and ID from title/content if it's a group announcement
+    if is_group_announcement:
+        # Extract group name from "Ny Grupp: GroupName" or "New Group: GroupName"
+        group_name = post.title.split(":", 1)[1].strip() if ":" in post.title else post.title
+        notification_title = f"New group: {group_name}"
+        
+        # Extract group ID from post content (the HTML contains href='/dashboard/youth/groups/{id}')
+        group_id_match = re.search(r'/dashboard/youth/groups/(\d+)', post.content or '')
+        if group_id_match:
+            group_id = group_id_match.group(1)
+            action_url = f"/dashboard/youth/groups/{group_id}"
+        else:
+            # Fallback to post if we can't find group ID
+            action_url = f"/dashboard/youth?post={post.id}"
+    else:
+        notification_title = f"New post from {source_name}"
+        action_url = f"/dashboard/youth?post={post.id}"
 
     # We need to loop to check specific permissions (Age, Group, Gender)
     # PostEngine.user_can_see_post is perfect for this.
@@ -104,11 +126,11 @@ def create_post_notification(sender, instance, created, **kwargs):
                 Notification(
                     recipient=user,
                     category=Notification.Category.POST, # Uses 'POST' from your models.py
-                    title=f"New post from {source_name}",
+                    title=notification_title,
                     body=display_title,
                     # We link to the dashboard with a query param to highlight the post
                     # You can adjust this to match your frontend routing
-                    action_url=f"/dashboard/youth?post={post.id}" 
+                    action_url=action_url
                 )
             )
 

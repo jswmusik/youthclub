@@ -17,6 +17,65 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = [IsGroupAdminOrReadOnly]
 
+    def get_object(self):
+        """
+        Override to allow access to groups by ID even if they're not in the queryset.
+        This ensures users can access groups they're eligible for, even if scope filtering
+        would normally exclude them from the list view.
+        """
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        try:
+            # Try to get the group directly by ID
+            group = Group.objects.get(pk=lookup_value)
+            
+            # Check if user has permission to view this group
+            user = self.request.user
+            
+            # Admins can see any group
+            if user.role in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+                return group
+            
+            # For youth/guardians, check if they're a member OR if the group is visible to them
+            # (OPEN/APPLICATION and matches their scope)
+            is_member = GroupMembership.objects.filter(group=group, user=user).exists()
+            
+            if is_member:
+                return group
+            
+            # Check if group is visible (OPEN/APPLICATION and in scope)
+            if group.group_type in ['OPEN', 'APPLICATION']:
+                # Check scope
+                scope_match = False
+                
+                # Global groups
+                if not group.municipality and not group.club:
+                    scope_match = True
+                
+                # User's municipality
+                if not scope_match and user.assigned_municipality and group.municipality == user.assigned_municipality:
+                    scope_match = True
+                
+                # User's preferred club
+                if not scope_match and user.preferred_club and group.club == user.preferred_club:
+                    scope_match = True
+                
+                # Followed clubs
+                if not scope_match and hasattr(user, 'followed_clubs') and group.club in user.followed_clubs.all():
+                    scope_match = True
+                
+                if scope_match:
+                    return group
+            
+            # If none of the above, raise 404
+            from rest_framework.exceptions import NotFound
+            raise NotFound("Group not found")
+            
+        except Group.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+            raise NotFound("Group not found")
+
     def get_queryset(self):
         """
         Filter groups based on visibility scope.
@@ -27,18 +86,21 @@ class GroupViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return Group.objects.none()
 
+        # Exclude system groups from regular list view (they're managed automatically)
+        base_queryset = Group.objects.exclude(is_system_group=True)
+        
         # 1. Admins see everything in their jurisdiction (No changes here)
         if user.role == 'SUPER_ADMIN':
-            queryset = Group.objects.all().order_by('-created_at')
+            queryset = base_queryset.order_by('-created_at')
 
         elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
-            queryset = Group.objects.filter(
+            queryset = base_queryset.filter(
                 Q(municipality=user.assigned_municipality) |
                 Q(club__municipality=user.assigned_municipality)
             ).distinct().order_by('-created_at')
 
         elif user.role == 'CLUB_ADMIN' and user.assigned_club:
-            queryset = Group.objects.filter(club=user.assigned_club).order_by('-created_at')
+            queryset = base_queryset.filter(club=user.assigned_club).order_by('-created_at')
 
         else:
             # 2. Youth / Guardians (The Search Logic)
@@ -54,9 +116,9 @@ class GroupViewSet(viewsets.ModelViewSet):
             if user.assigned_municipality:
                 scope_query |= Q(municipality=user.assigned_municipality, club__isnull=True)
 
-            # Scope C: My Primary Club
-            if user.assigned_club:
-                scope_query |= Q(club=user.assigned_club)
+            # Scope C: My Primary Club (use preferred_club for youth members)
+            if user.preferred_club:
+                scope_query |= Q(club=user.preferred_club)
 
             # Scope D: Followed Clubs (NEW)
             # We get the IDs of clubs the user follows
@@ -67,7 +129,7 @@ class GroupViewSet(viewsets.ModelViewSet):
             # We filter for OPEN/APPLICATION because 'CLOSED' groups shouldn't show up in search unless you are already a member.
             final_query = base_query | (scope_query & Q(group_type__in=['OPEN', 'APPLICATION']))
 
-            queryset = Group.objects.filter(final_query).distinct().order_by('-created_at')
+            queryset = base_queryset.filter(final_query).distinct().order_by('-created_at')
 
         # --- Filter by specific Club (for Club Profile Page) ---
         club_param = self.request.query_params.get('club')
