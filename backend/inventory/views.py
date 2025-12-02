@@ -15,6 +15,7 @@ from .serializers import (
 )
 from organization.models import Club
 from visits.models import CheckInSession
+from notifications.models import Notification
 
 # --- Custom Permissions ---
 class IsClubAdminOrReadOnly(permissions.BasePermission):
@@ -48,11 +49,15 @@ class ItemViewSet(viewsets.ModelViewSet):
             # Club Admin sees only items from their club
             queryset = queryset.filter(club=user.assigned_club)
         elif user.role == 'YOUTH_MEMBER':
-            # Youth members see items from their preferred club (if any)
-            if user.preferred_club:
-                queryset = queryset.filter(club=user.preferred_club)
-            else:
-                queryset = queryset.none()
+            # Youth members can see items from any club
+            # The check-in requirement in borrow/join_queue actions will enforce borrowing restrictions
+            # If a specific club is requested via query param, filter to that club
+            target_club_id = self.request.query_params.get('club')
+            
+            if target_club_id:
+                queryset = queryset.filter(club_id=target_club_id)
+            # Otherwise, show items from all clubs (they can browse, but can only borrow if checked in)
+                
             # Hide hidden items from youth
             queryset = queryset.exclude(status__in=['HIDDEN', 'MISSING', 'MAINTENANCE'])
         else:
@@ -69,6 +74,15 @@ class ItemViewSet(viewsets.ModelViewSet):
                 # Only allow filtering by clubs in their municipality
                 queryset = queryset.filter(club_id=club_id, club__municipality=user.assigned_municipality)
             # Club Admin ignores this param as they can only see their own club
+        
+        # Filter by Category (if query param provided)
+        category_id = self.request.query_params.get('category')
+        if category_id:
+            try:
+                queryset = queryset.filter(category_id=category_id)
+            except ValueError:
+                # Invalid category_id, ignore
+                pass
             
         return queryset
 
@@ -164,7 +178,7 @@ class ItemViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def borrow(self, request, pk=None):
         """
         User action to borrow this item.
@@ -180,21 +194,35 @@ class ItemViewSet(viewsets.ModelViewSet):
         if item.lending_sessions.filter(status='ACTIVE').exists():
             return Response({"error": "Item is currently borrowed"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2.5. Validation: Check-in Required (if club setting enabled)
-        if item.club.borrowing_requires_checkin:
-            active_checkin = CheckInSession.objects.filter(
-                user=user,
-                club=item.club,
-                check_out_at__isnull=True
-            ).exists()
-            if not active_checkin:
-                return Response({"error": "You must be checked in to borrow items"}, status=status.HTTP_400_BAD_REQUEST)
+        # 2.5. Validation: Check-in Required (always enforced)
+        active_checkin = CheckInSession.objects.filter(
+            user=user,
+            club=item.club,
+            check_out_at__isnull=True
+        ).exists()
+        if not active_checkin:
+            return Response({
+                "error": "You must be checked in to this club to borrow items",
+                "code": "CHECKIN_REQUIRED"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 3. Validation: Max Items per User (Check Club Settings)
-        max_loans = item.club.max_active_loans_per_user
+        # 3. Validation: Max Items per User (Hard limit: 5 items maximum, or club setting if lower)
+        club_max_loans = item.club.max_active_loans_per_user
+        global_max_loans = 5  # Hard limit: maximum 5 items per member
+        max_loans = min(club_max_loans, global_max_loans)  # Use the lower of the two
+        
         active_loans = LendingSession.objects.filter(user=user, status='ACTIVE').count()
         if active_loans >= max_loans:
-            return Response({"error": f"You have reached the maximum borrowing limit ({max_loans} items)"}, status=status.HTTP_400_BAD_REQUEST)
+            if max_loans == global_max_loans:
+                return Response({
+                    "error": f"You have reached the maximum borrowing limit (5 items)",
+                    "code": "MAX_LOANS_REACHED"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    "error": f"You have reached the maximum borrowing limit ({max_loans} items)",
+                    "code": "MAX_LOANS_REACHED"
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # 4. Create Session
         due_at = timezone.now() + timezone.timedelta(minutes=item.max_borrow_duration)
@@ -213,7 +241,7 @@ class ItemViewSet(viewsets.ModelViewSet):
 
         return Response(LendingSessionSerializer(session).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def return_item(self, request, pk=None):
         """
         User/Admin action to return an item.
@@ -240,9 +268,151 @@ class ItemViewSet(viewsets.ModelViewSet):
         item.status = 'AVAILABLE'
         item.save()
 
-        # TODO: Trigger Notification for next in Waiting List (Phase 1 Task 5)
+        # Notification for queue members is handled by the post_save signal in signals.py
+        # This prevents duplicate notifications
 
         return Response({"message": "Item returned successfully"}, status=status.HTTP_200_OK)
+
+    # --- NEW: Queue Actions ---
+    @action(detail=True, methods=['post'], url_path='join-queue', permission_classes=[IsAuthenticated])
+    def join_queue(self, request, pk=None):
+        item = self.get_object()
+        user = request.user
+        
+        # 0. Validation: Check-in Required (always enforced)
+        active_checkin = CheckInSession.objects.filter(
+            user=user,
+            club=item.club,
+            check_out_at__isnull=True
+        ).exists()
+        if not active_checkin:
+            return Response({
+                "error": "You must be checked in to this club to join the waiting list",
+                "code": "CHECKIN_REQUIRED"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 1. Check if item is actually borrowed
+        if item.status == 'AVAILABLE':
+            return Response({"error": "Item is available, you can borrow it directly."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 2. Check if already in queue
+        if WaitingList.objects.filter(item=item, user=user).exists():
+            return Response({"error": "You are already in the queue."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 3. Check Queue Limit (Max 3)
+        if WaitingList.objects.filter(item=item).count() >= 3:
+            return Response({"error": "Queue is full (Max 3)."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        WaitingList.objects.create(item=item, user=user)
+        return Response({"message": "You have been added to the waiting list."}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='leave-queue', permission_classes=[IsAuthenticated])
+    def leave_queue(self, request, pk=None):
+        item = self.get_object()
+        user = request.user
+        
+        deleted, _ = WaitingList.objects.filter(item=item, user=user).delete()
+        if deleted:
+            return Response({"message": "You have left the queue."}, status=status.HTTP_200_OK)
+        return Response({"error": "You are not in the queue for this item."}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='analytics')
+    def analytics(self, request):
+        """
+        Returns inventory analytics for the admin's scope.
+        For SUPER_ADMIN: if no club_id provided, returns aggregated results for all clubs.
+        """
+        user = request.user
+        club = None
+        aggregate_all = False
+        
+        if user.role == 'CLUB_ADMIN' and user.assigned_club:
+            club = user.assigned_club
+        elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            # For municipality admin, we'd need a club_id param
+            club_id = request.query_params.get('club_id')
+            if club_id:
+                try:
+                    club = Club.objects.get(id=club_id, municipality=user.assigned_municipality)
+                except Club.DoesNotExist:
+                    return Response({"error": "Club not found"}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                # No club_id provided - aggregate for all clubs in municipality
+                aggregate_all = True
+        elif user.role == 'SUPER_ADMIN':
+            club_id = request.query_params.get('club_id')
+            if club_id:
+                try:
+                    club = Club.objects.get(id=club_id)
+                except Club.DoesNotExist:
+                    return Response({"error": "Club not found"}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                # No club_id provided - aggregate for all clubs
+                aggregate_all = True
+        else:
+            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+        
+        from datetime import timedelta
+        now = timezone.now()
+        
+        if aggregate_all:
+            # Aggregate analytics for all clubs (or all clubs in municipality for MUNICIPALITY_ADMIN)
+            if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+                # Filter by municipality
+                total_items = Item.objects.filter(club__municipality=user.assigned_municipality).count()
+                
+                seven_days_ago = now - timedelta(days=7)
+                borrowings_7d = LendingSession.objects.filter(
+                    item__club__municipality=user.assigned_municipality,
+                    borrowed_at__gte=seven_days_ago
+                ).count()
+                
+                thirty_days_ago = now - timedelta(days=30)
+                borrowings_30d = LendingSession.objects.filter(
+                    item__club__municipality=user.assigned_municipality,
+                    borrowed_at__gte=thirty_days_ago
+                ).count()
+                
+                borrowings_all_time = LendingSession.objects.filter(item__club__municipality=user.assigned_municipality).count()
+            else:
+                # SUPER_ADMIN: Aggregate for all clubs
+                total_items = Item.objects.count()
+                
+                seven_days_ago = now - timedelta(days=7)
+                borrowings_7d = LendingSession.objects.filter(
+                    borrowed_at__gte=seven_days_ago
+                ).count()
+                
+                thirty_days_ago = now - timedelta(days=30)
+                borrowings_30d = LendingSession.objects.filter(
+                    borrowed_at__gte=thirty_days_ago
+                ).count()
+                
+                borrowings_all_time = LendingSession.objects.count()
+        else:
+            # Single club analytics
+            total_items = Item.objects.filter(club=club).count()
+            
+            seven_days_ago = now - timedelta(days=7)
+            borrowings_7d = LendingSession.objects.filter(
+                item__club=club,
+                borrowed_at__gte=seven_days_ago
+            ).count()
+            
+            thirty_days_ago = now - timedelta(days=30)
+            borrowings_30d = LendingSession.objects.filter(
+                item__club=club,
+                borrowed_at__gte=thirty_days_ago
+            ).count()
+            
+            borrowings_all_time = LendingSession.objects.filter(item__club=club).count()
+        
+        return Response({
+            "total_items": total_items,
+            "borrowings_7d": borrowings_7d,
+            "borrowings_30d": borrowings_30d,
+            "borrowings_all_time": borrowings_all_time
+        })
 
 
 class LendingSessionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -251,23 +421,103 @@ class LendingSessionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = LendingSessionSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [filters.OrderingFilter]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['item__title', 'user__first_name', 'user__last_name', 'user__email']
     ordering = ['-borrowed_at']
 
     def get_queryset(self):
         user = self.request.user
+        queryset = None
+        
         if user.role == 'SUPER_ADMIN':
             # Super Admin sees all sessions
-            return LendingSession.objects.all()
+            queryset = LendingSession.objects.all()
         elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
             # Municipality Admin sees sessions from clubs in their municipality
-            return LendingSession.objects.filter(item__club__municipality=user.assigned_municipality)
+            queryset = LendingSession.objects.filter(item__club__municipality=user.assigned_municipality)
         elif user.role == 'CLUB_ADMIN' and user.assigned_club:
             # Club Admin sees only sessions from their club
-            return LendingSession.objects.filter(item__club=user.assigned_club)
+            queryset = LendingSession.objects.filter(item__club=user.assigned_club)
         else:
             # Youth: see only own history
-            return LendingSession.objects.filter(user=user)
+            queryset = LendingSession.objects.filter(user=user)
+        
+        # Filter by item if query param provided
+        item_id = self.request.query_params.get('item')
+        if item_id:
+            try:
+                queryset = queryset.filter(item_id=item_id)
+            except ValueError:
+                # Invalid item_id, ignore
+                pass
+        
+        # Filter by date range if query params provided
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        
+        if start_date:
+            try:
+                from django.utils.dateparse import parse_date
+                parsed_start = parse_date(start_date)
+                if parsed_start:
+                    # Start of the day
+                    queryset = queryset.filter(borrowed_at__date__gte=parsed_start)
+            except (ValueError, TypeError):
+                # Invalid date format, ignore
+                pass
+        
+        if end_date:
+            try:
+                from django.utils.dateparse import parse_date
+                parsed_end = parse_date(end_date)
+                if parsed_end:
+                    # End of the day
+                    queryset = queryset.filter(borrowed_at__date__lte=parsed_end)
+            except (ValueError, TypeError):
+                # Invalid date format, ignore
+                pass
+        
+        return queryset.select_related('item', 'user')
+
+    @action(detail=False, methods=['get'], url_path='analytics')
+    def analytics(self, request):
+        """
+        Returns lending history analytics for the admin's scope.
+        """
+        from django.db.models import Count, Q
+        
+        user = request.user
+        queryset = self.get_queryset()
+        
+        # Total items borrowed
+        total_borrowed = queryset.count()
+        
+        # Borrowed by gender
+        gender_counts = queryset.values('user__legal_gender').annotate(count=Count('id'))
+        gender_data = {item['user__legal_gender']: item['count'] for item in gender_counts}
+        
+        borrowed_male = gender_data.get('MALE', 0)
+        borrowed_female = gender_data.get('FEMALE', 0)
+        borrowed_other = gender_data.get('OTHER', 0)
+        
+        # Returned (all return statuses)
+        returned = queryset.filter(
+            Q(status='RETURNED_USER') | 
+            Q(status='RETURNED_ADMIN') | 
+            Q(status='RETURNED_SYSTEM')
+        ).count()
+        
+        # Active
+        active = queryset.filter(status='ACTIVE').count()
+        
+        return Response({
+            "total_borrowed": total_borrowed,
+            "borrowed_male": borrowed_male,
+            "borrowed_female": borrowed_female,
+            "borrowed_other": borrowed_other,
+            "returned": returned,
+            "active": active,
+        }, status=status.HTTP_200_OK)
 
 class ItemCategoryViewSet(viewsets.ModelViewSet):
     queryset = ItemCategory.objects.all()

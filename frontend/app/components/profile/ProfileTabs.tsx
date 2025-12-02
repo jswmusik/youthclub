@@ -9,6 +9,7 @@ export default function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'clubs', label: 'Clubs & Groups' },
+    { id: 'inventory', label: 'Inventory History' },
     { id: 'guardians', label: 'Guardians' },
     { id: 'wallet', label: 'My Wallet' },
     { id: 'timeline', label: 'Activity' },

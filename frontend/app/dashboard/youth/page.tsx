@@ -156,6 +156,17 @@ export default function YouthDashboard() {
                             Visit History
                         </button>
                         
+                        {/* Borrow Items */}
+                        <button
+                            onClick={() => router.push('/dashboard/youth/inventory')}
+                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            Borrow Items
+                        </button>
+                        
                         {/* Groups - Link to groups page */}
                         <button
                             onClick={() => router.push('/dashboard/youth/groups')}

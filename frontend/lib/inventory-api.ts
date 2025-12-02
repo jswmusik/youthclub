@@ -30,11 +30,13 @@ export interface Item {
   tags: number[];
   tags_details: InventoryTag[];
   active_loan?: {
+    user_id: number;
     user_name: string;
     due_at: string;
     is_guest: boolean;
   } | null;
   queue_count: number;
+  user_in_queue?: boolean;
   created_at: string;
 }
 
@@ -58,10 +60,13 @@ export interface ClubOption {
 
 export const inventoryApi = {
   // --- Items ---
-  getItems: async (clubId?: string | number, search?: string) => {
+  getItems: async (clubId?: string | number, search?: string, categoryId?: number, page?: number, pageSize?: number) => {
     const params = new URLSearchParams();
     if (clubId) params.append('club', String(clubId));
     if (search) params.append('search', search);
+    if (categoryId) params.append('category', String(categoryId));
+    if (page) params.append('page', String(page));
+    if (pageSize) params.append('page_size', String(pageSize));
     
     const response = await api.get(`/inventory/items/?${params.toString()}`);
     return response.data;
@@ -164,6 +169,51 @@ export const inventoryApi = {
 
   deleteTag: async (id: number) => {
     await api.delete(`/inventory/tags/${id}/`);
+  },
+
+  // --- Youth Methods ---
+  
+  // Get items for a specific club (Essential for Guest logic)
+  getClubItems: async (clubId: number, search?: string, categoryId?: number) => {
+    const params = new URLSearchParams();
+    params.append('club', String(clubId)); // This triggers our new backend filter
+    if (search) params.append('search', search);
+    if (categoryId) params.append('category', String(categoryId));
+    
+    const response = await api.get(`/inventory/items/?${params.toString()}`);
+    return response.data;
+  },
+
+  borrowItem: async (itemId: number) => {
+    return (await api.post(`/inventory/items/${itemId}/borrow/`)).data;
+  },
+
+  returnItem: async (itemId: number) => {
+    return (await api.post(`/inventory/items/${itemId}/return_item/`)).data;
+  },
+
+  joinQueue: async (itemId: number) => {
+    return (await api.post(`/inventory/items/${itemId}/join-queue/`)).data;
+  },
+
+  leaveQueue: async (itemId: number) => {
+    return (await api.post(`/inventory/items/${itemId}/leave-queue/`)).data;
+  },
+
+  getMySessions: async (page: number = 1) => {
+    // This uses LendingSessionViewSet which automatically filters by request.user
+    return (await api.get(`/inventory/history/?page=${page}`)).data;
+  },
+
+  // Analytics endpoint for club admins
+  getAnalytics: async (clubId?: number) => {
+    const params = clubId ? `?club_id=${clubId}` : '';
+    return (await api.get(`/inventory/items/analytics/${params}`)).data;
+  },
+
+  // History Analytics
+  getHistoryAnalytics: async () => {
+    return (await api.get('/inventory/history/analytics/')).data;
   }
 };
 

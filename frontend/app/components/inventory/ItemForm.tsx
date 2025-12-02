@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { inventoryApi, ItemCategory, InventoryTag, ClubOption } from '@/lib/inventory-api';
 import { useAuth } from '@/context/AuthContext';
+import Toast from '@/app/components/Toast';
 
 interface ItemFormProps {
   initialData?: any;
@@ -18,6 +19,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [tags, setTags] = useState<InventoryTag[]>([]);
   const [clubs, setClubs] = useState<ClubOption[]>([]);
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -79,16 +81,33 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
 
       if (initialData) {
         await inventoryApi.updateItem(initialData.id, payload);
+        setToast({ 
+          message: 'Item updated successfully!', 
+          type: 'success', 
+          isVisible: true 
+        });
       } else {
         await inventoryApi.createItems(payload); // This handles batch creation
+        setToast({ 
+          message: `Item${formData.quantity > 1 ? 's' : ''} created successfully!`, 
+          type: 'success', 
+          isVisible: true 
+        });
       }
       
-      router.back();
-      router.refresh();
+      // Wait a bit to show the toast before navigating
+      setTimeout(() => {
+        router.back();
+        router.refresh();
+      }, 1000);
     } catch (error: any) {
       console.error('Error details:', error);
       const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to save item.';
-      alert(`Error: ${errorMessage}`);
+      setToast({ 
+        message: errorMessage, 
+        type: 'error', 
+        isVisible: true 
+      });
     } finally {
       setLoading(false);
     }
@@ -250,6 +269,14 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
             {loading ? 'Saving...' : (initialData ? 'Update Item' : 'Create Items')}
         </button>
       </div>
+
+      {/* Toast Notification */}
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={() => setToast({ ...toast, isVisible: false })} 
+      />
     </form>
   );
 }

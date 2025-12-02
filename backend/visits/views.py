@@ -253,6 +253,7 @@ class VisitViewSet(viewsets.ModelViewSet):
             return Response({
                 "is_checked_in": True,
                 "id": active_session.id,
+                "club_id": active_session.club.id,
                 "club_name": active_session.club.name,
                 "check_in_at": active_session.check_in_at
             })

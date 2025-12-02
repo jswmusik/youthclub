@@ -133,8 +133,12 @@ class PostViewSet(viewsets.ModelViewSet):
         
         # 1. Get Posts (Standard Logic)
         # Exclude posts authored by the user (activity posts should only appear in activity feed)
+        # Also exclude inventory activity posts (Borrowed/Returned items)
         queryset = PostEngine.get_posts_for_user(user)
         queryset = queryset.exclude(author=user)
+        # Exclude inventory activity posts by title pattern
+        queryset = queryset.exclude(title__startswith='Borrowed ')
+        queryset = queryset.exclude(title__startswith='Returned ')
         
         # 2. Pagination
         page = self.paginate_queryset(queryset)

@@ -23,13 +23,14 @@ def create_post_notification(sender, instance, created, **kwargs):
         return
 
     # Skip notifications for activity posts (posts authored by the user themselves)
-    # These are personal activity posts like "Joined Group" and shouldn't trigger notifications
-    # The user already gets a notification from the membership signal
-    # Check if it's an activity post: authored by the user AND title starts with "Joined "
-    if post.author and post.title and post.title.startswith('Joined '):
-        # Verify this is an activity post by checking if author matches the post's target
-        # Activity posts are created for the user's own feed, so they shouldn't get notifications
-        return
+    # These are personal activity posts like "Joined Group", "Borrowed Item", "Returned Item" 
+    # and shouldn't trigger notifications
+    # Check if it's an activity post: authored by the user AND title starts with activity keywords
+    if post.author and post.title:
+        activity_keywords = ['Joined ', 'Borrowed ', 'Returned ']
+        if any(post.title.startswith(keyword) for keyword in activity_keywords):
+            # Activity posts are created for the user's own feed, so they shouldn't get notifications
+            return
 
     # If updated, avoid duplicate massive notifications? 
     # A simple check: if notifications already exist for this post, skip.

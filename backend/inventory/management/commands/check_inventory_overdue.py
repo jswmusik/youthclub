@@ -2,8 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from inventory.models import LendingSession
-# Adjust this import based on your actual Notification model location
-# from notifications.models import Notification 
+from notifications.models import Notification 
 
 class Command(BaseCommand):
     help = 'Checks for overdue items and sends notifications.'
@@ -27,20 +26,39 @@ class Command(BaseCommand):
             user = session.user
             item_title = session.item.title
             
-            # --- NOTIFICATION LOGIC START ---
-            # Replace this with your actual notification service
-            # Example:
-            # Notification.objects.create(
-            #     recipient=user,
-            #     title="Time's Up!",
-            #     message=f"Your borrowing time for '{item_title}' is up. Please return it to the desk.",
-            #     type='ALERT' 
-            # )
+            # Check if we've already sent a notification for this overdue item today
+            # to avoid spamming the user if the command runs multiple times
+            today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            expected_title = f"⚠️ Overdue: {item_title}"
+            existing_notification = Notification.objects.filter(
+                recipient=user,
+                category=Notification.Category.SYSTEM,
+                title=expected_title,
+                created_at__gte=today_start
+            ).exists()
             
-            # For now, we print to console to prove it works
-            self.stdout.write(f"Sending Alert to {user.email}: Return '{item_title}'!")
-            # --- NOTIFICATION LOGIC END ---
-            
-            count += 1
+            if not existing_notification:
+                # Calculate how overdue the item is
+                overdue_minutes = int((timezone.now() - session.due_at).total_seconds() / 60)
+                overdue_hours = overdue_minutes // 60
+                overdue_mins = overdue_minutes % 60
+                
+                if overdue_hours > 0:
+                    overdue_text = f"{overdue_hours}h {overdue_mins}m"
+                else:
+                    overdue_text = f"{overdue_minutes}m"
+                
+                Notification.objects.create(
+                    recipient=user,
+                    category=Notification.Category.SYSTEM,
+                    title=f"⚠️ Overdue: {item_title}",
+                    body=f"Your borrowing time for '{item_title}' is up. It's been overdue for {overdue_text}. Please return it to the desk.",
+                    action_url="/dashboard/youth/inventory/my-items"
+                )
+                
+                self.stdout.write(f"✅ Sent overdue notification to {user.email}: '{item_title}' (overdue {overdue_text})")
+                count += 1
+            else:
+                self.stdout.write(f"⏭️  Skipped {user.email}: '{item_title}' - notification already sent today")
 
         self.stdout.write(self.style.SUCCESS(f'Sent {count} overdue notifications.'))

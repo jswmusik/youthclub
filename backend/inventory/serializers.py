@@ -22,6 +22,7 @@ class ItemSerializer(serializers.ModelSerializer):
     # Field to check availability instantly in the list
     active_loan = serializers.SerializerMethodField()
     queue_count = serializers.SerializerMethodField()
+    user_in_queue = serializers.SerializerMethodField()
 
     class Meta:
         model = Item
@@ -29,7 +30,7 @@ class ItemSerializer(serializers.ModelSerializer):
             'id', 'club', 'club_name', 'category', 'category_details', 
             'title', 'description', 'image', 'tags', 'tags_details',
             'max_borrow_duration', 'status', 'internal_note', 
-            'active_loan', 'queue_count', 'created_at'
+            'active_loan', 'queue_count', 'user_in_queue', 'created_at'
         ]
         read_only_fields = ['club'] # Club is usually assigned automatically in the view
 
@@ -38,6 +39,7 @@ class ItemSerializer(serializers.ModelSerializer):
         active = obj.lending_sessions.filter(status='ACTIVE').first()
         if active:
             return {
+                "user_id": active.user.id,
                 "user_name": active.user.first_name, 
                 "due_at": active.due_at,
                 "is_guest": active.is_guest
@@ -46,6 +48,13 @@ class ItemSerializer(serializers.ModelSerializer):
 
     def get_queue_count(self, obj):
         return obj.waiting_list.count()
+    
+    def get_user_in_queue(self, obj):
+        # Check if the current user is in the waiting list for this item
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            return obj.waiting_list.filter(user=request.user).exists()
+        return False
 
 class BatchItemCreateSerializer(serializers.Serializer):
     """
@@ -63,13 +72,15 @@ class BatchItemCreateSerializer(serializers.Serializer):
 class LendingSessionSerializer(serializers.ModelSerializer):
     item_title = serializers.CharField(source='item.title', read_only=True)
     item_image = serializers.FileField(source='item.image', read_only=True)
+    item_category = serializers.PrimaryKeyRelatedField(source='item.category', read_only=True)
+    item_category_details = ItemCategorySerializer(source='item.category', read_only=True)
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
     
     class Meta:
         model = LendingSession
         fields = [
-            'id', 'item', 'item_title', 'item_image', 'user', 'user_name',
-            'borrowed_at', 'due_at', 'returned_at', 'status', 'is_guest'
+            'id', 'item', 'item_title', 'item_image', 'item_category', 'item_category_details',
+            'user', 'user_name', 'borrowed_at', 'due_at', 'returned_at', 'status', 'is_guest'
         ]
         read_only_fields = ['borrowed_at', 'due_at', 'returned_at', 'status', 'is_guest']
 

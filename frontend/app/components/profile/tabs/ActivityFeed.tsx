@@ -36,9 +36,9 @@ interface RewardRedemption {
 }
 
 type TimelineItem = {
-  type: 'post' | 'visit' | 'reward_redemption' | 'group_join';
+  type: 'post' | 'visit' | 'reward_redemption' | 'group_join' | 'inventory_borrow' | 'inventory_return' | 'inventory_complete';
   date: Date;
-  data: Post | Visit | RewardRedemption | Post; // group_join uses Post type
+  data: Post | Visit | RewardRedemption | Post; // group_join and inventory activities use Post type
 };
 
 export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProps) {
@@ -164,7 +164,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
   const timelineItems = useMemo(() => {
     const items: TimelineItem[] = [];
     
-    // Add posts (check if it's a group join post)
+    // Add posts (check if it's a group join or inventory activity post)
     posts.forEach(post => {
       const postDate = post.published_at ? new Date(post.published_at) : new Date(post.created_at);
       // Ensure date is valid
@@ -172,6 +172,16 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
         // Check if this is a group join post (title starts with "Joined")
         if (post.title && post.title.startsWith('Joined ')) {
           items.push({ type: 'group_join', date: postDate, data: post });
+        } else if (post.title && post.title.startsWith('Borrowed ')) {
+          // Check if content contains "Returned" - means it's a completed borrow/return cycle
+          const isReturned = post.content && post.content.includes('Returned');
+          if (isReturned) {
+            items.push({ type: 'inventory_complete', date: postDate, data: post });
+          } else {
+            items.push({ type: 'inventory_borrow', date: postDate, data: post });
+          }
+        } else if (post.title && post.title.startsWith('Returned ')) {
+          items.push({ type: 'inventory_return', date: postDate, data: post });
         } else {
           items.push({ type: 'post', date: postDate, data: post });
         }
@@ -355,6 +365,118 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                           <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else if (item.type === 'inventory_borrow' || item.type === 'inventory_return' || item.type === 'inventory_complete') {
+                const inventoryPost = item.data as Post;
+                const isComplete = item.type === 'inventory_complete';
+                const isBorrow = item.type === 'inventory_borrow';
+                
+                // Extract item name from title (format: "Borrowed {Item Name}")
+                const itemName = inventoryPost.title.replace('Borrowed ', '').replace('Returned ', '');
+                
+                // For complete posts, use published_at as borrow date (it's set to borrow_date in backend)
+                const actionDate = item.date;
+                
+                // Try to extract return date from content if it's a complete post
+                let returnDateStr: string | null = null;
+                if (isComplete && inventoryPost.content) {
+                  // Extract return date/time from HTML content
+                  // Format: "Returned to {club} on {date} at {time}"
+                  const returnMatch = inventoryPost.content.match(/Returned to[^<]*on ([^<]+) at ([^<]+)/);
+                  if (returnMatch) {
+                    returnDateStr = `${returnMatch[1]} at ${returnMatch[2]}`;
+                  }
+                }
+                const weekday = actionDate.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateStr = actionDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                const timeStr = actionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                // Extract item image from post images if available
+                const itemImage = inventoryPost.images && inventoryPost.images.length > 0 
+                  ? inventoryPost.images[0].image 
+                  : null;
+                
+                return (
+                  <div key={`inventory-${inventoryPost.id}`} className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${isComplete ? 'border-l-blue-500' : (isBorrow ? 'border-l-indigo-500' : 'border-l-green-500')} p-6`}>
+                    <div className="flex items-start gap-4">
+                      {/* Item Image/Icon */}
+                      <div className="flex-shrink-0">
+                        {itemImage ? (
+                          <img 
+                            src={getMediaUrl(itemImage) || ''} 
+                            alt={itemName} 
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className={`w-12 h-12 rounded-full ${isComplete ? 'bg-blue-100' : (isBorrow ? 'bg-indigo-100' : 'bg-green-100')} flex items-center justify-center ${isComplete ? 'text-blue-700' : (isBorrow ? 'text-indigo-700' : 'text-green-700')} font-bold text-lg`}>
+                            {isComplete ? '📦✅' : (isBorrow ? '📦' : '✅')}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Inventory Activity Details */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-gray-900">{itemName}</h4>
+                          {isComplete ? (
+                            <>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                Borrowed
+                              </span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                Returned
+                              </span>
+                            </>
+                          ) : (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isBorrow ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'}`}>
+                              {isBorrow ? 'Borrowed' : 'Returned'}
+                            </span>
+                          )}
+                        </div>
+                        {isComplete && returnDateStr ? (
+                          <div className="space-y-1">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Borrowed:</span> {weekday}, {dateStr} at {timeStr}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Returned:</span> {returnDateStr}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-600">
+                            {weekday}, {dateStr} at {timeStr}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Package/Check Icon */}
+                      <div className="flex-shrink-0">
+                        <div className={`w-10 h-10 rounded-full ${isComplete ? 'bg-blue-50' : (isBorrow ? 'bg-indigo-50' : 'bg-green-50')} flex items-center justify-center`}>
+                          {isComplete ? (
+                            <div className="flex items-center gap-1">
+                              <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              </svg>
+                              <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          ) : isBorrow ? (
+                            <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                          ) : (
+                            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
                         </div>
                       </div>
                     </div>
