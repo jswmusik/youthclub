@@ -277,9 +277,10 @@ class PostViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # 1. Filter posts that target this group OR are authored by the user
+        # 1. Filter posts that target this group
+        # Exclude activity posts (posts with titles starting with "Joined ") - these are personal activity posts
         group_posts = Post.objects.filter(
-            Q(target_groups__id=group_id) | Q(author=user)
+            Q(target_groups__id=group_id) & ~Q(title__startswith='Joined ')
         ).distinct()
         
         # 2. Apply PostEngine to get posts user can see (this includes group membership check)
@@ -289,6 +290,7 @@ class PostViewSet(viewsets.ModelViewSet):
         
         # 3. Also include posts that target this group and pass other checks (age, gender, etc.)
         # but bypass group membership requirement
+        # Exclude activity posts (posts with titles starting with "Joined ")
         now = timezone.now()
         additional_posts = group_posts.filter(
             status=Post.Status.PUBLISHED
@@ -300,6 +302,8 @@ class PostViewSet(viewsets.ModelViewSet):
             Q(visibility_end_date__isnull=True) | Q(visibility_end_date__gte=now)
         ).filter(
             target_groups__id=group_id  # Must target this group
+        ).exclude(
+            title__startswith='Joined '  # Exclude activity posts
         )
         
         # Apply other PostEngine checks manually (member type, age, gender, interests)

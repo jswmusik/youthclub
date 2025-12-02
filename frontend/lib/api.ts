@@ -422,15 +422,30 @@ export const visits = {
   getMyVisits: () => 
     api.get('/visits/sessions/'),
 
-  // Get visit history with filters (for admin history log)
-  getHistory: (params?: { search?: string; start_date?: string; end_date?: string }) => {
+  // UPDATED: Get visit history with extended filters (user_id, club_id)
+  getHistory: (params?: { 
+    search?: string; 
+    start_date?: string; 
+    end_date?: string;
+    user_id?: string | number; // Added user_id
+    club_id?: string | number; // Added specific club filter
+    page?: number;
+  }) => {
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
     if (params?.start_date) queryParams.append('start_date', params.start_date);
     if (params?.end_date) queryParams.append('end_date', params.end_date);
+    if (params?.user_id) queryParams.append('user_id', params.user_id.toString());
+    if (params?.club_id) queryParams.append('club', params.club_id.toString()); // DRF filter uses field name 'club'
+    if (params?.page) queryParams.append('page', params.page.toString());
+    
     const query = queryParams.toString();
     return api.get(`/visits/sessions/${query ? `?${query}` : ''}`);
   },
+
+  // NEW: Get analytics for a specific user
+  getUserStats: (userId: string | number) => 
+    api.get(`/visits/sessions/user_stats/?user_id=${userId}`),
 
   // Get analytics data
   getAnalytics: (params?: { start_date?: string; end_date?: string }) => {

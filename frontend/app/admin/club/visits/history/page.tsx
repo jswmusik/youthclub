@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { visits } from '@/lib/api';
 import Toast from '@/app/components/Toast';
 import Link from 'next/link';
@@ -10,6 +11,15 @@ export default function VisitHistoryPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
+  
+  // Extract club ID from user
+  const assignedClub = user?.assigned_club;
+  const clubId = typeof assignedClub === 'object' && assignedClub !== null 
+    ? (assignedClub as any).id 
+    : typeof assignedClub === 'number' 
+    ? assignedClub 
+    : null;
   
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,19 +37,32 @@ export default function VisitHistoryPage() {
   };
 
   const fetchHistory = async () => {
+    if (!clubId) return;
+    
     setLoading(true);
     try {
-      const params: { search?: string; start_date?: string; end_date?: string } = {};
+      const params: { search?: string; start_date?: string; end_date?: string; club_id?: string } = {};
       const search = searchParams.get('search') || '';
       const startDate = searchParams.get('start_date') || '';
       const endDate = searchParams.get('end_date') || '';
+      const guestFilter = searchParams.get('guest_filter') || '';
       
       if (search && search.trim()) params.search = search.trim();
       if (startDate && startDate.trim()) params.start_date = startDate.trim();
       if (endDate && endDate.trim()) params.end_date = endDate.trim();
+      if (clubId) params.club_id = clubId.toString(); // Filter by current club
       
       const res = await visits.getHistory(params);
-      setData(res.data.results || res.data || []);
+      let visitsData = res.data.results || res.data || [];
+      
+      // Client-side filtering for guest status
+      if (guestFilter === 'guests') {
+        visitsData = visitsData.filter((visit: any) => visit.is_guest === true);
+      } else if (guestFilter === 'members') {
+        visitsData = visitsData.filter((visit: any) => visit.is_guest === false);
+      }
+      
+      setData(visitsData);
       setToast({ message: '', type: 'error', isVisible: false });
     } catch (error: any) {
       setToast({ 
@@ -54,8 +77,11 @@ export default function VisitHistoryPage() {
   };
 
   useEffect(() => {
-    fetchHistory();
-  }, [searchParams]); // Fetch when URL params change
+    if (clubId) {
+      fetchHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, clubId]); // Fetch when URL params change
 
   return (
     <>
@@ -175,6 +201,20 @@ export default function VisitHistoryPage() {
                   />
                 </div>
 
+                {/* Member Type Filter */}
+                <div className="w-48">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Member Type</label>
+                  <select
+                    className="w-full border rounded p-2 text-sm bg-gray-50"
+                    value={searchParams.get('guest_filter') || ''}
+                    onChange={e => updateUrl('guest_filter', e.target.value)}
+                  >
+                    <option value="">All Members</option>
+                    <option value="members">Preferred Members</option>
+                    <option value="guests">Guests</option>
+                  </select>
+                </div>
+
                 {/* Clear Filters */}
                 <button
                   onClick={() => router.push(pathname)}
@@ -227,10 +267,32 @@ export default function VisitHistoryPage() {
                     }
                   }
 
+                  const isGuest = visit.is_guest === true;
+                  const userId = visit.user || visit.user_details?.id;
+                  
                   return (
-                    <tr key={visit.id} className="hover:bg-slate-50">
+                    <tr 
+                      key={visit.id} 
+                      className={`hover:bg-slate-50 ${isGuest ? 'bg-orange-50 hover:bg-orange-100' : ''}`}
+                    >
                       <td className="p-4 font-medium text-slate-900">
-                        {visit.user_details?.first_name} {visit.user_details?.last_name}
+                        <div className="flex items-center gap-2">
+                          {userId ? (
+                            <Link 
+                              href={`/admin/club/youth/${userId}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                            >
+                              {visit.user_details?.first_name} {visit.user_details?.last_name}
+                            </Link>
+                          ) : (
+                            <span>{visit.user_details?.first_name} {visit.user_details?.last_name}</span>
+                          )}
+                          {isGuest && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-200 text-orange-800 uppercase tracking-wide">
+                              Guest
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4 text-slate-500">
                         {start.toLocaleDateString()}

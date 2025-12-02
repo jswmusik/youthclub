@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Avg, F, ExpressionWrapper, fields
 from django.db.models.functions import TruncDate
 
 from .models import CheckInSession
@@ -60,19 +60,65 @@ class VisitViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # Base Query
+        queryset = CheckInSession.objects.all()
+
+        # --- 1. Role-Based Scoping ---
         if user.role == User.Role.YOUTH_MEMBER:
-            queryset = CheckInSession.objects.filter(user=user)
-        elif user.role in [User.Role.CLUB_ADMIN, User.Role.SUPER_ADMIN] and user.assigned_club:
-            queryset = CheckInSession.objects.filter(club=user.assigned_club)
-        else:
-            # Fallback or Super Admin without club
-            queryset = CheckInSession.objects.all()
+            # Youth can only see their own history
+            queryset = queryset.filter(user=user)
+            
+        elif user.role == User.Role.CLUB_ADMIN:
+            # Club Admins can ONLY see visits to their assigned club
+            if user.assigned_club:
+                queryset = queryset.filter(club=user.assigned_club)
+            else:
+                return CheckInSession.objects.none()
+
+        elif user.role == User.Role.MUNICIPALITY_ADMIN:
+            # Municipality Admins can see visits to ALL clubs in their municipality
+            if user.assigned_municipality:
+                queryset = queryset.filter(club__municipality=user.assigned_municipality)
+            else:
+                return CheckInSession.objects.none()
+
+        elif user.role == User.Role.SUPER_ADMIN:
+            # Super Admin sees all. 
+            # Note: If a Super Admin is "masquerading" as a club admin (assigned_club is set),
+            # you might want to restrict them, but usually SA sees all.
+            pass
+
+        # --- 2. Drill-Down Filter (View specific user's history) ---
+        # This allows the frontend to say "Show me history for User 98"
+        target_user_id = self.request.query_params.get('user_id')
+        if target_user_id:
+            queryset = queryset.filter(user_id=target_user_id)
+
+        # --- 2b. Club Filter (for further filtering within allowed scope) ---
+        club_id = self.request.query_params.get('club')
+        if club_id:
+            queryset = queryset.filter(club_id=club_id)
+
+        # --- 3. Date Filters ---
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
         
-        # Filter by active status if requested
+        if start_date:
+            queryset = queryset.filter(check_in_at__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(check_in_at__date__lte=end_date)
+        
+        # --- 4. Search Filter (User name) ---
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=search) | 
+                Q(user__last_name__icontains=search) |
+                Q(user__email__icontains=search)
+            )
+        
+        # --- 5. "Active Only" Filter (for Dashboard) ---
         active_filter = self.request.query_params.get('active', '').lower()
         if active_filter == 'true':
-            # Only show sessions that haven't been checked out
             queryset = queryset.filter(check_out_at__isnull=True)
             # Get the most recent check-in per user using a subquery
             from django.db.models import OuterRef, Subquery
@@ -81,45 +127,8 @@ class VisitViewSet(viewsets.ModelViewSet):
                 check_out_at__isnull=True
             ).order_by('-check_in_at').values('id')[:1]
             queryset = queryset.filter(id__in=Subquery(latest_checkins))
-        
-        # --- Filters for History Log ---
-        start_date = self.request.query_params.get('start_date')
-        end_date = self.request.query_params.get('end_date')
-        search = self.request.query_params.get('search')
-        
-        if start_date:
-            try:
-                from datetime import datetime
-                # Parse the date string and create a timezone-aware datetime for the start of the day
-                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-                start_dt = timezone.make_aware(start_dt)
-                queryset = queryset.filter(check_in_at__gte=start_dt)
-            except (ValueError, TypeError):
-                # If date parsing fails, skip the filter
-                pass
-        
-        if end_date:
-            try:
-                from datetime import datetime, timedelta
-                # Parse the date string and create a timezone-aware datetime for the end of the day
-                end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
-                end_dt = timezone.make_aware(end_dt)
-                queryset = queryset.filter(check_in_at__lt=end_dt)
-            except (ValueError, TypeError):
-                # If date parsing fails, skip the filter
-                pass
-        
-        if search:
-            queryset = queryset.filter(
-                Q(user__first_name__icontains=search) | 
-                Q(user__last_name__icontains=search) |
-                Q(user__email__icontains=search)
-            )
-        
-        # Optimize query with select_related
-        queryset = queryset.select_related('user', 'club')
-        
-        return queryset.order_by('-check_in_at')
+
+        return queryset.select_related('user', 'club').order_by('-check_in_at')
 
     @action(detail=False, methods=['post'], url_path='scan')
     def scan_qr(self, request):
@@ -248,6 +257,65 @@ class VisitViewSet(viewsets.ModelViewSet):
                 "check_in_at": active_session.check_in_at
             })
         return Response({"is_checked_in": False})
+
+    @action(detail=False, methods=['get'])
+    def user_stats(self, request):
+        """
+        Returns analytics for a specific user (target_user_id).
+        Uses the scoped queryset, so Admins only see stats based on permissions.
+        """
+        user_id = request.query_params.get('user_id')
+        if not user_id:
+            return Response({"error": "user_id is required"}, status=400)
+
+        # Get the filtered queryset (Applies Club/Municipality permissions automatically)
+        queryset = self.get_queryset()
+
+        # 1. Total Check-ins
+        total_checkins = queryset.count()
+
+        if total_checkins == 0:
+             return Response({
+                "total_checkins": 0,
+                "avg_weekly_visits": 0,
+                "avg_duration_minutes": 0,
+                "clubs_visited_count": 0
+            })
+
+        # 2. Unique Clubs Visited
+        clubs_visited = queryset.values('club').distinct().count()
+
+        # 3. Average Duration
+        # Calculate duration for finished visits
+        duration_expr = ExpressionWrapper(
+            F('check_out_at') - F('check_in_at'),
+            output_field=fields.DurationField()
+        )
+        
+        avg_duration = queryset.filter(check_out_at__isnull=False).annotate(
+            duration=duration_expr
+        ).aggregate(avg=Avg('duration'))['avg']
+        
+        avg_minutes = int(avg_duration.total_seconds() / 60) if avg_duration else 0
+
+        # 4. Average Visits Per Week
+        # We find the span of time (first visit to last visit) and divide count by weeks
+        first_visit = queryset.last() # Ordered by -check_in_at, so last is oldest
+        last_visit = queryset.first()
+        
+        if first_visit and last_visit:
+            days_diff = (last_visit.check_in_at - first_visit.check_in_at).days
+            weeks = max(days_diff / 7, 1) # Avoid division by zero, min 1 week
+            avg_weekly = round(total_checkins / weeks, 1)
+        else:
+            avg_weekly = total_checkins
+
+        return Response({
+            "total_checkins": total_checkins,
+            "avg_weekly_visits": avg_weekly,
+            "avg_duration_minutes": avg_minutes,
+            "clubs_visited_count": clubs_visited
+        })
 
     @action(detail=False, methods=['get'])
     def analytics(self, request):

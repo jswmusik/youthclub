@@ -7,8 +7,12 @@ export interface UserProfile {
     last_name: string;
     phone_number?: string;
     avatar?: string;
+    preferred_club?: number | { id: number; name: string } | null;
     // ... other fields
 }
+
+// Alias for compatibility
+export type User = UserProfile;
 
 export interface GuardianLink {
     id: number; // ID of the Link, not the user

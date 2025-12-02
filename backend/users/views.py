@@ -12,6 +12,7 @@ from .serializers import (
     GuardianYouthLinkSerializer, GuardianLinkCreateSerializer
 )
 from .permissions import IsSuperAdmin, IsMunicipalityAdmin, IsClubOrMunicipalityAdmin
+from visits.models import CheckInSession
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -39,19 +40,31 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if getattr(user, 'role', None) == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            # Get user IDs who have visited clubs in this municipality (guests)
+            guest_user_ids = CheckInSession.objects.filter(
+                club__municipality=user.assigned_municipality
+            ).values_list('user_id', flat=True).distinct()
+            
             queryset = queryset.filter(
                 Q(assigned_municipality=user.assigned_municipality) |
                 Q(assigned_club__municipality=user.assigned_municipality) |
                 Q(preferred_club__municipality=user.assigned_municipality) |
                 Q(guardian_links__youth__preferred_club__municipality=user.assigned_municipality) |
-                Q(youth_links__youth__preferred_club__municipality=user.assigned_municipality)
+                Q(youth_links__youth__preferred_club__municipality=user.assigned_municipality) |
+                Q(id__in=guest_user_ids)  # Include guests who have visited
             ).exclude(role='SUPER_ADMIN').distinct()
         elif getattr(user, 'role', None) == 'CLUB_ADMIN' and user.assigned_club:
+            # Get user IDs who have visited this club (guests)
+            guest_user_ids = CheckInSession.objects.filter(
+                club=user.assigned_club
+            ).values_list('user_id', flat=True).distinct()
+            
             queryset = queryset.filter(
                 Q(assigned_club=user.assigned_club) |
                 Q(preferred_club=user.assigned_club) |
                 Q(guardian_links__youth__preferred_club=user.assigned_club) |
-                Q(youth_links__youth__preferred_club=user.assigned_club)
+                Q(youth_links__youth__preferred_club=user.assigned_club) |
+                Q(id__in=guest_user_ids)  # Include guests who have visited
             ).exclude(role__in=['SUPER_ADMIN', 'MUNICIPALITY_ADMIN']).distinct()
 
         role = self.request.query_params.get('role')
