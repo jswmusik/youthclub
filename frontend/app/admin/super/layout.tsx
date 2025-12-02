@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
 import api from '../../../lib/api';
+// 1. Import the RoleGuard
+import RoleGuard from '../../components/RoleGuard';
 
 const getInitials = (first?: string | null, last?: string | null) => {
   const firstInitial = first?.charAt(0)?.toUpperCase() || '';
@@ -63,11 +65,14 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'Manage Groups', href: '/admin/super/groups' },
         { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true },
         { name: 'Manage Rewards', href: '/admin/super/rewards' },
+        { name: 'Inventory', href: '/admin/super/inventory' },
         { name: 'Custom Fields', href: '/admin/super/custom-fields' },
       ];
 
+  // 2. Wrap the entire return with RoleGuard
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <RoleGuard allowedRoles={['SUPER_ADMIN']}>
+      <div className="min-h-screen bg-gray-100 flex">
       {/* SIDEBAR */}
       <aside className="w-64 bg-slate-900 text-white flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-slate-800 flex items-center gap-3">
@@ -138,5 +143,6 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         {children}
       </main>
     </div>
+    </RoleGuard>
   );
 }

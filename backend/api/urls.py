@@ -49,4 +49,5 @@ urlpatterns = [
     path('', include('organization.urls')),
     path('notifications/', include('notifications.urls')),
     path('visits/', include('visits.urls')),
+    path('inventory/', include('inventory.urls')),
 ]

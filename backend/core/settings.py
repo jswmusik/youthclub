@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'posts',
     'notifications',
     'visits',
+    'inventory',
 ]
 
 MIDDLEWARE = [

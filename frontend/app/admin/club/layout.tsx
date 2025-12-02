@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
 import api from '../../../lib/api';
+import RoleGuard from '../../components/RoleGuard'; // Imported
 
 const getInitials = (first?: string | null, last?: string | null) => {
   const firstInitial = first?.charAt(0)?.toUpperCase() || '';
@@ -57,12 +58,14 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'Groups', href: '/admin/club/groups' },
     { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true },
     { name: 'Manage Rewards', href: '/admin/club/rewards' },
+    { name: 'Inventory', href: '/admin/club/inventory' },
     { name: 'Message Board', href: '/admin/club/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/club/custom-fields' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <RoleGuard allowedRoles={['CLUB_ADMIN']}>
+      <div className="min-h-screen bg-gray-100 flex">
       <aside className="w-64 bg-slate-900 text-white flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-slate-800 flex items-center gap-3">
           <Link href="/admin/club/profile" className="inline-block">
@@ -127,6 +130,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
 
       <main className="flex-1 p-8 overflow-y-auto">{children}</main>
     </div>
+    </RoleGuard>
   );
 }
 

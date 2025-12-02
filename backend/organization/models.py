@@ -112,6 +112,16 @@ class Club(models.Model):
     allow_self_registration_override = models.BooleanField(null=True, blank=True)
     require_guardian_override = models.BooleanField(null=True, blank=True)
 
+    # --- INVENTORY SETTINGS ---
+    max_active_loans_per_user = models.IntegerField(
+        default=3, 
+        help_text="Maximum number of items a user can borrow simultaneously."
+    )
+    borrowing_requires_checkin = models.BooleanField(
+        default=False,
+        help_text="If True, user must be checked in to borrow items."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

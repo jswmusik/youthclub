@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
 import api from '../../../lib/api';
+import RoleGuard from '../../components/RoleGuard'; // Imported
 
 const getInitials = (first?: string | null, last?: string | null) => {
   const firstInitial = first?.charAt(0)?.toUpperCase() || '';
@@ -56,12 +57,14 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'Groups', href: '/admin/municipality/groups' },
     { name: 'Applications', href: '/admin/municipality/groups/requests', showBadge: true },
     { name: 'Manage Rewards', href: '/admin/municipality/rewards' },
+    { name: 'Inventory', href: '/admin/municipality/inventory' },
     { name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/municipality/custom-fields' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <RoleGuard allowedRoles={['MUNICIPALITY_ADMIN']}>
+      <div className="min-h-screen bg-gray-100 flex">
       {/* SIDEBAR */}
       <aside className="w-64 bg-slate-900 text-white flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-slate-800 flex items-center gap-3">
@@ -132,6 +135,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
         {children}
       </main>
     </div>
+    </RoleGuard>
   );
 }
 
