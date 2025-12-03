@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'notifications',
     'visits',
     'inventory',
+    'questionnaires',
 ]
 
 MIDDLEWARE = [

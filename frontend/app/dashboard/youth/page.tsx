@@ -4,17 +4,19 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchYouthFeed } from '../../../lib/api';
 import PostCard from '../../components/posts/PostCard';
+import QuestionnaireCard from '../../components/questionnaires/QuestionnaireCard';
 import { useAuth } from '../../../context/AuthContext';
 import Cookies from 'js-cookie';
 import NavBar from '../../components/NavBar';
 import RecommendedClubs from '../../components/RecommendedClubs';
 import RecommendedGroups from '../../components/RecommendedGroups';
 import PreferredClubCard from '../../components/PreferredClubCard';
+import { questionnaireApi } from '../../../lib/questionnaire-api';
 
 // Define interface for the mixed feed items
 interface FeedItem {
     id: any;
-    feed_type: 'POST' | 'REWARD';
+    feed_type: 'POST' | 'REWARD' | 'QUESTIONNAIRE';
     [key: string]: any; // Allow other props
 }
 
@@ -25,6 +27,7 @@ export default function YouthDashboard() {
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [unfinishedCount, setUnfinishedCount] = useState(0);
     const observerTarget = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const { user } = useAuth();
@@ -44,7 +47,45 @@ export default function YouthDashboard() {
         }
         
         loadFeed(1, false);
+        loadUnfinishedCount();
     }, [user, router]);
+
+    const loadUnfinishedCount = async () => {
+        try {
+            let allQuestionnaires: any[] = [];
+            let nextUrl: string | null = null;
+            let page = 1;
+            
+            // Fetch all pages
+            do {
+                const params = new URLSearchParams();
+                params.set('page', page.toString());
+                params.set('page_size', '100');
+                
+                const res = await questionnaireApi.getFeed(params);
+                const data = res.data;
+                
+                const pageQuestionnaires = Array.isArray(data) ? data : data.results || [];
+                allQuestionnaires = [...allQuestionnaires, ...pageQuestionnaires];
+                
+                nextUrl = data.next || null;
+                page++;
+                
+                if (page > 100) break;
+            } while (nextUrl);
+            
+            // Count available questionnaires: not expired, not completed, not started
+            const now = new Date();
+            const available = allQuestionnaires.filter((q: any) => {
+                const expirationDate = new Date(q.expiration_date);
+                return expirationDate >= now && !q.is_completed && !q.is_started;
+            });
+            
+            setUnfinishedCount(available.length);
+        } catch (err) {
+            console.error('Failed to load unfinished questionnaires count:', err);
+        }
+    };
 
     const loadFeed = useCallback(async (pageNum: number, append: boolean = false) => {
         try {
@@ -59,6 +100,13 @@ export default function YouthDashboard() {
             
             // Handle pagination response structure
             const newItems = res.data.results || res.data;
+            
+            // DEBUG: Log feed items
+            console.log('[FEED DEBUG] Feed response:', res.data);
+            console.log('[FEED DEBUG] New items count:', newItems.length);
+            const questionnaireItems = newItems.filter((item: any) => item.feed_type === 'QUESTIONNAIRE');
+            console.log('[FEED DEBUG] Questionnaire items:', questionnaireItems);
+            console.log('[FEED DEBUG] All feed types:', newItems.map((item: any) => item.feed_type));
             
             if (append) {
                 setFeedItems(prev => [...prev, ...newItems]);
@@ -86,6 +134,12 @@ export default function YouthDashboard() {
             setLoadingMore(false);
         }
     }, [router]);
+
+    const handleQuestionnaireComplete = useCallback(() => {
+        // Reload feed and unfinished count when a questionnaire is completed
+        loadFeed(1, false);
+        loadUnfinishedCount();
+    }, [loadFeed]);
 
     // Intersection Observer for infinite scroll
     useEffect(() => {
@@ -165,6 +219,19 @@ export default function YouthDashboard() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                             </svg>
                             Borrow Items
+                        </button>
+                        
+                        {/* Questionnaires */}
+                        <button
+                            onClick={() => router.push('/dashboard/youth/questionnaires')}
+                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50 flex items-center justify-between group"
+                        >
+                            <span className="group-hover:text-blue-600">Questionnaires</span>
+                            {unfinishedCount > 0 && (
+                                <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                                    {unfinishedCount}
+                                </span>
+                            )}
                         </button>
                         
                         {/* Groups - Link to groups page */}
@@ -260,42 +327,59 @@ export default function YouthDashboard() {
                 ) : (
                     <div className="space-y-6">
                         {feedItems.map((item, index) => {
-                            const postContent = item.feed_type === 'REWARD' ? (
+                            let postContent;
+                            
+                            if (item.feed_type === 'REWARD') {
                                 // RENDER REWARD CARD
-                                <div key={item.id} className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 bg-white/20 px-3 py-1 rounded-bl-lg text-xs font-bold">
-                                        NEW REWARD
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-16 w-16 bg-white/20 rounded-lg flex items-center justify-center text-3xl">
-                                            🎁
+                                postContent = (
+                                    <div key={item.id} className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 bg-white/20 px-3 py-1 rounded-bl-lg text-xs font-bold">
+                                            NEW REWARD
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold">{item.title}</h3>
-                                            <p className="text-white/90 text-sm mt-1">{item.description}</p>
-                                            {item.sponsor && (
-                                                <p className="text-xs text-white/70 mt-2">Sponsored by: {item.sponsor}</p>
-                                            )}
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-16 w-16 bg-white/20 rounded-lg flex items-center justify-center text-3xl">
+                                                🎁
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold">{item.title}</h3>
+                                                <p className="text-white/90 text-sm mt-1">{item.description}</p>
+                                                {item.sponsor && (
+                                                    <p className="text-xs text-white/70 mt-2">Sponsored by: {item.sponsor}</p>
+                                                )}
+                                            </div>
                                         </div>
+                                        <button 
+                                            onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
+                                            className="mt-4 w-full bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                        >
+                                            Claim in Wallet
+                                        </button>
                                     </div>
-                                    <button 
-                                        onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
-                                        className="mt-4 w-full bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-gray-100 transition-colors"
-                                    >
-                                        Claim in Wallet
-                                    </button>
-                                </div>
-                            ) : (
+                                );
+                            } else if (item.feed_type === 'QUESTIONNAIRE') {
+                                // RENDER QUESTIONNAIRE CARD (with inline answering)
+                                postContent = (
+                                    <QuestionnaireCard 
+                                        key={item.id} 
+                                        questionnaire={item}
+                                        onComplete={handleQuestionnaireComplete}
+                                    />
+                                );
+                            } else {
                                 // RENDER STANDARD POST CARD
-                                <PostCard post={item as any} />
-                            );
+                                postContent = <PostCard key={item.id} post={item as any} />;
+                            }
 
                             return (
                                 <div key={item.id}>
                                     {postContent}
                                     
                                     {/* Show Recommended Clubs after the first item */}
-                                    {index === 0 && <RecommendedClubs />}
+                                    {index === 0 && (
+                                        <div className="mt-8">
+                                            <RecommendedClubs />
+                                        </div>
+                                    )}
                                     
                                     {/* Show Recommended Groups after the 4th item */}
                                     {index === 3 && <RecommendedGroups />}

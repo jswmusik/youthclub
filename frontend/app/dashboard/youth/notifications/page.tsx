@@ -50,7 +50,20 @@ export default function NotificationPage() {
                 await markNotificationRead(notif.id);
             } catch (e) { console.error(e); }
         }
-        if (notif.action_url) router.push(notif.action_url);
+        if (notif.action_url) {
+            try {
+                router.push(notif.action_url);
+            } catch (error) {
+                console.error('Navigation error:', error);
+                // If navigation fails, try to delete the notification as it may point to a deleted resource
+                try {
+                    await deleteNotification(notif.id);
+                    loadData(); // Reload notifications
+                } catch (deleteError) {
+                    console.error('Failed to delete invalid notification:', deleteError);
+                }
+            }
+        }
     };
 
     const handleDeleteClick = (id: number) => {

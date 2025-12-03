@@ -36,9 +36,9 @@ interface RewardRedemption {
 }
 
 type TimelineItem = {
-  type: 'post' | 'visit' | 'reward_redemption' | 'group_join' | 'inventory_borrow' | 'inventory_return' | 'inventory_complete';
+  type: 'post' | 'visit' | 'reward_redemption' | 'group_join' | 'inventory_borrow' | 'inventory_return' | 'inventory_complete' | 'questionnaire_complete';
   date: Date;
-  data: Post | Visit | RewardRedemption | Post; // group_join and inventory activities use Post type
+  data: Post | Visit | RewardRedemption | Post; // group_join, inventory activities, and questionnaire completions use Post type
 };
 
 export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProps) {
@@ -182,6 +182,8 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
           }
         } else if (post.title && post.title.startsWith('Returned ')) {
           items.push({ type: 'inventory_return', date: postDate, data: post });
+        } else if (post.title && post.title.startsWith('Completed Questionnaire: ')) {
+          items.push({ type: 'questionnaire_complete', date: postDate, data: post });
         } else {
           items.push({ type: 'post', date: postDate, data: post });
         }
@@ -477,6 +479,57 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                           )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else if (item.type === 'questionnaire_complete') {
+                const questionnairePost = item.data as Post;
+                const questionnaireDate = new Date(questionnairePost.published_at || questionnairePost.created_at);
+                const weekday = questionnaireDate.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateStr = questionnaireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                const timeStr = questionnaireDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                // Extract questionnaire title from post title (format: "Completed Questionnaire: {title}")
+                const questionnaireTitle = questionnairePost.title.replace('Completed Questionnaire: ', '');
+                
+                return (
+                  <div key={`questionnaire-${questionnairePost.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500 p-6">
+                    <div className="flex items-start gap-4">
+                      {/* Questionnaire Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                          📋✅
+                        </div>
+                      </div>
+                      
+                      {/* Questionnaire Details */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-gray-900">{questionnaireTitle}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            Completed
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {weekday}, {dateStr} at {timeStr}
+                        </p>
+                        {/* Show post content if available (includes description and rewards) */}
+                        {questionnairePost.content && (
+                          <div 
+                            className="text-sm text-gray-700 prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: questionnairePost.content }}
+                          />
+                        )}
+                      </div>
+                      
+                      {/* Check Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
                         </div>
                       </div>
                     </div>

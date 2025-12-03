@@ -417,6 +417,61 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response({"status": "logged"})
 
+    @action(detail=True, methods=['get'], url_path='questionnaire_history', permission_classes=[IsClubOrMunicipalityAdmin])
+    def questionnaire_history(self, request, id=None):
+        """
+        Returns list of questionnaires completed by this user.
+        Hides answers if the questionnaire was anonymous.
+        Includes analytics: total questionnaires and total rewards earned.
+        """
+        user = self.get_object()
+        # Find responses
+        from questionnaires.models import QuestionnaireResponse
+        from rewards.models import RewardUsage
+        
+        responses = QuestionnaireResponse.objects.filter(
+            user=user, 
+            status='COMPLETED'
+        ).select_related('questionnaire').prefetch_related('answers__question', 'answers__selected_options')
+        
+        # Calculate analytics
+        total_questionnaires = responses.count()
+        
+        # Count rewards earned from questionnaires (where is_benefit_claimed=True)
+        total_rewards_earned = responses.filter(is_benefit_claimed=True).count()
+        
+        data = []
+        for r in responses:
+            item = {
+                "id": r.id,
+                "questionnaire_id": r.questionnaire.id,
+                "questionnaire_title": r.questionnaire.title,
+                "completed_at": r.completed_at,
+                "is_anonymous": r.questionnaire.is_anonymous,
+                "answers": []
+            }
+            
+            # Only show answers if NOT anonymous
+            if not r.questionnaire.is_anonymous:
+                for ans in r.answers.all():
+                    answer_data = {
+                        "question_text": ans.question.text,
+                        "text_answer": ans.text_answer if ans.text_answer else None,
+                        "rating_answer": ans.rating_answer if ans.rating_answer else None,
+                        "selected_options": [o.text for o in ans.selected_options.all()] if ans.selected_options.exists() else []
+                    }
+                    item["answers"].append(answer_data)
+            
+            data.append(item)
+        
+        return Response({
+            "questionnaires": data,
+            "analytics": {
+                "total_questionnaires": total_questionnaires,
+                "total_rewards_earned": total_rewards_earned
+            }
+        })
+
 
 class PublicRegistrationView(generics.CreateAPIView):
     """

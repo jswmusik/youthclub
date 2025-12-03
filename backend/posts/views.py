@@ -139,6 +139,8 @@ class PostViewSet(viewsets.ModelViewSet):
         # Exclude inventory activity posts by title pattern
         queryset = queryset.exclude(title__startswith='Borrowed ')
         queryset = queryset.exclude(title__startswith='Returned ')
+        # Exclude questionnaire completion activity posts
+        queryset = queryset.exclude(title__startswith='Completed Questionnaire: ')
         
         # 2. Pagination
         page = self.paginate_queryset(queryset)
@@ -155,10 +157,27 @@ class PostViewSet(viewsets.ModelViewSet):
             for item in feed_items:
                 item['feed_type'] = 'POST'
 
-        # 3. Inject Rewards (Only on Page 1)
-        # Fetch rewards only on the first page of results
+        # 3. Inject Rewards and Questionnaires (Only on Page 1)
+        # Fetch rewards and questionnaires only on the first page of results
         current_page = request.query_params.get('page', '1')
-        if current_page == '1':
+        # Convert to string for comparison (handles both '1' and 1)
+        is_first_page = str(current_page) == '1'
+        
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[FEED DEBUG] Current page param: {current_page} (type: {type(current_page)}), is_first_page: {is_first_page}")
+        
+        # Initialize empty lists (will be populated only on first page)
+        rewards_data = []
+        questionnaires_data = []
+        
+        if is_first_page:
+            from questionnaires.models import Questionnaire, QuestionnaireResponse
+            from django.utils import timezone
+            from users.models import User
+            
+            logger.info(f"[FEED DEBUG] ===== STARTING QUESTIONNAIRE FETCH =====")
+            
             # Fetch unredeemed rewards
             rewards = RewardUsage.objects.filter(
                 user=user, 
@@ -180,11 +199,133 @@ class PostViewSet(viewsets.ModelViewSet):
                     # Add any other fields your frontend RewardCard needs
                 })
             
-            # Combine rewards and posts, then sort chronologically (newest first)
-            all_items = rewards_data + feed_items
+            # Fetch available questionnaires (published, within date range, not completed)
+            # Use the same filtering logic as UserQuestionnaireViewSet
+            now = timezone.now()
+            
+            # Base: Published, Started, Not Expired
+            qs = Questionnaire.objects.filter(
+                status=Questionnaire.Status.PUBLISHED,
+                start_date__lte=now,
+                expiration_date__gte=now
+            ).select_related('municipality', 'club', 'visibility_group')
+            
+            # DEBUG: Log all published questionnaires
+            all_published = Questionnaire.objects.filter(status=Questionnaire.Status.PUBLISHED)
+            logger.info(f"[FEED DEBUG] Total published questionnaires: {all_published.count()}")
+            for q in all_published[:5]:
+                logger.info(f"[FEED DEBUG] Questionnaire '{q.title}': status={q.status}, start={q.start_date}, end={q.expiration_date}, muni={q.municipality_id}, club={q.club_id}, group={q.visibility_group_id}, audience={q.target_audience}")
+            
+            logger.info(f"[FEED DEBUG] User {user.id} (role={user.role}): preferred_club={user.preferred_club_id if hasattr(user, 'preferred_club') else None}")
+            logger.info(f"[FEED DEBUG] Base queryset count (published + date range): {qs.count()}")
+            
+            # Targeting Logic - Simplified and more inclusive for feed
+            # A. Group Targeting (Overrides everything else)
+            group_ids = user.group_memberships.values_list('group', flat=True)
+            group_q = Q(visibility_group__in=group_ids) if group_ids.exists() else Q(pk__in=[])
+            
+            # B. Scope Targeting
+            # Global surveys (no muni, no club) - show to everyone with matching role
+            global_q = Q(municipality__isnull=True, club__isnull=True)
+            
+            # Municipality Scope - only check if user has preferred_club
+            muni_q = Q()
+            if user.role == User.Role.YOUTH_MEMBER and user.preferred_club and user.preferred_club.municipality:
+                muni_id = user.preferred_club.municipality.id
+                muni_q = Q(municipality_id=muni_id, club__isnull=True, visibility_group__isnull=True)
+
+            # Club Scope - only check if user has preferred_club
+            club_q = Q()
+            if user.role == User.Role.YOUTH_MEMBER and user.preferred_club:
+                club_id = user.preferred_club.id
+                club_q = Q(club_id=club_id, visibility_group__isnull=True)
+                
+            # C. Role Targeting (Youth vs Guardian)
+            role_target_q = Q()
+            if user.role == User.Role.YOUTH_MEMBER:
+                role_target_q = Q(target_audience__in=['YOUTH', 'BOTH'])
+            elif user.role == User.Role.GUARDIAN:
+                role_target_q = Q(target_audience__in=['GUARDIAN', 'BOTH'])
+            else:
+                # For other roles, don't filter by target_audience
+                role_target_q = Q()
+                
+            # Combine: 
+            # 1. Group-targeted questionnaires (if user is in group)
+            # 2. Global questionnaires (no muni/club) with matching role
+            # 3. Municipality/Club questionnaires with matching scope AND role
+            global_with_role = global_q & role_target_q
+            scope_and_role = (muni_q | club_q) & role_target_q
+            
+            # DEBUG: Log the Q objects being used
+            logger.info(f"[FEED DEBUG] Filter conditions - group_q exists: {group_ids.exists()}, global_with_role: {global_with_role}, scope_and_role: {scope_and_role}")
+            logger.info(f"[FEED DEBUG] role_target_q: {role_target_q}")
+            
+            # Final: Group OR Global (with role) OR Scope (with role)
+            # This ensures global questionnaires show even if user has no preferred_club
+            # If role_target_q is empty (for non-youth/guardian), show all global questionnaires
+            if role_target_q:
+                available_questionnaires = qs.filter(group_q | global_with_role | scope_and_role).distinct()
+            else:
+                # For other roles, show global questionnaires without role restriction
+                available_questionnaires = qs.filter(group_q | global_q | scope_and_role).distinct()
+            
+            # DEBUG: Log filtering results
+            logger.info(f"[FEED DEBUG] After targeting filter: {available_questionnaires.count()} questionnaires")
+            for q in available_questionnaires[:5]:
+                logger.info(f"[FEED DEBUG] Matched questionnaire '{q.title}': muni={q.municipality_id}, club={q.club_id}, group={q.visibility_group_id}")
+            
+            # Exclude already completed questionnaires
+            completed_ids = QuestionnaireResponse.objects.filter(
+                user=user,
+                status=QuestionnaireResponse.Status.COMPLETED
+            ).values_list('questionnaire_id', flat=True)
+            logger.info(f"[FEED DEBUG] Completed questionnaire IDs: {list(completed_ids)}")
+            available_questionnaires = available_questionnaires.exclude(id__in=completed_ids)
+            logger.info(f"[FEED DEBUG] Final count after excluding completed: {available_questionnaires.count()}")
+            
+            # Get user's responses for progress calculation
+            from questionnaires.models import QuestionnaireResponse, Answer
+            user_responses = QuestionnaireResponse.objects.filter(
+                user=user,
+                questionnaire__in=available_questionnaires
+            ).select_related('questionnaire').prefetch_related('answers')
+            response_map = {r.questionnaire_id: r for r in user_responses}
+            
+            questionnaires_data = []
+            for q in available_questionnaires.order_by('-created_at')[:5]:  # Limit to 5 most recent
+                # Calculate progress if user has started
+                response = response_map.get(q.id)
+                is_started = response and response.status == QuestionnaireResponse.Status.STARTED
+                total_questions = q.questions.count()
+                answered_questions = response.answers.count() if response else 0
+                progress = round((answered_questions / total_questions * 100)) if total_questions > 0 else 0
+                
+                questionnaires_data.append({
+                    'id': f"questionnaire_{q.id}",
+                    'feed_type': 'QUESTIONNAIRE',
+                    'questionnaire_id': q.id,
+                    'title': q.title,
+                    'description': q.description,
+                    'created_at': q.created_at.isoformat() if q.created_at else None,
+                    'start_date': q.start_date.isoformat() if q.start_date else None,
+                    'expiration_date': q.expiration_date.isoformat() if q.expiration_date else None,
+                    'has_rewards': q.rewards.exists(),
+                    'benefit_limit': q.benefit_limit,
+                    'is_started': is_started,
+                    'progress': progress,
+                    'answered_questions': answered_questions,
+                    'total_questions': total_questions,
+                })
+                logger.info(f"[FEED DEBUG] Added questionnaire to feed: '{q.title}' (ID: {q.id})")
+            
+            logger.info(f"[FEED DEBUG] Total questionnaires_data count: {len(questionnaires_data)}")
+            
+            # Combine rewards, questionnaires, and posts, then sort chronologically (newest first)
+            all_items = rewards_data + questionnaires_data + feed_items
             
             # Sort by created_at in descending order (newest first)
-            # Posts use 'created_at' or 'published_at', rewards use 'created_at'
+            # Posts use 'created_at' or 'published_at', rewards/questionnaires use 'created_at'
             def get_sort_key(item):
                 # Prefer published_at for posts, fallback to created_at
                 date_str = item.get('published_at') or item.get('created_at') or ''
@@ -199,9 +340,18 @@ class PostViewSet(viewsets.ModelViewSet):
             all_items.sort(key=get_sort_key, reverse=True)
             
             feed_items = all_items
+            
+            # DEBUG: Log final feed composition
+            questionnaire_count = sum(1 for item in feed_items if item.get('feed_type') == 'QUESTIONNAIRE')
+            logger.info(f"[FEED DEBUG] Final feed_items count: {len(feed_items)}, questionnaires: {questionnaire_count}")
 
         if page is not None:
-            return self.get_paginated_response(feed_items)
+            response = self.get_paginated_response(feed_items)
+            # DEBUG: Log paginated response
+            logger.info(f"[FEED DEBUG] Paginated response - results count: {len(response.data.get('results', []))}")
+            questionnaire_count_paginated = sum(1 for item in response.data.get('results', []) if item.get('feed_type') == 'QUESTIONNAIRE')
+            logger.info(f"[FEED DEBUG] Paginated response - questionnaires: {questionnaire_count_paginated}")
+            return response
         
         return Response(feed_items)
     
