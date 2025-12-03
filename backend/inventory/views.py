@@ -451,6 +451,20 @@ class LendingSessionViewSet(viewsets.ReadOnlyModelViewSet):
                 # Invalid item_id, ignore
                 pass
         
+        # Filter by club if query param provided (for super admin)
+        club_id = self.request.query_params.get('club')
+        if club_id and user.role == 'SUPER_ADMIN':
+            try:
+                queryset = queryset.filter(item__club_id=club_id)
+            except ValueError:
+                # Invalid club_id, ignore
+                pass
+        
+        # Filter by status if query param provided (for currently borrowed page)
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
         # Filter by date range if query params provided
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
@@ -483,11 +497,21 @@ class LendingSessionViewSet(viewsets.ReadOnlyModelViewSet):
     def analytics(self, request):
         """
         Returns lending history analytics for the admin's scope.
+        Supports filtering by item_id query parameter for item-specific analytics.
         """
         from django.db.models import Count, Q
         
         user = request.user
         queryset = self.get_queryset()
+        
+        # Filter by item if query param provided (for item-specific analytics)
+        item_id = request.query_params.get('item_id')
+        if item_id:
+            try:
+                queryset = queryset.filter(item_id=item_id)
+            except ValueError:
+                # Invalid item_id, ignore
+                pass
         
         # Total items borrowed
         total_borrowed = queryset.count()

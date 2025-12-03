@@ -75,12 +75,13 @@ class LendingSessionSerializer(serializers.ModelSerializer):
     item_category = serializers.PrimaryKeyRelatedField(source='item.category', read_only=True)
     item_category_details = ItemCategorySerializer(source='item.category', read_only=True)
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    user_legal_gender = serializers.CharField(source='user.legal_gender', read_only=True)
     
     class Meta:
         model = LendingSession
         fields = [
             'id', 'item', 'item_title', 'item_image', 'item_category', 'item_category_details',
-            'user', 'user_name', 'borrowed_at', 'due_at', 'returned_at', 'status', 'is_guest'
+            'user', 'user_name', 'user_legal_gender', 'borrowed_at', 'due_at', 'returned_at', 'status', 'is_guest'
         ]
         read_only_fields = ['borrowed_at', 'due_at', 'returned_at', 'status', 'is_guest']
 

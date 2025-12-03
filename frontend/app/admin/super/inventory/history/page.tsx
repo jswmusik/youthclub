@@ -7,7 +7,6 @@ import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import LendingHistoryTable from '@/app/components/inventory/LendingHistoryTable';
 import { BarChart3, ChevronDown, Package, Users, CheckCircle, Clock, Filter } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 
 interface HistoryAnalytics {
   total_borrowed: number;
@@ -18,14 +17,14 @@ interface HistoryAnalytics {
   active: number;
 }
 
-export default function InventoryHistoryPage() {
+export default function SuperInventoryHistoryPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const { user } = useAuth();
     
     const [sessions, setSessions] = useState([]);
     const [items, setItems] = useState<Item[]>([]);
+    const [clubs, setClubs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [analyticsLoading, setAnalyticsLoading] = useState(true);
     const [analytics, setAnalytics] = useState<HistoryAnalytics | null>(null);
@@ -36,36 +35,42 @@ export default function InventoryHistoryPage() {
     // Get filter values from URL
     const search = searchParams.get('search') || '';
     const selectedItemId = searchParams.get('item') ? Number(searchParams.get('item')) : null;
+    const selectedClubId = searchParams.get('club') || '';
     const startDate = searchParams.get('start_date') || '';
     const endDate = searchParams.get('end_date') || '';
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
 
     useEffect(() => {
-        if (user?.assigned_club) {
-            loadItems();
-            loadHistory();
-            loadAnalytics();
-        }
-    }, [user]);
+        loadItems();
+        loadClubs();
+    }, []);
 
     useEffect(() => {
-        if (user?.assigned_club) {
-            loadHistory();
-        }
-    }, [searchParams, user]);
+        loadHistory();
+        loadAnalytics();
+    }, [searchParams]);
 
     const loadItems = async () => {
-        if (!user?.assigned_club) return;
-        
         try {
-            // Load items for the filter dropdown - only items from the admin's club
-            const data = await inventoryApi.getClubItems(user.assigned_club.id);
+            // Load all items for the filter dropdown
+            const data = await inventoryApi.getItems();
             const itemsList = Array.isArray(data) ? data : (data.results || []);
             setItems(itemsList);
         } catch (err) {
             console.error('Failed to load items for filter', err);
             setItems([]);
+        }
+    };
+
+    const loadClubs = async () => {
+        try {
+            const data = await inventoryApi.getSelectableClubs();
+            const clubsList = Array.isArray(data) ? data : (data.results || []);
+            setClubs(clubsList);
+        } catch (err) {
+            console.error('Failed to load clubs for filter', err);
+            setClubs([]);
         }
     };
 
@@ -77,6 +82,7 @@ export default function InventoryHistoryPage() {
             // Add filters from URL
             if (search) params.append('search', search);
             if (selectedItemId) params.append('item', String(selectedItemId));
+            if (selectedClubId) params.append('club', selectedClubId);
             if (startDate) params.append('start_date', startDate);
             if (endDate) params.append('end_date', endDate);
             
@@ -88,7 +94,7 @@ export default function InventoryHistoryPage() {
             const url = `/inventory/history/?${queryString}`;
             
             const res = await api.get(url);
-               const data = res.data;
+            const data = res.data;
             
             // Handle paginated response
             if (Array.isArray(data)) {
@@ -99,21 +105,23 @@ export default function InventoryHistoryPage() {
                 setTotalCount(data.count || 0);
             }
         } catch (err) {
-               console.error(err);
-               setSessions([]);
+            console.error(err);
+            setSessions([]);
             setTotalCount(0);
         } finally {
-               setLoading(false);
+            setLoading(false);
         }
     };
 
     const loadAnalytics = async () => {
         try {
             setAnalyticsLoading(true);
-            const data = await inventoryApi.getHistoryAnalytics();
+            const clubId = selectedClubId ? Number(selectedClubId) : undefined;
+            const data = await inventoryApi.getHistoryAnalytics(clubId);
             setAnalytics(data);
         } catch (error) {
             console.error("Failed to load history analytics", error);
+            setAnalytics(null);
         } finally {
             setAnalyticsLoading(false);
         }
@@ -134,7 +142,7 @@ export default function InventoryHistoryPage() {
     };
 
     const clearFilters = () => {
-        router.push(pathname); // Navigate to base path to clear all params
+        router.push(pathname);
     };
 
     return (
@@ -142,12 +150,12 @@ export default function InventoryHistoryPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-            <h1 className="text-2xl font-bold text-slate-900">Lending History</h1>
-            <p className="text-slate-500">See who borrowed items and when.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Lending History</h1>
+                    <p className="text-slate-500">See who borrowed items and when across all clubs.</p>
                 </div>
                 <div className="flex gap-2">
                     <Link 
-                        href="/admin/club/inventory"
+                        href="/admin/super/inventory"
                         className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
                     >
                         Back to Inventory
@@ -287,6 +295,23 @@ export default function InventoryHistoryPage() {
                                     value={search}
                                     onChange={(e) => updateUrl('search', e.target.value)}
                                 />
+                            </div>
+
+                            {/* Club Filter */}
+                            <div className="w-64">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Club</label>
+                                <select 
+                                    className="w-full border rounded p-2 text-sm bg-gray-50" 
+                                    value={selectedClubId} 
+                                    onChange={(e) => updateUrl('club', e.target.value)}
+                                >
+                                    <option value="">All Clubs</option>
+                                    {clubs.map((club) => (
+                                        <option key={club.id} value={club.id}>
+                                            {club.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             {/* Item Filter */}

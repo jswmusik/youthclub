@@ -6,61 +6,45 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import LendingHistoryTable from '@/app/components/inventory/LendingHistoryTable';
-import { BarChart3, ChevronDown, Package, Users, CheckCircle, Clock, Filter } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { Clock, Filter, AlertCircle } from 'lucide-react';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
+import Toast from '@/app/components/Toast';
 
-interface HistoryAnalytics {
-  total_borrowed: number;
-  borrowed_male: number;
-  borrowed_female: number;
-  borrowed_other: number;
-  returned: number;
-  active: number;
-}
-
-export default function InventoryHistoryPage() {
+export default function SuperBorrowedItemsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const { user } = useAuth();
     
     const [sessions, setSessions] = useState([]);
     const [items, setItems] = useState<Item[]>([]);
+    const [clubs, setClubs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [analyticsLoading, setAnalyticsLoading] = useState(true);
-    const [analytics, setAnalytics] = useState<HistoryAnalytics | null>(null);
-    const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
     const [filtersExpanded, setFiltersExpanded] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
+    const [returningItemId, setReturningItemId] = useState<number | null>(null);
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     
     // Get filter values from URL
     const search = searchParams.get('search') || '';
     const selectedItemId = searchParams.get('item') ? Number(searchParams.get('item')) : null;
-    const startDate = searchParams.get('start_date') || '';
-    const endDate = searchParams.get('end_date') || '';
+    const selectedClubId = searchParams.get('club') || '';
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
 
     useEffect(() => {
-        if (user?.assigned_club) {
-            loadItems();
-            loadHistory();
-            loadAnalytics();
-        }
-    }, [user]);
+        loadItems();
+        loadClubs();
+        loadBorrowedItems();
+    }, []);
 
     useEffect(() => {
-        if (user?.assigned_club) {
-            loadHistory();
-        }
-    }, [searchParams, user]);
+        loadBorrowedItems();
+    }, [searchParams]);
 
     const loadItems = async () => {
-        if (!user?.assigned_club) return;
-        
         try {
-            // Load items for the filter dropdown - only items from the admin's club
-            const data = await inventoryApi.getClubItems(user.assigned_club.id);
+            const data = await inventoryApi.getItems();
             const itemsList = Array.isArray(data) ? data : (data.results || []);
             setItems(itemsList);
         } catch (err) {
@@ -69,16 +53,29 @@ export default function InventoryHistoryPage() {
         }
     };
 
-    const loadHistory = async () => {
+    const loadClubs = async () => {
+        try {
+            const data = await inventoryApi.getSelectableClubs();
+            const clubsList = Array.isArray(data) ? data : (data.results || []);
+            setClubs(clubsList);
+        } catch (err) {
+            console.error('Failed to load clubs for filter', err);
+            setClubs([]);
+        }
+    };
+
+    const loadBorrowedItems = async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
             
+            // Always filter for ACTIVE status
+            params.append('status', 'ACTIVE');
+            
             // Add filters from URL
             if (search) params.append('search', search);
             if (selectedItemId) params.append('item', String(selectedItemId));
-            if (startDate) params.append('start_date', startDate);
-            if (endDate) params.append('end_date', endDate);
+            if (selectedClubId) params.append('club', selectedClubId);
             
             // Add pagination
             params.append('page', String(currentPage));
@@ -88,7 +85,7 @@ export default function InventoryHistoryPage() {
             const url = `/inventory/history/?${queryString}`;
             
             const res = await api.get(url);
-               const data = res.data;
+            const data = res.data;
             
             // Handle paginated response
             if (Array.isArray(data)) {
@@ -99,23 +96,11 @@ export default function InventoryHistoryPage() {
                 setTotalCount(data.count || 0);
             }
         } catch (err) {
-               console.error(err);
-               setSessions([]);
+            console.error(err);
+            setSessions([]);
             setTotalCount(0);
         } finally {
-               setLoading(false);
-        }
-    };
-
-    const loadAnalytics = async () => {
-        try {
-            setAnalyticsLoading(true);
-            const data = await inventoryApi.getHistoryAnalytics();
-            setAnalytics(data);
-        } catch (error) {
-            console.error("Failed to load history analytics", error);
-        } finally {
-            setAnalyticsLoading(false);
+            setLoading(false);
         }
     };
 
@@ -133,21 +118,49 @@ export default function InventoryHistoryPage() {
         router.push(`${pathname}?${params.toString()}`);
     };
 
-    const clearFilters = () => {
-        router.push(pathname); // Navigate to base path to clear all params
+    const handleReturnItem = async (itemId: number) => {
+        setReturningItemId(itemId);
+        setShowReturnModal(true);
     };
+
+    const handleReturnConfirm = async () => {
+        if (!returningItemId) return;
+        
+        try {
+            await inventoryApi.returnItem(returningItemId);
+            setToast({ message: 'Item returned successfully', type: 'success' });
+            setShowReturnModal(false);
+            setReturningItemId(null);
+            // Reload the list
+            loadBorrowedItems();
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.error || 'Failed to return item';
+            setToast({ message: errorMessage, type: 'error' });
+        }
+    };
+
+    const clearFilters = () => {
+        router.push(pathname);
+    };
+
+    // Calculate overdue count
+    const now = new Date();
+    const overdueCount = sessions.filter((session: any) => {
+        if (!session.due_at) return false;
+        return new Date(session.due_at) < now;
+    }).length;
 
     return (
         <div className="p-8 space-y-8">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-            <h1 className="text-2xl font-bold text-slate-900">Lending History</h1>
-            <p className="text-slate-500">See who borrowed items and when.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Currently Borrowed Items</h1>
+                    <p className="text-slate-500">View all items that are currently borrowed across all clubs.</p>
                 </div>
                 <div className="flex gap-2">
                     <Link 
-                        href="/admin/club/inventory"
+                        href="/admin/super/inventory"
                         className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
                     >
                         Back to Inventory
@@ -155,101 +168,18 @@ export default function InventoryHistoryPage() {
                 </div>
             </div>
 
-            {/* Analytics Dashboard - Collapsible */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                {/* Analytics Header */}
-                <button
-                    onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                >
-                    <div className="flex items-center gap-3">
-                        <BarChart3 className="w-5 h-5 text-gray-600" />
-                        <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
+            {/* Overdue Warning */}
+            {overdueCount > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <div>
+                        <p className="text-sm font-semibold text-red-800">
+                            {overdueCount} item{overdueCount !== 1 ? 's' : ''} {overdueCount !== 1 ? 'are' : 'is'} overdue
+                        </p>
+                        <p className="text-xs text-red-600 mt-1">Items highlighted in red are past their due date.</p>
                     </div>
-                    <ChevronDown 
-                        className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-                    />
-                </button>
-
-                {/* Analytics Cards - Collapsible */}
-                <div 
-                    className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-                        analyticsExpanded 
-                            ? 'max-h-[500px] opacity-100' 
-                            : 'max-h-0 opacity-0'
-                    } overflow-hidden`}
-                >
-                    {analyticsLoading ? (
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {[1, 2, 3, 4].map((i) => (
-                                <div key={i} className="bg-gray-50 p-5 rounded-lg border border-gray-200 animate-pulse">
-                                    <div className="h-4 bg-gray-200 rounded w-24 mb-4"></div>
-                                    <div className="h-10 bg-gray-200 rounded w-16"></div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : analytics ? (
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {/* Total Items Borrowed */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Borrowed</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                                        <Package className="w-5 h-5 text-blue-600" />
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-gray-900">{analytics.total_borrowed}</p>
-                            </div>
-
-                            {/* Demographics - Combined */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-purple-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Demographics</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                                        <Users className="w-5 h-5 text-purple-600" />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Male:</span>
-                                        <span className="text-lg font-bold text-indigo-600">{analytics.borrowed_male}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Female:</span>
-                                        <span className="text-lg font-bold text-pink-600">{analytics.borrowed_female}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Other:</span>
-                                        <span className="text-lg font-bold text-purple-600">{analytics.borrowed_other}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Returned */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-green-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Returned</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                                        <CheckCircle className="w-5 h-5 text-green-600" />
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-green-600">{analytics.returned}</p>
-                            </div>
-
-                            {/* Active */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-orange-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                                        <Clock className="w-5 h-5 text-orange-600" />
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-orange-600">{analytics.active}</p>
-                            </div>
-                        </div>
-                    ) : null}
                 </div>
-            </div>
+            )}
 
             {/* Filters - Collapsible */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -289,6 +219,23 @@ export default function InventoryHistoryPage() {
                                 />
                             </div>
 
+                            {/* Club Filter */}
+                            <div className="w-64">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Club</label>
+                                <select 
+                                    className="w-full border rounded p-2 text-sm bg-gray-50" 
+                                    value={selectedClubId} 
+                                    onChange={(e) => updateUrl('club', e.target.value)}
+                                >
+                                    <option value="">All Clubs</option>
+                                    {clubs.map((club) => (
+                                        <option key={club.id} value={club.id}>
+                                            {club.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {/* Item Filter */}
                             <div className="w-64">
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Item</label>
@@ -304,29 +251,6 @@ export default function InventoryHistoryPage() {
                                         </option>
                                     ))}
                                 </select>
-                            </div>
-
-                            {/* Start Date */}
-                            <div className="w-48">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Date</label>
-                                <input
-                                    type="date"
-                                    className="w-full border rounded p-2 text-sm bg-gray-50"
-                                    value={startDate}
-                                    onChange={(e) => updateUrl('start_date', e.target.value)}
-                                />
-                            </div>
-
-                            {/* End Date */}
-                            <div className="w-48">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Date</label>
-                                <input
-                                    type="date"
-                                    className="w-full border rounded p-2 text-sm bg-gray-50"
-                                    value={endDate}
-                                    onChange={(e) => updateUrl('end_date', e.target.value)}
-                                    min={startDate || undefined}
-                                />
                             </div>
 
                             {/* Clear Filters */}
@@ -345,9 +269,13 @@ export default function InventoryHistoryPage() {
 
             {/* History Table */}
             {loading ? (
-                <div className="text-center py-12 text-slate-500">Loading history...</div>
+                <div className="text-center py-12 text-slate-500">Loading borrowed items...</div>
             ) : (
-                <LendingHistoryTable sessions={sessions} />
+                <LendingHistoryTable 
+                    sessions={sessions} 
+                    showReturnButton={true}
+                    onReturnItem={handleReturnItem}
+                />
             )}
 
             {/* Pagination Controls */}
@@ -423,6 +351,29 @@ export default function InventoryHistoryPage() {
                     </div>
                 );
             })()}
+
+            {/* Return Confirmation Modal */}
+            <ConfirmationModal
+                isVisible={showReturnModal}
+                onClose={() => {
+                    setShowReturnModal(false);
+                    setReturningItemId(null);
+                }}
+                onConfirm={handleReturnConfirm}
+                title="Return Item"
+                message="Are you sure you want to mark this item as returned? This action cannot be undone."
+                confirmButtonText="Return Item"
+                variant="info"
+            />
+
+            {/* Toast Notification */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 }

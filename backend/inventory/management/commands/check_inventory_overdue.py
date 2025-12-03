@@ -10,18 +10,18 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         now = timezone.now()
         
-        # 1. Find items that became overdue in the last 15 minutes.
-        # We filter by a time range to avoid spamming the user repeatedly 
-        # (assuming this script runs every 10-15 mins).
-        cutoff_time = now - timedelta(minutes=15)
-        
+        # 1. Find ALL overdue items (status='ACTIVE' and due_at is in the past)
+        # We check for duplicate notifications per day to avoid spamming users
         overdue_sessions = LendingSession.objects.filter(
             status='ACTIVE',
-            due_at__lte=now,
-            due_at__gt=cutoff_time
+            due_at__lte=now
         )
+        
+        self.stdout.write(f"Found {overdue_sessions.count()} overdue session(s)")
 
         count = 0
+        skipped_count = 0
+        
         for session in overdue_sessions:
             user = session.user
             item_title = session.item.title
@@ -57,8 +57,9 @@ class Command(BaseCommand):
                 )
                 
                 self.stdout.write(f"✅ Sent overdue notification to {user.email}: '{item_title}' (overdue {overdue_text})")
-                count += 1
+            count += 1
             else:
+                skipped_count += 1
                 self.stdout.write(f"⏭️  Skipped {user.email}: '{item_title}' - notification already sent today")
 
-        self.stdout.write(self.style.SUCCESS(f'Sent {count} overdue notifications.'))
+        self.stdout.write(self.style.SUCCESS(f'Sent {count} overdue notifications. Skipped {skipped_count} (already notified today).'))

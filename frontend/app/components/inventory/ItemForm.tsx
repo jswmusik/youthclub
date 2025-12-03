@@ -97,8 +97,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
       
       // Wait a bit to show the toast before navigating
       setTimeout(() => {
-        router.back();
-        router.refresh();
+      router.back();
+      router.refresh();
       }, 1000);
     } catch (error: any) {
       console.error('Error details:', error);

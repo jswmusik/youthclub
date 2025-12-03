@@ -27,7 +27,7 @@ def create_post_notification(sender, instance, created, **kwargs):
     # and shouldn't trigger notifications
     # Check if it's an activity post: authored by the user AND title starts with activity keywords
     if post.author and post.title:
-        activity_keywords = ['Joined ', 'Borrowed ', 'Returned ']
+        activity_keywords = ['Joined ', 'Borrowed ', 'Returned ', 'Borrowed & Returned ']
         if any(post.title.startswith(keyword) for keyword in activity_keywords):
             # Activity posts are created for the user's own feed, so they shouldn't get notifications
             return

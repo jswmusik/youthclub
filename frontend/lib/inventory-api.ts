@@ -212,8 +212,12 @@ export const inventoryApi = {
   },
 
   // History Analytics
-  getHistoryAnalytics: async () => {
-    return (await api.get('/inventory/history/analytics/')).data;
+  getHistoryAnalytics: async (clubId?: number, itemId?: number) => {
+    const params = new URLSearchParams();
+    if (clubId) params.append('club_id', String(clubId));
+    if (itemId) params.append('item_id', String(itemId));
+    const queryString = params.toString();
+    return (await api.get(`/inventory/history/analytics/${queryString ? `?${queryString}` : ''}`)).data;
   }
 };
 

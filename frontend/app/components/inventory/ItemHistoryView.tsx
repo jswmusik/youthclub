@@ -7,7 +7,6 @@ import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import LendingHistoryTable from '@/app/components/inventory/LendingHistoryTable';
 import { BarChart3, ChevronDown, Package, Users, CheckCircle, Clock, Filter } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 
 interface HistoryAnalytics {
   total_borrowed: number;
@@ -18,15 +17,20 @@ interface HistoryAnalytics {
   active: number;
 }
 
-export default function InventoryHistoryPage() {
+interface ItemHistoryViewProps {
+  itemId: string;
+  basePath: string;
+}
+
+export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const { user } = useAuth();
     
+    const [item, setItem] = useState<Item | null>(null);
     const [sessions, setSessions] = useState([]);
-    const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
+    const [itemLoading, setItemLoading] = useState(true);
     const [analyticsLoading, setAnalyticsLoading] = useState(true);
     const [analytics, setAnalytics] = useState<HistoryAnalytics | null>(null);
     const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
@@ -35,37 +39,31 @@ export default function InventoryHistoryPage() {
     
     // Get filter values from URL
     const search = searchParams.get('search') || '';
-    const selectedItemId = searchParams.get('item') ? Number(searchParams.get('item')) : null;
     const startDate = searchParams.get('start_date') || '';
     const endDate = searchParams.get('end_date') || '';
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
 
     useEffect(() => {
-        if (user?.assigned_club) {
-            loadItems();
+        loadItem();
+    }, [itemId]);
+
+    useEffect(() => {
+        if (item) {
             loadHistory();
             loadAnalytics();
         }
-    }, [user]);
+    }, [item, searchParams]);
 
-    useEffect(() => {
-        if (user?.assigned_club) {
-            loadHistory();
-        }
-    }, [searchParams, user]);
-
-    const loadItems = async () => {
-        if (!user?.assigned_club) return;
-        
+    const loadItem = async () => {
         try {
-            // Load items for the filter dropdown - only items from the admin's club
-            const data = await inventoryApi.getClubItems(user.assigned_club.id);
-            const itemsList = Array.isArray(data) ? data : (data.results || []);
-            setItems(itemsList);
+            setItemLoading(true);
+            const data = await inventoryApi.getItem(itemId);
+            setItem(data);
         } catch (err) {
-            console.error('Failed to load items for filter', err);
-            setItems([]);
+            console.error('Failed to load item', err);
+        } finally {
+            setItemLoading(false);
         }
     };
 
@@ -74,9 +72,11 @@ export default function InventoryHistoryPage() {
             setLoading(true);
             const params = new URLSearchParams();
             
+            // Always filter by this item
+            params.append('item', itemId);
+            
             // Add filters from URL
             if (search) params.append('search', search);
-            if (selectedItemId) params.append('item', String(selectedItemId));
             if (startDate) params.append('start_date', startDate);
             if (endDate) params.append('end_date', endDate);
             
@@ -88,7 +88,7 @@ export default function InventoryHistoryPage() {
             const url = `/inventory/history/?${queryString}`;
             
             const res = await api.get(url);
-               const data = res.data;
+            const data = res.data;
             
             // Handle paginated response
             if (Array.isArray(data)) {
@@ -99,21 +99,23 @@ export default function InventoryHistoryPage() {
                 setTotalCount(data.count || 0);
             }
         } catch (err) {
-               console.error(err);
-               setSessions([]);
+            console.error(err);
+            setSessions([]);
             setTotalCount(0);
         } finally {
-               setLoading(false);
+            setLoading(false);
         }
     };
 
     const loadAnalytics = async () => {
         try {
             setAnalyticsLoading(true);
-            const data = await inventoryApi.getHistoryAnalytics();
+            // Load analytics filtered by this item
+            const data = await inventoryApi.getHistoryAnalytics(Number(itemId));
             setAnalytics(data);
         } catch (error) {
             console.error("Failed to load history analytics", error);
+            setAnalytics(null);
         } finally {
             setAnalyticsLoading(false);
         }
@@ -134,23 +136,64 @@ export default function InventoryHistoryPage() {
     };
 
     const clearFilters = () => {
-        router.push(pathname); // Navigate to base path to clear all params
+        router.push(pathname);
     };
+
+    const buildUrlWithParams = (path: string) => {
+        const params = new URLSearchParams();
+        const page = searchParams.get('page');
+        const searchParam = searchParams.get('search');
+        const category = searchParams.get('category');
+        const status = searchParams.get('status');
+        const club = searchParams.get('club');
+        
+        if (page && page !== '1') params.set('page', page);
+        if (searchParam) params.set('search', searchParam);
+        if (category) params.set('category', category);
+        if (status) params.set('status', status);
+        if (club) params.set('club', club);
+        
+        const queryString = params.toString();
+        return queryString ? `${path}?${queryString}` : path;
+    };
+
+    if (itemLoading) {
+        return (
+            <div className="p-8 text-center">
+                <p className="text-gray-500">Loading item details...</p>
+            </div>
+        );
+    }
+
+    if (!item) {
+        return (
+            <div className="p-8">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <p className="text-red-800">Item not found.</p>
+                </div>
+                <Link href={buildUrlWithParams(basePath)} className="text-blue-600 hover:text-blue-800 font-medium">
+                    ← Back to Inventory
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="p-8 space-y-8">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-            <h1 className="text-2xl font-bold text-slate-900">Lending History</h1>
-            <p className="text-slate-500">See who borrowed items and when.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Lending History</h1>
+                    <p className="text-slate-500">
+                        History for <span className="font-semibold text-slate-700">{item.title}</span>
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     <Link 
-                        href="/admin/club/inventory"
+                        href={`${basePath}/view/${item.id}?${searchParams.toString()}`}
                         className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
                     >
-                        Back to Inventory
+                        Back to Item
                     </Link>
                 </div>
             </div>
@@ -282,28 +325,11 @@ export default function InventoryHistoryPage() {
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
                                 <input 
                                     type="text" 
-                                    placeholder="Search by item or borrower..." 
+                                    placeholder="Search by borrower..." 
                                     className="w-full border rounded p-2 text-sm bg-gray-50"
                                     value={search}
                                     onChange={(e) => updateUrl('search', e.target.value)}
                                 />
-                            </div>
-
-                            {/* Item Filter */}
-                            <div className="w-64">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Item</label>
-                                <select 
-                                    className="w-full border rounded p-2 text-sm bg-gray-50" 
-                                    value={selectedItemId || ''} 
-                                    onChange={(e) => updateUrl('item', e.target.value)}
-                                >
-                                    <option value="">All Items</option>
-                                    {items.map((item) => (
-                                        <option key={item.id} value={item.id}>
-                                            {item.title}
-                                        </option>
-                                    ))}
-                                </select>
                             </div>
 
                             {/* Start Date */}

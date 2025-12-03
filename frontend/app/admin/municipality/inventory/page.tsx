@@ -198,12 +198,24 @@ export default function MuniInventoryPage() {
           <p className="text-slate-500">Manage items across all your clubs.</p>
         </div>
         <div className="flex gap-2">
-          <Link 
-            href="/admin/municipality/inventory/create"
-            className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 flex items-center gap-2 transition-colors"
-          >
-            <span>+</span> Add Item
-          </Link>
+            <Link 
+                href="/admin/municipality/inventory/history"
+                className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
+            >
+                View History
+            </Link>
+            <Link 
+                href="/admin/municipality/inventory/borrowed"
+                className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
+            >
+                Currently Borrowed
+            </Link>
+            <Link 
+                href="/admin/municipality/inventory/create"
+                className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 flex items-center gap-2 transition-colors"
+            >
+                <span>+</span> Add Item
+            </Link>
         </div>
       </div>
 
@@ -333,24 +345,24 @@ export default function MuniInventoryPage() {
                   className="w-full border rounded p-2 text-sm bg-gray-50" 
                   value={selectedClub} 
                   onChange={(e) => updateUrl('club', e.target.value)}
-                >
-                  <option value="">All Clubs</option>
+        >
+            <option value="">All Clubs</option>
                   {clubs.map((club) => (
                     <option key={club.id} value={club.id}>
                       {club.name}
                     </option>
                   ))}
-                </select>
+        </select>
               </div>
 
               {/* Search */}
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-                <input 
-                  type="text" 
+        <input 
+            type="text" 
                   placeholder="Search by name or tag..." 
                   className="w-full border rounded p-2 text-sm bg-gray-50"
-                  value={search}
+            value={search}
                   onChange={(e) => updateUrl('search', e.target.value)}
                 />
               </div>
