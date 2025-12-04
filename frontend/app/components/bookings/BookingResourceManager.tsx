@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '../../../lib/api';
 import { getMediaUrl } from '../../utils';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
+import { Calendar } from 'lucide-react';
 
 interface BookingResourceManagerProps {
   basePath: string;
@@ -71,13 +72,25 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
     }
   };
 
+  // Determine the bookings dashboard and calendar paths based on basePath
+  const bookingsPath = basePath.replace('/resources', '');
+  const calendarPath = `${bookingsPath}/calendar`;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Manage Resources</h1>
-        <Link href={`${basePath}/create`} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">
-          + New Resource
-        </Link>
+        <div className="flex gap-3">
+          <Link href={bookingsPath} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50">
+            Bookings Dashboard
+          </Link>
+          <Link href={calendarPath} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 flex items-center gap-2">
+            <Calendar className="w-4 h-4" /> Calendar
+          </Link>
+          <Link href={`${basePath}/create`} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">
+            + New Resource
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-wrap gap-4">

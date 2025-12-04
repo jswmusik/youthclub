@@ -25,14 +25,15 @@ class BookingParticipantSerializer(serializers.ModelSerializer):
 class BookingSerializer(serializers.ModelSerializer):
     participants = BookingParticipantSerializer(many=True, read_only=True)
     resource_name = serializers.CharField(source='resource.name', read_only=True)
+    club_name = serializers.CharField(source='resource.club.name', read_only=True)
     user_detail = UserListSerializer(source='user', read_only=True)
     
     class Meta:
         model = Booking
         fields = [
-            'id', 'user', 'user_detail', 'resource', 'resource_name', 
+            'id', 'user', 'user_detail', 'resource', 'resource_name', 'club_name',
             'start_time', 'end_time', 'status', 
-            'internal_notes', 'participants'
+            'internal_notes', 'participants', 'created_at'
         ]
         read_only_fields = ['user', 'status', 'created_at']
 

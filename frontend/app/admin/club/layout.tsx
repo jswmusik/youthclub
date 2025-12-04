@@ -60,6 +60,8 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true },
     { name: 'Manage Rewards', href: '/admin/club/rewards' },
     { name: 'Inventory', href: '/admin/club/inventory' },
+    { name: 'Bookings', href: '/admin/club/bookings' },
+    { name: 'Booking Calendar', href: '/admin/club/bookings/calendar' },
     { name: 'Booking Resources', href: '/admin/club/bookings/resources' },
     { name: 'Message Board', href: '/admin/club/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/club/custom-fields' },
