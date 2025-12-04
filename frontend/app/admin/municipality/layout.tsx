@@ -59,6 +59,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'Applications', href: '/admin/municipality/groups/requests', showBadge: true },
     { name: 'Manage Rewards', href: '/admin/municipality/rewards' },
     { name: 'Inventory', href: '/admin/municipality/inventory' },
+    { name: 'Booking Resources', href: '/admin/municipality/bookings/resources' },
     { name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/municipality/custom-fields' },
   ];

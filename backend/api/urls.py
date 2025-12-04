@@ -51,4 +51,5 @@ urlpatterns = [
     path('visits/', include('visits.urls')),
     path('inventory/', include('inventory.urls')),
     path('questionnaires/', include('questionnaires.urls')),
+    path('bookings/', include('bookings.urls')),
 ]

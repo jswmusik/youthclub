@@ -67,6 +67,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true },
         { name: 'Manage Rewards', href: '/admin/super/rewards' },
         { name: 'Inventory', href: '/admin/super/inventory' },
+        { name: 'Booking Resources', href: '/admin/super/bookings/resources' },
         { name: 'Custom Fields', href: '/admin/super/custom-fields' },
       ];
 
