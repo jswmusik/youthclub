@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import api from '../../../../lib/api';
 import { format } from 'date-fns';
-import { X, Check, AlertCircle, Clock, Calendar, User, XCircle } from 'lucide-react';
-import { getMediaUrl } from '../../../utils';
+import { X, Clock, Calendar, MapPin, XCircle, Users } from 'lucide-react';
 import Toast from '../../Toast';
 
 interface Props {
@@ -21,29 +20,24 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
 
   // Check if this is a recurring booking
   const isRecurringBooking = booking.is_recurring || booking.parent_booking;
+  const canCancel = booking.status === 'APPROVED' || booking.status === 'PENDING';
 
-  const handleAction = async (action: 'approve' | 'reject' | 'cancel', cancelSeries: boolean = false) => {
+  const handleCancel = async (cancelSeries: boolean = false) => {
     setProcessing(true);
     try {
       const payload: any = { notes };
-      if (action === 'cancel' && cancelSeries) {
+      if (cancelSeries) {
         payload.cancel_series = true;
       }
       
-      const response = await api.post(`/bookings/bookings/${booking.id}/${action}/`, payload);
+      await api.post(`/bookings/bookings/${booking.id}/cancel/`, payload);
       
       // Show success toast
       let message = '';
-      if (action === 'approve') {
-        message = 'Booking approved successfully!';
-      } else if (action === 'reject') {
-        message = 'Booking rejected.';
-      } else if (action === 'cancel') {
-        if (cancelSeries && response.data?.message) {
-          message = response.data.message;
-        } else {
-          message = 'Booking cancelled. The time slot is now available again.';
-        }
+      if (cancelSeries) {
+        message = 'Recurring booking series cancelled successfully.';
+      } else {
+        message = 'Booking cancelled successfully. The time slot is now available again.';
       }
       
       setToast({ 
@@ -58,7 +52,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
         onClose();
       }, 1500);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'Action failed';
+      const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'Failed to cancel booking';
       setToast({ 
         message: errorMessage, 
         type: 'error', 
@@ -73,6 +67,15 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget && !processing) {
       onClose();
+    }
+  };
+
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'APPROVED': return 'bg-green-100 text-green-700 border-green-200';
+      case 'REJECTED': return 'bg-red-100 text-red-700 border-red-200';
+      case 'CANCELLED': return 'bg-gray-100 text-gray-500 border-gray-200';
+      default: return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     }
   };
 
@@ -104,41 +107,46 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* User Info */}
-          <div className="flex items-center gap-4">
-            {booking.user_detail?.avatar ? (
-              <img src={getMediaUrl(booking.user_detail.avatar) || ''} className="w-12 h-12 rounded-full object-cover" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                <User className="w-6 h-6" />
-              </div>
-            )}
-            <div>
-              <div className="font-bold text-lg">{booking.user_detail?.first_name} {booking.user_detail?.last_name}</div>
-              <div className="text-sm text-gray-500">{booking.user_detail?.email}</div>
-            </div>
+          {/* Status Badge */}
+          <div className="flex justify-center">
+            <span className={`text-xs uppercase font-bold px-3 py-1.5 rounded border ${getStatusStyle(booking.status)}`}>
+              {booking.status}
+            </span>
           </div>
 
           {/* Details Grid */}
           <div className="bg-gray-50 p-4 rounded-lg space-y-3">
             <div className="flex items-center gap-3 text-sm">
-              <Calendar className="w-4 h-4 text-gray-400" />
+              <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="font-medium">Resource:</span>
-              <span>{booking.resource_name}</span>
+              <span className="text-gray-900">{booking.resource_name}</span>
             </div>
+            
+            {booking.club_name && (
+              <div className="flex items-center gap-3 text-sm">
+                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="font-medium">Club:</span>
+                <span className="text-gray-900">{booking.club_name}</span>
+              </div>
+            )}
+            
             <div className="flex items-center gap-3 text-sm">
-              <Clock className="w-4 h-4 text-gray-400" />
+              <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="font-medium">Time:</span>
-              <span>
-                {format(new Date(booking.start_time), 'MMM d, HH:mm')} - {format(new Date(booking.end_time), 'HH:mm')}
+              <span className="text-gray-900">
+                {format(new Date(booking.start_time), 'MMM d, yyyy')} • {format(new Date(booking.start_time), 'HH:mm')} - {format(new Date(booking.end_time), 'HH:mm')}
               </span>
             </div>
+            
             {booking.participants?.length > 0 && (
-              <div className="border-t pt-2 mt-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">Participants</span>
-                <div className="mt-1 flex flex-wrap gap-2">
+              <div className="border-t pt-3 mt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-gray-400" />
+                  <span className="text-xs font-bold text-gray-500 uppercase">Participants</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {booking.participants.map((p: any) => (
-                    <span key={p.id} className="text-xs bg-white border px-2 py-1 rounded shadow-sm">
+                    <span key={p.id} className="text-xs bg-white border border-gray-200 px-2 py-1 rounded shadow-sm">
                       {p.name}
                     </span>
                   ))}
@@ -147,56 +155,36 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
             )}
           </div>
 
-          {/* Action Area */}
-          {booking.status === 'PENDING' && (
-            <div className="space-y-3">
-              <label className="block text-sm font-bold text-gray-700">Message to User (Optional)</label>
-              <textarea 
-                className="w-full border rounded p-2 text-sm" 
-                rows={3}
-                placeholder="Reason for rejection or extra info..."
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-              />
-              <div className="flex gap-3 pt-2">
-                <button 
-                  onClick={() => handleAction('reject')}
-                  disabled={processing}
-                  className="flex-1 py-3 border border-red-200 text-red-700 bg-red-50 rounded-lg font-bold hover:bg-red-100 flex items-center justify-center gap-2"
-                >
-                  <X className="w-4 h-4" /> Reject
-                </button>
-                <button 
-                  onClick={() => handleAction('approve')}
-                  disabled={processing}
-                  className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2"
-                >
-                  <Check className="w-4 h-4" /> Approve
-                </button>
-              </div>
+          {/* Recurring Booking Info */}
+          {isRecurringBooking && (
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+              <p className="text-sm text-blue-800 font-medium">
+                🔄 This is a recurring booking
+              </p>
             </div>
           )}
-          
-          {booking.status === 'APPROVED' && (
+
+          {/* Internal Notes (if rejected) */}
+          {booking.status === 'REJECTED' && booking.internal_notes && (
+            <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+              <p className="text-xs font-bold text-red-800 uppercase mb-1">Admin Note</p>
+              <p className="text-sm text-red-700">{booking.internal_notes}</p>
+            </div>
+          )}
+
+          {/* Cancel Action Area */}
+          {canCancel && (
             <div className="space-y-3">
-              <div className={`p-3 rounded-lg text-center font-bold bg-green-100 text-green-800`}>
-                This booking is APPROVED
-                {isRecurringBooking && (
-                  <div className="text-xs text-green-700 mt-1 font-normal">
-                    🔄 This is a recurring booking
-                  </div>
-                )}
-              </div>
-              
               {!showCancelOptions ? (
                 <>
                   <label className="block text-sm font-bold text-gray-700">Cancellation Note (Optional)</label>
                   <textarea 
-                    className="w-full border rounded p-2 text-sm" 
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
                     rows={3}
                     placeholder="Reason for cancellation..."
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
+                    disabled={processing}
                   />
                   <button 
                     onClick={() => {
@@ -204,7 +192,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
                         setShowCancelOptions(true);
                       } else {
                         if (window.confirm('Are you sure you want to cancel this booking? The time slot will become available again.')) {
-                          handleAction('cancel', false);
+                          handleCancel(false);
                         }
                       }
                     }}
@@ -225,7 +213,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
                       <button
                         onClick={() => {
                           if (window.confirm('Cancel only this instance? The rest of the series will remain.')) {
-                            handleAction('cancel', false);
+                            handleCancel(false);
                           }
                         }}
                         disabled={processing}
@@ -237,7 +225,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
                       <button
                         onClick={() => {
                           if (window.confirm('Cancel this instance and all future instances? This cannot be undone.')) {
-                            handleAction('cancel', true);
+                            handleCancel(true);
                           }
                         }}
                         disabled={processing}
@@ -260,14 +248,15 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
             </div>
           )}
           
-          {booking.status !== 'PENDING' && booking.status !== 'APPROVED' && (
-             <div className={`p-3 rounded-lg text-center font-bold ${
-               booking.status === 'CANCELLED' ? 'bg-gray-100 text-gray-800' : 
-               booking.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 
-               'bg-gray-100 text-gray-800'
-             }`}>
-                This booking is {booking.status}
-             </div>
+          {/* Status Message for non-cancellable bookings */}
+          {!canCancel && (
+            <div className={`p-3 rounded-lg text-center font-bold ${
+              booking.status === 'CANCELLED' ? 'bg-gray-100 text-gray-800' : 
+              booking.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 
+              'bg-gray-100 text-gray-800'
+            }`}>
+              This booking is {booking.status}
+            </div>
           )}
         </div>
       </div>

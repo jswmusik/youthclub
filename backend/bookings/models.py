@@ -37,7 +37,15 @@ class BookingResource(models.Model):
     # Access Rules
     requires_training = models.BooleanField(
         default=False, 
-        help_text="If True, user must have a ResourceQualification to book."
+        help_text="If True, user must be a member of the qualification_group to book."
+    )
+    qualification_group = models.ForeignKey(
+        Group,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='qualification_resources',
+        help_text="Group that contains qualified members. Only CLOSED groups can be selected."
     )
     max_participants = models.IntegerField(
         default=1, 
@@ -148,6 +156,37 @@ class Booking(models.Model):
     
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     internal_notes = models.TextField(blank=True, help_text="Staff notes, reason for rejection etc.")
+    
+    # Recurring booking fields
+    is_recurring = models.BooleanField(default=False, help_text="Whether this is a recurring booking")
+    parent_booking = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='recurring_instances',
+        help_text="The original booking if this is a recurring instance"
+    )
+    recurring_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('FOREVER', 'Forever'),
+            ('WEEKS', 'For a specific number of weeks'),
+        ],
+        null=True,
+        blank=True,
+        help_text="Type of recurrence: FOREVER or WEEKS"
+    )
+    recurring_weeks = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Number of weeks to repeat (only used if recurring_type is WEEKS)"
+    )
+    recurring_end_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="End date for recurring bookings (calculated automatically)"
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

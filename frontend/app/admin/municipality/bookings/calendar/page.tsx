@@ -1,6 +1,6 @@
 'use client';
 
-import BookingCalendar from '../../../../../components/bookings/admin/BookingCalendar';
+import BookingCalendar from '../../../../components/bookings/admin/BookingCalendar';
 import Link from 'next/link';
 
 export default function MuniBookingCalendarPage() {

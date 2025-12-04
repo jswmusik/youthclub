@@ -10,9 +10,15 @@ interface BookingProps {
   end_time: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   club_name?: string; // Derived from resource
+  [key: string]: any; // Allow additional properties
 }
 
-export default function MyBookingCard({ booking }: { booking: BookingProps }) {
+interface MyBookingCardProps {
+  booking: BookingProps;
+  onClick?: () => void;
+}
+
+export default function MyBookingCard({ booking, onClick }: MyBookingCardProps) {
   const startDate = new Date(booking.start_time);
   const endDate = new Date(booking.end_time);
 
@@ -26,7 +32,10 @@ export default function MyBookingCard({ booking }: { booking: BookingProps }) {
   };
 
   return (
-    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-3">
+    <button
+      onClick={onClick}
+      className="w-full bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-3 text-left hover:shadow-md transition-shadow cursor-pointer"
+    >
       <div className="flex justify-between items-start">
         <div>
           <h4 className="font-bold text-gray-900">{booking.resource_name}</h4>
@@ -55,7 +64,7 @@ export default function MyBookingCard({ booking }: { booking: BookingProps }) {
           </span>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 

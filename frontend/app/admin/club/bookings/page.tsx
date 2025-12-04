@@ -19,22 +19,8 @@ export default function ClubBookingsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          {/* Main Action Area */}
-          <BookingRequestList scope="CLUB" />
-        </div>
-        
-        <div className="space-y-6">
-          {/* Quick Stats or Tips could go here */}
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl">
-            <h4 className="font-bold text-blue-900 mb-2">Did you know?</h4>
-            <p className="text-sm text-blue-800">
-              You can set up specific opening hours for odd and even weeks in the Resource Management section.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Main Action Area */}
+      <BookingRequestList scope="CLUB" />
     </div>
   );
 }

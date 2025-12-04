@@ -84,9 +84,10 @@ def get_available_slots(resource, start_date, end_date):
                     break
             
             if not is_taken:
+                # Convert datetime objects to ISO format strings for JSON serialization
                 available_slots.append({
-                    "start": slot_start,
-                    "end": slot_end,
+                    "start": slot_start.isoformat() if hasattr(slot_start, 'isoformat') else str(slot_start),
+                    "end": slot_end.isoformat() if hasattr(slot_end, 'isoformat') else str(slot_end),
                     "title": schedule.resource.name
                 })
         

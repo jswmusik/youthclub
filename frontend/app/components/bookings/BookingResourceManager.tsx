@@ -6,7 +6,7 @@ import Link from 'next/link';
 import api from '../../../lib/api';
 import { getMediaUrl } from '../../utils';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
-import { Calendar } from 'lucide-react';
+import { Calendar, Clock, Edit, Trash2 } from 'lucide-react';
 
 interface BookingResourceManagerProps {
   basePath: string;
@@ -125,50 +125,110 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
         </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {resources.map(res => (
-          <div key={res.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-            <div className="h-40 bg-gray-100 relative">
-              {(() => {
-                const imageUrl = res.image ? getMediaUrl(res.image) : null;
-                return imageUrl ? (
-                  <img src={imageUrl} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
-                    <span className="text-4xl">📦</span>
-                  </div>
-                );
-              })()}
-              <span className={`absolute top-2 right-2 px-2 py-1 text-xs font-bold rounded ${res.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                {res.is_active ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-            
-            <div className="p-4 flex-1 flex flex-col">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                    <h3 className="text-lg font-bold text-gray-900 leading-tight">{res.name}</h3>
-                    {/* Show Club Name if not in Club Scope */}
-                    {scope !== 'CLUB' && (
-                        <p className="text-xs text-gray-500 font-medium">{res.club_name}</p>
-                    )}
-                </div>
-                <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600">{res.resource_type}</span>
-              </div>
-              <p className="text-sm text-gray-500 mt-1 line-clamp-2">{res.description}</p>
-              
-              <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
-                <Link href={`${basePath}/${res.id}/schedule`} className="text-blue-600 text-sm font-bold hover:underline">
-                  Schedule
-                </Link>
-                <div className="flex gap-2">
-                  <Link href={`${basePath}/edit/${res.id}`} className="p-2 text-gray-500 hover:text-blue-600">✏️</Link>
-                  <button onClick={() => setItemToDelete(res)} className="p-2 text-gray-500 hover:text-red-600">🗑️</button>
-                </div>
-              </div>
-            </div>
+      {/* Table List */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Loading resources...</div>
+        ) : resources.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-gray-500 mb-2">No resources found.</p>
+            <Link href={`${basePath}/create`} className="text-blue-600 hover:underline font-bold">
+              Create your first resource
+            </Link>
           </div>
-        ))}
+        ) : (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Resource</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
+                {scope !== 'CLUB' && (
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Club</th>
+                )}
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Description</th>
+                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {resources.map(res => {
+                const imageUrl = res.image ? getMediaUrl(res.image) : null;
+                return (
+                  <tr key={res.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl} 
+                            alt={res.name}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400">
+                            <span className="text-xl">📦</span>
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-bold text-gray-900">{res.name}</div>
+                          <div className="text-xs text-gray-500">
+                            Max {res.max_participants} {res.max_participants === 1 ? 'person' : 'people'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                        {res.resource_type}
+                      </span>
+                    </td>
+                    {scope !== 'CLUB' && (
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-700">{res.club_name || '-'}</span>
+                      </td>
+                    )}
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        res.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {res.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-600 line-clamp-2 max-w-md">
+                        {res.description || <span className="text-gray-400 italic">No description</span>}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link 
+                          href={`${basePath}/${res.id}/schedule`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-900 transition-colors"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                          Schedule
+                        </Link>
+                        <Link 
+                          href={`${basePath}/edit/${res.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-900 transition-colors"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          Edit
+                        </Link>
+                        <button 
+                          onClick={() => setItemToDelete(res)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <DeleteConfirmationModal 

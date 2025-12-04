@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import BookingRequestList from '../../../../components/bookings/admin/BookingRequestList';
+import BookingRequestList from '../../../components/bookings/admin/BookingRequestList';
 import { Calendar } from 'lucide-react';
 
 export default function SuperBookingsPage() {
@@ -19,12 +19,8 @@ export default function SuperBookingsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          {/* Main Action Area with Super Scope */}
-          <BookingRequestList scope="SUPER" />
-        </div>
-      </div>
+      {/* Main Action Area with Super Scope */}
+      <BookingRequestList scope="SUPER" />
     </div>
   );
 }

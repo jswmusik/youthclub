@@ -19,10 +19,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
 
   useEffect(() => {
     refreshMessageCount();
     refreshPendingRequestsCount();
+    refreshPendingBookingsCount();
   }, [refreshMessageCount]);
 
   const refreshPendingRequestsCount = async () => {
@@ -43,6 +45,27 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       }
       console.error('Failed to load pending requests count', err);
       setPendingRequestsCount(0);
+    }
+  };
+
+  const refreshPendingBookingsCount = async () => {
+    if (!user) {
+      setPendingBookingsCount(0);
+      return;
+    }
+    
+    try {
+      const res = await api.get('/bookings/bookings/?status=PENDING');
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setPendingBookingsCount(data.length);
+    } catch (err: any) {
+      // Silently handle 401 (unauthorized) - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setPendingBookingsCount(0);
+        return;
+      }
+      console.error('Failed to load pending bookings count', err);
+      setPendingBookingsCount(0);
     }
   };
 
@@ -125,6 +148,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 {(item as any).showBadge && !item.href.includes('/requests') && messageCount > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
                     {messageCount}
+                  </span>
+                )}
+                {item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center rounded-full bg-yellow-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
+                    {pendingBookingsCount}
                   </span>
                 )}
               </Link>

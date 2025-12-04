@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../../lib/api';
 import { format, addDays, startOfToday, isSameDay } from 'date-fns';
-import { Calendar as CalendarIcon, Clock, Users, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Users, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
 import Toast from '../../../components/Toast';
 
 interface Props {
@@ -32,6 +32,8 @@ export default function BookingWizard({ resource }: Props) {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitError, setLimitError] = useState('');
 
   // Fetch slots when date changes
   useEffect(() => {
@@ -87,9 +89,25 @@ export default function BookingWizard({ resource }: Props) {
       
       setToast({ message: 'Booking request sent!', type: 'success', isVisible: true });
       setTimeout(() => router.push('/dashboard/youth/bookings'), 1500);
-    } catch (err) {
-      setToast({ message: 'Failed to book. Slot might be taken.', type: 'error', isVisible: true });
+    } catch (err: any) {
       setIsSubmitting(false);
+      
+      // Parse error response
+      const errorMessage = err.response?.data?.non_field_errors?.[0] || 
+                          err.response?.data?.error || 
+                          err.response?.data?.detail || 
+                          'Failed to book. Please try again.';
+      
+      // Check if it's a weekly limit error
+      if (errorMessage.toLowerCase().includes('weekly booking limit') || 
+          errorMessage.toLowerCase().includes('weekly limit') ||
+          errorMessage.toLowerCase().includes('reached the weekly')) {
+        setLimitError(errorMessage);
+        setShowLimitModal(true);
+      } else {
+        // Show toast for other errors
+        setToast({ message: errorMessage, type: 'error', isVisible: true });
+      }
     }
   };
 
@@ -257,6 +275,41 @@ export default function BookingWizard({ resource }: Props) {
           </button>
         </div>
         <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+        
+        {/* Weekly Limit Error Modal */}
+        {showLimitModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all duration-200">
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-6 h-6 text-yellow-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">Weekly Booking Limit Reached</h3>
+                </div>
+                
+                <div className="mb-6">
+                  <p className="text-gray-700 mb-4">
+                    {limitError || 'You have already reached your weekly booking limit for this resource.'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Please try booking again next week, or contact your club admin if you need assistance.
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    setShowLimitModal(false);
+                    setLimitError('');
+                  }}
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Understood
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
