@@ -10,6 +10,10 @@ from .serializers import BookingResourceSerializer, BookingSerializer, CreateBoo
 from .services import get_available_slots
 from groups.models import GroupMembership
 
+# Import notification service
+from notifications.services import send_notification
+from notifications.models import Notification
+
 class BookingResourceViewSet(viewsets.ModelViewSet):
     """
     Manage Resources (Rooms/Equipment).
@@ -209,6 +213,42 @@ class BookingViewSet(viewsets.ModelViewSet):
             return CreateBookingSerializer
         return BookingSerializer
 
+    def create(self, request, *args, **kwargs):
+        """
+        Custom create method to handle notifications after booking creation.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        booking = serializer.save()
+        
+        # --- Notification Logic ---
+        user = booking.user
+        resource_name = booking.resource.name
+        date_str = booking.start_time.strftime('%Y-%m-%d')
+        time_str = booking.start_time.strftime('%H:%M')
+        
+        if booking.status == Booking.Status.APPROVED:
+            # Case A: Auto-Approved or Admin-Created
+            send_notification(
+                user=user,
+                title="Booking Confirmed! ✅",
+                body=f"Your booking for {resource_name} on {date_str} at {time_str} is confirmed.",
+                category=Notification.Category.SYSTEM,
+                action_url=f"/dashboard/youth/bookings"
+            )
+        elif booking.status == Booking.Status.PENDING:
+            # Case B: Requires Approval
+            send_notification(
+                user=user,
+                title="Booking Request Received ⏳",
+                body=f"We received your request for {resource_name}. You will be notified once staff reviews it.",
+                category=Notification.Category.SYSTEM,
+                action_url=f"/dashboard/youth/bookings"
+            )
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         booking = self.get_object()
@@ -219,7 +259,18 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking.internal_notes = request.data.get('notes', '')
         booking.save()
         
-        # TODO: Trigger Notification here
+        # --- Notification Logic ---
+        resource_name = booking.resource.name
+        date_str = booking.start_time.strftime('%Y-%m-%d')
+        time_str = booking.start_time.strftime('%H:%M')
+        
+        send_notification(
+            user=booking.user,
+            title="Booking Approved! 🎉",
+            body=f"Great news! Your booking for {resource_name} on {date_str} at {time_str} has been approved.",
+            category=Notification.Category.SYSTEM,
+            action_url=f"/dashboard/youth/bookings"
+        )
         
         return Response(BookingSerializer(booking).data)
 
@@ -227,16 +278,43 @@ class BookingViewSet(viewsets.ModelViewSet):
     def reject(self, request, pk=None):
         booking = self.get_object()
         booking.status = Booking.Status.REJECTED
-        booking.internal_notes = request.data.get('notes', '')
+        
+        # Admin can provide a reason note
+        reason = request.data.get('notes', '')
+        booking.internal_notes = reason
         booking.save()
         
-        # TODO: Trigger Notification here
+        # --- Notification Logic ---
+        resource_name = booking.resource.name
+        date_str = booking.start_time.strftime('%Y-%m-%d')
+        time_str = booking.start_time.strftime('%H:%M')
+        
+        body_text = f"Your booking for {resource_name} on {date_str} at {time_str} was declined."
+        if reason:
+            body_text += f" Reason: {reason}"
+            
+        send_notification(
+            user=booking.user,
+            title="Booking Declined ❌",
+            body=body_text,
+            category=Notification.Category.SYSTEM,
+            action_url=f"/dashboard/youth/bookings"
+        )
         
         return Response(BookingSerializer(booking).data)
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
         booking = self.get_object()
+        
+        # Security: Only allow owner or admin
+        user = request.user
+        is_owner = booking.user == user
+        is_admin = user.role in ['CLUB_ADMIN', 'MUNICIPALITY_ADMIN', 'SUPER_ADMIN']
+        
+        if not (is_owner or is_admin):
+            return Response({'error': 'Not authorized'}, status=403)
+        
         # Only allow canceling APPROVED or PENDING bookings
         if booking.status not in [Booking.Status.APPROVED, Booking.Status.PENDING]:
             return Response({'error': 'Only approved or pending bookings can be cancelled'}, status=400)
@@ -247,6 +325,9 @@ class BookingViewSet(viewsets.ModelViewSet):
         # Check if this is a recurring booking
         is_recurring_instance = booking.parent_booking is not None
         is_parent_recurring = booking.is_recurring
+        
+        # Determine if we should notify (only if admin cancels user's booking)
+        should_notify = is_admin and booking.user != user
         
         if cancel_series and (is_recurring_instance or is_parent_recurring):
             # Cancel the entire series
@@ -287,7 +368,22 @@ class BookingViewSet(viewsets.ModelViewSet):
             # Refresh booking object to get updated status
             booking.refresh_from_db()
             
-            # TODO: Trigger Notification here
+            # --- Notification Logic (only if admin cancels user's booking) ---
+            if should_notify:
+                resource_name = booking.resource.name
+                # Since we're in the cancel_series branch, always mention it's a series
+                body_text = f"Your recurring booking series for {resource_name} has been cancelled by staff."
+                
+                if notes:
+                    body_text += f" Reason: {notes}"
+                
+                send_notification(
+                    user=booking.user,
+                    title="Booking Cancelled ⚠️",
+                    body=body_text,
+                    category=Notification.Category.SYSTEM,
+                    action_url=f"/dashboard/youth/bookings"
+                )
             
             return Response({
                 'message': f'Cancelled booking and {cancelled_count} future instance(s)',
@@ -300,6 +396,22 @@ class BookingViewSet(viewsets.ModelViewSet):
                 booking.internal_notes = notes
             booking.save()
             
-            # TODO: Trigger Notification here
+            # --- Notification Logic (only if admin cancels user's booking) ---
+            if should_notify:
+                resource_name = booking.resource.name
+                date_str = booking.start_time.strftime('%Y-%m-%d')
+                time_str = booking.start_time.strftime('%H:%M')
+                
+                body_text = f"Your booking for {resource_name} on {date_str} at {time_str} has been cancelled by staff."
+                if notes:
+                    body_text += f" Reason: {notes}"
+                
+                send_notification(
+                    user=booking.user,
+                    title="Booking Cancelled ⚠️",
+                    body=body_text,
+                    category=Notification.Category.SYSTEM,
+                    action_url=f"/dashboard/youth/bookings"
+                )
             
             return Response(BookingSerializer(booking).data)

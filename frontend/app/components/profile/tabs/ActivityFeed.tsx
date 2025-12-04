@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchUserActivityFeed, visits, rewards } from '@/lib/api';
+import api from '@/lib/api';
 import PostCard from '@/app/components/posts/PostCard';
 import { Post } from '@/types/post';
 import { getMediaUrl } from '@/app/utils';
@@ -35,10 +36,21 @@ interface RewardRedemption {
   created_at: string;
 }
 
+interface Booking {
+  id: number;
+  resource: number;
+  resource_name: string;
+  start_time: string;
+  end_time: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  club_name?: string;
+  created_at?: string;
+}
+
 type TimelineItem = {
-  type: 'post' | 'visit' | 'reward_redemption' | 'group_join' | 'inventory_borrow' | 'inventory_return' | 'inventory_complete' | 'questionnaire_complete';
+  type: 'post' | 'visit' | 'reward_redemption' | 'group_join' | 'inventory_borrow' | 'inventory_return' | 'inventory_complete' | 'questionnaire_complete' | 'booking_confirmed';
   date: Date;
-  data: Post | Visit | RewardRedemption | Post; // group_join, inventory activities, and questionnaire completions use Post type
+  data: Post | Visit | RewardRedemption | Booking | Post; // group_join, inventory activities, and questionnaire completions use Post type
 };
 
 export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProps) {
@@ -46,6 +58,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
   const [posts, setPosts] = useState<Post[]>([]);
   const [visitsData, setVisitsData] = useState<Visit[]>([]);
   const [rewardRedemptions, setRewardRedemptions] = useState<RewardRedemption[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
@@ -71,13 +84,14 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
       // Fetch posts (always fetch on pagination)
       const postsRes = await fetchUserActivityFeed(pageNum, timeFilter);
       
-      // Only fetch visits and reward redemptions on initial load (not on pagination)
+      // Only fetch visits, reward redemptions, and bookings on initial load (not on pagination)
       // This ensures they don't interfere with pagination and sorting
-      let visitsRes, rewardsRes;
+      let visitsRes, rewardsRes, bookingsRes;
       if (!append) {
-        [visitsRes, rewardsRes] = await Promise.all([
+        [visitsRes, rewardsRes, bookingsRes] = await Promise.all([
           visits.getMyVisits(),
-          rewards.getMyRedemptions()
+          rewards.getMyRedemptions(),
+          api.get('/bookings/bookings/?status=APPROVED&page_size=100')
         ]);
       }
       
@@ -99,6 +113,11 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
         const allRedemptions = rewardsRes?.data || [];
         let filteredRedemptions = allRedemptions;
         
+        // Handle bookings (only APPROVED ones)
+        const allBookingsData = bookingsRes?.data?.results || bookingsRes?.data || [];
+        const allBookings = Array.isArray(allBookingsData) ? allBookingsData : [];
+        let filteredBookings = allBookings;
+        
         if (timeFilter !== 'forever') {
           const thresholdDate = new Date();
           if (timeFilter === 'day') {
@@ -118,10 +137,17 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
             const redemptionDate = new Date(redemption.redeemed_at);
             return redemptionDate >= thresholdDate;
           });
+          
+          filteredBookings = allBookings.filter((booking: Booking) => {
+            // Use the date when booking was confirmed (created_at for when it was created/approved)
+            const bookingDate = new Date(booking.created_at || booking.start_time);
+            return bookingDate >= thresholdDate;
+          });
         }
         
         setVisitsData(filteredVisits);
         setRewardRedemptions(filteredRedemptions);
+        setBookings(filteredBookings);
       }
       
       // Check if there are more pages (only for posts)
@@ -207,13 +233,23 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
       }
     });
     
+    // Add bookings (only APPROVED ones)
+    bookings.forEach(booking => {
+      // Use created_at as the date for sorting (when the booking was confirmed/approved)
+      // Fallback to start_time if created_at is not available
+      const bookingDate = new Date(booking.created_at || booking.start_time);
+      if (!isNaN(bookingDate.getTime())) {
+        items.push({ type: 'booking_confirmed', date: bookingDate, data: booking });
+      }
+    });
+    
     // Sort by date (newest first) - ensure proper numeric comparison
     return items.sort((a, b) => {
       const timeA = a.date.getTime();
       const timeB = b.date.getTime();
       return timeB - timeA; // Descending order (newest first)
     });
-  }, [posts, visitsData, rewardRedemptions]);
+  }, [posts, visitsData, rewardRedemptions, bookings]);
 
   const timeFilterOptions: { value: TimeFilter; label: string }[] = [
     { value: 'day', label: 'Last Day' },
@@ -537,6 +573,66 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 );
               } else if (item.type === 'post') {
                 return <PostCard key={`post-${item.data.id}`} post={item.data as Post} />;
+              } else if (item.type === 'booking_confirmed') {
+                const booking = item.data as Booking;
+                const bookingDate = new Date(booking.start_time);
+                const weekday = bookingDate.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateStr = bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                const startTimeStr = bookingDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const endDate = new Date(booking.end_time);
+                const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                return (
+                  <div key={`booking-${booking.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-green-500 p-6">
+                    <div className="flex items-start gap-4">
+                      {/* Calendar Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-lg">
+                          📅
+                        </div>
+                      </div>
+                      
+                      {/* Booking Details */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-gray-900">{booking.resource_name}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            Confirmed
+                          </span>
+                        </div>
+                        {booking.club_name && (
+                          <p className="text-sm text-gray-600 mb-1">
+                            {booking.club_name}
+                          </p>
+                        )}
+                        <p className="text-sm text-gray-600 mb-2">
+                          {weekday}, {dateStr}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {startTimeStr} - {endTimeStr}
+                        </p>
+                        <button
+                          onClick={() => router.push('/dashboard/youth/bookings')}
+                          className="text-sm text-green-600 hover:text-green-700 font-medium inline-flex items-center gap-1 transition-colors mt-2"
+                        >
+                          View Booking
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      {/* Check Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
               } else if (item.type === 'reward_redemption') {
                 const redemption = item.data as RewardRedemption;
                 const redemptionDate = new Date(redemption.redeemed_at);
