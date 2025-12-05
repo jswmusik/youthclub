@@ -14,6 +14,11 @@ export interface OpeningHour {
     max_value?: number | null;
 }
 
+export interface Municipality {
+    id: number;
+    name: string;
+}
+
 export interface Club {
     id: number;
     name: string;

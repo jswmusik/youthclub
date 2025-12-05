@@ -437,6 +437,8 @@ export default function BookingCalendar({ scope }: { scope?: 'CLUB' | 'MUNICIPAL
                   // Only show APPROVED and PENDING bookings prominently (CANCELLED/REJECTED shown faded)
                   const isActive = b.status === 'APPROVED' || b.status === 'PENDING';
                   const isCancelled = b.status === 'CANCELLED';
+                  const isRejected = b.status === 'REJECTED';
+                  const isInactive = isCancelled || isRejected;
                   
                   // Google Calendar style colors
                   const getStatusStyles = () => {
@@ -446,6 +448,8 @@ export default function BookingCalendar({ scope }: { scope?: 'CLUB' | 'MUNICIPAL
                       return 'bg-yellow-500 border-l-4 border-yellow-600 text-white shadow-sm';
                     } else if (b.status === 'CANCELLED') {
                       return 'bg-gray-200 border-l-4 border-gray-300 text-gray-500 opacity-60 line-through';
+                    } else if (b.status === 'REJECTED') {
+                      return 'bg-red-200 border-l-4 border-red-300 text-red-600 opacity-10';
                     } else {
                       return 'bg-gray-400 border-l-4 border-gray-500 text-white opacity-50';
                     }
@@ -454,19 +458,21 @@ export default function BookingCalendar({ scope }: { scope?: 'CLUB' | 'MUNICIPAL
                   return (
                     <div
                       key={b.id}
-                      onClick={() => !isCancelled && setSelectedBooking(b)}
+                      onClick={() => !isInactive && setSelectedBooking(b)}
                       style={{ 
                         top: style.top, 
                         height: style.height, 
-                        zIndex: isActive ? 10 : 1,
-                        pointerEvents: isCancelled ? 'none' : 'auto',
+                        zIndex: isActive ? 10 : 0,
+                        pointerEvents: isInactive ? 'none' : 'auto',
                         minHeight: '20px'
                       }}
                       className={`absolute left-1 right-1 rounded-md text-xs px-2 py-1 text-left overflow-hidden transition-all
-                        ${isCancelled ? '' : 'hover:z-20 hover:shadow-lg cursor-pointer'}
+                        ${isInactive ? '' : 'hover:z-20 hover:shadow-lg cursor-pointer'}
                         ${getStatusStyles()}
                       `}
-                      title={b.status === 'CANCELLED' ? 'Cancelled - Slot is available (click the green slot below to book)' : `${b.status} - Click to view details`}
+                      title={b.status === 'CANCELLED' ? 'Cancelled - Slot is available (click the green slot below to book)' : 
+                             b.status === 'REJECTED' ? 'Rejected - Slot is available (click the green slot below to book)' : 
+                             `${b.status} - Click to view details`}
                     >
                       <div className="font-medium truncate text-[11px] leading-tight">
                         {b.user_detail?.first_name && b.user_detail?.last_name 
@@ -478,6 +484,9 @@ export default function BookingCalendar({ scope }: { scope?: 'CLUB' | 'MUNICIPAL
                       )}
                       {b.status === 'CANCELLED' && (
                         <div className="text-[9px] uppercase font-semibold mt-0.5">Cancelled</div>
+                      )}
+                      {b.status === 'REJECTED' && (
+                        <div className="text-[9px] uppercase font-semibold mt-0.5">Rejected</div>
                       )}
                     </div>
                   );
