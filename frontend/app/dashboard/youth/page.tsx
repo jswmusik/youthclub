@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { fetchYouthFeed } from '../../../lib/api';
 import PostCard from '../../components/posts/PostCard';
 import QuestionnaireCard from '../../components/questionnaires/QuestionnaireCard';
+import EventCard from '../../components/events/youth/EventCard';
 import { useAuth } from '../../../context/AuthContext';
 import Cookies from 'js-cookie';
 import NavBar from '../../components/NavBar';
@@ -303,10 +304,10 @@ export default function YouthDashboard() {
                             News
                         </button>
                         
-                        {/* Events - No link, but show badge */}
+                        {/* Events */}
                         <button
-                            disabled
-                            className="w-full text-left px-3 py-2 rounded-md text-sm text-gray-400 cursor-not-allowed flex items-center justify-between"
+                            onClick={() => router.push('/dashboard/youth/events')}
+                            className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50 flex items-center justify-between"
                         >
                             <span>Events</span>
                             <span className="bg-yellow-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -375,6 +376,11 @@ export default function YouthDashboard() {
                                         questionnaire={item}
                                         onComplete={handleQuestionnaireComplete}
                                     />
+                                );
+                            } else if (item.feed_type === 'EVENT') {
+                                // RENDER EVENT CARD
+                                postContent = (
+                                    <EventCard key={item.id} event={item as any} />
                                 );
                             } else {
                                 // RENDER STANDARD POST CARD

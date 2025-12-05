@@ -36,12 +36,17 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
 
     const updateStatus = async (regId: number, newStatus: string) => {
         try {
-            await api.patch(`/registrations/${regId}/`, { status: newStatus });
+            const response = await api.patch(`/registrations/${regId}/`, { status: newStatus });
+            console.log('Update response:', response.data);
             setToast({ message: `Status updated to ${newStatus}`, type: 'success', isVisible: true });
-            fetchRegistrations(); // Refresh list
-        } catch (error) {
-            console.error(error);
-            setToast({ message: "Update failed", type: 'error', isVisible: true });
+            // Refresh list after a short delay to ensure backend has processed
+            setTimeout(() => {
+                fetchRegistrations();
+            }, 500);
+        } catch (error: any) {
+            console.error('Update error:', error);
+            const errorMessage = error.response?.data?.error || error.response?.data?.detail || error.message || "Update failed";
+            setToast({ message: errorMessage, type: 'error', isVisible: true });
         }
     };
 

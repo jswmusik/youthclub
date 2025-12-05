@@ -78,6 +78,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'News Feed', href: '/admin/municipality/news-feed' },
     { name: 'Manage Posts', href: '/admin/municipality/posts' },
     { name: 'Events', href: '/admin/municipality/events' },
+    { name: 'Event Calendar', href: '/admin/municipality/events/calendar' },
     { name: 'Questionnaires', href: '/admin/municipality/questionnaires' },
     { name: 'Groups', href: '/admin/municipality/groups' },
     { name: 'Applications', href: '/admin/municipality/groups/requests', showBadge: true },

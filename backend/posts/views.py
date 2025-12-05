@@ -170,6 +170,7 @@ class PostViewSet(viewsets.ModelViewSet):
         # Initialize empty lists (will be populated only on first page)
         rewards_data = []
         questionnaires_data = []
+        events_data = []
         
         if is_first_page:
             from questionnaires.models import Questionnaire, QuestionnaireResponse
@@ -321,8 +322,30 @@ class PostViewSet(viewsets.ModelViewSet):
             
             logger.info(f"[FEED DEBUG] Total questionnaires_data count: {len(questionnaires_data)}")
             
-            # Combine rewards, questionnaires, and posts, then sort chronologically (newest first)
-            all_items = rewards_data + questionnaires_data + feed_items
+            # Fetch events for the user (only future events that match targeting criteria)
+            from events.services import get_events_for_user
+            from events.serializers import EventSerializer
+            
+            try:
+                user_events = get_events_for_user(user)
+                # Limit to recent events (e.g., next 10 events)
+                user_events = user_events[:10]
+                
+                # Serialize events
+                event_serializer = EventSerializer(user_events, many=True, context={'request': request})
+                events_data = event_serializer.data
+                
+                # Tag events with feed_type
+                for event_item in events_data:
+                    event_item['feed_type'] = 'EVENT'
+                
+                logger.info(f"[FEED DEBUG] Added {len(events_data)} events to feed")
+            except Exception as e:
+                logger.error(f"[FEED DEBUG] Error fetching events: {e}")
+                events_data = []
+            
+            # Combine rewards, questionnaires, events, and posts, then sort chronologically (newest first)
+            all_items = rewards_data + questionnaires_data + events_data + feed_items
             
             # Sort by created_at in descending order (newest first)
             # Posts use 'created_at' or 'published_at', rewards/questionnaires use 'created_at'

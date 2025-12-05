@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q, Count
@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import timedelta, date
 import json
 import random
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Group, GroupMembership
 from .serializers import GroupSerializer, GroupMembershipSerializer
 from .permissions import IsGroupAdminOrReadOnly, IsGroupMembershipAdmin
@@ -16,6 +17,10 @@ from custom_fields.models import CustomFieldValue
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = [IsGroupAdminOrReadOnly]
+    
+    # --- ADDED SEARCH CAPABILITY ---
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'description', 'municipality__name']
 
     def get_object(self):
         """

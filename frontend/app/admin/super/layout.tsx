@@ -80,6 +80,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'News Feed', href: '/admin/super/news-feed' },
         { name: 'Manage Posts', href: '/admin/super/posts' },
         { name: 'Events', href: '/admin/super/events' },
+        { name: 'Event Calendar', href: '/admin/super/events/calendar' },
         { name: 'Questionnaires', href: '/admin/super/questionnaires' },
         // ------------------------
         { name: 'Manage Interests', href: '/admin/super/interests' },

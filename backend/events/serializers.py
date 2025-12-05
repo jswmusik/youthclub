@@ -1,7 +1,17 @@
 from rest_framework import serializers
-from .models import Event, EventRegistration, EventTicket
+from .models import Event, EventRegistration, EventTicket, EventImage, EventDocument
 from users.serializers import UserListSerializer
-from organization.serializers import MunicipalitySerializer, ClubSerializer # Assuming these exist
+from organization.serializers import MunicipalitySerializer, ClubSerializer
+
+class EventImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventImage
+        fields = ['id', 'image', 'caption', 'order']
+
+class EventDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventDocument
+        fields = ['id', 'file', 'title', 'description']
 
 class EventTicketSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,14 +26,10 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EventRegistration
-        fields = [
-            'id', 'event', 'user', 'user_detail', 'status', 
-            'created_at', 'ticket', 'event_detail'
-        ]
-        read_only_fields = ['status', 'approved_by', 'approval_date', 'ticket']
+        fields = ['id', 'event', 'user', 'user_detail', 'status', 'created_at', 'ticket', 'event_detail']
+        read_only_fields = ['approved_by', 'approval_date', 'ticket']
 
     def get_event_detail(self, obj):
-        """Return basic event info for list views"""
         return {
             'id': obj.event.id,
             'title': obj.event.title,
@@ -31,15 +37,18 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
             'location_name': obj.event.location_name,
         }
 
-    def validate(self, data):
-        # We will add complex validation (duplicate checks, age checks) here or in Views
-        return data
-
 class EventSerializer(serializers.ModelSerializer):
     municipality_detail = MunicipalitySerializer(source='municipality', read_only=True)
     club_detail = ClubSerializer(source='club', read_only=True)
     
-    # Field to check if current user is registered (calculated in View)
+    # Nested Media
+    images = EventImageSerializer(many=True, read_only=True)
+    documents = EventDocumentSerializer(many=True, read_only=True)
+    
+    # Write-only fields for media upload (handled in create/update if needed, or separate endpoints)
+    # Typically in React we upload files to separate endpoints or use FormData with nested naming
+    # For simplicity, we usually keep them read-only here and manage them via nested ViewSet or separate calls
+    
     user_registration_status = serializers.SerializerMethodField()
     is_full = serializers.BooleanField(read_only=True)
 
@@ -49,10 +58,8 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = ['confirmed_participants_count', 'waitlist_count']
 
     def get_user_registration_status(self, obj):
-        # We'll inject this context from the ViewSet
         user = self.context.get('request').user if self.context.get('request') else None
         if user and user.is_authenticated:
-            # Optimization: This query can be pre-fetched in the view
             reg = obj.registrations.filter(user=user).first()
             return reg.status if reg else None
         return None

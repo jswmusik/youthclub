@@ -1,35 +1,27 @@
 from django.contrib import admin
-from .models import Event, EventRegistration, EventTicket
+from .models import Event, EventRegistration, EventTicket, EventImage, EventDocument
+
+class EventImageInline(admin.TabularInline):
+    model = EventImage
+    extra = 1
+
+class EventDocumentInline(admin.TabularInline):
+    model = EventDocument
+    extra = 1
 
 class EventRegistrationInline(admin.TabularInline):
     model = EventRegistration
     extra = 0
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_at',)
     can_delete = True
     classes = ['collapse']
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = (
-        'title', 
-        'start_date', 
-        'municipality', 
-        'club', 
-        'status', 
-        'target_audience',
-        'confirmed_participants_count', 
-        'max_seats'
-    )
-    list_filter = (
-        'status', 
-        'municipality', 
-        'target_audience', 
-        'is_recurring', 
-        'start_date'
-    )
+    list_display = ('title', 'start_date', 'municipality', 'club', 'status', 'confirmed_participants_count')
+    list_filter = ('status', 'municipality', 'is_global')
     search_fields = ('title', 'description', 'location_name')
-    readonly_fields = ('confirmed_participants_count', 'waitlist_count')
-    inlines = [EventRegistrationInline]
+    inlines = [EventImageInline, EventDocumentInline, EventRegistrationInline]
     
     fieldsets = (
         ('Basic Info', {
@@ -42,45 +34,26 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('start_date', 'end_date', 'is_recurring', 'recurrence_pattern')
         }),
         ('Location', {
-            'fields': ('location_name', 'address', 'latitude', 'longitude')
+            'fields': ('location_name', 'address', 'latitude', 'longitude', 'is_map_visible')
         }),
-        ('Audience Targeting', {
-            'fields': (
-                'is_global', 
-                'target_audience', 
-                'target_groups', 
-                'target_genders', 
-                'target_min_age', 
-                'target_max_age', 
-                'target_grades', 
-                'target_interests'
-            ),
-            'classes': ('collapse',)
+        ('Targeting', {
+            'fields': ('target_audience', 'target_groups', 'target_interests', 'target_grades', 'target_genders', 'target_min_age', 'target_max_age')
         }),
-        ('Registration Logic', {
-            'fields': (
-                'allow_registration', 
-                'requires_verified_account', 
-                'requires_guardian_approval', 
-                'requires_admin_approval',
-                'registration_open_date', 
-                'registration_close_date'
-            )
+        ('Registration & Capacity', {
+            'fields': ('allow_registration', 'max_seats', 'max_waitlist', 'enable_tickets')
         }),
-        ('Capacity & Tickets', {
-            'fields': ('max_seats', 'max_waitlist', 'enable_tickets')
+        ('Approvals', {
+            'fields': ('requires_verified_account', 'requires_guardian_approval', 'requires_admin_approval')
         }),
     )
 
 @admin.register(EventRegistration)
 class EventRegistrationAdmin(admin.ModelAdmin):
     list_display = ('user', 'event', 'status', 'created_at')
-    list_filter = ('status', 'event__municipality', 'created_at')
-    search_fields = ('user__email', 'user__first_name', 'event__title')
-    autocomplete_fields = ['user', 'event']
+    list_filter = ('status',)
+    search_fields = ('user__email', 'event__title')
 
 @admin.register(EventTicket)
 class EventTicketAdmin(admin.ModelAdmin):
-    list_display = ('ticket_code', 'registration', 'is_active', 'checked_in_at')
-    search_fields = ('ticket_code', 'registration__user__email')
-    readonly_fields = ('ticket_code',)
+    list_display = ('ticket_code', 'registration', 'is_active')
+    search_fields = ('ticket_code',)
