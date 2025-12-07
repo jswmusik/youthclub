@@ -19,11 +19,13 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
+  const [pendingEventApplicationsCount, setPendingEventApplicationsCount] = useState(0);
 
   useEffect(() => {
     refreshMessageCount();
     refreshPendingRequestsCount();
     refreshPendingBookingsCount();
+    refreshPendingEventApplicationsCount();
   }, []);
 
   const refreshPendingRequestsCount = async () => {
@@ -68,6 +70,31 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     }
   };
 
+  const refreshPendingEventApplicationsCount = async () => {
+    if (!user) {
+      setPendingEventApplicationsCount(0);
+      return;
+    }
+    
+    try {
+      const res = await api.get('/registrations/?ordering=-created_at');
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      // Filter for pending applications (PENDING_ADMIN or PENDING_GUARDIAN)
+      const pending = data.filter((r: any) => 
+        r.status === 'PENDING_ADMIN' || r.status === 'PENDING_GUARDIAN'
+      );
+      setPendingEventApplicationsCount(pending.length);
+    } catch (err: any) {
+      // Silently handle 401 (unauthorized) - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setPendingEventApplicationsCount(0);
+        return;
+      }
+      console.error('Failed to load pending event applications count', err);
+      setPendingEventApplicationsCount(0);
+    }
+  };
+
   const navigation = [
     { name: 'Overview', href: '/admin/municipality' },
     { name: 'My Municipality', href: '/admin/municipality/settings' },
@@ -79,6 +106,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'Manage Posts', href: '/admin/municipality/posts' },
     { name: 'Events', href: '/admin/municipality/events' },
     { name: 'Event Calendar', href: '/admin/municipality/events/calendar' },
+    { name: 'Event Applications', href: '/admin/municipality/events/applications' },
     { name: 'Questionnaires', href: '/admin/municipality/questionnaires' },
     { name: 'Groups', href: '/admin/municipality/groups' },
     { name: 'Applications', href: '/admin/municipality/groups/requests', showBadge: true },
@@ -147,6 +175,11 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                 {item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center rounded-full bg-yellow-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
                     {pendingBookingsCount}
+                  </span>
+                )}
+                {item.href.includes('/events/applications') && pendingEventApplicationsCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold min-w-[1.5rem] px-2 py-0.5">
+                    {pendingEventApplicationsCount}
                   </span>
                 )}
               </Link>

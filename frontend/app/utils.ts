@@ -13,3 +13,9 @@ export const getMediaUrl = (path: string | null | undefined) => {
     // We use localhost:8000 because that's where Django is running
     return `http://localhost:8000${normalizedPath}`;
   };
+
+export const getInitials = (firstName?: string, lastName?: string): string => {
+    const first = firstName?.charAt(0).toUpperCase() || '';
+    const last = lastName?.charAt(0).toUpperCase() || '';
+    return (first + last) || '?';
+};

@@ -332,9 +332,16 @@ export const updateYouth = async (id: number, data: any) => {
 
 // --- Notification API ---
 
-export const fetchNotifications = (categoryFilter: string = 'ALL') => {
-    // If filter is ALL, don't send a param, otherwise send ?category=X
-    const query = categoryFilter !== 'ALL' ? `?category=${categoryFilter}` : '';
+export const fetchNotifications = (categoryFilter: string = 'ALL', page: number = 1) => {
+    // Build query params
+    const params = new URLSearchParams();
+    if (categoryFilter !== 'ALL') {
+        params.append('category', categoryFilter);
+    }
+    params.append('page', page.toString());
+    params.append('page_size', '20'); // Fetch 20 per page
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
     return api.get(`/notifications/${query}`);
 };
 

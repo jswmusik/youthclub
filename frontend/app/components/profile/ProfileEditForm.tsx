@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { updateUserProfile, saveCustomFieldValues } from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
 import api from '@/lib/api';
+import Toast from '@/app/components/Toast';
 
 interface CustomField {
   id: number;
@@ -22,6 +23,12 @@ export default function ProfileEditForm({ user }: { user: any }) {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
   const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
+  
+  // Interests state
+  const [interestsList, setInterestsList] = useState<any[]>([]);
+  const [interestSearchTerm, setInterestSearchTerm] = useState('');
+  const [showInterestDropdown, setShowInterestDropdown] = useState(false);
   
   const [formData, setFormData] = useState({
     first_name: user.first_name || '',
@@ -35,6 +42,7 @@ export default function ProfileEditForm({ user }: { user: any }) {
     legal_gender: user.legal_gender || '',
     preferred_gender: user.preferred_gender || '',
     notification_email_enabled: user.notification_email_enabled !== undefined ? user.notification_email_enabled : true,
+    interests: user.interests ? user.interests.map((i: any) => typeof i === 'object' ? i.id : i) : [],
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -43,6 +51,22 @@ export default function ProfileEditForm({ user }: { user: any }) {
   // Previews
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar ? getMediaUrl(user.avatar) : null);
   const [bgPreview, setBgPreview] = useState<string | null>(user.background_image ? getMediaUrl(user.background_image) : null);
+
+  // Fetch interests list
+  useEffect(() => {
+    const fetchInterests = async () => {
+      try {
+        const response = await api.get('/interests/');
+        const interests = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data?.results || []);
+        setInterestsList(interests);
+      } catch (error) {
+        console.error('Failed to fetch interests:', error);
+      }
+    };
+    fetchInterests();
+  }, []);
 
   // Fetch custom fields
   useEffect(() => {
@@ -108,6 +132,31 @@ export default function ProfileEditForm({ user }: { user: any }) {
     }));
   };
 
+  // Interests handlers
+  const toggleInterest = (id: number) => {
+    setFormData(prev => {
+      const exists = prev.interests.includes(id);
+      return { 
+        ...prev, 
+        interests: exists ? prev.interests.filter((i: number) => i !== id) : [...prev.interests, id] 
+      };
+    });
+    setShowInterestDropdown(false);
+  };
+
+  const removeInterest = (id: number) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.filter((i: number) => i !== id)
+    }));
+  };
+
+  const getSelectedInterests = () => formData.interests.map((id: number) => interestsList.find(i => i.id === id)).filter(Boolean) as any[];
+  
+  const filteredInterests = interestsList.filter(i => 
+    i.name.toLowerCase().includes(interestSearchTerm.toLowerCase()) && !formData.interests.includes(i.id)
+  );
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'bg') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -127,17 +176,45 @@ export default function ProfileEditForm({ user }: { user: any }) {
 
     try {
       // Prepare data for API - convert empty strings to null/undefined for optional fields
-      const apiData: any = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        nickname: formData.nickname, // Explicitly include nickname
-        phone_number: formData.phone_number,
-        mood_status: formData.mood_status,
-        preferred_language: formData.preferred_language,
-        notification_email_enabled: formData.notification_email_enabled,
-        avatar: avatarFile || undefined,
-        background_image: bgFile || undefined
-      };
+      const formDataToSend = new FormData();
+      
+      // Add basic fields
+      formDataToSend.append('first_name', formData.first_name);
+      formDataToSend.append('last_name', formData.last_name);
+      formDataToSend.append('nickname', formData.nickname);
+      formDataToSend.append('phone_number', formData.phone_number);
+      formDataToSend.append('mood_status', formData.mood_status);
+      formDataToSend.append('preferred_language', formData.preferred_language);
+      formDataToSend.append('notification_email_enabled', formData.notification_email_enabled.toString());
+      
+      // Add files
+      if (avatarFile) {
+        formDataToSend.append('avatar', avatarFile);
+      }
+      if (bgFile) {
+        formDataToSend.append('background_image', bgFile);
+      }
+      
+      // Add optional fields
+      if (formData.date_of_birth) {
+        formDataToSend.append('date_of_birth', formData.date_of_birth);
+      }
+      if (formData.grade) {
+        formDataToSend.append('grade', formData.grade.toString());
+      }
+      if (formData.legal_gender) {
+        formDataToSend.append('legal_gender', formData.legal_gender);
+      }
+      if (formData.preferred_gender) {
+        formDataToSend.append('preferred_gender', formData.preferred_gender);
+      }
+      
+      // Add interests array
+      formData.interests.forEach((id: number) => {
+        formDataToSend.append('interests', id.toString());
+      });
+      
+      const apiData: any = formDataToSend;
       
       // Convert empty strings to null/undefined for optional fields
       if (formData.date_of_birth === '') {
@@ -164,8 +241,12 @@ export default function ProfileEditForm({ user }: { user: any }) {
         apiData.preferred_gender = formData.preferred_gender;
       }
       
-      // Update profile
-      await updateUserProfile(apiData);
+      // Update profile - use FormData directly for interests support
+      await api.patch('/auth/users/me/', apiData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
       // Update custom fields if there are any
       if (Object.keys(customFieldValues).length > 0) {
@@ -177,12 +258,17 @@ export default function ProfileEditForm({ user }: { user: any }) {
         await saveCustomFieldValues(valuesToSave);
       }
       
-      router.push('/dashboard/youth/profile');
-      router.refresh();
+      // Show success toast
+      setToast({ message: 'Profile updated successfully!', type: 'success', isVisible: true });
+      
+      // Redirect after a short delay to show the toast
+      setTimeout(() => {
+        router.push('/dashboard/youth/profile');
+        router.refresh();
+      }, 1500);
     } catch (error) {
       console.error("Update failed", error);
-      alert("Failed to update profile.");
-    } finally {
+      setToast({ message: 'Failed to update profile. Please try again.', type: 'error', isVisible: true });
       setLoading(false);
     }
   };
@@ -429,6 +515,94 @@ export default function ProfileEditForm({ user }: { user: any }) {
         </div>
       </div>
 
+      {/* Interests Section */}
+      <div className="mt-8">
+        <label className="block text-base font-semibold text-gray-700 mb-3">Interests</label>
+        
+        {/* Selected Interests Display */}
+        {formData.interests.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+            {getSelectedInterests().map(interest => (
+              <span 
+                key={interest.id}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-full font-medium"
+              >
+                {interest.name}
+                <button
+                  type="button"
+                  onClick={() => removeInterest(interest.id)}
+                  className="hover:bg-purple-700 rounded-full p-0.5 transition-colors"
+                  aria-label={`Remove ${interest.name}`}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Searchable Dropdown */}
+        <div className="relative mb-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search interests by name..."
+              value={interestSearchTerm}
+              onChange={(e) => {
+                setInterestSearchTerm(e.target.value);
+                setShowInterestDropdown(true);
+              }}
+              onFocus={() => setShowInterestDropdown(true)}
+              className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-base pr-10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+            />
+            <svg 
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          {/* Dropdown List */}
+          {showInterestDropdown && (
+            <>
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setShowInterestDropdown(false)}
+              ></div>
+              <div className="absolute z-20 w-full mt-1 bg-white border-2 border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {filteredInterests.length > 0 ? (
+                  filteredInterests.map(interest => (
+                    <button
+                      key={interest.id}
+                      type="button"
+                      onClick={() => toggleInterest(interest.id)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">{interest.name}</div>
+                    </button>
+                  ))
+                ) : interestSearchTerm ? (
+                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                    No interests found matching "{interestSearchTerm}"
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                    {formData.interests.length === 0 
+                      ? 'No interests available. Create interests in the admin panel first.'
+                      : 'All interests are already selected.'}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       <div className="flex items-center py-2">
         <input 
           id="notification_email" 
@@ -474,6 +648,13 @@ export default function ProfileEditForm({ user }: { user: any }) {
           {loading ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
+      
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={() => setToast({ ...toast, isVisible: false })} 
+      />
     </form>
   );
 }

@@ -1,7 +1,7 @@
 // frontend/app/dashboard/youth/notifications/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import NavBar from '../../../components/NavBar';
 import NotificationItem from '../../../components/notifications/NotificationItem';
@@ -19,27 +19,74 @@ export default function NotificationPage() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [filter, setFilter] = useState<string>('ALL');
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [notificationToDelete, setNotificationToDelete] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const observerTarget = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
-    // 1. Fetch Data
-    useEffect(() => {
-        loadData();
-    }, [filter]);
-
-    const loadData = async () => {
-        setLoading(true);
+    // Load data with pagination support
+    const loadData = useCallback(async (pageNum: number, append: boolean = false) => {
         try {
-            const res = await fetchNotifications(filter);
-            setNotifications(res.data.results || res.data);
+            if (append) {
+                setLoadingMore(true);
+            } else {
+                setLoading(true);
+            }
+            
+            const res = await fetchNotifications(filter, pageNum);
+            const newNotifications = res.data.results || res.data;
+            
+            if (append) {
+                setNotifications(prev => [...prev, ...newNotifications]);
+            } else {
+                setNotifications(newNotifications);
+            }
+            
+            // Check if there are more pages
+            setHasMore(!!res.data.next);
         } catch (error) {
             console.error("Failed to fetch", error);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
-    };
+    }, [filter]);
+
+    // Reset and load first page when filter changes
+    useEffect(() => {
+        setPage(1);
+        setHasMore(true);
+        loadData(1, false);
+    }, [filter, loadData]);
+
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+                    const nextPage = page + 1;
+                    setPage(nextPage);
+                    loadData(nextPage, true);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasMore, loadingMore, loading, page, loadData]);
 
     // 2. Logic Handlers
     const handleItemClick = async (notif: Notification) => {
@@ -58,7 +105,7 @@ export default function NotificationPage() {
                 // If navigation fails, try to delete the notification as it may point to a deleted resource
                 try {
                     await deleteNotification(notif.id);
-                    loadData(); // Reload notifications
+                    loadData(1, false); // Reload notifications from first page
                 } catch (deleteError) {
                     console.error('Failed to delete invalid notification:', deleteError);
                 }
@@ -107,7 +154,7 @@ export default function NotificationPage() {
                         <button 
                             onClick={async () => {
                                 await markAllNotificationsRead();
-                                loadData();
+                                loadData(1, false); // Reload from first page
                             }}
                             className="text-sm text-blue-600 hover:underline"
                         >
@@ -123,15 +170,27 @@ export default function NotificationPage() {
                                 No notifications found.
                             </div>
                         ) : (
-                            // REUSABLE ITEM COMPONENT
-                            notifications.map((notif) => (
-                                <NotificationItem 
-                                    key={notif.id}
-                                    notification={notif}
-                                    onClick={handleItemClick}
-                                    onDelete={handleDeleteClick}
-                                />
-                            ))
+                            <>
+                                {/* REUSABLE ITEM COMPONENT */}
+                                {notifications.map((notif) => (
+                                    <NotificationItem 
+                                        key={notif.id}
+                                        notification={notif}
+                                        onClick={handleItemClick}
+                                        onDelete={handleDeleteClick}
+                                    />
+                                ))}
+                                
+                                {/* Infinite Scroll Trigger */}
+                                <div ref={observerTarget} className="h-10 flex items-center justify-center">
+                                    {loadingMore && (
+                                        <div className="flex items-center gap-2 text-gray-500">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                            <span className="text-sm">Loading more...</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </div>
                 </main>

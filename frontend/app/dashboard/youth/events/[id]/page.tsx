@@ -6,7 +6,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
 import { Event } from '@/types/event';
-import { MapPin, Calendar, Clock, FileText, ChevronLeft, ChevronRight, CheckCircle, ArrowLeft, XCircle, AlertCircle } from 'lucide-react';
+import { MapPin, Calendar, Clock, FileText, ChevronLeft, ChevronRight, CheckCircle, ArrowLeft, XCircle, AlertCircle, UserPlus } from 'lucide-react';
 import { GoogleMap, Marker, LoadScript } from '@react-google-maps/api';
 import EventRegistrationModal from '@/app/components/events/youth/EventRegistrationModal';
 import NavBar from '@/app/components/NavBar';
@@ -87,6 +87,11 @@ export default function EventDetailPage() {
     const userStatus = (event as any).user_registration_status; 
     const isRegistered = !!userStatus && userStatus !== 'CANCELLED';
     const isFull = (event as any).is_full || (event.max_seats > 0 && event.confirmed_participants_count >= event.max_seats);
+    
+    // Check if registration has closed
+    const isRegistrationClosed = event?.allow_registration && event?.registration_close_date 
+        ? new Date(event.registration_close_date) < new Date()
+        : false;
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -271,13 +276,30 @@ export default function EventDetailPage() {
                                         </div>
                                         <span className="font-medium">{event.location_name}</span>
                                     </div>
+                                    {event.allow_registration && event.registration_close_date && (
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            <div className="bg-blue-100 p-1.5 rounded-lg">
+                                                <UserPlus className="w-4 h-4 text-blue-600" />
+                                            </div>
+                                            <span>
+                                                <span className="font-medium">Registration closes:</span>{' '}
+                                                {new Date(event.registration_close_date).toLocaleString([], {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Description */}
                                 <div className="mb-8">
                                     <h3 className="font-bold text-gray-900 mb-3">About this Event</h3>
                                     <div 
-                                        className="prose prose-sm max-w-none text-gray-700" 
+                                        className="news-content" 
                                         dangerouslySetInnerHTML={{ __html: event.description }} 
                                     />
                                 </div>
@@ -306,10 +328,11 @@ export default function EventDetailPage() {
                                 ) : (
                                     <button 
                                         onClick={() => setRegModalOpen(true)}
-                                        disabled={!event.allow_registration || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
+                                        disabled={!event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
                                         className="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                                     >
-                                        {!event.allow_registration ? 'Registration Closed' : 
+                                        {!event.allow_registration ? 'Registration not needed' : 
+                                         isRegistrationClosed ? 'Too late to register' :
                                          (event.max_seats > 0 && isFull) ? 'Join Waitlist' : 'Register Now'}
                                     </button>
                                 )}

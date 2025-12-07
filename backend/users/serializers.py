@@ -3,7 +3,7 @@ from .models import User, GuardianYouthLink
 from django.http import QueryDict
 from django.db import transaction
 from django.utils.crypto import get_random_string
-from organization.models import Club
+from organization.models import Club, Interest
 from organization.serializers import InterestSerializer, ClubSerializer
 from custom_fields.models import CustomFieldDefinition, CustomFieldValue
 from groups.models import GroupMembership
@@ -75,8 +75,8 @@ class UserListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'nickname', 'avatar_url', 'grade']
-        read_only_fields = ['id', 'email', 'first_name', 'last_name', 'nickname', 'avatar_url', 'grade']
+        fields = ['id', 'email', 'first_name', 'last_name', 'nickname', 'avatar_url', 'grade', 'legal_gender']
+        read_only_fields = ['id', 'email', 'first_name', 'last_name', 'nickname', 'avatar_url', 'grade', 'legal_gender']
     
     def get_avatar_url(self, obj):
         if obj.avatar:
@@ -92,6 +92,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
     youth_members = serializers.SerializerMethodField()
     custom_field_values = serializers.SerializerMethodField()
     interests = InterestSerializer(many=True, read_only=True)
+    # Writable field for interests (accepts list of IDs)
+    interests_ids = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Interest.objects.all(), 
+        source='interests',
+        required=False,
+        write_only=True
+    )
     my_memberships = serializers.SerializerMethodField()
     my_rewards = serializers.SerializerMethodField()
     preferred_club = ClubSerializer(read_only=True)
@@ -108,7 +116,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'grade', 'preferred_club', 'nickname',
             'legal_gender', 'preferred_gender', 'date_of_birth',
             'avatar', 'preferred_language', 'is_active',
-            'date_joined', 'last_login', 'hide_contact_info', 'interests',
+            'date_joined', 'last_login', 'hide_contact_info', 'interests', 'interests_ids',
             'verification_status', 'guardians', 'youth_members', 'custom_field_values',
             # --- NEW FIELDS ---
             'background_image', 
@@ -231,6 +239,33 @@ class CustomUserSerializer(serializers.ModelSerializer):
                 'sponsor': u.reward.sponsor_name if u.reward else ''
             })
         return data
+    
+    def update(self, instance, validated_data):
+        """
+        Override update to handle interests from FormData (QueryDict).
+        """
+        # Handle interests from FormData
+        interests = validated_data.pop('interests', None)
+        
+        # If interests is None, try to get it from initial_data (FormData)
+        if interests is None and hasattr(self, 'initial_data'):
+            request_data = self.initial_data
+            if isinstance(request_data, QueryDict):
+                raw = request_data.getlist('interests')
+                if raw:
+                    interests = [int(i) for i in raw if i.strip()]
+        
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()
+        
+        # Update interests if provided
+        if interests is not None:
+            instance.interests.set(interests)
+        
+        return instance
 
 
 class UserManagementSerializer(serializers.ModelSerializer):

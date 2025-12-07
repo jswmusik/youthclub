@@ -1,19 +1,18 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import api from '@/lib/api';
-import EventCard from '@/app/components/events/youth/EventCard';
+import MemberEventCalendar from '@/app/components/events/youth/MemberEventCalendar';
 import NavBar from '@/app/components/NavBar';
-import { Search, Calendar, MapPin, Building2, X, UserCheck } from 'lucide-react';
+import { Search, Calendar, MapPin, Building2, X, UserCheck, Heart } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Event } from '@/types/event';
+import api from '@/lib/api';
 
-export default function YouthEventsPage() {
+export default function YouthCalendarPage() {
     const router = useRouter();
     const { user } = useAuth();
-    const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+    const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [fromDate, setFromDate] = useState('');
@@ -21,51 +20,9 @@ export default function YouthEventsPage() {
     const [filterMyClub, setFilterMyClub] = useState(false);
     const [filterMyMunicipality, setFilterMyMunicipality] = useState(false);
     const [filterMyEvents, setFilterMyEvents] = useState(false);
-
-    const fetchData = useCallback(async () => {
-        try {
-            setLoading(true);
-            // Fetch published events (backend filters by published status for youth users)
-            // Deleted events are automatically excluded since they're removed from the database
-            const res = await api.get('/events/');
-            const all = res.data.results || res.data;
-            setUpcomingEvents(all);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (user) {
-            fetchData();
-        }
-    }, [user, fetchData]);
-
-    // Refresh data when page becomes visible or window regains focus
-    // This handles cases where events are deleted in another tab or window
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible' && user) {
-                fetchData();
-            }
-        };
-
-        const handleFocus = () => {
-            if (user) {
-                fetchData();
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', handleFocus);
-        
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', handleFocus);
-        };
-    }, [user, fetchData]);
+    const [selectedInterests, setSelectedInterests] = useState<number[]>([]);
+    const [interestsList, setInterestsList] = useState<any[]>([]);
+    const [viewMode, setViewMode] = useState<'monthly' | 'weekly'>('weekly');
 
     // Get user's municipality and club IDs
     const userMunicipalityId = user?.assigned_municipality 
@@ -75,10 +32,35 @@ export default function YouthEventsPage() {
         : null;
     
     const userClubId = user?.preferred_club?.id || null;
+    const userInterests = user?.interests || [];
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [eventsRes, interestsRes] = await Promise.all([
+                api.get('/events/'),
+                api.get('/interests/')
+            ]);
+            const allEvents = eventsRes.data.results || eventsRes.data;
+            setEvents(allEvents);
+            const interests = Array.isArray(interestsRes.data) ? interestsRes.data : (interestsRes.data.results || []);
+            setInterestsList(interests);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user) {
+            fetchData();
+        }
+    }, [user]);
 
     // Apply all filters
     const filteredEvents = useMemo(() => {
-        let filtered = [...upcomingEvents];
+        let filtered = [...events];
 
         // Search filter
         if (search) {
@@ -95,13 +77,13 @@ export default function YouthEventsPage() {
         }
         if (toDate) {
             const to = new Date(toDate);
-            to.setHours(23, 59, 59, 999); // Include the entire end date
+            to.setHours(23, 59, 59, 999);
             filtered = filtered.filter(e => new Date(e.start_date) <= to);
         }
 
         // My Club filter
         if (filterMyClub && userClubId) {
-            filtered = filtered.filter((event: Event) => {
+            filtered = filtered.filter((event: any) => {
                 const eventClubId = typeof event.club === 'object' 
                     ? event.club?.id 
                     : event.club;
@@ -111,7 +93,7 @@ export default function YouthEventsPage() {
 
         // My Municipality filter
         if (filterMyMunicipality && userMunicipalityId) {
-            filtered = filtered.filter((event: Event) => {
+            filtered = filtered.filter((event: any) => {
                 const eventMunicipalityId = typeof event.municipality === 'object' 
                     ? event.municipality.id 
                     : event.municipality;
@@ -122,14 +104,21 @@ export default function YouthEventsPage() {
         // Events I'm Attending filter
         if (filterMyEvents) {
             filtered = filtered.filter((event: any) => {
-                // Check if user has a registration status (not null/undefined)
                 const userStatus = event.user_registration_status;
                 return userStatus && userStatus !== 'CANCELLED';
             });
         }
 
+        // Interest filter
+        if (selectedInterests.length > 0) {
+            filtered = filtered.filter((event: any) => {
+                const eventInterests = event.target_interests || [];
+                return selectedInterests.some(interestId => eventInterests.includes(interestId));
+            });
+        }
+
         return filtered;
-    }, [upcomingEvents, search, fromDate, toDate, filterMyClub, filterMyMunicipality, filterMyEvents, userClubId, userMunicipalityId]);
+    }, [events, search, fromDate, toDate, filterMyClub, filterMyMunicipality, filterMyEvents, selectedInterests, userClubId, userMunicipalityId]);
 
     const clearFilters = () => {
         setSearch('');
@@ -138,9 +127,18 @@ export default function YouthEventsPage() {
         setFilterMyClub(false);
         setFilterMyMunicipality(false);
         setFilterMyEvents(false);
+        setSelectedInterests([]);
     };
 
-    const hasActiveFilters = search || fromDate || toDate || filterMyClub || filterMyMunicipality || filterMyEvents;
+    const hasActiveFilters = search || fromDate || toDate || filterMyClub || filterMyMunicipality || filterMyEvents || selectedInterests.length > 0;
+
+    const toggleInterest = (interestId: number) => {
+        setSelectedInterests(prev => 
+            prev.includes(interestId) 
+                ? prev.filter(id => id !== interestId)
+                : [...prev, interestId]
+        );
+    };
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -263,6 +261,31 @@ export default function YouthEventsPage() {
                                     <UserCheck className="w-4 h-4" />
                                     Events I'm Attending
                                 </button>
+
+                                {/* Interests Filter */}
+                                {interestsList.length > 0 && (
+                                    <div>
+                                        <label className="block text-xs text-gray-600 mb-2">My Interests</label>
+                                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                                            {interestsList
+                                                .filter(interest => userInterests.includes(interest.id))
+                                                .map(interest => (
+                                                    <button
+                                                        key={interest.id}
+                                                        onClick={() => toggleInterest(interest.id)}
+                                                        className={`w-full text-left px-3 py-2 rounded-md text-xs transition-colors flex items-center gap-2 ${
+                                                            selectedInterests.includes(interest.id)
+                                                                ? 'bg-green-50 text-green-700 font-medium border border-green-200'
+                                                                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        <Heart className={`w-3 h-3 ${selectedInterests.includes(interest.id) ? 'fill-current' : ''}`} />
+                                                        {interest.name}
+                                                    </button>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Clear Filters */}
                                 {hasActiveFilters && (
@@ -393,21 +416,20 @@ export default function YouthEventsPage() {
                                     News
                                 </button>
                                 
-                                {/* Events - Active */}
+                                {/* Events */}
                                 <button
                                     onClick={() => router.push('/dashboard/youth/events')}
+                                    className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50 flex items-center justify-between"
+                                >
+                                    <span>Events</span>
+                                </button>
+                                
+                                {/* Event Calendar - Active */}
+                                <button
+                                    onClick={() => router.push('/dashboard/youth/events/calendar')}
                                     className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors bg-green-50 text-green-700 font-medium flex items-center gap-2"
                                 >
                                     <Calendar className="w-4 h-4" />
-                                    Events
-                                </button>
-                                
-                                {/* Event Calendar */}
-                                <button
-                                    onClick={() => router.push('/dashboard/youth/events/calendar')}
-                                    className="w-full text-left px-3 py-2 rounded-md text-sm transition-colors text-gray-600 hover:bg-gray-50 flex items-center gap-2"
-                                >
-                                    <Calendar className="w-4 h-4 text-gray-400" />
                                     Event Calendar
                                 </button>
                             </div>
@@ -418,51 +440,28 @@ export default function YouthEventsPage() {
                     <main className="flex-1">
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Discover Events</h1>
+                                <h1 className="text-2xl font-bold text-gray-900">Event Calendar</h1>
                                 <p className="text-sm text-gray-500 mt-1">
                                     {hasActiveFilters 
-                                        ? `Found ${filteredEvents.length} event${filteredEvents.length !== 1 ? 's' : ''}`
-                                        : 'Find exciting activities happening near you'}
+                                        ? `Showing ${filteredEvents.length} event${filteredEvents.length !== 1 ? 's' : ''}`
+                                        : 'Find events by date'}
                                 </p>
                             </div>
                             <Link 
-                                href="/dashboard/youth/events/my-tickets"
-                                className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 shadow-sm transition-colors flex items-center gap-2"
+                                href="/dashboard/youth/events" 
+                                className="text-sm text-blue-600 font-bold hover:underline"
                             >
-                                <Calendar className="w-4 h-4" />
-                                My Tickets
+                                View List
                             </Link>
                         </div>
-
-                        {loading ? (
-                            <div className="text-center py-10 text-gray-500">Loading events...</div>
-                        ) : filteredEvents.length === 0 ? (
-                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
-                                <div className="max-w-md mx-auto">
-                                    <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500 mb-2 font-medium">No events found</p>
-                                    <p className="text-sm text-gray-400 mb-4">
-                                        {hasActiveFilters 
-                                            ? 'Try adjusting your filters to see more events.' 
-                                            : 'Check back later for new events!'}
-                                    </p>
-                                    {hasActiveFilters && (
-                                        <button
-                                            onClick={clearFilters}
-                                            className="text-green-600 font-semibold hover:underline"
-                                        >
-                                            Clear all filters →
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {filteredEvents.map(event => (
-                                    <EventCard key={event.id} event={event} />
-                                ))}
-                            </div>
-                        )}
+                        
+                        <MemberEventCalendar 
+                            events={filteredEvents} 
+                            loading={loading} 
+                            onEventUpdate={fetchData}
+                            viewMode={viewMode}
+                            onViewModeChange={setViewMode}
+                        />
                     </main>
                 </div>
             </div>

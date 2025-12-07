@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.utils.text import slugify
 import uuid
 
 # Import dependencies from your existing apps
@@ -52,6 +53,7 @@ class Event(models.Model):
     organizer_name = models.CharField(max_length=100, blank=True, help_text="Override name if different from Club")
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    scheduled_publish_date = models.DateTimeField(null=True, blank=True, help_text="Optional: Schedule when to publish this event. If set and status is SCHEDULED, status will change to PUBLISHED automatically at this time.")
 
     # --- B. Date & Time ---
     start_date = models.DateTimeField()
@@ -59,8 +61,13 @@ class Event(models.Model):
     
     is_recurring = models.BooleanField(default=False)
     recurrence_pattern = models.CharField(max_length=20, choices=Recurrence.choices, default=Recurrence.NONE)
+    # NEW: Date to stop repeating
+    recurrence_end_date = models.DateField(null=True, blank=True, help_text="Last date of the recurring series")
     # Used to query the "next" relevant date for recurring events without creating infinite db rows
     next_occurrence = models.DateTimeField(null=True, blank=True)
+    
+    # Optional: Link instances together (parent/child) if you want to edit them all at once later
+    parent_event = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='recurring_instances')
 
     # --- C. Location ---
     location_name = models.CharField(max_length=255)
@@ -84,8 +91,8 @@ class Event(models.Model):
 
     # 3. Demographic Filters (Only apply if no group is selected)
     target_genders = models.JSONField(default=list, blank=True, help_text='List of genders e.g. ["MALE", "FEMALE"]')
-    target_min_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(0)])
-    target_max_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(100)])
+    target_min_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(120)])
+    target_max_age = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(120)])
     target_grades = models.JSONField(default=list, blank=True, help_text='List of grades e.g. [7, 8, 9]')
     target_interests = models.ManyToManyField(Interest, blank=True, related_name='targeted_events')
 
@@ -108,6 +115,31 @@ class Event(models.Model):
     send_reminders = models.BooleanField(default=True, help_text="Send automated 24h and 2h reminders")
     custom_welcome_message = models.TextField(blank=True, help_text="Message sent in notification when seat is confirmed")
 
+    # --- H. SEO Settings ---
+    slug = models.SlugField(max_length=255, unique=True, help_text="URL-friendly version of the title (auto-generated if not provided)")
+    meta_description = models.TextField(max_length=500, blank=True, help_text="Meta description for search engines")
+    meta_tags = models.CharField(max_length=500, blank=True, help_text="Comma-separated meta tags/keywords")
+    page_title = models.CharField(max_length=255, blank=True, help_text="Custom page title (defaults to event title if not set)")
+    
+    # Social Media Meta Data (Open Graph)
+    og_title = models.CharField(max_length=255, blank=True, help_text="Open Graph title for social media sharing")
+    og_description = models.TextField(max_length=500, blank=True, help_text="Open Graph description for social media sharing")
+    og_image = models.FileField(upload_to='events/og-images/', blank=True, null=True, validators=[image_validator], help_text="Open Graph image for social media sharing")
+    
+    # Twitter Card Meta Data
+    twitter_card_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('summary', 'Summary'),
+            ('summary_large_image', 'Summary Large Image'),
+        ],
+        default='summary_large_image',
+        help_text="Twitter card type"
+    )
+    twitter_title = models.CharField(max_length=255, blank=True, help_text="Twitter card title")
+    twitter_description = models.TextField(max_length=500, blank=True, help_text="Twitter card description")
+    twitter_image = models.FileField(upload_to='events/twitter-images/', blank=True, null=True, validators=[image_validator], help_text="Twitter card image")
+
     # --- Metrics (Denormalized counters for performance) ---
     confirmed_participants_count = models.PositiveIntegerField(default=0)
     waitlist_count = models.PositiveIntegerField(default=0)
@@ -120,6 +152,29 @@ class Event(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.start_date.date()})"
+    
+    def save(self, *args, **kwargs):
+        """Auto-generate slug from title if not provided"""
+        # Only generate slug if it's truly empty (None or empty string)
+        if not self.slug or self.slug.strip() == '':
+            base_slug = slugify(self.title)
+            if not base_slug:  # If title doesn't slugify to anything, use a default
+                base_slug = 'event'
+            slug = base_slug
+            counter = 1
+            max_attempts = 100  # Prevent infinite loop
+            attempts = 0
+            # Ensure uniqueness - check with current pk excluded
+            while Event.objects.filter(slug=slug).exclude(pk=self.pk).exists() and attempts < max_attempts:
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+                attempts += 1
+            if attempts >= max_attempts:
+                # Fallback to UUID-based slug if we can't find a unique one
+                import uuid
+                slug = f"{base_slug}-{str(uuid.uuid4())[:8]}"
+            self.slug = slug
+        super().save(*args, **kwargs)
         
     @property
     def is_full(self):
