@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from './posts/PostCard';
 import { fetchUnreadNotificationCount, visits } from '../../lib/api';
+import { messengerApi } from '../../lib/messenger-api'; // Import messengerApi
 import ActiveVisitModal from './visits/ActiveVisitModal';
 
 export default function NavBar() {
@@ -13,7 +14,8 @@ export default function NavBar() {
     const { user, logout } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [showMenu, setShowMenu] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [unreadCount, setUnreadCount] = useState(0); // Notifications
+    const [messageUnreadCount, setMessageUnreadCount] = useState(0); // Messages
     const [activeVisit, setActiveVisit] = useState<{id: number, is_checked_in: boolean, club_name?: string, check_in_at?: string} | null>(null);
     const [showVisitModal, setShowVisitModal] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -34,23 +36,25 @@ export default function NavBar() {
         router.push('/login');
     };
 
-    // --- Fetch Unread Count ---
+    // --- Fetch Unread Counts (Notifications & Messages) ---
     useEffect(() => {
-        const loadUnreadCount = async () => {
+        const loadCounts = async () => {
             if (!user) return;
 
             try {
-                const res = await fetchUnreadNotificationCount();
-                setUnreadCount(res.data.count);
+                const [notifRes, msgRes] = await Promise.all([
+                    fetchUnreadNotificationCount(),
+                    messengerApi.getUnreadCount()
+                ]);
+                setUnreadCount(notifRes.data.count);
+                setMessageUnreadCount(msgRes.data.count);
             } catch (error) {
-                console.error("Failed to load notification count", error);
+                console.error("Failed to load counts", error);
             }
         };
 
-        loadUnreadCount();
-        
-        // Optional: Poll every 60 seconds to keep it fresh
-        const interval = setInterval(loadUnreadCount, 60000);
+        loadCounts();
+        const interval = setInterval(loadCounts, 60000);
         return () => clearInterval(interval);
     }, [user]);
 
@@ -225,6 +229,7 @@ export default function NavBar() {
                             }
                             label="Messages"
                             onClick={() => router.push('/dashboard/youth/messages')}
+                            badge={messageUnreadCount} // Added badge
                         />
                         
                         {/* --- NOTIFICATIONS WITH BADGE (closer to avatar) --- */}

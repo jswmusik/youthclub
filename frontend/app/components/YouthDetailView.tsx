@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../lib/api';
+import { messengerApi } from '../../lib/messenger-api'; // Import
 import { getMediaUrl } from '../../app/utils';
 import CustomFieldsDisplay from './CustomFieldsDisplay';
 import IndividualHistory from './questionnaires/IndividualHistory';
@@ -14,6 +15,8 @@ interface YouthDetailProps {
 }
 
 export default function YouthDetailView({ userId, basePath }: YouthDetailProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +59,24 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
       age--;
     }
     return age;
+  };
+
+  // Helper
+  const getInboxPath = () => {
+    if (pathname.includes('/admin/super')) return '/admin/super/inbox';
+    if (pathname.includes('/admin/municipality')) return '/admin/municipality/inbox';
+    if (pathname.includes('/admin/club')) return '/admin/club/inbox';
+    return '/admin/club/inbox'; // Fallback
+  };
+
+  const handleSendMessage = async () => {
+    try {
+      await messengerApi.startConversation(parseInt(userId));
+      router.push(getInboxPath());
+    } catch (err) {
+      console.error("Failed to start conversation", err);
+      alert("Could not start conversation.");
+    }
   };
 
   const buildUrlWithParams = (path: string) => {
@@ -110,6 +131,16 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
             Back to List
           </Link>
           <div className="flex gap-3">
+            {/* New Message Button */}
+            <button 
+              onClick={handleSendMessage}
+              className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg font-semibold hover:bg-gray-50 hover:text-indigo-600 shadow-sm transition-all"
+            >
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Message
+            </button>
             {/* View Visits Button */}
             <Link 
               href={`${basePath}/${userId}/visits`} 

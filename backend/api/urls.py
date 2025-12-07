@@ -52,5 +52,6 @@ urlpatterns = [
     path('inventory/', include('inventory.urls')),
     path('questionnaires/', include('questionnaires.urls')),
     path('bookings/', include('bookings.urls')),
+    path('messenger/', include('messenger.urls')),
     path('', include('events.urls')),
 ]

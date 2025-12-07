@@ -44,9 +44,9 @@ export default function SystemAlert() {
         setIsVisible(true);
       }
     } catch (err: any) {
-      // Silently fail - don't show errors for missing messages
-      // Only log actual errors (not 404s or empty responses)
-      if (err?.response?.status !== 404) {
+      // Silently fail - don't show errors for missing messages or auth issues
+      // Only log actual errors (not 404s, 401s, or empty responses)
+      if (err?.response?.status !== 404 && err?.response?.status !== 401) {
         console.error('Error fetching system message:', err);
       }
       setIsVisible(false);

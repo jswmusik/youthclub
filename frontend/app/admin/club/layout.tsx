@@ -97,6 +97,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
 
   const navigation = [
     { name: 'Overview', href: '/admin/club' },
+    { name: 'Inbox', href: '/admin/club/inbox', showBadge: true }, // Added Inbox
     { name: 'Visits & Kiosk', href: '/admin/club/visits' },
     { name: 'Club Details', href: '/admin/club/details' },
     { name: 'Manage Opening Hours', href: '/admin/club/opening-hours' },

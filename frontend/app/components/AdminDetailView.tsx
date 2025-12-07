@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'; // Added useRouter, usePathname
 import Link from 'next/link';
 import api from '../../lib/api';
+import { messengerApi } from '../../lib/messenger-api'; // Import messengerApi
 import { getMediaUrl } from '../../app/utils';
 
 interface AdminDetailProps {
@@ -14,6 +15,8 @@ interface AdminDetailProps {
 interface Option { id: number; name: string; }
 
 export default function AdminDetailView({ userId, basePath }: AdminDetailProps) {
+  const router = useRouter();
+  const pathname = usePathname(); // To detect current admin scope
   const searchParams = useSearchParams();
   const [admin, setAdmin] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +51,26 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
     return firstInitial + lastInitial || '?';
   };
 
+  // Helper to determine redirect path based on current URL
+  const getInboxPath = () => {
+    if (pathname.includes('/admin/super')) return '/admin/super/inbox';
+    if (pathname.includes('/admin/municipality')) return '/admin/municipality/inbox';
+    if (pathname.includes('/admin/club')) return '/admin/club/inbox';
+    return '/admin/super/inbox'; // Fallback
+  };
+
+  const handleSendMessage = async () => {
+    try {
+      // Start conversation
+      await messengerApi.startConversation(parseInt(userId));
+      // Redirect to inbox
+      router.push(getInboxPath());
+    } catch (err) {
+      console.error("Failed to start conversation", err);
+      alert("Could not start conversation.");
+    }
+  };
+
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
     const page = searchParams.get('page');
@@ -71,9 +94,20 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <Link href={buildUrlWithParams(basePath)} className="text-gray-500 hover:text-gray-900 font-bold">← Back to List</Link>
-        <Link href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)} className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">
-          Edit Admin
-        </Link>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleSendMessage}
+            className="bg-indigo-600 text-white px-4 py-2 rounded font-bold hover:bg-indigo-700 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            Message
+          </button>
+          <Link href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)} className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">
+            Edit Admin
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">

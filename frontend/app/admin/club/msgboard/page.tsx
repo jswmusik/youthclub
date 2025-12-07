@@ -138,9 +138,15 @@ function ClubMessageBoardContent() {
       list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setMessages(list);
       refreshMessageCount();
-    } catch (err) {
-      console.error(err);
-      setToast({ message: 'Failed to load messages.', type: 'error', isVisible: true });
+    } catch (err: any) {
+      // Handle 401 (unauthorized) gracefully - user might not be logged in or token expired
+      if (err?.response?.status === 401) {
+        setMessages([]);
+        // Don't show error toast for auth issues
+      } else {
+        console.error(err);
+        setToast({ message: 'Failed to load messages.', type: 'error', isVisible: true });
+      }
     } finally {
       setLoading(false);
     }

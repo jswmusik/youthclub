@@ -98,6 +98,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
     const navigation = [
         { name: 'Overview', href: '/admin/super' },
+        { name: 'Inbox', href: '/admin/super/inbox', showBadge: true }, // Added Inbox
         { name: 'Manage Admins', href: '/admin/super/admins' },
         { name: 'Manage Youth', href: '/admin/super/youth' },
         { name: 'Manage Guardians', href: '/admin/super/guardians' },

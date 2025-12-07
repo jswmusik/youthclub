@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'questionnaires',
     'bookings',
     'events',
+    'messenger',
 ]
 
 MIDDLEWARE = [

@@ -97,6 +97,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
 
   const navigation = [
     { name: 'Overview', href: '/admin/municipality' },
+    { name: 'Inbox', href: '/admin/municipality/inbox', showBadge: true }, // Added Inbox
     { name: 'My Municipality', href: '/admin/municipality/settings' },
     { name: 'Manage Clubs', href: '/admin/municipality/clubs' },
     { name: 'Manage Admins', href: '/admin/municipality/admins' },
