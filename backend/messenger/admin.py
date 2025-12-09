@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Conversation, Message, MessageRecipient, MessageTemplate
+from .models import Conversation, Message, MessageRecipient, MessageTemplate, ConversationUserStatus
 
 class MessageInline(admin.TabularInline):
     model = Message
@@ -19,5 +19,10 @@ class MessageAdmin(admin.ModelAdmin):
 class MessageRecipientAdmin(admin.ModelAdmin):
     list_display = ('message', 'recipient', 'is_read', 'is_deleted')
     list_filter = ('is_read', 'is_deleted')
+
+@admin.register(ConversationUserStatus)
+class ConversationUserStatusAdmin(admin.ModelAdmin):
+    list_display = ('conversation', 'user', 'is_hidden', 'is_deleted', 'hidden_at', 'deleted_at')
+    list_filter = ('is_hidden', 'is_deleted')
 
 admin.site.register(MessageTemplate)

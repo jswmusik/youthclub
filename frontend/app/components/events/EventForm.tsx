@@ -866,15 +866,21 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     }
                     
                     // Handle legitimate array fields
-                    if (key === 'target_genders' || key === 'target_grades') {
-                        // JSON fields - send as JSON string
-                        data.append(key, JSON.stringify(value));
-                    } else if (key === 'target_groups' || key === 'target_interests') {
-                        // ManyToMany fields - send multiple entries
+                    // For JSON fields (target_genders, target_grades) and ManyToMany fields (target_groups, target_interests),
+                    // send as multiple FormData entries (one per value)
+                    if (key === 'target_groups' || key === 'target_interests') {
+                        // ManyToMany fields - send multiple entries with IDs
                         value.forEach(item => {
                             if (item !== null && item !== undefined) {
                                 const itemId = typeof item === 'object' && item !== null && 'id' in item ? item.id : item;
                                 data.append(key, itemId.toString());
+                            }
+                        });
+                    } else if (key === 'target_genders' || key === 'target_grades') {
+                        // JSON fields - send as multiple entries (backend will parse them as array)
+                        value.forEach(item => {
+                            if (item !== null && item !== undefined) {
+                                data.append(key, item.toString());
                             }
                         });
                     } else {

@@ -8,6 +8,7 @@ import { messengerApi } from '../../lib/messenger-api'; // Import
 import { getMediaUrl } from '../../app/utils';
 import CustomFieldsDisplay from './CustomFieldsDisplay';
 import IndividualHistory from './questionnaires/IndividualHistory';
+import QuickMessageModal from './messenger/QuickMessageModal';
 
 interface YouthDetailProps {
   userId: string;
@@ -23,6 +24,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
   const [clubs, setClubs] = useState<any[]>([]);
   const [interests, setInterests] = useState<any[]>([]);
   const [guardians, setGuardians] = useState<any[]>([]);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -69,14 +71,9 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
     return '/admin/club/inbox'; // Fallback
   };
 
-  const handleSendMessage = async () => {
-    try {
-      await messengerApi.startConversation(parseInt(userId));
-      router.push(getInboxPath());
-    } catch (err) {
-      console.error("Failed to start conversation", err);
-      alert("Could not start conversation.");
-    }
+  const handleSendMessage = () => {
+    // Open modal instead of redirecting
+    setShowMessageModal(true);
   };
 
   const buildUrlWithParams = (path: string) => {
@@ -482,6 +479,21 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           </div>
         </div>
       </div>
+
+      {/* Quick Message Modal */}
+      {user && (
+        <QuickMessageModal
+          isOpen={showMessageModal}
+          onClose={() => setShowMessageModal(false)}
+          recipientId={parseInt(userId)}
+          recipientName={`${user.first_name} ${user.last_name}`}
+          onSuccess={() => {
+            // Optional: Could redirect to inbox here if desired
+            // const inboxPath = getInboxPath();
+            // router.push(`${inboxPath}?threadId=${conversationId}`);
+          }}
+        />
+      )}
     </div>
   );
 }

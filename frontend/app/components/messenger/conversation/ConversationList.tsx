@@ -2,6 +2,8 @@
 
 import { ConversationList as ConversationListType } from '../../../../types/messenger';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '../../../../context/AuthContext';
+import { getMediaUrl } from '../../../../app/utils';
 
 interface ConversationListProps {
     conversations: ConversationListType[];
@@ -10,6 +12,7 @@ interface ConversationListProps {
 }
 
 export default function ConversationList({ conversations, selectedId, onSelect }: ConversationListProps) {
+    const { user: currentUser } = useAuth();
     if (conversations.length === 0) {
         return (
             <div className="p-8 text-center text-gray-500 text-sm">
@@ -24,6 +27,39 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                 const isSelected = selectedId === conv.id;
                 const isUnread = conv.unread_count > 0;
 
+                // Determine avatar to show
+                let avatarUrl: string | null = null;
+                let avatarInitials = '';
+                let showGroupIcon = false;
+
+                if (conv.type === 'BROADCAST') {
+                    // Show group icon for broadcasts
+                    showGroupIcon = true;
+                } else if (conv.type === 'SYSTEM') {
+                    // Keep emoji for system messages
+                    showGroupIcon = false;
+                } else if (conv.type === 'DM') {
+                    // For DMs, find the other participant (not the current user)
+                    const otherParticipant = conv.participants.find(p => p.id !== currentUser?.id);
+                    if (otherParticipant) {
+                        avatarUrl = otherParticipant.avatar_url ? getMediaUrl(otherParticipant.avatar_url) : null;
+                        avatarInitials = `${otherParticipant.first_name?.[0] || ''}${otherParticipant.last_name?.[0] || ''}`.toUpperCase();
+                    } else if (conv.last_message?.sender_avatar) {
+                        // Fallback to last message sender avatar
+                        avatarUrl = getMediaUrl(conv.last_message.sender_avatar) || null;
+                    } else if (conv.last_message?.sender_name) {
+                        // Fallback to last message sender initials
+                        const names = conv.last_message.sender_name.split(' ');
+                        avatarInitials = `${names[0]?.[0] || ''}${names[1]?.[0] || ''}`.toUpperCase();
+                    } else {
+                        // Final fallback to subject initial
+                        avatarInitials = conv.subject?.[0]?.toUpperCase() || '#';
+                    }
+                } else {
+                    // Default fallback
+                    avatarInitials = conv.subject?.[0]?.toUpperCase() || '#';
+                }
+
                 return (
                     <li key={conv.id}>
                         <button
@@ -34,11 +70,27 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                         >
                             {/* Icon / Avatar Context */}
                             <div className="flex-shrink-0 mt-1">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg
-                                    ${conv.type === 'SYSTEM' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}
-                                `}>
-                                    {conv.type === 'SYSTEM' ? '📢' : (conv.subject?.[0] || '#')}
-                                </div>
+                                {conv.type === 'SYSTEM' ? (
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-orange-100 text-orange-600">
+                                        📢
+                                    </div>
+                                ) : conv.type === 'BROADCAST' ? (
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600">
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                    </div>
+                                ) : avatarUrl ? (
+                                    <img 
+                                        src={avatarUrl} 
+                                        alt={avatarInitials || 'Avatar'}
+                                        className="w-10 h-10 rounded-full object-cover bg-gray-200"
+                                    />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 font-semibold text-sm">
+                                        {avatarInitials}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Content */}

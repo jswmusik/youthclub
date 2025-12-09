@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Toast from '../../../components/Toast';
 
 interface MessageComposerProps {
     onSend: (content: string, attachment?: File) => Promise<void>;
@@ -12,6 +13,13 @@ export default function MessageComposer({ onSend, disabled }: MessageComposerPro
     const [file, setFile] = useState<File | null>(null);
     const [sending, setSending] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    // Toast state
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
+        message: '',
+        type: 'error',
+        isVisible: false,
+    });
 
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -24,7 +32,11 @@ export default function MessageComposer({ onSend, disabled }: MessageComposerPro
             setFile(null);
         } catch (err) {
             console.error(err);
-            alert('Failed to send message');
+            setToast({ 
+                message: 'Failed to send message', 
+                type: 'error', 
+                isVisible: true 
+            });
         } finally {
             setSending(false);
         }
@@ -100,6 +112,14 @@ export default function MessageComposer({ onSend, disabled }: MessageComposerPro
                     )}
                 </button>
             </form>
+            
+            {/* Toast Notification */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={() => setToast({ ...toast, isVisible: false })}
+            />
         </div>
     );
 }

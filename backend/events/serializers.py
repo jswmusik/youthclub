@@ -97,43 +97,103 @@ class EventSerializer(serializers.ModelSerializer):
         import json
         import ast
         
-        # Convert QueryDict to regular dict for easier manipulation
+        # Create a new dict to avoid pickle issues with file objects
+        # Don't use copy() on QueryDict with files - it tries to deepcopy file objects
         if isinstance(data, QueryDict):
-            data = data.copy()
+            # Build a new dict, handling file objects carefully
+            processed_data = {}
+            for key in data.keys():
+                # Get list of values for this key
+                value_list = data.getlist(key)
+                if len(value_list) > 0:
+                    # For file fields, keep the file object directly (don't try to copy)
+                    if key in ['cover_image', 'og_image', 'twitter_image']:
+                        # File fields - take the first file object
+                        processed_data[key] = value_list[0] if value_list else None
+                    else:
+                        # Non-file fields - store as list or single value
+                        processed_data[key] = value_list if len(value_list) > 1 else value_list[0]
+            data = processed_data
         elif hasattr(data, '_mutable') and not data._mutable:
-            data = data.copy()
+            # For immutable QueryDict, create a new dict
+            processed_data = {}
+            for key in data.keys():
+                value_list = data.getlist(key) if hasattr(data, 'getlist') else [data.get(key)]
+                if len(value_list) > 0:
+                    if key in ['cover_image', 'og_image', 'twitter_image']:
+                        processed_data[key] = value_list[0] if value_list else None
+                    else:
+                        processed_data[key] = value_list if len(value_list) > 1 else value_list[0]
+            data = processed_data
         elif isinstance(data, dict):
             data = dict(data)
         
-        if isinstance(data, dict) or hasattr(data, 'get'):
+        if isinstance(data, dict):
             # Fields that should be arrays (ManyToMany or JSON fields)
             array_fields = ['target_groups', 'target_interests', 'target_genders', 'target_grades']
+            json_fields = ['target_genders', 'target_grades']
             
             for key in list(data.keys()):
-                # Get value - QueryDict.getlist() returns a list, get() returns single value or list
-                if isinstance(data, QueryDict):
-                    # QueryDict can return lists for multiple values
-                    value_list = data.getlist(key)
-                    if len(value_list) > 1:
-                        # Multiple values - this is correct for array fields
-                        if key in array_fields:
-                            continue  # Keep as list for array fields
-                        else:
-                            # For non-array fields, take first value
-                            value = value_list[0]
-                            data[key] = value
-                    elif len(value_list) == 1:
-                        value = value_list[0]
-                    else:
-                        value = None
-                else:
-                    value = data.get(key) if hasattr(data, 'get') else data.get(key, '')
+                # Get value - could be a list or single value
+                value = data.get(key)
                 
                 # Skip if value is None or empty
                 if value is None or value == '':
                     continue
                 
-                # Skip array fields - they're handled separately
+                # Handle JSON fields (target_genders, target_grades)
+                if key in json_fields:
+                    # If it's a list (from FormData multiple entries), convert to proper array
+                    if isinstance(value, list):
+                        # Filter out empty strings and convert to proper types
+                        filtered = [v for v in value if v and str(v).strip()]
+                        if filtered:
+                            # For target_grades, convert strings to integers
+                            if key == 'target_grades':
+                                try:
+                                    data[key] = [int(v) for v in filtered]
+                                except (ValueError, TypeError):
+                                    data[key] = filtered
+                            else:
+                                data[key] = filtered
+                        else:
+                            data[key] = []
+                    # If it's a string that looks like JSON, parse it
+                    elif isinstance(value, str) and value.strip().startswith('[') and value.strip().endswith(']'):
+                        try:
+                            parsed = json.loads(value.strip())
+                            if isinstance(parsed, list):
+                                # For target_grades, convert strings to integers
+                                if key == 'target_grades':
+                                    try:
+                                        data[key] = [int(v) for v in parsed if v]
+                                    except (ValueError, TypeError):
+                                        data[key] = parsed
+                                else:
+                                    data[key] = parsed
+                            else:
+                                data[key] = []
+                        except (json.JSONDecodeError, ValueError):
+                            # If JSON parsing fails, try as single value
+                            if key == 'target_grades':
+                                try:
+                                    data[key] = [int(value)]
+                                except (ValueError, TypeError):
+                                    data[key] = [value]
+                            else:
+                                data[key] = [value]
+                    # If it's a single value, convert to list
+                    else:
+                        if key == 'target_grades':
+                            try:
+                                data[key] = [int(value)]
+                            except (ValueError, TypeError):
+                                data[key] = [value]
+                        else:
+                            data[key] = [value]
+                    continue
+                
+                # Skip other array fields - they're handled by DRF's ManyToMany handling
                 if key in array_fields:
                     continue
                 

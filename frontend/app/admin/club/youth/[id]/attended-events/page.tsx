@@ -255,10 +255,12 @@ export default function AttendedEventsPage() {
                             const event = registration.event_detail;
                             if (!event) return null;
 
-                            const eventDate = new Date(event.start_date);
-                            const eventEndDate = new Date(event.end_date);
-                            const isPast = eventEndDate < new Date();
-                            const isUpcoming = eventDate > new Date();
+                            const eventDate = event.start_date ? new Date(event.start_date) : null;
+                            const eventEndDate = event.end_date ? new Date(event.end_date) : null;
+                            const isValidEventDate = eventDate && !isNaN(eventDate.getTime());
+                            const isValidEventEndDate = eventEndDate && !isNaN(eventEndDate.getTime());
+                            const isPast = isValidEventEndDate && eventEndDate < new Date();
+                            const isUpcoming = isValidEventDate && eventDate > new Date();
                             const isAttended = registration.status === 'ATTENDED';
 
                             return (
@@ -286,19 +288,23 @@ export default function AttendedEventsPage() {
                                                         
                                                         <div className="space-y-2 text-sm text-gray-600">
                                                             {/* Date & Time */}
-                                                            <div className="flex items-center gap-2">
-                                                                <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                                <span>
-                                                                    {format(eventDate, 'EEEE, MMMM d, yyyy')}
-                                                                </span>
-                                                            </div>
+                                                            {isValidEventDate && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                                    <span>
+                                                                        {format(eventDate, 'EEEE, MMMM d, yyyy')}
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                             
-                                                            <div className="flex items-center gap-2">
-                                                                <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                                <span>
-                                                                    {format(eventDate, 'h:mm a')} - {format(eventEndDate, 'h:mm a')}
-                                                                </span>
-                                                            </div>
+                                                            {isValidEventDate && isValidEventEndDate && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                                    <span>
+                                                                        {format(eventDate, 'h:mm a')} - {format(eventEndDate, 'h:mm a')}
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                             
                                                             {/* Location */}
                                                             {event.location_name && (
@@ -313,10 +319,12 @@ export default function AttendedEventsPage() {
                                                                 <div className="flex items-center gap-2 text-green-600 font-medium">
                                                                     <CheckCircle className="w-4 h-4 flex-shrink-0" />
                                                                     <span>
-                                                                        Attended on {format(new Date(registration.updated_at), 'MMM d, yyyy')}
+                                                                        Attended on {registration.updated_at && !isNaN(new Date(registration.updated_at).getTime()) 
+                                                                            ? format(new Date(registration.updated_at), 'MMM d, yyyy')
+                                                                            : 'N/A'}
                                                                     </span>
                                                                 </div>
-                                                            ) : isUpcoming ? (
+                                                            ) : isUpcoming && isValidEventDate ? (
                                                                 <div className="flex items-center gap-2 text-blue-600 font-medium">
                                                                     <Calendar className="w-4 h-4 flex-shrink-0" />
                                                                     <span>

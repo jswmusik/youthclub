@@ -7,6 +7,7 @@ import api from '../../lib/api';
 import { messengerApi } from '../../lib/messenger-api'; // Import messengerApi
 import { getMediaUrl } from '../../app/utils';
 import CustomFieldsDisplay from './CustomFieldsDisplay';
+import QuickMessageModal from './messenger/QuickMessageModal';
 import { verifyGuardianRelationship, rejectGuardianRelationship, resetGuardianRelationship } from '../../lib/api';
 import Toast from './Toast';
 import ConfirmationModal from './ConfirmationModal';
@@ -24,6 +25,7 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
   const [loading, setLoading] = useState(true);
   const [youthList, setYouthList] = useState<any[]>([]);
   const [relationships, setRelationships] = useState<any[]>([]);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -64,14 +66,9 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
     return '/admin/club/inbox';
   };
 
-  const handleSendMessage = async () => {
-    try {
-      await messengerApi.startConversation(parseInt(userId));
-      router.push(getInboxPath());
-    } catch (err) {
-      console.error("Failed to start conversation", err);
-      alert("Could not start conversation.");
-    }
+  const handleSendMessage = () => {
+    // Open modal instead of redirecting
+    setShowMessageModal(true);
   };
 
   const buildUrlWithParams = (path: string) => {
@@ -188,15 +185,15 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
               </svg>
               Message
             </button>
-            <Link 
-              href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} 
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit Guardian
-            </Link>
+          <Link 
+            href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} 
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit Guardian
+          </Link>
           </div>
         </div>
 
@@ -475,6 +472,16 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
           </div>
         </div>
       </div>
+
+      {/* Quick Message Modal */}
+      {user && (
+        <QuickMessageModal
+          isOpen={showMessageModal}
+          onClose={() => setShowMessageModal(false)}
+          recipientId={parseInt(userId)}
+          recipientName={`${user.first_name} ${user.last_name}`}
+        />
+      )}
     </div>
   );
 }

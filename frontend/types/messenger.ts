@@ -10,6 +10,8 @@ export interface MessageSender {
     role?: string; // Optional, useful for admins
 }
 
+export type ReactionType = 'LIKE' | 'LOVE' | 'LAUGH' | 'WOW' | 'SAD' | 'ANGRY';
+
 export interface Message {
     id: number;
     sender: MessageSender;
@@ -21,6 +23,9 @@ export interface Message {
         is_read: boolean;
         read_at: string | null;
     } | null;
+    reaction_count?: number;
+    reaction_breakdown?: Record<ReactionType, number>;
+    user_reaction?: ReactionType | null;
 }
 
 export interface ConversationList {
@@ -34,6 +39,7 @@ export interface ConversationList {
         content: string;
         created_at: string;
         sender_name: string;
+        sender_avatar?: string | null;
     } | null;
     participants: MessageSender[];
 }
@@ -50,13 +56,19 @@ export interface BroadcastFilters {
     specific_filters?: {
         gender?: string;
         grade?: number;
-        interests?: number[];
+        interests?: number[]; // List of IDs
+        
+        // New Fields
+        age_min?: number;
+        age_max?: number;
+        groups?: number[]; // List of Group IDs. If set, overrides other filters.
     };
 }
 
 export interface SendMessagePayload {
     conversation_id?: number;
     recipient_id?: number; // For new DMs
+    subject?: string; // Optional subject for new conversations
     content?: string;
     attachment?: File;
 }

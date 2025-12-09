@@ -101,6 +101,39 @@ class MessageRecipient(models.Model):
         return f"{self.recipient} - {self.message} (Read: {self.is_read})"
 
 
+class ConversationUserStatus(models.Model):
+    """
+    Tracks per-user status for conversations (hidden, archived, etc.)
+    """
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name='user_statuses'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='conversation_statuses'
+    )
+    
+    # Hide: Removes from inbox but reappears when new message arrives
+    is_hidden = models.BooleanField(default=False)
+    hidden_at = models.DateTimeField(null=True, blank=True)
+    
+    # Deleted: Permanently removed (only for DMs, requires admin permission for broadcasts)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ('conversation', 'user')
+        indexes = [
+            models.Index(fields=['user', 'is_hidden', 'is_deleted']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user} - {self.conversation} (Hidden: {self.is_hidden}, Deleted: {self.is_deleted})"
+
+
 class MessageTemplate(models.Model):
     """
     Templates for admins (e.g., 'Class Cancelled', 'Welcome').
@@ -117,3 +150,39 @@ class MessageTemplate(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.owner})"
+
+
+class MessageReaction(models.Model):
+    """
+    Stores user reactions to messages (similar to PostReaction).
+    """
+    class ReactionType(models.TextChoices):
+        LIKE = 'LIKE', 'Like'
+        LOVE = 'LOVE', 'Love'
+        LAUGH = 'LAUGH', 'Laugh'
+        WOW = 'WOW', 'Wow'
+        SAD = 'SAD', 'Sad'
+        ANGRY = 'ANGRY', 'Angry'
+    
+    message = models.ForeignKey(
+        Message, 
+        on_delete=models.CASCADE, 
+        related_name='reactions'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='message_reactions'
+    )
+    reaction_type = models.CharField(
+        max_length=10, 
+        choices=ReactionType.choices, 
+        default=ReactionType.LIKE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('message', 'user', 'reaction_type')  # One reaction type per user per message
+
+    def __str__(self):
+        return f"{self.user} {self.get_reaction_type_display()} {self.message}"

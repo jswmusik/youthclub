@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '../../lib/api';
 import { messengerApi } from '../../lib/messenger-api'; // Import messengerApi
 import { getMediaUrl } from '../../app/utils';
+import QuickMessageModal from './messenger/QuickMessageModal';
 
 interface AdminDetailProps {
   userId: string;
@@ -22,6 +23,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
   const [loading, setLoading] = useState(true);
   const [municipalities, setMunicipalities] = useState<Option[]>([]);
   const [clubs, setClubs] = useState<Option[]>([]);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,16 +61,9 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
     return '/admin/super/inbox'; // Fallback
   };
 
-  const handleSendMessage = async () => {
-    try {
-      // Start conversation
-      await messengerApi.startConversation(parseInt(userId));
-      // Redirect to inbox
-      router.push(getInboxPath());
-    } catch (err) {
-      console.error("Failed to start conversation", err);
-      alert("Could not start conversation.");
-    }
+  const handleSendMessage = () => {
+    // Open modal instead of redirecting
+    setShowMessageModal(true);
   };
 
   const buildUrlWithParams = (path: string) => {
@@ -104,9 +99,9 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
             </svg>
             Message
           </button>
-          <Link href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)} className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">
-            Edit Admin
-          </Link>
+        <Link href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)} className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">
+          Edit Admin
+        </Link>
         </div>
       </div>
 
@@ -182,6 +177,16 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
           )}
         </div>
       </div>
+
+      {/* Quick Message Modal */}
+      {admin && (
+        <QuickMessageModal
+          isOpen={showMessageModal}
+          onClose={() => setShowMessageModal(false)}
+          recipientId={parseInt(userId)}
+          recipientName={`${admin.first_name} ${admin.last_name}`}
+        />
+      )}
     </div>
   );
 }

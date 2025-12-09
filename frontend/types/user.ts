@@ -5,9 +5,23 @@ export interface UserProfile {
     email: string;
     first_name: string;
     last_name: string;
+    nickname?: string;
     phone_number?: string;
     avatar?: string;
+    avatar_url?: string | null;
+    role?: string;
     preferred_club?: number | { id: number; name: string } | null;
+    club?: {
+        id: number;
+        name: string;
+        municipality?: string | null;
+        is_in_youth_municipality?: boolean;
+        is_followed?: boolean;
+    };
+    municipality?: {
+        id: number;
+        name: string;
+    };
     // ... other fields
 }
 

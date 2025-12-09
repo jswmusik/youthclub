@@ -1,9 +1,11 @@
-# backend/messenger/service.py
+# backend/messenger/services.py
 
+from datetime import date
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from users.models import GuardianYouthLink
 from organization.models import Club
+from groups.models import GroupMembership  # Make sure to import this
 from .models import Conversation, Message, MessageRecipient
 
 User = get_user_model()
@@ -112,18 +114,40 @@ class PermissionService:
         if recipient.role in ['YOUTH_MEMBER', 'GUARDIAN']:
             return False, "Youth cannot contact other youth or guardians"
 
+        # Youth CAN contact Municipality Admins in their municipality
+        if recipient.role == 'MUNICIPALITY_ADMIN':
+            if not recipient.assigned_municipality:
+                return False, "Municipality admin has no assigned municipality"
+            
+            # Check if youth's preferred club is in the same municipality
+            if sender.preferred_club and sender.preferred_club.municipality == recipient.assigned_municipality:
+                return True, "OK"
+            
+            return False, "Municipality admin is not in your municipality"
+
         # Youth CAN contact Club Admins of their preferred or followed clubs
         if recipient.role == 'CLUB_ADMIN':
             club = recipient.assigned_club
-            if club:
-                is_preferred = sender.preferred_club == club
-                is_following = sender.followed_clubs.filter(id=club.id).exists()
-                if is_preferred or is_following:
-                    # Check if admin allows contact (Graceful fallback if field missing)
-                    if getattr(recipient, 'allow_youth_contact', True):
-                        return True, "OK"
-                    else:
-                        return False, "This admin does not accept messages from youth"
+            if not club:
+                return False, "Club admin has no assigned club"
+            
+            # Check if club is in youth's municipality OR youth follows the club
+            is_in_municipality = (
+                sender.preferred_club and 
+                sender.preferred_club.municipality and 
+                club.municipality == sender.preferred_club.municipality
+            )
+            is_preferred = sender.preferred_club == club
+            is_following = sender.followed_clubs.filter(id=club.id).exists()
+            
+            if is_in_municipality or is_preferred or is_following:
+                # Check if admin allows contact (Graceful fallback if field missing)
+                if getattr(recipient, 'allow_youth_contact', True):
+                    return True, "OK"
+                else:
+                    return False, "This admin does not accept messages from youth"
+            
+            return False, "Club admin is not in your municipality or a club you follow"
 
         return False, "You cannot start a conversation with this user"
 
@@ -169,7 +193,14 @@ class BroadcastService:
                 - target_level: 'GLOBAL', 'MUNICIPALITY', 'CLUB'
                 - target_id: ID (optional if implied by sender)
                 - recipient_type: 'YOUTH', 'GUARDIAN', 'BOTH', 'ADMINS'
-                - specific_filters: { 'grade': 5, 'gender': 'MALE', 'interests': [1,2] }
+                - specific_filters: { 
+                    'grade': 5, 
+                    'gender': 'MALE', 
+                    'interests': [1,2],
+                    'age_min': 12,
+                    'age_max': 18,
+                    'groups': [1,2]  # If set, overrides other filters
+                }
         Returns:
             QuerySet[User]
         """
@@ -207,7 +238,43 @@ class BroadcastService:
                 Q(youth_links__youth__preferred_club__municipality_id=muni_id)
             ).distinct()
 
-        # 2. Filter by Recipient Type
+        # 2. Extract Filters
+        spec_filters = filters.get('specific_filters', {})
+        groups = spec_filters.get('groups', [])
+
+        # --- LOGIC BRANCH: GROUPS OVERRIDE ---
+        if groups:
+            # If groups are selected, we target members of those groups WITHIN the admin's scope
+            # We ignore gender, grade, age, etc.
+            # We still respect recipient_type to an extent (e.g. if I select 'GUARDIANS' and 'Gaming Group', 
+            # do I want parents of gamers? Or just ignore group? 
+            # Use case: "Send to [Gaming Group]" usually implies the members.
+            
+            # Get users in these groups
+            group_users = User.objects.filter(
+                group_memberships__group_id__in=groups,
+                group_memberships__status='APPROVED'
+            ).distinct()
+            
+            # Intersect with Scope (security check)
+            recipients = scope_users.filter(id__in=group_users.values('id'))
+            
+            # Optional: If you want to strictly apply recipient_type even on groups
+            # e.g. "Guardians of kids in Gaming Group" -> logic would be complex.
+            # Simple interpretation: Group Override means "Send to these group members".
+            # But we should probably still filter by Role if the user explicitly selected "YOUTH" vs "GUARDIAN".
+            r_type = filters.get('recipient_type')
+            if r_type == 'YOUTH':
+                recipients = recipients.filter(role='YOUTH_MEMBER')
+            elif r_type == 'GUARDIAN':
+                recipients = recipients.filter(role='GUARDIAN')
+            # If BOTH, keep all.
+            
+            return recipients.exclude(id=sender.id).distinct()
+
+        # --- STANDARD LOGIC (No Groups) ---
+        
+        # Filter by Recipient Type first
         r_type = filters.get('recipient_type')
         
         if r_type == 'YOUTH':
@@ -220,18 +287,47 @@ class BroadcastService:
             # Only Super Admin can broadcast to admins
             recipients = scope_users.filter(role__in=['MUNICIPALITY_ADMIN', 'CLUB_ADMIN'])
 
-        # 3. Apply Segmentation Filters (Spec 8.1)
-        spec_filters = filters.get('specific_filters', {})
+        # Apply Segmentation
         
+        # Gender
         if spec_filters.get('gender'):
             recipients = recipients.filter(legal_gender=spec_filters['gender'])
             
+        # Grade (Only relevant for Youth usually, but safe to filter)
         if spec_filters.get('grade'):
             recipients = recipients.filter(grade=spec_filters['grade'])
             
+        # Interests
         if spec_filters.get('interests'):
             # ManyToMany filter: users who have ANY of these interests
             recipients = recipients.filter(interests__id__in=spec_filters['interests'])
+
+        # Age Calculation
+        age_min = spec_filters.get('age_min')
+        age_max = spec_filters.get('age_max')
+        
+        if age_min is not None or age_max is not None:
+            today = date.today()
+            # To be X years old today, you must be born on or before today - X years
+            # To be max Y years old, you must be born on or after today - (Y+1) years
+            
+            if age_min is not None:
+                # Calculate date X years ago (handles leap years safely)
+                try:
+                    max_dob = today.replace(year=today.year - age_min)
+                except ValueError:
+                    # Handle leap year edge case (Feb 29)
+                    max_dob = today.replace(year=today.year - age_min, day=28)
+                recipients = recipients.filter(date_of_birth__lte=max_dob)
+            
+            if age_max is not None:
+                # E.g. Max 18. If born today-19 years, you are 19 (excluded). 
+                try:
+                    min_dob = today.replace(year=today.year - (age_max + 1))
+                except ValueError:
+                    # Handle leap year edge case (Feb 29)
+                    min_dob = today.replace(year=today.year - (age_max + 1), day=28)
+                recipients = recipients.filter(date_of_birth__gt=min_dob)
 
         # Exclude the sender themselves if they happened to be caught in the filter
         return recipients.exclude(id=sender.id).distinct()

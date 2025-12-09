@@ -144,8 +144,8 @@ function ClubMessageBoardContent() {
         setMessages([]);
         // Don't show error toast for auth issues
       } else {
-        console.error(err);
-        setToast({ message: 'Failed to load messages.', type: 'error', isVisible: true });
+      console.error(err);
+      setToast({ message: 'Failed to load messages.', type: 'error', isVisible: true });
       }
     } finally {
       setLoading(false);

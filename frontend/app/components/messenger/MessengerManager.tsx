@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'; // Import hooks
 import { messengerApi } from '../../../lib/messenger-api';
 import { ConversationList as ConversationListType } from '../../../types/messenger';
 import TwoColumnLayout from './layouts/TwoColumnLayout';
@@ -12,22 +13,31 @@ interface MessengerManagerProps {
 }
 
 export default function MessengerManager({ role, scope }: MessengerManagerProps) {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+    
+    // Read ?threadId= from URL
+    const initialThreadId = searchParams.get('threadId') 
+        ? parseInt(searchParams.get('threadId')!) 
+        : null;
+
     const [conversations, setConversations] = useState<ConversationListType[]>([]);
-    const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
+    const [selectedThreadId, setSelectedThreadId] = useState<number | null>(initialThreadId);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('ALL'); // 'ALL', 'UNREAD', 'SYSTEM', etc.
+    const [filter, setFilter] = useState('ALL'); // 'ALL', 'YOUTH', 'GUARDIAN', 'SYSTEM', 'GROUP'
+    const [searchQuery, setSearchQuery] = useState('');
 
     const fetchConversations = useCallback(async () => {
         try {
-            // In a real app, you might pass 'filter' to the API here
-            const res = await messengerApi.getConversations();
+            const res = await messengerApi.getConversations(1, filter, searchQuery);
             setConversations(res.data.results);
         } catch (error) {
             console.error("Failed to load conversations", error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [filter, searchQuery]);
 
     // Initial Load & Polling (Simple Real-time MVP)
     useEffect(() => {
@@ -38,10 +48,32 @@ export default function MessengerManager({ role, scope }: MessengerManagerProps)
         return () => clearInterval(interval);
     }, [fetchConversations]);
 
+    // Handle deep linking: If URL has threadId, select it once conversations are loaded
+    useEffect(() => {
+        if (initialThreadId && conversations.length > 0) {
+            // Verify it exists in list (optional, but good UX)
+            const exists = conversations.find(c => c.id === initialThreadId);
+            if (exists) {
+                setSelectedThreadId(initialThreadId);
+            }
+        }
+    }, [initialThreadId, conversations.length]); // Run when ID changes or list loads
+
     const handleSelectThread = (id: number) => {
         setSelectedThreadId(id);
-        // Optimistically mark as read in UI or trigger fetch?
-        // Usually, the ConversationDetail component handles the "mark read" API call on mount.
+        // Update URL to reflect selected thread for better UX and bookmarking
+        if (id) {
+            router.replace(`${pathname}?threadId=${id}`, { scroll: false });
+        } else {
+            router.replace(pathname, { scroll: false });
+        }
+    };
+    
+    const handleConversationCreated = (conversationId: number) => {
+        // Ensure the conversation is selected
+        setSelectedThreadId(conversationId);
+        // Update URL
+        router.replace(`${pathname}?threadId=${conversationId}`, { scroll: false });
     };
 
     const handleRefresh = () => {
@@ -58,7 +90,10 @@ export default function MessengerManager({ role, scope }: MessengerManagerProps)
                 loading={loading}
                 filter={filter}
                 onSetFilter={setFilter}
+                searchQuery={searchQuery}
+                onSetSearchQuery={setSearchQuery}
                 onRefresh={handleRefresh}
+                scope={scope}
             />
         );
     }
@@ -71,6 +106,9 @@ export default function MessengerManager({ role, scope }: MessengerManagerProps)
             onSelectThread={handleSelectThread}
             loading={loading}
             onRefresh={handleRefresh}
+            searchQuery={searchQuery}
+            onSetSearchQuery={setSearchQuery}
+            onConversationCreated={handleConversationCreated}
         />
     );
 }
