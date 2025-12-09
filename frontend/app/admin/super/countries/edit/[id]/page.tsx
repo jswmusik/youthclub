@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import CountryForm from '@/app/components/CountryForm';
+import { Card } from '@/components/ui/card';
 
 export default function Page() {
   const { id } = useParams() as { id: string };
@@ -13,12 +14,14 @@ export default function Page() {
     if(id) api.get(`/countries/${id}/`).then(res => setData(res.data));
   }, [id]);
 
-  if (!data) return <div className="p-8">Loading...</div>;
+  if (!data) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="text-gray-400 animate-pulse">Loading...</div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="p-8">
-      <CountryForm initialData={data} redirectPath="/admin/super/countries" />
-    </div>
-  );
+  return <CountryForm initialData={data} redirectPath="/admin/super/countries" />;
 }
 

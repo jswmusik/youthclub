@@ -22,6 +22,21 @@ class CountryViewSet(viewsets.ModelViewSet):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
 
+    def get_queryset(self):
+        queryset = Country.objects.all()
+        
+        # Search functionality
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(country_code__icontains=search) |
+                Q(currency_code__icontains=search) |
+                Q(default_language__icontains=search)
+            )
+        
+        return queryset.order_by('name')
+
     def get_permissions(self):
         # Allow anyone to read the list (needed for login/registration dropdowns)
         if self.action in ['list', 'retrieve']:

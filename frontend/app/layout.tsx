@@ -4,7 +4,11 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import SystemAlert from "./components/SystemAlert";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "The Youth App",
@@ -18,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${inter.className}`}>
         <AuthProvider>
           <SystemAlert />
           {children}

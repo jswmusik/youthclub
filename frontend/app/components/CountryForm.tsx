@@ -2,9 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import Toast from './Toast';
+
+// Shadcn Components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface CountryFormProps {
   initialData?: any;
@@ -73,120 +82,150 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        {initialData ? 'Edit Country' : 'Add New Country'}
-      </h2>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-bold mb-1 text-gray-700">Name</label>
-            <input 
-              required 
-              type="text" 
-              className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" 
-              placeholder="e.g. Sweden"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold mb-1 text-gray-700">Country Code (ISO)</label>
-            <input 
-              required 
-              type="text" 
-              className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none uppercase" 
-              placeholder="e.g. SE"
-              maxLength={5}
-              value={formData.country_code}
-              onChange={e => setFormData({ ...formData, country_code: e.target.value.toUpperCase() })}
-            />
-          </div>
-        </div>
-
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link href={redirectPath}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
         <div>
-          <label className="block text-sm font-bold mb-1 text-gray-700">Description</label>
-          <textarea 
-            required 
-            rows={3} 
-            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" 
-            placeholder="General description of the country settings..."
-            value={formData.description}
-            onChange={e => setFormData({ ...formData, description: e.target.value })}
-          />
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            {initialData ? 'Edit Country' : 'Add New Country'}
+          </h1>
+          <p className="text-gray-500 mt-1.5 text-sm">
+            {initialData ? 'Update country information and settings' : 'Create a new country configuration'}
+          </p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-bold mb-1 text-gray-700">Currency</label>
-            <input 
-              type="text" 
-              className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none uppercase" 
-              placeholder="e.g. SEK"
-              value={formData.currency_code}
-              onChange={e => setFormData({ ...formData, currency_code: e.target.value.toUpperCase() })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold mb-1 text-gray-700">Language</label>
-            <input 
-              type="text" 
-              className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" 
-              placeholder="e.g. sv"
-              value={formData.default_language}
-              onChange={e => setFormData({ ...formData, default_language: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold mb-1 text-gray-700">Timezone</label>
-            <input 
-              type="text" 
-              className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" 
-              placeholder="e.g. Europe/Stockholm"
-              value={formData.timezone}
-              onChange={e => setFormData({ ...formData, timezone: e.target.value })}
-            />
-          </div>
-        </div>
-
-        {/* Avatar / Flag */}
-        <div className="flex items-center gap-6">
-          <div className="flex-1">
-            <label className="block text-sm font-bold mb-2 text-gray-700">Flag / Avatar</label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleFileChange}
-              className="w-full border p-2 rounded text-sm"
-            />
-          </div>
-          {avatarPreview && (
-            <div className="w-24 h-24 border rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm">
-              <img src={avatarPreview} alt="Preview" className="w-full h-full object-contain" />
+      {/* Form Card */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-gray-900">
+            {initialData ? 'Country Details' : 'Country Information'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-semibold text-gray-900">Name</Label>
+                <Input 
+                  id="name"
+                  required 
+                  type="text" 
+                  placeholder="e.g. Sweden"
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country_code" className="text-sm font-semibold text-gray-900">Country Code (ISO)</Label>
+                <Input 
+                  id="country_code"
+                  required 
+                  type="text" 
+                  placeholder="e.g. SE"
+                  maxLength={5}
+                  value={formData.country_code}
+                  onChange={e => setFormData({ ...formData, country_code: e.target.value.toUpperCase() })}
+                  className="uppercase"
+                />
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="flex justify-end gap-4 border-t pt-6">
-          <button 
-            type="button" 
-            onClick={() => router.push(redirectPath)} 
-            className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition"
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {loading ? 'Saving...' : (initialData ? 'Save Changes' : 'Create')}
-          </button>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-semibold text-gray-900">Description</Label>
+              <Textarea 
+                id="description"
+                required 
+                rows={3} 
+                placeholder="General description of the country settings..."
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
 
-      </form>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="currency_code" className="text-sm font-semibold text-gray-900">Currency</Label>
+                <Input 
+                  id="currency_code"
+                  type="text" 
+                  placeholder="e.g. SEK"
+                  value={formData.currency_code}
+                  onChange={e => setFormData({ ...formData, currency_code: e.target.value.toUpperCase() })}
+                  className="uppercase"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_language" className="text-sm font-semibold text-gray-900">Language</Label>
+                <Input 
+                  id="default_language"
+                  type="text" 
+                  placeholder="e.g. sv"
+                  value={formData.default_language}
+                  onChange={e => setFormData({ ...formData, default_language: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="timezone" className="text-sm font-semibold text-gray-900">Timezone</Label>
+                <Input 
+                  id="timezone"
+                  type="text" 
+                  placeholder="e.g. Europe/Stockholm"
+                  value={formData.timezone}
+                  onChange={e => setFormData({ ...formData, timezone: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Avatar / Flag */}
+            <div className="space-y-2">
+              <Label htmlFor="avatar" className="text-sm font-semibold text-gray-900">Flag / Avatar</Label>
+              <div className="flex items-center gap-6">
+                <div className="flex-1">
+                  <Input 
+                    id="avatar"
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange}
+                    className="cursor-pointer"
+                  />
+                </div>
+                {avatarPreview && (
+                  <div className="w-24 h-24 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm flex-shrink-0">
+                    <img src={avatarPreview} alt="Preview" className="w-full h-full object-contain" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-gray-100 pt-6">
+              <Button 
+                type="button" 
+                variant="ghost"
+                onClick={() => router.push(redirectPath)} 
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={loading} 
+                className="bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white"
+              >
+                {loading ? 'Saving...' : (initialData ? 'Save Changes' : 'Create Country')}
+              </Button>
+            </div>
+
+          </form>
+        </CardContent>
+      </Card>
+      
       <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>
   );

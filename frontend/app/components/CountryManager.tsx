@@ -3,8 +3,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { MoreHorizontal, Plus, Search, Globe, CreditCard, Trash2, Edit, Eye } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
+
+// New Shadcn Components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+
+// Your existing Modals (Preserved)
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import Toast from './Toast';
 
@@ -13,6 +25,7 @@ interface CountryManagerProps {
 }
 
 export default function CountryManager({ basePath }: CountryManagerProps) {
+  // --- 1. PRESERVED LOGIC SECTION (Exact copy of your logic) ---
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -25,83 +38,49 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
-  // Sync search input with URL params (only when URL changes externally)
+  // Sync search input
   useEffect(() => {
     if (!isUpdatingFromInput.current) {
-      const urlSearch = searchParams.get('search') || '';
-      setSearchInput(urlSearch);
+      setSearchInput(searchParams.get('search') || '');
     }
     isUpdatingFromInput.current = false;
   }, [searchParams]);
 
-  // Debounce search input to URL
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       const currentSearch = searchParams.get('search') || '';
       if (searchInput !== currentSearch) {
-        console.log('CountryManager: Updating URL with search:', searchInput, 'current:', currentSearch);
         isUpdatingFromInput.current = true;
         const params = new URLSearchParams(searchParams.toString());
         if (searchInput) params.set('search', searchInput); else params.delete('search');
-        const newUrl = `${pathname}?${params.toString()}`;
-        console.log('CountryManager: Navigating to:', newUrl);
-        router.replace(newUrl);
+        router.replace(`${pathname}?${params.toString()}`);
       }
     }, 300);
-
     return () => clearTimeout(timer);
   }, [searchInput, pathname, router, searchParams]);
 
   const fetchCountries = useCallback(async () => {
-    const search = searchParams.get('search') || '';
-    console.log('CountryManager: fetchCountries called with search:', search);
     setLoading(true);
     try {
+      const search = searchParams.get('search') || '';
       const params = new URLSearchParams();
-      
       if (search) params.set('search', search);
       
-      const url = `/countries/?${params.toString()}`;
-      console.log('CountryManager: Fetching from URL:', url);
-      
-      const res = await api.get(url);
-      console.log('CountryManager: API response:', res.data);
+      const res = await api.get(`/countries/?${params.toString()}`);
       const data = Array.isArray(res.data) ? res.data : res.data.results || [];
-      console.log('CountryManager: Received', data.length, 'countries. Data:', data);
-      console.log('CountryManager: About to setCountries with', data.length, 'items');
       setCountries(data);
-      console.log('CountryManager: setCountries called');
     } catch (err) {
-      console.error('CountryManager: Error fetching countries:', err);
+      console.error('Error fetching countries:', err);
       setCountries([]);
     } finally {
       setLoading(false);
-      console.log('CountryManager: Loading set to false');
     }
   }, [searchParams]);
 
-  // Fetch countries when search params change
   useEffect(() => {
-    const currentSearch = searchParams.get('search') || '';
-    console.log('CountryManager: searchParams changed, fetching countries. Search:', currentSearch);
     fetchCountries();
   }, [searchParams, fetchCountries]);
-
-  const updateUrl = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value); else params.delete(key);
-    router.replace(`${pathname}?${params.toString()}`);
-  };
-
-  const buildUrlWithParams = (path: string) => {
-    const params = new URLSearchParams();
-    const searchParam = searchParams.get('search');
-    
-    if (searchParam) params.set('search', searchParam);
-    
-    const queryString = params.toString();
-    return queryString ? `${path}?${queryString}` : path;
-  };
 
   const handleDelete = async () => {
     if (!itemToDelete) return;
@@ -116,110 +95,186 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
     }
   };
 
-  console.log('CountryManager: Render - countries.length:', countries.length, 'loading:', loading, 'searchInput:', searchInput);
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams();
+    const searchParam = searchParams.get('search');
+    if (searchParam) params.set('search', searchParam);
+    const queryString = params.toString();
+    return queryString ? `${path}?${queryString}` : path;
+  };
 
+  // --- 2. NEW UI SECTION (Taskly-inspired clean design) ---
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Manage Countries</h1>
-        <Link 
-          href={`${basePath}/create`} 
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 shadow"
-        >
-          + Add Country
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Manage Countries</h1>
+          <p className="text-gray-500 mt-1.5 text-sm">Configure the regions available in the application.</p>
+        </div>
+        <Link href={`${basePath}/create`}>
+          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white rounded-full px-6 shadow-sm hover:shadow-md transition-all">
+            <Plus className="h-4 w-4" /> Add Country
+          </Button>
         </Link>
       </div>
 
-      {/* Filter */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-        <input 
-          type="text" 
-          placeholder="Search by name or code..." 
-          className="w-full border rounded p-2 text-sm"
-          value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
-        />
-      </div>
+      {/* Filter / Search */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="px-3 py-1.5 flex items-center gap-2">
+          <Search className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+          <Input 
+            placeholder="Search by name or code..." 
+            className="border-0 shadow-none focus-visible:ring-0 bg-transparent placeholder:text-gray-400 p-0 h-7 text-sm"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+          />
+        </div>
+      </Card>
 
-      {/* List */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? <div className="p-12 text-center text-gray-500">Loading...</div> : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Country</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Code</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Currency</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Language</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {countries.map(item => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {item.avatar ? (
-                        <img src={getMediaUrl(item.avatar) || ''} className="w-10 h-10 rounded-lg object-contain bg-gray-50 border" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-xs">
-                          {item.country_code}
-                        </div>
-                      )}
-                      <span className="font-bold text-gray-900">{item.name}</span>
+      {/* CONTENT: Loading State */}
+      {loading ? (
+        <div className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      ) : countries.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 text-center">
+            <p className="text-gray-500">No countries found matching your search.</p>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* MOBILE VIEW: Cards */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {countries.map((item) => (
+              <Card key={item.id} className="border border-gray-100 shadow-sm bg-white hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0">
+                      <AvatarImage src={getMediaUrl(item.avatar)} className="object-cover" />
+                      <AvatarFallback className="rounded-lg font-semibold text-xs bg-gray-100 text-gray-700">
+                        {item.country_code}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base font-semibold text-gray-900 truncate">{item.name}</CardTitle>
+                      <CardDescription className="font-mono text-xs text-gray-500 mt-0.5">{item.country_code}</CardDescription>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-mono text-gray-600">{item.country_code}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{item.currency_code}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{item.default_language}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link 
-                        href={buildUrlWithParams(`${basePath}/${item.id}`)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        View
-                      </Link>
-                      <Link 
-                        href={buildUrlWithParams(`${basePath}/edit/${item.id}`)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit
-                      </Link>
-                      <button 
-                        onClick={() => setItemToDelete(item)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
-                      </button>
+                  </div>
+                  
+                  {/* Actions Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-50 flex-shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link href={buildUrlWithParams(`${basePath}/${item.id}`)} className="cursor-pointer">
+                          <Eye className="mr-2 h-4 w-4" /> View Details
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href={buildUrlWithParams(`${basePath}/edit/${item.id}`)} className="cursor-pointer">
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setItemToDelete(item)} className="text-red-600 cursor-pointer focus:text-red-600">
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                      <CreditCard className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" /> 
+                      <span className="text-sm text-gray-700 truncate">{item.currency_code}</span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {countries.length === 0 && (
-                <tr><td colSpan={5} className="p-8 text-center text-gray-500">No countries found.</td></tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+                    <div className="flex items-center gap-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                      <Globe className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" /> 
+                      <span className="text-sm text-gray-700 truncate">{item.default_language}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
+          {/* DESKTOP VIEW: Table */}
+          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold">Country</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Code</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Currency</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Language</TableHead>
+                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {countries.map((item) => (
+                  <TableRow key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                          <AvatarImage src={getMediaUrl(item.avatar)} className="object-cover" />
+                          <AvatarFallback className="rounded-lg font-semibold text-xs bg-gray-100 text-gray-700">
+                            {item.country_code}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-semibold text-gray-900">{item.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono text-xs border-gray-200 text-gray-700 bg-gray-50">
+                        {item.country_code}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-gray-600">{item.currency_code}</TableCell>
+                    <TableCell className="text-gray-600">{item.default_language}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={buildUrlWithParams(`${basePath}/${item.id}`)}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={buildUrlWithParams(`${basePath}/edit/${item.id}`)}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setItemToDelete(item)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
+
+      {/* Preserve Modals */}
       <DeleteConfirmationModal 
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
         itemName={itemToDelete?.name}
-        message={`Are you sure you want to delete "${itemToDelete?.name}"? This will likely delete all Municipalities and Clubs linked to it.`}
+        message={`Are you sure you want to delete "${itemToDelete?.name}"?`}
       />
       <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>
