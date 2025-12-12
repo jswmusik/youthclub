@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'bookings',
     'events',
     'messenger',
+    'learning',
 ]
 
 MIDDLEWARE = [

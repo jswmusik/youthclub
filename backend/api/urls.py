@@ -10,6 +10,7 @@ from groups.views import GroupViewSet, GroupMembershipViewSet
 from rewards.views import RewardViewSet
 # Add this line at the top with other imports
 from posts.views import PostViewSet, PostCommentViewSet
+from learning.views import CourseViewSet, LearningCategoryViewSet, ChapterViewSet, ContentItemViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -24,6 +25,10 @@ router.register(r'rewards', RewardViewSet, basename='rewards')
 # --- ADD THESE TWO LINES ---
 router.register(r'posts', PostViewSet, basename='posts')
 router.register(r'post-comments', PostCommentViewSet, basename='post-comments')
+router.register(r'learning/courses', CourseViewSet, basename='courses')
+router.register(r'learning/categories', LearningCategoryViewSet, basename='learning-categories')
+router.register(r'learning/chapters', ChapterViewSet, basename='learning-chapters')
+router.register(r'learning/items', ContentItemViewSet, basename='learning-items')
 # Youth Guardians endpoint
 router.register(r'youth/guardians', YouthGuardiansViewSet, basename='youth-guardians')
 # Admin Guardian Relationships endpoint

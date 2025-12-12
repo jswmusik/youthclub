@@ -118,6 +118,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     { name: 'Booking Resources', href: '/admin/municipality/bookings/resources' },
     { name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/municipality/custom-fields' },
+    { name: 'Knowledge Center', href: '/admin/municipality/knowledge' },
   ];
 
   return (

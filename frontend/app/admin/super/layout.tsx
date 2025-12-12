@@ -42,7 +42,8 @@ import {
   ChevronRight,
   ChevronDown,
   Building2 as BuildingIcon,
-  Clock
+  Clock,
+  GraduationCap
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -81,6 +82,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     rewards: false,
     inventory: false,
     bookings: false,
+    learning: false,
     settings: false,
   });
   
@@ -260,6 +262,14 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'Bookings', href: '/admin/super/bookings', icon: BookOpen },
         { name: 'Booking Calendar', href: '/admin/super/bookings/calendar', icon: CalendarDays },
         { name: 'Booking Resources', href: '/admin/super/bookings/resources', icon: Package },
+      ]
+    },
+    {
+      id: 'learning',
+      title: 'Learning Center',
+      icon: GraduationCap,
+      items: [
+        { name: 'Courses', href: '/admin/super/knowledge/courses', icon: GraduationCap },
       ]
     },
     {

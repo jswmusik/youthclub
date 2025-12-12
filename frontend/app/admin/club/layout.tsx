@@ -119,6 +119,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     { name: 'Booking Resources', href: '/admin/club/bookings/resources' },
     { name: 'Message Board', href: '/admin/club/msgboard', showBadge: true },
     { name: 'Custom Fields', href: '/admin/club/custom-fields' },
+    { name: 'Knowledge Center', href: '/admin/club/knowledge' },
   ];
 
   return (
