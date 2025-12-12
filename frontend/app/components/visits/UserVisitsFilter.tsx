@@ -1,6 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface Props {
   onFilter: (filters: { start_date?: string; end_date?: string; club_id?: string }) => void;
@@ -19,6 +24,8 @@ export default function UserVisitsFilter({
   initialEndDate,
   initialClubId
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [startDate, setStartDate] = useState(initialStartDate || '');
   const [endDate, setEndDate] = useState(initialEndDate || '');
   const [clubId, setClubId] = useState(initialClubId || '');
@@ -55,36 +62,39 @@ export default function UserVisitsFilter({
     setStartDate('');
     setEndDate('');
     setClubId('');
-    onFilter({});
+    router.push(pathname);
   };
 
   return (
-    <div className="flex flex-wrap gap-4 items-end">
-      <div className="w-40">
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">From Date</label>
-        <input 
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+      {/* Start Date */}
+      <div className="md:col-span-3 lg:col-span-3">
+        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">From Date</label>
+        <Input 
           type="date" 
-          className="w-full border rounded p-2 text-sm bg-gray-50"
+          className="bg-gray-50 border-0"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
       </div>
       
-      <div className="w-40">
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">To Date</label>
-        <input 
+      {/* End Date */}
+      <div className="md:col-span-3 lg:col-span-3">
+        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">To Date</label>
+        <Input 
           type="date" 
-          className="w-full border rounded p-2 text-sm bg-gray-50"
+          className="bg-gray-50 border-0"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
       </div>
 
+      {/* Club Filter */}
       {showClubFilter && (
-        <div className="w-48">
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Club</label>
+        <div className="md:col-span-4 lg:col-span-4">
+          <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Club</label>
           <select
-            className="w-full border rounded p-2 text-sm bg-gray-50"
+            className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
             value={clubId}
             onChange={(e) => setClubId(e.target.value)}
           >
@@ -96,14 +106,17 @@ export default function UserVisitsFilter({
         </div>
       )}
 
-      {/* Clear Filters */}
-      <button
-        onClick={handleClear}
-        className="px-4 py-2 text-sm text-gray-500 hover:text-red-500 font-medium"
-      >
-        Clear Filters
-      </button>
+      {/* Clear Button */}
+      <div className={cn("md:col-span-2", showClubFilter ? "lg:col-span-2" : "lg:col-span-3")}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClear}
+          className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+        >
+          <X className="h-4 w-4" /> Clear
+        </Button>
+      </div>
     </div>
   );
 }
-

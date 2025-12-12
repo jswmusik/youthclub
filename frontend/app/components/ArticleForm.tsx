@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, Upload, X, FileText } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import Toast from './Toast';
 import RichTextEditor from './RichTextEditor';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 interface Tag { id: number; name: string; }
 
@@ -41,6 +49,7 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
   });
 
   // Files
+  const heroRef = useRef<HTMLInputElement>(null);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(
     initialData?.hero_image ? getMediaUrl(initialData.hero_image) : null
@@ -58,6 +67,12 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
       setHeroFile(e.target.files[0]);
       setHeroPreview(URL.createObjectURL(e.target.files[0]));
     }
+  };
+
+  const handleRemoveImage = () => {
+    setHeroFile(null);
+    setHeroPreview(null);
+    if (heroRef.current) heroRef.current.value = '';
   };
 
   const toggleTag = (id: number) => {
@@ -141,120 +156,227 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-5xl mx-auto pb-20">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">{initialData ? 'Edit Article' : 'Create Article'}</h2>
-      
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link href={redirectPath}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {initialData ? 'Edit Article' : 'Create New Article'}
+          </h1>
+          <p className="text-sm text-muted-foreground">Manage article details and content.</p>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-8">
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* LEFT: Content */}
-            <div className="md:col-span-2 space-y-6">
-                <div>
-                    <label className="block text-sm font-bold mb-1">Title</label>
-                    <input required type="text" className="w-full border p-3 rounded-lg text-lg font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-                </div>
-                <div>
-                    <label className="block text-sm font-bold mb-1">Excerpt (Summary)</label>
-                    <textarea required rows={3} className="w-full border p-3 rounded-lg" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} />
-                </div>
-                <div>
-                    <label className="block text-sm font-bold mb-1">Body Content</label>
-                    <RichTextEditor value={formData.content} onChange={(val) => setFormData({...formData, content: val})} />
-                </div>
+        {/* 1. Article Content */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Article Content</CardTitle>
+            <CardDescription>Enter the article title, excerpt, and body content.</CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6 space-y-6">
+            <div className="space-y-2">
+              <Label>Title <span className="text-red-500">*</span></Label>
+              <Input 
+                required 
+                type="text" 
+                className="text-lg font-semibold" 
+                value={formData.title} 
+                onChange={e => setFormData({...formData, title: e.target.value})} 
+              />
             </div>
-
-            {/* RIGHT: Settings */}
-            <div className="space-y-6">
-                
-                {/* Hero Image */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Hero Image</label>
-                    <div className="space-y-3">
-                        {heroPreview ? (
-                            <img src={heroPreview} className="w-full h-32 object-cover rounded-lg shadow-sm" />
-                        ) : (
-                            <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm font-bold">No Image</div>
-                        )}
-                        <input type="file" accept="image/*" onChange={handleFileChange} className="text-xs w-full" />
-                    </div>
-                </div>
-
-                {/* Status */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={formData.is_published} onChange={e => setFormData({...formData, is_published: e.target.checked})} className="w-5 h-5 text-blue-600" />
-                        <span className="font-bold text-gray-700">Publish Article</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={formData.is_hero} onChange={e => setFormData({...formData, is_hero: e.target.checked})} className="w-5 h-5 text-yellow-500" />
-                        <span className="font-bold text-gray-700">Set as Main Hero</span>
-                    </label>
-                    <p className="text-xs text-gray-500 pl-7">Setting this will remove Hero status from any other article.</p>
-                </div>
-
-                {/* Tags */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="block text-sm font-bold mb-2">Tags</label>
-                    <div className="flex flex-wrap gap-2">
-                        {tagsList.map(tag => (
-                            <button
-                                key={tag.id}
-                                type="button"
-                                onClick={() => toggleTag(tag.id)}
-                                className={`px-2 py-1 rounded text-xs font-bold border transition
-                                    ${formData.tags.includes(tag.id) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}
-                                `}
-                            >
-                                {tag.name}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Targeting */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="block text-sm font-bold mb-2">Target Audience</label>
-                    <div className="space-y-1 max-h-40 overflow-y-auto border p-2 rounded bg-white">
-                        <label className="flex items-center gap-2 text-sm">
-                            <input type="checkbox" checked={formData.target_roles.includes('ALL')} onChange={() => toggleRole('ALL')} />
-                            <span className="font-bold">Everyone</span>
-                        </label>
-                        {!formData.target_roles.includes('ALL') && ROLES.map(role => (
-                            <label key={role.id} className="flex items-center gap-2 text-sm">
-                                <input 
-                                    type="checkbox" 
-                                    checked={formData.target_roles.includes(role.id)} 
-                                    onChange={() => toggleRole(role.id)}
-                                />
-                                <span>{role.label}</span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
-
+            <div className="space-y-2">
+              <Label>Excerpt (Summary) <span className="text-red-500">*</span></Label>
+              <textarea 
+                required 
+                rows={3} 
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={formData.excerpt} 
+                onChange={e => setFormData({...formData, excerpt: e.target.value})} 
+              />
             </div>
-        </div>
+            <div className="space-y-2">
+              <Label>Body Content</Label>
+              <RichTextEditor value={formData.content} onChange={(val) => setFormData({...formData, content: val})} />
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="flex justify-end gap-4 border-t pt-6">
-            <button 
-              type="button" 
-              onClick={() => {
-                const page = searchParams.get('page');
-                const search = searchParams.get('search');
-                const params = new URLSearchParams();
-                if (page && page !== '1') params.set('page', page);
-                if (search) params.set('search', search);
-                const queryString = params.toString();
-                const finalPath = queryString ? `${redirectPath}?${queryString}` : redirectPath;
-                router.push(finalPath);
-              }} 
-              className="px-6 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg"
-            >
-              Cancel
-            </button>
-            <button type="submit" disabled={loading} className="px-8 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                {loading ? 'Saving...' : 'Save Article'}
-            </button>
+        {/* 2. Hero Image */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Hero Image</CardTitle>
+            <CardDescription>Upload a hero image for this article.</CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div className="flex gap-4 items-center">
+                <div className="relative group h-32 w-full max-w-md rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => heroRef.current?.click()}>
+                  {heroPreview ? (
+                    <>
+                      <img src={heroPreview} className="h-full w-full object-cover rounded-lg" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                        <Upload className="h-5 w-5 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center p-4">
+                      <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <span className="text-sm text-muted-foreground">Click to upload</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <Button type="button" variant="secondary" size="sm" onClick={() => heroRef.current?.click()}>Choose File</Button>
+                    {heroPreview && (
+                      <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={handleRemoveImage}>
+                        <X className="h-4 w-4 mr-1" /> Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Recommended: 1200x400px</p>
+                </div>
+                <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 3. Publication Settings */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Publication Settings</CardTitle>
+            <CardDescription>Configure publication and hero status for this article.</CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center space-x-2">
+              <input 
+                type="checkbox" 
+                id="is_published"
+                checked={formData.is_published} 
+                onChange={e => setFormData({...formData, is_published: e.target.checked})} 
+                className="h-4 w-4 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded border-gray-300"
+              />
+              <Label htmlFor="is_published" className="font-medium cursor-pointer">Publish Article</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input 
+                type="checkbox" 
+                id="is_hero"
+                checked={formData.is_hero} 
+                onChange={e => setFormData({...formData, is_hero: e.target.checked})} 
+                className="h-4 w-4 text-[#FF5485] focus:ring-[#FF5485] rounded border-gray-300"
+              />
+              <Label htmlFor="is_hero" className="font-medium cursor-pointer">Set as Main Hero</Label>
+            </div>
+            <p className="text-xs text-muted-foreground ml-6">Setting this will remove Hero status from any other article.</p>
+          </CardContent>
+        </Card>
+
+        {/* 4. Tags */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Tags</CardTitle>
+            <CardDescription>Select tags to categorize this article.</CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-2">
+              {tagsList.map(tag => (
+                <Badge
+                  key={tag.id}
+                  variant={formData.tags.includes(tag.id) ? "default" : "outline"}
+                  className={`cursor-pointer transition-colors ${
+                    formData.tags.includes(tag.id) 
+                      ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white border-[#4D4DA4]' 
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-[#4D4DA4]'
+                  }`}
+                  onClick={() => toggleTag(tag.id)}
+                >
+                  {tag.name}
+                </Badge>
+              ))}
+              {tagsList.length === 0 && (
+                <p className="text-sm text-muted-foreground">No tags available. Create tags first.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 5. Target Audience */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Target Audience</CardTitle>
+            <CardDescription>Select which user roles should see this article.</CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="target_all"
+                  checked={formData.target_roles.includes('ALL')} 
+                  onChange={() => toggleRole('ALL')} 
+                  className="h-4 w-4 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded border-gray-300"
+                />
+                <Label htmlFor="target_all" className="font-medium cursor-pointer">Everyone</Label>
+              </div>
+              {!formData.target_roles.includes('ALL') && (
+                <div className="space-y-2 pl-6 border-l-2 border-gray-200">
+                  {ROLES.map(role => (
+                    <div key={role.id} className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id={`target_${role.id}`}
+                        checked={formData.target_roles.includes(role.id)} 
+                        onChange={() => toggleRole(role.id)}
+                        className="h-4 w-4 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded border-gray-300"
+                      />
+                      <Label htmlFor={`target_${role.id}`} className="cursor-pointer">{role.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer Actions */}
+        <div className="flex justify-end gap-4 pt-4">
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => {
+              const page = searchParams.get('page');
+              const search = searchParams.get('search');
+              const params = new URLSearchParams();
+              if (page && page !== '1') params.set('page', page);
+              if (search) params.set('search', search);
+              const queryString = params.toString();
+              const finalPath = queryString ? `${redirectPath}?${queryString}` : redirectPath;
+              router.push(finalPath);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={loading} 
+            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white"
+          >
+            {loading ? 'Saving...' : initialData ? 'Update Article' : 'Create Article'}
+          </Button>
         </div>
 
       </form>

@@ -2,13 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, Upload, X, FileText, Search } from 'lucide-react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { Event, EventStatus, TargetAudience } from '@/types/event';
 import { useAuth } from '@/context/AuthContext';
-import { X, Upload, FileText, Search } from 'lucide-react'; // Icons
 import { getMediaUrl } from '@/app/utils';
 import RichTextEditor from '@/app/components/RichTextEditor';
 import Toast from '@/app/components/Toast';
+
+// Shadcn
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 interface EventFormProps {
     initialData?: any; // Using any to accommodate nested images/docs
@@ -1246,56 +1255,139 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
         }
     };
 
+    // Build redirect path
+    const basePath = `/admin/${scope.toLowerCase()}/events`;
+    const page = searchParams.get('page');
+    const search = searchParams.get('search');
+    const status = searchParams.get('status');
+    const recurring = searchParams.get('recurring');
+    const club = searchParams.get('club');
+    
+    const params = new URLSearchParams();
+    if (page) params.set('page', page);
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+    if (recurring) params.set('recurring', recurring);
+    if (club) params.set('club', club);
+    
+    const queryString = params.toString();
+    const redirectPath = queryString ? `${basePath}?${queryString}` : basePath;
+
     return (
         <>
-        <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl mx-auto pb-20">
+        <div className="max-w-4xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-4">
+                <Link href={redirectPath}>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                </Link>
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                        {initialData ? 'Edit Event' : 'Create New Event'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">Configure event details, targeting, and registration rules.</p>
+                </div>
+            </div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
             
             {/* Section 1: Basic & Media */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4">Media & Presentation</h3>
+            <Card className="border-none shadow-sm">
+                <CardHeader>
+                    <CardTitle>Media & Presentation</CardTitle>
+                    <CardDescription>Upload cover image and gallery images for the event.</CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6">
                 
                 {/* Cover Image */}
-                <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Cover Image (Main)</label>
-                    <div className="mt-2 flex items-center gap-4">
-                        <div className="w-32 h-20 bg-gray-100 rounded-lg overflow-hidden border">
+                <div className="space-y-2">
+                    <Label>Cover Image (Main)</Label>
+                    <div className="flex gap-4 items-center">
+                        <div className="relative group h-20 w-32 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = (e: any) => {
+                                if(e.target.files?.[0]) {
+                                    const file = e.target.files[0];
+                                    if (coverPreview && coverPreview.startsWith('blob:')) {
+                                        URL.revokeObjectURL(coverPreview);
+                                    }
+                                    setCoverFile(file);
+                                    setCoverPreview(URL.createObjectURL(file));
+                                }
+                            };
+                            input.click();
+                        }}>
                             {coverPreview ? (
-                                <img src={coverPreview} className="w-full h-full object-cover" alt="Cover" />
+                                <>
+                                    <img src={coverPreview} className="h-full w-full object-cover" alt="Cover" />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Upload className="h-5 w-5 text-white" />
+                                    </div>
+                                </>
                             ) : (
-                                <div className="flex items-center justify-center h-full text-gray-400 text-xs">No Image</div>
+                                <div className="text-center p-2">
+                                    <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+                                    <span className="text-[10px] text-muted-foreground">Click to upload</span>
+                                </div>
                             )}
                         </div>
-                        <input type="file" onChange={e => {
-                            if(e.target.files?.[0]) {
-                                const file = e.target.files[0];
-                                // Revoke previous object URL if it exists
-                                if (coverPreview && coverPreview.startsWith('blob:')) {
-                                    URL.revokeObjectURL(coverPreview);
-                                }
-                                setCoverFile(file);
-                                setCoverPreview(URL.createObjectURL(file));
-                            }
-                        }} accept="image/*" className="text-sm" />
+                        <div className="flex-1 space-y-2">
+                            <div className="flex gap-2">
+                                <Button type="button" variant="secondary" size="sm" onClick={() => {
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'image/*';
+                                    input.onchange = (e: any) => {
+                                        if(e.target.files?.[0]) {
+                                            const file = e.target.files[0];
+                                            if (coverPreview && coverPreview.startsWith('blob:')) {
+                                                URL.revokeObjectURL(coverPreview);
+                                            }
+                                            setCoverFile(file);
+                                            setCoverPreview(URL.createObjectURL(file));
+                                        }
+                                    };
+                                    input.click();
+                                }}>Choose File</Button>
+                                {coverPreview && (
+                                    <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => {
+                                        if (coverPreview && coverPreview.startsWith('blob:')) {
+                                            URL.revokeObjectURL(coverPreview);
+                                        }
+                                        setCoverFile(null);
+                                        setCoverPreview(null);
+                                    }}>
+                                        <X className="h-4 w-4 mr-1" /> Remove
+                                    </Button>
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">Recommended: 1200x400px</p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Image Gallery */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Image Gallery (Slideshow)</label>
-                        <div className="flex items-center gap-2 mt-1">
-                            <label className="cursor-pointer bg-gray-50 border border-dashed border-gray-300 rounded-lg p-2 text-center w-full hover:bg-gray-100">
-                                <Upload className="w-5 h-5 mx-auto text-gray-400" />
-                                <span className="text-xs text-gray-500">Upload Images</span>
-                                <input type="file" multiple accept="image/*" className="hidden" 
-                                    onChange={e => {
-                                        if (e.target.files) {
-                                            const newFiles = Array.from(e.target.files);
-                                            setGalleryFiles(prev => [...prev, ...newFiles]);
-                                        }
-                                    }} 
-                                />
-                            </label>
-                        </div>
+                <div className="space-y-2">
+                    <Label>Image Gallery (Slideshow)</Label>
+                    <div className="flex items-center gap-2">
+                        <label className="cursor-pointer bg-muted/30 border-2 border-dashed border-input rounded-lg p-4 text-center w-full hover:bg-muted/50 hover:border-[#4D4DA4]/50 transition-colors">
+                            <Upload className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                            <span className="text-xs text-muted-foreground">Upload Images</span>
+                            <input type="file" multiple accept="image/*" className="hidden" 
+                                onChange={e => {
+                                    if (e.target.files) {
+                                        const newFiles = Array.from(e.target.files);
+                                        setGalleryFiles(prev => [...prev, ...newFiles]);
+                                    }
+                                }} 
+                            />
+                        </label>
+                    </div>
                         
                         {/* Existing Images */}
                         {existingImages.length > 0 && (
@@ -1354,225 +1446,236 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
                         )}
                 </div>
-            </div>
+                </CardContent>
+            </Card>
 
             {/* Section 2: Basic Info */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4">Basic Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Event Title</label>
-                        <input 
-                            required 
-                            type="text" 
-                            className="w-full border border-gray-300 p-2 rounded" 
-                            value={formData.title} 
-                            onChange={e => handleChange('title', e.target.value)}
-                        />
-                    </div>
-                    
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <RichTextEditor
-                            value={formData.description || ''}
-                            onChange={(content) => handleChange('description', content)}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Cost (Leave empty for Free)</label>
-                        <input 
-                            type="text" 
-                            placeholder="e.g. 50" 
-                            className="w-full border border-gray-300 p-2 rounded" 
-                            value={formData.cost || ''} 
-                            onChange={e => handleChange('cost', e.target.value)}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <select 
-                            className="w-full border border-gray-300 p-2 rounded"
-                            value={formData.status}
-                            onChange={e => handleChange('status', e.target.value)}
-                        >
-                            <option value={EventStatus.DRAFT}>Draft</option>
-                            <option value={EventStatus.PUBLISHED}>Published</option>
-                            <option value={EventStatus.SCHEDULED}>Scheduled</option>
-                            <option value={EventStatus.CANCELLED}>Cancelled</option>
-                        </select>
-                    </div>
-                </div>
-                
-                {/* Show scheduled publish date when status is SCHEDULED */}
-                {formData.status === EventStatus.SCHEDULED && (
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Schedule Publish Date & Time <span className="text-red-500">*</span>
-                        </label>
-                        <input 
-                            required={formData.status === EventStatus.SCHEDULED}
-                            type="datetime-local" 
-                            className="w-full border border-gray-300 p-2 rounded"
-                            value={formatDateForInput(formData.scheduled_publish_date)}
-                            onChange={e => handleChange('scheduled_publish_date', e.target.value)}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">The event will be automatically published at this date and time</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Section 3: Date & Time */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4">When</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
-                        <input 
-                            required 
-                            type="datetime-local" 
-                            className="w-full border border-gray-300 p-2 rounded"
-                            value={formatDateForInput(formData.start_date)}
-                            onChange={e => handleChange('start_date', e.target.value)}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
-                        <input 
-                            required 
-                            type="datetime-local" 
-                            className="w-full border border-gray-300 p-2 rounded"
-                            value={formatDateForInput(formData.end_date)}
-                            onChange={e => handleChange('end_date', e.target.value)}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Section: Recurrence */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold">Recurring Event</h3>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            checked={formData.is_recurring || false} 
-                            onChange={e => handleChange('is_recurring', e.target.checked)} 
-                            className="w-5 h-5 text-blue-600 rounded"
-                        />
-                        <span className="text-sm font-medium">Repeat this event</span>
-                    </label>
-                </div>
-
-                {formData.is_recurring && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-blue-50 rounded-lg border border-blue-100 animate-in fade-in">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Repeat Pattern</label>
-                            <select 
-                                className="w-full border border-gray-300 p-2 rounded"
-                                value={formData.recurrence_pattern || 'NONE'}
-                                onChange={e => handleChange('recurrence_pattern', e.target.value)}
-                            >
-                                <option value="DAILY">Daily</option>
-                                <option value="WEEKLY">Weekly</option>
-                                <option value="MONTHLY">Monthly</option>
-                            </select>
+            <Card className="border-none shadow-sm">
+                <CardHeader>
+                    <CardTitle>Basic Information</CardTitle>
+                    <CardDescription>Enter event title, description, cost, and status.</CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2 space-y-2">
+                            <Label>Event Title <span className="text-red-500">*</span></Label>
+                            <Input 
+                                required 
+                                type="text" 
+                                value={formData.title} 
+                                onChange={e => handleChange('title', e.target.value)}
+                            />
                         </div>
                         
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Repeat Until (End Date)</label>
-                            <input 
-                                type="date" 
-                                required={formData.is_recurring}
-                                className="w-full border border-gray-300 p-2 rounded"
-                                value={formData.recurrence_end_date ? formatDateOnlyForInput(formData.recurrence_end_date) : ''}
-                                onChange={e => handleChange('recurrence_end_date', e.target.value)}
+                        <div className="md:col-span-2 space-y-2">
+                            <Label>Description</Label>
+                            <RichTextEditor
+                                value={formData.description || ''}
+                                onChange={(content) => handleChange('description', content)}
                             />
-                            <p className="text-xs text-gray-500 mt-1">
-                                Instances will be created from the start date until this date.
-                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Cost (Leave empty for Free)</Label>
+                            <Input 
+                                type="text" 
+                                placeholder="e.g. 50" 
+                                value={formData.cost || ''} 
+                                onChange={e => handleChange('cost', e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Status</Label>
+                            <select 
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={formData.status}
+                                onChange={e => handleChange('status', e.target.value)}
+                            >
+                                <option value={EventStatus.DRAFT}>Draft</option>
+                                <option value={EventStatus.PUBLISHED}>Published</option>
+                                <option value={EventStatus.SCHEDULED}>Scheduled</option>
+                                <option value={EventStatus.CANCELLED}>Cancelled</option>
+                            </select>
                         </div>
                     </div>
+                    
+                    {/* Show scheduled publish date when status is SCHEDULED */}
+                    {formData.status === EventStatus.SCHEDULED && (
+                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <Label className="mb-2">
+                                Schedule Publish Date & Time <span className="text-red-500">*</span>
+                            </Label>
+                            <Input 
+                                required={formData.status === EventStatus.SCHEDULED}
+                                type="datetime-local" 
+                                value={formatDateForInput(formData.scheduled_publish_date)}
+                                onChange={e => handleChange('scheduled_publish_date', e.target.value)}
+                                className="mt-1"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">The event will be automatically published at this date and time</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Section 3: Date & Time */}
+            <Card className="border-none shadow-sm">
+                <CardHeader>
+                    <CardTitle>When</CardTitle>
+                    <CardDescription>Set the start and end date and time for the event.</CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Start Date & Time <span className="text-red-500">*</span></Label>
+                            <Input 
+                                required 
+                                type="datetime-local" 
+                                value={formatDateForInput(formData.start_date)}
+                                onChange={e => handleChange('start_date', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>End Date & Time <span className="text-red-500">*</span></Label>
+                            <Input 
+                                required 
+                                type="datetime-local" 
+                                value={formatDateForInput(formData.end_date)}
+                                onChange={e => handleChange('end_date', e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Section: Recurrence */}
+            <Card className="border-none shadow-sm">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <CardTitle>Recurring Event</CardTitle>
+                            <CardDescription>Set up recurring event patterns.</CardDescription>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={formData.is_recurring || false} 
+                                onChange={e => handleChange('is_recurring', e.target.checked)} 
+                                className="w-5 h-5 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                            />
+                            <span className="text-sm font-medium">Repeat this event</span>
+                        </label>
+                    </div>
+                </CardHeader>
+                {formData.is_recurring && (
+                    <>
+                        <Separator />
+                        <CardContent className="pt-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <div className="space-y-2">
+                                    <Label>Repeat Pattern</Label>
+                                    <select 
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        value={formData.recurrence_pattern || 'NONE'}
+                                        onChange={e => handleChange('recurrence_pattern', e.target.value)}
+                                    >
+                                        <option value="DAILY">Daily</option>
+                                        <option value="WEEKLY">Weekly</option>
+                                        <option value="MONTHLY">Monthly</option>
+                                    </select>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label>Repeat Until (End Date)</Label>
+                                    <Input 
+                                        type="date" 
+                                        required={formData.is_recurring}
+                                        value={formData.recurrence_end_date ? formatDateOnlyForInput(formData.recurrence_end_date) : ''}
+                                        onChange={e => handleChange('recurrence_end_date', e.target.value)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Instances will be created from the start date until this date.
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </>
                 )}
-            </div>
+            </Card>
 
             {/* Section 3.5: Organization Scope (Super Admin & Municipality Admin) */}
             {(scope === 'SUPER' || scope === 'MUNICIPALITY') && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-bold mb-4">Event Scope</h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                        {scope === 'SUPER' 
-                            ? 'Choose where this event will be visible and available'
-                            : 'Choose if this event is for all clubs in your municipality or specific clubs'}
-                    </p>
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Event Scope</CardTitle>
+                        <CardDescription>
+                            {scope === 'SUPER' 
+                                ? 'Choose where this event will be visible and available'
+                                : 'Choose if this event is for all clubs in your municipality or specific clubs'}
+                        </CardDescription>
+                    </CardHeader>
+                    <Separator />
+                    <CardContent className="pt-6">
                     
                     {/* Scope Type Selection */}
-                    <div className="mb-6 flex gap-4">
+                    <div className="mb-6 flex flex-wrap gap-3">
                         {scope === 'SUPER' && (
-                            <button
+                            <Button
                                 type="button"
+                                variant={eventScope === 'global' ? 'default' : 'outline'}
                                 onClick={() => {
                                     setEventScope('global');
                                     setSelectedClubs([]);
-                                    // Don't clear selectedMunicipality - it's still needed for global events
                                 }}
-                                className={`px-4 py-2 rounded-lg border-2 transition-colors ${
-                                    eventScope === 'global'
-                                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
-                                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                                }`}
+                                className={eventScope === 'global' ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
                             >
                                 Global Event
-                                <div className="text-xs text-gray-500 mt-1 font-normal">All municipalities and clubs</div>
-                            </button>
+                                <div className="text-xs opacity-75 mt-1 font-normal block w-full">All municipalities and clubs</div>
+                            </Button>
                         )}
-                        <button
+                        <Button
                             type="button"
+                            variant={eventScope === 'municipality' ? 'default' : 'outline'}
                             onClick={() => {
                                 setEventScope('municipality');
                                 setSelectedClubs([]);
                             }}
-                            className={`px-4 py-2 rounded-lg border-2 transition-colors ${
-                                eventScope === 'municipality'
-                                    ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
-                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                            }`}
+                            className={eventScope === 'municipality' ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
                         >
                             {scope === 'SUPER' ? 'Municipality Event' : 'Municipality-Wide Event'}
-                            <div className="text-xs text-gray-500 mt-1 font-normal">
+                            <div className="text-xs opacity-75 mt-1 font-normal block w-full">
                                 {scope === 'SUPER' ? 'Specific municipality' : 'All clubs in your municipality'}
                             </div>
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="button"
+                            variant={eventScope === 'clubs' ? 'default' : 'outline'}
                             onClick={() => {
                                 setEventScope('clubs');
                             }}
-                            className={`px-4 py-2 rounded-lg border-2 transition-colors ${
-                                eventScope === 'clubs'
-                                    ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
-                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                            }`}
+                            className={eventScope === 'clubs' ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
                         >
                             Club Event(s)
-                            <div className="text-xs text-gray-500 mt-1 font-normal">
+                            <div className="text-xs opacity-75 mt-1 font-normal block w-full">
                                 {scope === 'SUPER' ? 'Specific clubs' : 'Specific clubs in your municipality'}
                             </div>
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Municipality Selection (Super Admin Only) */}
                     {(eventScope === 'municipality' || eventScope === 'global') && scope === 'SUPER' && (
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="mb-4 space-y-2">
+                            <Label>
                                 Select Municipality
                                 {eventScope === 'global' && (
-                                    <span className="text-xs text-gray-500 font-normal ml-2">(Required for organizational purposes)</span>
+                                    <span className="text-xs text-muted-foreground font-normal ml-2">(Required for organizational purposes)</span>
                                 )}
-                            </label>
+                            </Label>
                             <select
-                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 value={selectedMunicipality || ''}
                                 onChange={(e) => {
                                     const muniId = e.target.value ? Number(e.target.value) : null;
@@ -1589,7 +1692,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 ))}
                             </select>
                             {eventScope === 'global' && selectedMunicipality && (
-                                <p className="text-xs text-blue-600 mt-2">
+                                <p className="text-xs text-[#4D4DA4] mt-2">
                                     This event will be visible to all municipalities and clubs, regardless of the selected municipality.
                                 </p>
                             )}
@@ -1630,37 +1733,32 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 </>
                             )}
 
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Select Club</label>
-                            <p className="text-xs text-gray-500 mb-2">Select one club. For multiple clubs, use Municipality-Wide Event instead.</p>
+                            <Label>Select Club</Label>
+                            <p className="text-xs text-muted-foreground mb-2">Select one club. For multiple clubs, use Municipality-Wide Event instead.</p>
                             
                             {/* Selected Clubs Display */}
                             {selectedClubs.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[#EBEBFE] rounded-lg border border-[#4D4DA4]/20">
                                     {selectedClubs.map(clubId => {
                                         const club = allClubs.find(c => c.id === clubId);
                                         if (!club) return null;
                                         return (
-                                            <span 
-                                                key={clubId}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-full font-medium"
-                                            >
+                                            <Badge key={clubId} variant="secondary" className="bg-[#4D4DA4] text-white hover:bg-[#FF5485]">
                                                 {club.name}
                                                 {club.municipality_detail?.name && (
-                                                    <span className="text-xs opacity-75">({club.municipality_detail.name})</span>
+                                                    <span className="text-xs opacity-75 ml-1">({club.municipality_detail.name})</span>
                                                 )}
                                                 <button
                                                     type="button"
                                                     onClick={() => {
                                                         setSelectedClubs(prev => prev.filter(id => id !== clubId));
                                                     }}
-                                                    className="hover:bg-blue-700 rounded-full p-0.5 transition-colors"
+                                                    className="ml-1.5 hover:opacity-75 rounded-full p-0.5 transition-opacity"
                                                     aria-label={`Remove ${club.name}`}
                                                 >
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
+                                                    <X className="w-3 h-3" />
                                                 </button>
-                                            </span>
+                                            </Badge>
                                         );
                                     })}
                                 </div>
@@ -1669,7 +1767,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             {/* Searchable Club Dropdown */}
                             <div className="relative">
                                 <div className="relative">
-                                    <input
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                                    <Input
                                         type="text"
                                         placeholder="Search clubs by name..."
                                         value={clubSearch}
@@ -1678,10 +1777,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                             setShowClubDropdown(true);
                                         }}
                                         onFocus={() => setShowClubDropdown(true)}
-                                        className="w-full border border-gray-300 rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                    <Search 
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                                        className="pl-9"
                                     />
                                 </div>
 
@@ -1765,83 +1861,91 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             )}
                         </div>
                     )}
-                </div>
+                </CardContent>
+            </Card>
             )}
 
             {/* Section 4: Location & Maps */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4">Location</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
-                        <input required type="text" className="w-full border border-gray-300 p-2 rounded" 
-                            value={formData.location_name} onChange={e => handleChange('location_name', e.target.value)} />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Address (for Map)</label>
-                        <input type="text" className="w-full border border-gray-300 p-2 rounded" 
-                            value={formData.address} onChange={e => handleChange('address', e.target.value)} />
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                        <input type="number" step="any" className="w-full border border-gray-300 p-2 rounded" 
-                            value={formData.latitude || ''} onChange={e => handleChange('latitude', e.target.value ? parseFloat(e.target.value) : undefined)} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                        <input type="number" step="any" className="w-full border border-gray-300 p-2 rounded" 
-                            value={formData.longitude || ''} onChange={e => handleChange('longitude', e.target.value ? parseFloat(e.target.value) : undefined)} />
-                    </div>
+            <Card className="border-none shadow-sm">
+                <CardHeader>
+                    <CardTitle>Location</CardTitle>
+                    <CardDescription>Set the event location and map settings.</CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2 space-y-2">
+                            <Label>Location Name <span className="text-red-500">*</span></Label>
+                            <Input required type="text" 
+                                value={formData.location_name} onChange={e => handleChange('location_name', e.target.value)} />
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                            <Label>Address (for Map)</Label>
+                            <Input type="text" 
+                                value={formData.address} onChange={e => handleChange('address', e.target.value)} />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label>Latitude</Label>
+                            <Input type="number" step="any" 
+                                value={formData.latitude || ''} onChange={e => handleChange('latitude', e.target.value ? parseFloat(e.target.value) : undefined)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Longitude</Label>
+                            <Input type="number" step="any" 
+                                value={formData.longitude || ''} onChange={e => handleChange('longitude', e.target.value ? parseFloat(e.target.value) : undefined)} />
+                        </div>
 
-                    <div className="md:col-span-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={formData.is_map_visible} 
-                                onChange={e => handleChange('is_map_visible', e.target.checked)} />
-                            <span className="text-sm font-medium">Show Map on Event Page</span>
-                        </label>
+                        <div className="md:col-span-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={formData.is_map_visible} 
+                                    onChange={e => handleChange('is_map_visible', e.target.checked)}
+                                    className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]" />
+                                <span className="text-sm font-medium">Show Map on Event Page</span>
+                            </label>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
             {/* Section 5: Targeting (Search & Add) */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4">Target Audience</h3>
-                
-                {/* Target Audience Type */}
-                <div className="mb-6 flex gap-4">
-                    {Object.values(TargetAudience).map(type => (
-                        <button key={type} type="button" onClick={() => handleChange('target_audience', type)}
-                            className={`px-4 py-2 rounded border ${formData.target_audience === type ? 'bg-blue-600 text-white' : 'bg-white'}`}>
-                            {type === 'BOTH' ? 'Youth & Guardians' : type.charAt(0) + type.slice(1).toLowerCase()}
-                        </button>
-                    ))}
-                </div>
+            <Card className="border-none shadow-sm">
+                <CardHeader>
+                    <CardTitle>Target Audience</CardTitle>
+                    <CardDescription>Define who this event is targeted towards.</CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6">
+                    {/* Target Audience Type */}
+                    <div className="mb-6 flex flex-wrap gap-3">
+                        {Object.values(TargetAudience).map(type => (
+                            <Button key={type} type="button" variant={formData.target_audience === type ? 'default' : 'outline'}
+                                onClick={() => handleChange('target_audience', type)}
+                                className={formData.target_audience === type ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}>
+                                {type === 'BOTH' ? 'Youth & Guardians' : type.charAt(0) + type.slice(1).toLowerCase()}
+                            </Button>
+                        ))}
+                    </div>
 
                 {/* Group Search Widget - Matching Guardian Pattern */}
-                <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Target Specific Groups</label>
+                <div className="mb-6 space-y-2">
+                    <Label>Target Specific Groups</Label>
                     
                     {/* Selected Groups Display */}
                     {selectedGroups.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[#EBEBFE] rounded-lg border border-[#4D4DA4]/20">
                             {selectedGroups.map(group => (
-                                <span 
-                                    key={group.id}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-full font-medium"
-                                >
+                                <Badge key={group.id} variant="secondary" className="bg-[#4D4DA4] text-white hover:bg-[#FF5485]">
                                     {group.name}
                                     <button
                                         type="button"
                                         onClick={() => handleRemoveGroup(group.id)}
-                                        className="hover:bg-blue-700 rounded-full p-0.5 transition-colors"
+                                        className="ml-1.5 hover:opacity-75 rounded-full p-0.5 transition-opacity"
                                         aria-label={`Remove ${group.name}`}
                                     >
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
+                                        <X className="w-3 h-3" />
                                     </button>
-                                </span>
+                                </Badge>
                             ))}
                         </div>
                     )}
@@ -1849,7 +1953,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     {/* Searchable Dropdown */}
                     <div className="relative">
                         <div className="relative">
-                            <input
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                            <Input
                                 type="text"
                                 placeholder="Search groups by name..."
                                 value={groupSearch}
@@ -1858,10 +1963,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     setShowGroupDropdown(true);
                                 }}
                                 onFocus={() => setShowGroupDropdown(true)}
-                                className="w-full border border-gray-300 rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                            <Search 
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                                className="pl-9"
                             />
                         </div>
 
@@ -1908,33 +2010,33 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
 
                 {/* Hide demographics if groups are selected */}
                 {(!formData.target_groups || formData.target_groups.length === 0) && (
-                    <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                        <h4 className="font-bold text-gray-700 mb-4">Or Filter by Demographics</h4>
+                    <div className="mt-8 p-4 bg-muted/30 rounded-lg">
+                        <h4 className="font-bold text-foreground mb-4">Or Filter by Demographics</h4>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Age Range</label>
+                            <div className="space-y-2">
+                                <Label>Age Range</Label>
                                 <div className="flex items-center gap-2">
-                                    <input 
+                                    <Input 
                                         type="number" 
                                         placeholder="Min" 
-                                        className="w-20 border border-gray-300 p-2 rounded" 
+                                        className="w-20" 
                                         value={formData.target_min_age || ''} 
                                         onChange={e => handleChange('target_min_age', e.target.value ? parseInt(e.target.value) : undefined)} 
                                     />
-                                    <span>to</span>
-                                    <input 
+                                    <span className="text-sm text-muted-foreground">to</span>
+                                    <Input 
                                         type="number" 
                                         placeholder="Max" 
-                                        className="w-20 border border-gray-300 p-2 rounded" 
+                                        className="w-20" 
                                         value={formData.target_max_age || ''} 
                                         onChange={e => handleChange('target_max_age', e.target.value ? parseInt(e.target.value) : undefined)} 
                                     />
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Genders</label>
+                            <div className="space-y-2">
+                                <Label>Genders</Label>
                                 <div className="flex gap-2 mt-2">
                                     {['MALE', 'FEMALE', 'OTHER'].map(g => (
                                         <label key={g} className="flex items-center gap-1 cursor-pointer">
@@ -1949,6 +2051,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                         handleChange('target_genders', current.filter(x => x !== g));
                                                     }
                                                 }}
+                                                className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
                                             />
                                             <span className="text-sm capitalize">{g.toLowerCase()}</span>
                                         </label>
@@ -1957,13 +2060,15 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
                         </div>
 
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Grades</label>
+                        <div className="mt-4 space-y-2">
+                            <Label>Grades</Label>
                             <div className="flex flex-wrap gap-2 mt-2">
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map(grade => (
-                                    <button
+                                    <Button
                                         key={grade}
                                         type="button"
+                                        variant={formData.target_grades?.includes(grade) ? 'default' : 'outline'}
+                                        size="sm"
                                         onClick={() => {
                                             const current = formData.target_grades || [];
                                             if (current.includes(grade)) {
@@ -1972,41 +2077,32 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                 handleChange('target_grades', [...current, grade]);
                                             }
                                         }}
-                                        className={`px-3 py-1 rounded text-sm border ${
-                                            formData.target_grades?.includes(grade)
-                                                ? 'bg-green-100 border-green-500 text-green-700'
-                                                : 'bg-white border-gray-300'
-                                        }`}
+                                        className={formData.target_grades?.includes(grade) ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
                                     >
                                         Grade {grade}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Interests</label>
+                        <div className="mt-4 space-y-2">
+                            <Label>Interests</Label>
                             
                             {/* Selected Interests Display */}
                             {selectedInterests.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[#EBEBFE] rounded-lg border border-[#4D4DA4]/20">
                                     {selectedInterests.map(interest => (
-                                        <span 
-                                            key={interest.id}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-full font-medium"
-                                        >
+                                        <Badge key={interest.id} variant="secondary" className="bg-[#4D4DA4] text-white hover:bg-[#FF5485]">
                                             {interest.name}
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveInterest(interest.id)}
-                                                className="hover:bg-purple-700 rounded-full p-0.5 transition-colors"
+                                                className="ml-1.5 hover:opacity-75 rounded-full p-0.5 transition-opacity"
                                                 aria-label={`Remove ${interest.name}`}
                                             >
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
+                                                <X className="w-3 h-3" />
                                             </button>
-                                        </span>
+                                        </Badge>
                                     ))}
                                 </div>
                             )}
@@ -2014,7 +2110,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             {/* Searchable Dropdown */}
                             <div className="relative">
                                 <div className="relative">
-                                    <input
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                                    <Input
                                         type="text"
                                         placeholder="Search interests by name..."
                                         value={interestSearch}
@@ -2023,10 +2120,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                             setShowInterestDropdown(true);
                                         }}
                                         onFocus={() => setShowInterestDropdown(true)}
-                                        className="w-full border border-gray-300 rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                    />
-                                    <Search 
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                                        className="pl-9"
                                     />
                                 </div>
 
@@ -2067,25 +2161,31 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         </div>
                     </div>
                 )}
-            </div>
+                </CardContent>
+            </Card>
 
             {/* Section 6: Documents */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4">Documents & Attachments</h3>
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition">
-                    <input type="file" multiple id="doc-upload" className="hidden" 
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
-                        onChange={e => { 
-                            if (e.target.files) {
-                                const newFiles = Array.from(e.target.files);
-                                setDocFiles(prev => [...prev, ...newFiles]);
-                            }
-                        }} />
-                    <label htmlFor="doc-upload" className="cursor-pointer">
-                        <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">Click to upload PDFs, Docs, or Excel files</p>
-                    </label>
-                </div>
+            <Card className="border-none shadow-sm">
+                <CardHeader>
+                    <CardTitle>Documents & Attachments</CardTitle>
+                    <CardDescription>Upload documents related to this event.</CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6">
+                    <div className="border-2 border-dashed border-input rounded-xl p-6 text-center hover:bg-muted/30 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer">
+                        <input type="file" multiple id="doc-upload" className="hidden" 
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                            onChange={e => { 
+                                if (e.target.files) {
+                                    const newFiles = Array.from(e.target.files);
+                                    setDocFiles(prev => [...prev, ...newFiles]);
+                                }
+                            }} />
+                        <label htmlFor="doc-upload" className="cursor-pointer">
+                            <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">Click to upload PDFs, Docs, or Excel files</p>
+                        </label>
+                    </div>
                 
                 {/* Existing Documents */}
                 {existingDocuments.length > 0 && (
@@ -2159,93 +2259,99 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         ))}
                     </ul>
                 )}
-            </div>
+                </CardContent>
+            </Card>
 
             {/* Section 7: Registration & Capacity */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4">Registration & Capacity</h3>
-                
-                <div className="flex items-center gap-2 mb-6">
-                    <input 
-                        type="checkbox" 
-                        id="allowReg"
-                        className="w-5 h-5"
-                        checked={formData.allow_registration}
-                        onChange={e => handleChange('allow_registration', e.target.checked)}
-                    />
-                    <label htmlFor="allowReg" className="font-bold cursor-pointer">Enable Registration</label>
-                </div>
-
-                {formData.allow_registration && (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Regular Seats</label>
-                                <input 
-                                    type="number" 
-                                    className="w-full border border-gray-300 p-2 rounded"
-                                    value={formData.max_seats}
-                                    onChange={e => handleChange('max_seats', parseInt(e.target.value) || 0)}
-                                />
-                                <p className="text-xs text-gray-500 mt-1">0 = Unlimited</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Waitlist Spots</label>
-                                <input 
-                                    type="number" 
-                                    className="w-full border border-gray-300 p-2 rounded"
-                                    value={formData.max_waitlist}
-                                    onChange={e => handleChange('max_waitlist', parseInt(e.target.value) || 0)}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Registration Closes</label>
-                            <input 
-                                type="datetime-local" 
-                                className="w-full border border-gray-300 p-2 rounded"
-                                value={formatDateForInput(formData.registration_close_date)}
-                                onChange={e => handleChange('registration_close_date', e.target.value)}
-                                max={formData.start_date ? formatDateForInput(formData.start_date) : undefined}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                {formData.registration_close_date 
-                                    ? 'Members can apply until this date and time.'
-                                    : 'If no date/time is specified, members can apply until the event starts. Registration opens when the event is published.'}
-                            </p>
-                        </div>
-
-                        <div className="space-y-3 p-4 bg-gray-50 rounded">
-                            <h4 className="font-bold text-sm">Approval Rules</h4>
-                            <label className="flex items-center gap-2">
-                                <input 
-                                    type="checkbox" 
-                                    checked={formData.requires_guardian_approval} 
-                                    onChange={e => handleChange('requires_guardian_approval', e.target.checked)} 
-                                />
-                                <span className="text-sm">Requires Guardian Approval</span>
-                            </label>
-                            <label className="flex items-center gap-2">
-                                <input 
-                                    type="checkbox" 
-                                    checked={formData.requires_admin_approval} 
-                                    onChange={e => handleChange('requires_admin_approval', e.target.checked)} 
-                                />
-                                <span className="text-sm">Requires Admin Approval (Manual review)</span>
-                            </label>
-                            <label className="flex items-center gap-2">
-                                <input 
-                                    type="checkbox" 
-                                    checked={formData.enable_tickets} 
-                                    onChange={e => handleChange('enable_tickets', e.target.checked)} 
-                                />
-                                <span className="text-sm">Generate Tickets (QR Codes)</span>
-                            </label>
-                        </div>
+            <Card className="border-none shadow-sm">
+                <CardHeader>
+                    <CardTitle>Registration & Capacity</CardTitle>
+                    <CardDescription>Configure registration settings and capacity limits.</CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6">
+                    <div className="flex items-center gap-2 mb-6">
+                        <input 
+                            type="checkbox" 
+                            id="allowReg"
+                            className="w-5 h-5 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                            checked={formData.allow_registration}
+                            onChange={e => handleChange('allow_registration', e.target.checked)}
+                        />
+                        <Label htmlFor="allowReg" className="font-bold cursor-pointer">Enable Registration</Label>
                     </div>
-                )}
-            </div>
+
+                    {formData.allow_registration && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Regular Seats</Label>
+                                    <Input 
+                                        type="number" 
+                                        value={formData.max_seats}
+                                        onChange={e => handleChange('max_seats', parseInt(e.target.value) || 0)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">0 = Unlimited</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Waitlist Spots</Label>
+                                    <Input 
+                                        type="number" 
+                                        value={formData.max_waitlist}
+                                        onChange={e => handleChange('max_waitlist', parseInt(e.target.value) || 0)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Registration Closes</Label>
+                                <Input 
+                                    type="datetime-local" 
+                                    value={formatDateForInput(formData.registration_close_date)}
+                                    onChange={e => handleChange('registration_close_date', e.target.value)}
+                                    max={formData.start_date ? formatDateForInput(formData.start_date) : undefined}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    {formData.registration_close_date 
+                                        ? 'Members can apply until this date and time.'
+                                        : 'If no date/time is specified, members can apply until the event starts. Registration opens when the event is published.'}
+                                </p>
+                            </div>
+
+                            <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+                                <h4 className="font-bold text-sm">Approval Rules</h4>
+                                <label className="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={formData.requires_guardian_approval} 
+                                        onChange={e => handleChange('requires_guardian_approval', e.target.checked)}
+                                        className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                                    />
+                                    <span className="text-sm">Requires Guardian Approval</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={formData.requires_admin_approval} 
+                                        onChange={e => handleChange('requires_admin_approval', e.target.checked)}
+                                        className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                                    />
+                                    <span className="text-sm">Requires Admin Approval (Manual review)</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={formData.enable_tickets} 
+                                        onChange={e => handleChange('enable_tickets', e.target.checked)}
+                                        className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                                    />
+                                    <span className="text-sm">Generate Tickets (QR Codes)</span>
+                                </label>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Section: SEO Settings - Collapsible at bottom */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -2465,39 +2571,22 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 )}
             </div>
 
-            <div className="flex justify-end gap-4">
-                <button 
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pb-10">
+                <Button 
                     type="button" 
-                    onClick={() => {
-                        // Build back URL with preserved query parameters
-                        const basePath = `/admin/${scope.toLowerCase()}/events`;
-                        const page = searchParams.get('page');
-                        const search = searchParams.get('search');
-                        const status = searchParams.get('status');
-                        const recurring = searchParams.get('recurring');
-                        const club = searchParams.get('club');
-                        
-                        const params = new URLSearchParams();
-                        if (page) params.set('page', page);
-                        if (search) params.set('search', search);
-                        if (status) params.set('status', status);
-                        if (recurring) params.set('recurring', recurring);
-                        if (club) params.set('club', club);
-                        
-                        const queryString = params.toString();
-                        const redirectUrl = queryString ? `${basePath}?${queryString}` : basePath;
-                        router.push(redirectUrl);
-                    }} 
-                    className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                    variant="ghost"
+                    onClick={() => router.push(redirectPath)}
                 >
                     Cancel
-                </button>
-                <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 disabled:opacity-50">
-                    {loading ? 'Saving...' : 'Save Event'}
-                </button>
+                </Button>
+                <Button type="submit" disabled={loading} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]">
+                    {loading ? 'Saving...' : initialData ? 'Update Event' : 'Create Event'}
+                </Button>
             </div>
 
         </form>
+        </div>
         
         {/* Toast Notification */}
         {toast && (

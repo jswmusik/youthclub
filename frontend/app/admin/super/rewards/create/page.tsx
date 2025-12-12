@@ -2,17 +2,9 @@
 
 import RewardForm from '../../../../components/RewardForm';
 
-export default function CreateRewardPage() {
+export default function Page() {
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Create New Reward</h1>
-        <p className="text-gray-500">
-          Rewards can be targeted to specific groups, demographics, or triggered automatically.
-        </p>
-      </div>
-      
-      {/* Reuse the component we just made */}
+    <div className="p-8">
       <RewardForm redirectPath="/admin/super/rewards" />
     </div>
   );

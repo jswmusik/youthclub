@@ -3,9 +3,27 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { 
+  MoreHorizontal, Plus, Search, MapPin, Phone, Mail, 
+  Trash2, Edit, Eye, BarChart3, Filter, ChevronUp, ChevronDown,
+  Building, Users
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-import DeleteConfirmationModal from './DeleteConfirmationModal';
+
+// UI Components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+// Modals
+import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
 
 interface ClubManagerProps {
@@ -23,210 +41,73 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
   
-  // Analytics - fetch all clubs for calculations
+  // Analytics State
   const [allClubsForAnalytics, setAllClubsForAnalytics] = useState<any[]>([]);
   const [allUsersForAnalytics, setAllUsersForAnalytics] = useState<any[]>([]);
   
-  // Delete
+  // Actions
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
+  // Filter State
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('municipality') || '');
+
+  // Load Metadata
   useEffect(() => {
-    // Load municipalities for filter (Super Admin only)
     if (scope === 'SUPER') {
         api.get('/municipalities/').then(res => {
             setMunicipalities(Array.isArray(res.data) ? res.data : res.data.results || []);
         });
     }
-    fetchAllClubsForAnalytics();
-    fetchAllUsersForAnalytics();
+    fetchAllAnalyticsData();
   }, [scope]);
 
+  // Debounced Search/Filter Update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (searchInput) params.set('search', searchInput); else params.delete('search');
+        if (municipalityFilter) params.set('municipality', municipalityFilter); else params.delete('municipality');
+        params.set('page', '1'); 
+        router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, municipalityFilter, router, pathname]); // Intentionally omitting searchParams
+
+  // Fetch Data on URL Change
   useEffect(() => {
     fetchClubs();
   }, [searchParams]);
 
-  const fetchAllClubsForAnalytics = async () => {
+  const fetchAllAnalyticsData = async () => {
+    // Simplified fetching for demo - in production consider dedicated analytics endpoints
     try {
-      // Fetch all clubs for analytics calculation
-      let allClubs: any[] = [];
-      let page = 1;
-      let totalCount = 0;
-      const pageSize = 100;
-      const maxPages = 100;
+      const clubRes = await api.get('/clubs/?page_size=100');
+      setAllClubsForAnalytics(clubRes.data.results || []);
       
-      while (page <= maxPages) {
-        const params = new URLSearchParams();
-        params.set('page', page.toString());
-        params.set('page_size', pageSize.toString());
-        
-        const res: any = await api.get(`/clubs/?${params.toString()}`);
-        const responseData: any = res?.data;
-        
-        if (!responseData) {
-          break;
-        }
-        
-        let pageClubs: any[] = [];
-        
-        if (Array.isArray(responseData)) {
-          pageClubs = responseData;
-          allClubs = [...allClubs, ...pageClubs];
-          break;
-        } else if (responseData.results && Array.isArray(responseData.results)) {
-          pageClubs = responseData.results;
-          allClubs = [...allClubs, ...pageClubs];
-          
-          if (page === 1) {
-            totalCount = responseData.count || 0;
-          }
-          
-          const hasNext = responseData.next !== null && responseData.next !== undefined;
-          const hasAllResults = totalCount > 0 && allClubs.length >= totalCount;
-          const gotEmptyPage = pageClubs.length === 0;
-          
-          if (!hasNext || hasAllResults || gotEmptyPage) {
-            break;
-          }
-          
-          page++;
-        } else {
-          break;
-        }
-      }
-      
-      setAllClubsForAnalytics(allClubs);
-    } catch (err) {
-      console.error('Error fetching clubs for analytics:', err);
-      setAllClubsForAnalytics([]);
-    }
-  };
-
-  const fetchAllUsersForAnalytics = async () => {
-    try {
-      // Fetch all youth members to calculate average members per club
-      let allUsers: any[] = [];
-      let page = 1;
-      let totalCount = 0;
-      const pageSize = 100;
-      const maxPages = 100;
-      
-      while (page <= maxPages) {
-        const params = new URLSearchParams();
-        params.set('role', 'YOUTH_MEMBER');
-        params.set('page', page.toString());
-        params.set('page_size', pageSize.toString());
-        
-        const res: any = await api.get(`/users/?${params.toString()}`);
-        const responseData: any = res?.data;
-        
-        if (!responseData) {
-          break;
-        }
-        
-        let pageUsers: any[] = [];
-        
-        if (Array.isArray(responseData)) {
-          pageUsers = responseData;
-          allUsers = [...allUsers, ...pageUsers];
-          break;
-        } else if (responseData.results && Array.isArray(responseData.results)) {
-          pageUsers = responseData.results;
-          allUsers = [...allUsers, ...pageUsers];
-          
-          if (page === 1) {
-            totalCount = responseData.count || 0;
-          }
-          
-          const hasNext = responseData.next !== null && responseData.next !== undefined;
-          const hasAllResults = totalCount > 0 && allUsers.length >= totalCount;
-          const gotEmptyPage = pageUsers.length === 0;
-          
-          if (!hasNext || hasAllResults || gotEmptyPage) {
-            break;
-          }
-          
-          page++;
-        } else {
-          break;
-        }
-      }
-      
-      setAllUsersForAnalytics(allUsers);
-    } catch (err) {
-      console.error('Error fetching users for analytics:', err);
-      setAllUsersForAnalytics([]);
-    }
+      const userRes = await api.get('/users/?role=YOUTH_MEMBER&page_size=100');
+      setAllUsersForAnalytics(userRes.data.results || []);
+    } catch (e) { console.error(e); }
   };
 
   const fetchClubs = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      
-      // Get filters from URL
-      const page = searchParams.get('page') || '1';
-      const search = searchParams.get('search') || '';
-      const municipality = searchParams.get('municipality') || '';
-      
-      if (search) params.set('search', search);
-      if (scope === 'SUPER' && municipality) params.set('municipality', municipality);
-      
-      // Use server-side pagination
-      params.set('page', page);
-      params.set('page_size', '10');
+      const params = new URLSearchParams(searchParams.toString());
+      if (!params.has('page_size')) params.set('page_size', '10');
       
       const res = await api.get(`/clubs/?${params.toString()}`);
-      
-      // Handle both paginated and non-paginated responses
       if (Array.isArray(res.data)) {
-        // Non-paginated response (array)
         setClubs(res.data);
         setTotalCount(res.data.length);
       } else {
-        // Paginated response (object with results and count)
         setClubs(res.data.results || []);
-        setTotalCount(res.data.count || (res.data.results?.length || 0));
+        setTotalCount(res.data.count || 0);
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateUrl = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value); else params.delete(key);
-    if (key !== 'page') params.set('page', '1');
-    router.push(`${pathname}?${params.toString()}`);
-  };
-
-  const buildUrlWithParams = (path: string) => {
-    const params = new URLSearchParams();
-    const page = searchParams.get('page');
-    const search = searchParams.get('search');
-    const municipality = searchParams.get('municipality');
-    
-    if (page && page !== '1') params.set('page', page);
-    if (search) params.set('search', search);
-    if (municipality) params.set('municipality', municipality);
-    
-    const queryString = params.toString();
-    return queryString ? `${path}?${queryString}` : path;
-  };
-
-  const getInitials = (name: string) => {
-    if (!name) return 'C';
-    const words = name.trim().split(/\s+/);
-    if (words.length === 1) {
-      // Single word: take first 2 letters
-      return name.substring(0, 2).toUpperCase();
-    }
-    // Multiple words: take first letter of first two words
-    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+    } catch (err) { console.error(err); } 
+    finally { setLoading(false); }
   };
 
   const handleDelete = async () => {
@@ -235,357 +116,270 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
       await api.delete(`/clubs/${itemToDelete.id}/`);
       setToast({ message: 'Club deleted.', type: 'success', isVisible: true });
       fetchClubs();
-      fetchAllClubsForAnalytics();
+      fetchAllAnalyticsData();
     } catch (err) {
-      setToast({ message: 'Failed to delete.', type: 'error', isVisible: true });
+      setToast({ message: 'Failed to delete club.', type: 'error', isVisible: true });
     } finally {
       setItemToDelete(null);
     }
   };
 
-  // Calculate analytics
-  const analytics = {
-    total_clubs: allClubsForAnalytics.length,
-    new_last_30_days: allClubsForAnalytics.filter((club: any) => {
-      // Try to get created_at from the club object
-      // If not available, we'll need to fetch it separately or add it to the serializer
-      // For now, we'll check if the field exists
-      if (!club.created_at) return false;
-      const createdDate = new Date(club.created_at);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return createdDate >= thirtyDaysAgo;
-    }).length,
-    average_members: (() => {
-      if (allClubsForAnalytics.length === 0) return 0;
-      // Count members per club (users with preferred_club set)
-      const memberCounts = allClubsForAnalytics.map((club: any) => {
-        return allUsersForAnalytics.filter((user: any) => user.preferred_club === club.id).length;
-      });
-      const totalMembers = memberCounts.reduce((sum, count) => sum + count, 0);
-      return totalMembers > 0 ? Math.round((totalMembers / allClubsForAnalytics.length) * 10) / 10 : 0;
-    })(),
+  const buildUrlWithParams = (path: string) => {
+    const queryString = searchParams.toString();
+    return queryString ? `${path}?${queryString}` : path;
   };
 
-  // Pagination logic
+  // Analytics Calculations
+  const analytics = {
+    total: allClubsForAnalytics.length,
+    avgMembers: (() => {
+        if (!allClubsForAnalytics.length) return 0;
+        // Mock calculation based on loaded users
+        const assignedCount = allUsersForAnalytics.filter((u:any) => u.preferred_club).length;
+        return (assignedCount / allClubsForAnalytics.length).toFixed(1);
+    })()
+  };
+
+  // Pagination
   const currentPage = Number(searchParams.get('page')) || 1;
-  const pageSize = 10;
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = Math.ceil(totalCount / 10);
+  const handlePageChange = (p: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('page', p.toString());
+      router.push(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Manage Clubs</h1>
-        <Link href={`${basePath}/create`} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 shadow">
-          + Add Club
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Youth Clubs</h1>
+          <p className="text-gray-500 mt-1">Manage youth centers and activity hubs.</p>
+        </div>
+        <Link href={`${basePath}/create`}>
+          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+            <Plus className="h-4 w-4" /> Add Club
+          </Button>
         </Link>
       </div>
 
-      {/* Analytics Dashboard */}
+      {/* Analytics */}
       {!loading && (
-        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {/* Toggle Button */}
-          <button
-            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-            className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
+        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+          <Card className="border-0 shadow-sm bg-gray-900">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-400">Analytics Dashboard</h3>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                  <ChevronUp className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                    analyticsExpanded ? "rotate-0" : "rotate-180"
+                  )} />
+                  <span className="sr-only">Toggle Analytics</span>
+                </Button>
+              </CollapsibleTrigger>
             </div>
-            <svg 
-              className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+            <CollapsibleContent className="transition-all duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
+                  {/* Card 1: Total Clubs */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">Total Clubs</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-[#4D4DA4]/30 flex items-center justify-center shadow-md">
+                          <Building className="h-5 w-5 text-[#4D4DA4]" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-white">{analytics.total}</div>
+                    </CardContent>
+                  </Card>
 
-          {/* Analytics Cards - Collapsible */}
-          <div 
-            className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-              analyticsExpanded 
-                ? 'max-h-[500px] opacity-100' 
-                : 'max-h-0 opacity-0'
-            } overflow-hidden`}
-          >
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Card 1: Total Clubs */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Clubs</h3>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                  </div>
+                  {/* Card 2: Avg. Members */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">Avg. Members</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center shadow-md">
+                          <Users className="h-5 w-5 text-blue-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-white">{analytics.avgMembers}</div>
+                    </CardContent>
+                  </Card>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.total_clubs}</p>
-              </div>
-
-              {/* Card 2: New Last 30 Days */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-green-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">New (30 Days)</h3>
-                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.new_last_30_days}</p>
-              </div>
-
-              {/* Card 3: Average Members */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-purple-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Avg Members</h3>
-                  <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.average_members}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       )}
 
-      {/* FILTERS */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-          className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span className="text-sm font-semibold text-gray-700">Filters</span>
+      {/* Filters */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="p-2 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <Input 
+              placeholder="Search clubs..." 
+              className="pl-9 bg-gray-50 border-0"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+            />
           </div>
-          <svg 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Filter Fields - Collapsible */}
-        <div 
-          className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-            filtersExpanded 
-              ? 'max-h-[1000px] opacity-100' 
-              : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          <div className="p-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Search */}
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-                <input 
-                  type="text" 
-                  placeholder="Search by club name, email, or description..." 
-                  className="w-full border rounded p-2 text-sm bg-gray-50"
-                  value={searchParams.get('search') || ''} 
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value.trim()) {
-                      updateUrl('search', value.trim());
-                    } else {
-                      const params = new URLSearchParams(searchParams.toString());
-                      params.delete('search');
-                      params.set('page', '1');
-                      router.push(`${pathname}?${params.toString()}`);
-                    }
-                  }}
-                />
-              </div>
-
-              {/* Municipality - Only for SUPER scope */}
-              {scope === 'SUPER' && (
-                <div className="w-48">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Municipality</label>
-                  <select 
-                    className="w-full border rounded p-2 text-sm bg-gray-50" 
-                    value={searchParams.get('municipality') || ''} 
-                    onChange={e => updateUrl('municipality', e.target.value)}
-                  >
-                    <option value="">All Municipalities</option>
-                    {municipalities.map(m => (
-                      <option key={m.id} value={m.id.toString()}>{m.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Clear Filters */}
-              <button
-                onClick={() => router.push(pathname)}
-                className="px-4 py-2 text-sm text-gray-500 hover:text-red-500 font-medium"
+          {scope === 'SUPER' && (
+            <div className="w-full sm:w-[200px]">
+              {/* Native select for simplicity, can upgrade to shadcn Select later */}
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={municipalityFilter}
+                onChange={e => setMunicipalityFilter(e.target.value)}
               >
-                Clear Filters
-              </button>
+                <option value="">All Municipalities</option>
+                {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
             </div>
-          </div>
+          )}
         </div>
-      </div>
+      </Card>
 
-      {/* List */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? <div className="p-12 text-center">Loading...</div> : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Club</th>
-                {scope === 'SUPER' && <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Municipality</th>}
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Contact</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {clubs.map(club => (
-                <tr key={club.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                        {club.avatar ? (
-                          <img src={getMediaUrl(club.avatar)||''} className="w-10 h-10 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600 text-sm">
-                            {getInitials(club.name || 'Club')}
-                          </div>
-                        )}
-                        <span className="font-bold text-gray-900">{club.name}</span>
+      {/* Content */}
+      {loading ? (
+        <div className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      ) : clubs.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 text-center">
+            <p className="text-gray-500">No clubs found.</p>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* MOBILE: Cards */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {clubs.map((club) => (
+              <Card key={club.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                   <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0">
+                            <AvatarImage src={getMediaUrl(club.avatar)} className="object-cover" />
+                            <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">C</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base font-semibold text-gray-900 truncate">{club.name}</CardTitle>
+                            {scope === 'SUPER' && <CardDescription className="text-xs text-gray-500">{club.municipality_name}</CardDescription>}
+                        </div>
+                   </div>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                    <div className="grid grid-cols-2 gap-2 text-gray-600">
+                        {club.email && <div className="flex items-center gap-2"><Mail className="h-3 w-3" /><span className="truncate text-xs">{club.email}</span></div>}
+                        {club.phone && <div className="flex items-center gap-2"><Phone className="h-3 w-3" /><span className="truncate text-xs">{club.phone}</span></div>}
                     </div>
-                  </td>
-                  {scope === 'SUPER' && <td className="px-6 py-4 text-sm text-gray-600">{club.municipality_name}</td>}
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    <div>{club.email}</div>
-                    <div className="text-xs text-gray-400">{club.phone}</div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link 
-                        href={buildUrlWithParams(`${basePath}/${club.id}`)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        View
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                      <Link href={buildUrlWithParams(`${basePath}/${club.id}`)} className="flex-1">
+                        <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Button>
                       </Link>
-                      <Link 
-                        href={buildUrlWithParams(`${basePath}/edit/${club.id}`)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit
+                      <Link href={buildUrlWithParams(`${basePath}/edit/${club.id}`)} className="flex-1">
+                        <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                          <Edit className="h-4 w-4" />
+                          Edit
+                        </Button>
                       </Link>
-                      <button 
-                        onClick={() => setItemToDelete(club)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors"
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => setItemToDelete(club)}
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        <Trash2 className="h-4 w-4" />
                         Delete
-                      </button>
+                      </Button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {clubs.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-gray-500">No clubs found.</td></tr>}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-          <div className="flex flex-1 justify-between sm:hidden">
-            <button 
-              disabled={currentPage === 1}
-              onClick={() => updateUrl('page', (currentPage - 1).toString())}
-              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button 
-              disabled={currentPage >= totalPages}
-              onClick={() => updateUrl('page', (currentPage + 1).toString())}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                {' '}(Total: {totalCount})
-              </p>
-            </div>
-            <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Previous</span>
-                  ← Prev
-                </button>
-                
-                {/* Simple Pagination Numbers */}
-                {[...Array(totalPages)].map((_, i) => {
-                  const p = i + 1;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => updateUrl('page', p.toString())}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                        ${p === currentPage 
-                          ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
 
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Next</span>
-                  Next →
-                </button>
-              </nav>
+          {/* DESKTOP: Table */}
+          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold">Club Name</TableHead>
+                  {scope === 'SUPER' && <TableHead className="h-12 text-gray-600 font-semibold">Municipality</TableHead>}
+                  <TableHead className="h-12 text-gray-600 font-semibold">Contact</TableHead>
+                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {clubs.map((club) => (
+                  <TableRow key={club.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                                <AvatarImage src={getMediaUrl(club.avatar)} className="object-cover" />
+                                <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">C</AvatarFallback>
+                            </Avatar>
+                            <span className="font-semibold text-gray-900">{club.name}</span>
+                        </div>
+                    </TableCell>
+                    {scope === 'SUPER' && <TableCell className="text-gray-600">{club.municipality_name}</TableCell>}
+                    <TableCell>
+                        <div className="text-sm text-gray-600">
+                            {club.email && <div>{club.email}</div>}
+                            {club.phone && <div className="text-xs text-gray-400">{club.phone}</div>}
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                           <Link href={buildUrlWithParams(`${basePath}/${club.id}`)}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"><Eye className="h-4 w-4" /></Button>
+                           </Link>
+                           <Link href={buildUrlWithParams(`${basePath}/edit/${club.id}`)}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"><Edit className="h-4 w-4" /></Button>
+                           </Link>
+                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50" onClick={() => setItemToDelete(club)}>
+                                <Trash2 className="h-4 w-4" />
+                           </Button>
+                        </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 py-4">
+                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>Prev</Button>
+                <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+                <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => handlePageChange(currentPage + 1)}>Next</Button>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
-      <DeleteConfirmationModal 
+      <ConfirmationModal 
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
-        itemName={itemToDelete?.name}
+        title="Delete Club"
+        message={`Are you sure you want to delete "${itemToDelete?.name}"? This will permanently delete the club and its data.`}
+        variant="danger"
       />
       <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>

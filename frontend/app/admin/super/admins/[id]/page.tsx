@@ -15,7 +15,7 @@ function DetailPageContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading...</div>}>
       <DetailPageContent />
     </Suspense>
   );

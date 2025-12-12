@@ -16,12 +16,17 @@ const api = axios.create({
 // Interceptor: Automatically add the Token to every request
 api.interceptors.request.use((config: any) => {
   // Public endpoints that don't require authentication
+  // Some endpoints are only public for GET requests (read-only)
   const publicEndpoints = [
     '/custom-fields/public/',
     '/register/youth/',
     '/register/check-guardian/',
-    '/municipalities/',
     '/interests/',
+  ];
+  
+  // Endpoints that are public only for GET requests (read-only public access)
+  const readOnlyPublicEndpoints = [
+    '/municipalities/',
   ];
   
   // Get URL path without query parameters
@@ -30,10 +35,20 @@ api.interceptors.request.use((config: any) => {
   const fullUrl = (config.baseURL || '') + relativeUrl;
   const fullUrlPath = fullUrl.split('?')[0];
   
-  // Check if this is a public endpoint
-  const isPublicEndpoint = publicEndpoints.some(endpoint => 
+  // Get HTTP method (defaults to 'get' for axios)
+  const method = (config.method || 'get').toLowerCase();
+  
+  // Check if this is a fully public endpoint (all methods)
+  const isFullyPublicEndpoint = publicEndpoints.some(endpoint => 
     urlPath.includes(endpoint) || fullUrlPath.includes(endpoint)
-  ) || config.skipAuth;
+  );
+  
+  // Check if this is a read-only public endpoint (only GET requests)
+  const isReadOnlyPublicEndpoint = readOnlyPublicEndpoints.some(endpoint => 
+    (urlPath.includes(endpoint) || fullUrlPath.includes(endpoint)) && method === 'get'
+  );
+  
+  const isPublicEndpoint = isFullyPublicEndpoint || isReadOnlyPublicEndpoint || config.skipAuth;
   
   // Skip authentication for public endpoints
   if (isPublicEndpoint) {
@@ -41,7 +56,7 @@ api.interceptors.request.use((config: any) => {
     if (config.headers) {
       delete config.headers.Authorization;
     }
-    console.log('[API] Skipping auth for public endpoint:', urlPath);
+    console.log('[API] Skipping auth for public endpoint:', urlPath, method);
     return config;
   }
   

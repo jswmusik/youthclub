@@ -7,7 +7,9 @@ import ArticleDetailView from '@/app/components/ArticleDetailView';
 function ArticleDetailViewContent() {
   const { id } = useParams() as { id: string };
   return (
-    <ArticleDetailView articleId={id} basePath="/admin/super/news" />
+    <div className="p-8">
+      <ArticleDetailView articleId={id} basePath="/admin/super/news" />
+    </div>
   );
 }
 

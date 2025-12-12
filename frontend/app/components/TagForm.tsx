@@ -2,8 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, Tag } from 'lucide-react';
 import api from '../../lib/api';
 import Toast from './Toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 interface TagFormProps {
   initialData?: any;
@@ -53,42 +60,82 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">{initialData ? 'Edit Tag' : 'Create Tag'}</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link href={redirectPath}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
         <div>
-            <label className="block text-sm font-bold mb-1 text-gray-700">Tag Name</label>
-            <input 
-              required 
-              type="text" 
-              className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" 
-              placeholder="e.g. Summer Events"
-              value={formData.name} 
-              onChange={handleNameChange} 
-            />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {initialData ? 'Edit Tag' : 'Create New Tag'}
+          </h1>
+          <p className="text-sm text-muted-foreground">Manage tag details and information.</p>
         </div>
-        <div>
-            <label className="block text-sm font-bold mb-1 text-gray-700">Slug</label>
-            <input 
-              required 
-              type="text" 
-              className="w-full border p-2 rounded bg-gray-100 text-gray-600" 
-              placeholder="e.g. summer-events"
-              value={formData.slug} 
-              onChange={e => setFormData({...formData, slug: e.target.value})} 
-            />
-            <p className="text-xs text-gray-400 mt-1">Used in the URL. Auto-generated, but editable.</p>
-        </div>
-        <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={() => {
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* Tag Information */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-[#4D4DA4]" />
+              Tag Information
+            </CardTitle>
+            <CardDescription>Enter the tag name and slug for categorization.</CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6 space-y-6">
+            <div className="space-y-2">
+              <Label>Tag Name <span className="text-red-500">*</span></Label>
+              <Input 
+                required 
+                type="text" 
+                placeholder="e.g. Summer Events"
+                value={formData.name} 
+                onChange={handleNameChange} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Slug <span className="text-red-500">*</span></Label>
+              <Input 
+                required 
+                type="text" 
+                className="bg-gray-50 font-mono text-sm" 
+                placeholder="e.g. summer-events"
+                value={formData.slug} 
+                onChange={e => setFormData({...formData, slug: e.target.value})} 
+              />
+              <p className="text-xs text-muted-foreground">Used in the URL. Auto-generated from tag name, but editable.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer Actions */}
+        <div className="flex justify-end gap-4 pt-4">
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => {
               const currentSearchParams = searchParams.toString();
               const finalRedirectPath = currentSearchParams ? `${redirectPath}?${currentSearchParams}` : redirectPath;
               router.push(finalRedirectPath);
-            }} className="text-gray-500 hover:text-gray-700">Cancel</button>
-            <button type="submit" disabled={loading} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                {loading ? 'Saving...' : (initialData ? 'Save' : 'Create')}
-            </button>
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={loading} 
+            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white"
+          >
+            {loading ? 'Saving...' : initialData ? 'Update Tag' : 'Create Tag'}
+          </Button>
         </div>
+
       </form>
       <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>

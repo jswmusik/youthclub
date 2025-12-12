@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ToastProps {
   message: string;
@@ -17,10 +17,17 @@ export default function Toast({
   onClose, 
   duration = 3000 
 }: ToastProps) {
+  const [isClosing, setIsClosing] = useState(false);
+
   useEffect(() => {
     if (isVisible) {
+      setIsClosing(false);
       const timer = setTimeout(() => {
-        onClose();
+        setIsClosing(true);
+        // Wait for slide-out animation to complete before calling onClose
+        setTimeout(() => {
+          onClose();
+        }, 300);
       }, duration);
       return () => clearTimeout(timer);
     }
@@ -58,15 +65,28 @@ export default function Toast({
     ),
   };
 
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
   return (
-    <div className="fixed top-4 right-4 z-50 animate-slide-in">
-      <div className={`${bgColors[type]} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-md transition-all duration-300`}>
+    <div 
+      className={`fixed top-4 right-4 z-50 transition-all duration-300 ease-in-out ${
+        isClosing 
+          ? 'animate-out fade-out-0 slide-out-to-right-4' 
+          : 'animate-in fade-in-0 slide-in-from-right-4'
+      }`}
+    >
+      <div className={`${bgColors[type]} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-md`}>
         <div className="flex-shrink-0">
           {icons[type]}
         </div>
         <p className="flex-1 font-medium">{message}</p>
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors"
           aria-label="Close"
         >

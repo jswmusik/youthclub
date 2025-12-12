@@ -2,6 +2,11 @@
 
 import { VisitSession } from '@/types/visit';
 import { getMediaUrl } from '@/app/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   visits: VisitSession[];
@@ -45,154 +50,192 @@ export default function UserVisitsTable({
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
+  if (loading) {
+    return (
+      <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
+        <div className="p-8 text-center text-gray-400 animate-pulse">Loading visits...</div>
+      </Card>
+    );
+  }
+
   return (
     <>
-      {/* LIST */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? <div className="p-8 text-center">Loading...</div> : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Club</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Check In</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Check Out</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Duration</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {visits.map((visit) => {
-                // Highlight Logic: If visited club != preferred club
-                // Only apply if preferredClubId is known (not null)
-                const isAway = preferredClubId && visit.club !== preferredClubId;
-                
-                return (
-                  <tr 
-                    key={visit.id} 
-                    className={`hover:bg-gray-50 ${isAway ? 'bg-orange-50' : ''}`}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-gray-900">{formatDate(visit.check_in_at)}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {visit.club_avatar && (
-                          <img 
-                            src={getMediaUrl(visit.club_avatar) || ''} 
-                            className="w-10 h-10 rounded-full object-cover"
-                            alt="" 
-                          />
-                        )}
-                        <div>
-                          <div className={`font-bold ${isAway ? 'text-orange-900' : 'text-gray-900'}`}>
-                            {visit.club_name}
-                          </div>
-                          {isAway && (
-                            <span className="text-xs text-orange-600 font-semibold">Guest Visit</span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {formatTime(visit.check_in_at)}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {visit.check_out_at ? formatTime(visit.check_out_at) : '-'}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {calculateDuration(visit.check_in_at, visit.check_out_at)}
-                    </td>
-                    <td className="px-6 py-4">
-                      {visit.check_out_at ? (
-                        <span className={`px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-800`}>
-                          Completed
-                        </span>
-                      ) : (
-                        <span className={`px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-800`}>
-                          Active
-                        </span>
+      {/* Desktop Table */}
+      <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-gray-100 hover:bg-transparent">
+              <TableHead className="h-12 text-gray-600 font-semibold">Club</TableHead>
+              <TableHead className="h-12 text-gray-600 font-semibold">Date</TableHead>
+              <TableHead className="h-12 text-gray-600 font-semibold">Check In</TableHead>
+              <TableHead className="h-12 text-gray-600 font-semibold">Check Out</TableHead>
+              <TableHead className="h-12 text-gray-600 font-semibold">Duration</TableHead>
+              <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visits.map((visit) => {
+              // Highlight Logic: If visited club != preferred club
+              // Only apply if preferredClubId is known (not null)
+              const isGuestVisit = preferredClubId && visit.club !== preferredClubId;
+              
+              return (
+                <TableRow 
+                  key={visit.id} 
+                  className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${isGuestVisit ? 'bg-orange-50/50 hover:bg-orange-50' : ''}`}
+                >
+                  <TableCell className="py-4">
+                    <div className="flex items-center gap-3">
+                      {visit.club_avatar && (
+                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                          <AvatarImage src={getMediaUrl(visit.club_avatar) || undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                            {visit.club_name?.charAt(0)?.toUpperCase() || 'C'}
+                          </AvatarFallback>
+                        </Avatar>
                       )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {visits.length === 0 && (
-                <tr><td colSpan={6} className="p-8 text-center text-gray-500">No visits found for this period.</td></tr>
-              )}
-            </tbody>
-          </table>
+                      <div>
+                        <div className={`font-semibold ${isGuestVisit ? 'text-orange-700' : 'text-[#121213]'}`}>
+                          {visit.club_name}
+                        </div>
+                        {isGuestVisit && (
+                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200 mt-1">
+                            Guest Visit
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4">
+                    <div className="font-semibold text-[#121213]">{formatDate(visit.check_in_at)}</div>
+                  </TableCell>
+                  <TableCell className="py-4 text-gray-600">
+                    {formatTime(visit.check_in_at)}
+                  </TableCell>
+                  <TableCell className="py-4 text-gray-600">
+                    {visit.check_out_at ? formatTime(visit.check_out_at) : '-'}
+                  </TableCell>
+                  <TableCell className="py-4 text-gray-600">
+                    {calculateDuration(visit.check_in_at, visit.check_out_at)}
+                  </TableCell>
+                  <TableCell className="py-4">
+                    {visit.check_out_at ? (
+                      <Badge variant="outline" className="bg-gray-50 text-gray-800 border-gray-200">
+                        Completed
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Active
+                      </Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {visits.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="p-8 text-center text-gray-500">
+                  No visits found for this period.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {visits.map((visit) => {
+          const isGuestVisit = preferredClubId && visit.club !== preferredClubId;
+          
+          return (
+            <Card key={visit.id} className={`border border-gray-100 shadow-sm ${isGuestVisit ? 'bg-orange-50/50' : 'bg-white'}`}>
+              <div className="p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {visit.club_avatar && (
+                        <Avatar className="h-8 w-8 rounded-lg border border-gray-200 bg-gray-50">
+                          <AvatarImage src={getMediaUrl(visit.club_avatar) || undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                            {visit.club_name?.charAt(0)?.toUpperCase() || 'C'}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div>
+                        <div className={`font-semibold text-sm ${isGuestVisit ? 'text-orange-700' : 'text-[#121213]'}`}>
+                          {visit.club_name}
+                        </div>
+                        {isGuestVisit && (
+                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200 mt-1">
+                            Guest Visit
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="font-semibold text-[#121213] text-sm">{formatDate(visit.check_in_at)}</div>
+                  </div>
+                  <div>
+                    {visit.check_out_at ? (
+                      <Badge variant="outline" className="bg-gray-50 text-gray-800 border-gray-200">
+                        Completed
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Active
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+                  <div>
+                    <div className="text-xs text-gray-500 uppercase font-semibold">Check In</div>
+                    <div className="text-sm text-gray-700">{formatTime(visit.check_in_at)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 uppercase font-semibold">Check Out</div>
+                    <div className="text-sm text-gray-700">{visit.check_out_at ? formatTime(visit.check_out_at) : '-'}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-xs text-gray-500 uppercase font-semibold">Duration</div>
+                    <div className="text-sm text-gray-700">{calculateDuration(visit.check_in_at, visit.check_out_at)}</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+        {visits.length === 0 && (
+          <Card className="border border-gray-100 shadow-sm bg-white">
+            <div className="p-8 text-center text-gray-500">No visits found for this period.</div>
+          </Card>
         )}
       </div>
 
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-          <div className="flex flex-1 justify-between sm:hidden">
-            <button 
-              disabled={page === 1}
-              onClick={() => onPageChange(page - 1)}
-              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button 
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span>
-                {' '}(Total: {totalCount})
-              </p>
-            </div>
-            <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <button
-                  disabled={page === 1}
-                  onClick={() => onPageChange(page - 1)}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Previous</span>
-                  ← Prev
-                </button>
-                
-                {/* Simple Pagination Numbers */}
-                {[...Array(totalPages)].map((_, i) => {
-                  const p = i + 1;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => onPageChange(p)}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                        ${p === page 
-                          ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
-
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => onPageChange(page + 1)}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Next</span>
-                  Next →
-                </button>
-              </nav>
-            </div>
-          </div>
+        <div className="flex items-center justify-center gap-2 py-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            disabled={page === 1} 
+            onClick={() => onPageChange(page - 1)}
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            Prev
+          </Button>
+          <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            disabled={page >= totalPages} 
+            onClick={() => onPageChange(page + 1)}
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            Next
+          </Button>
         </div>
       )}
     </>
   );
 }
-

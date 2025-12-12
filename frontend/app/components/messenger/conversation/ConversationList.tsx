@@ -22,7 +22,7 @@ export default function ConversationList({ conversations, selectedId, onSelect }
     }
 
     return (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-gray-100 min-w-0 max-w-full">
             {conversations.map((conv) => {
                 const isSelected = selectedId === conv.id;
                 const isUnread = conv.unread_count > 0;
@@ -61,11 +61,11 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                 }
 
                 return (
-                    <li key={conv.id}>
+                    <li key={conv.id} className="min-w-0 max-w-full">
                         <button
                             onClick={() => onSelect(conv.id)}
-                            className={`w-full p-4 flex gap-3 text-left transition-colors hover:bg-gray-50 
-                                ${isSelected ? 'bg-blue-50 hover:bg-blue-50 border-l-4 border-blue-600' : 'border-l-4 border-transparent'}
+                            className={`w-full p-3 sm:p-4 flex gap-2 sm:gap-3 text-left transition-colors hover:bg-gray-50 active:bg-gray-100 touch-manipulation min-w-0 max-w-full
+                                ${isSelected ? 'bg-[#EBEBFE]/50 hover:bg-[#EBEBFE]/50 active:bg-[#EBEBFE]/60 border-l-4 border-[#4D4DA4]' : 'border-l-4 border-transparent'}
                             `}
                         >
                             {/* Icon / Avatar Context */}
@@ -75,7 +75,7 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                                         📢
                                     </div>
                                 ) : conv.type === 'BROADCAST' ? (
-                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#EBEBFE] text-[#4D4DA4]">
                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
@@ -84,10 +84,10 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                                     <img 
                                         src={avatarUrl} 
                                         alt={avatarInitials || 'Avatar'}
-                                        className="w-10 h-10 rounded-full object-cover bg-gray-200"
+                                        className="w-10 h-10 rounded-full object-cover bg-gray-200 border border-gray-200"
                                     />
                                 ) : (
-                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 font-semibold text-sm">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#EBEBFE] text-[#4D4DA4] font-semibold text-sm border border-[#EBEBFE]">
                                         {avatarInitials}
                                     </div>
                                 )}
@@ -96,7 +96,7 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                             {/* Content */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-baseline mb-1">
-                                    <h4 className={`text-sm truncate pr-2 ${isUnread ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                    <h4 className={`text-sm truncate pr-2 ${isUnread ? 'font-bold text-[#121213]' : 'font-medium text-gray-700'}`}>
                                         {conv.subject || 'No Subject'}
                                     </h4>
                                     <span className="text-[10px] text-gray-400 flex-shrink-0">
@@ -105,7 +105,7 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                                             : ''}
                                     </span>
                                 </div>
-                                <p className={`text-xs truncate ${isUnread ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>
+                                <p className={`text-xs truncate ${isUnread ? 'text-[#121213] font-medium' : 'text-gray-500'}`}>
                                     {conv.last_message ? (
                                         <>
                                             <span className="text-gray-400 mr-1">{conv.last_message.sender_name}:</span>
@@ -120,7 +120,7 @@ export default function ConversationList({ conversations, selectedId, onSelect }
                             {/* Unread Badge */}
                             {isUnread && (
                                 <div className="flex-shrink-0 self-center ml-2">
-                                    <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-blue-600 rounded-full">
+                                    <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-[#4D4DA4] rounded-full">
                                         {conv.unread_count}
                                     </span>
                                 </div>

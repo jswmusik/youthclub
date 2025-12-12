@@ -4,7 +4,14 @@ import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import { formatDistanceToNow, format } from 'date-fns';
 import BookingDetailModal from './BookingDetailModal';
-import { Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getMediaUrl, getInitials } from '@/app/utils';
 
 // Accept scope prop
 export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICIPALITY' | 'SUPER' }) {
@@ -88,22 +95,27 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
     return participants.length + 1; // User + participants
   };
 
+  const clearFilters = () => {
+    setSelectedClub('');
+    setSelectedResource('');
+  };
+
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
+    <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-        <div className="flex flex-wrap gap-4 justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-gray-900">Pending Requests</h3>
-            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">
+      <CardHeader className="border-b border-gray-100 bg-gray-50/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Pending Requests</CardTitle>
+            <Badge className="bg-[#EBEBFE] text-[#4D4DA4] text-xs font-semibold">
               {totalCount}
-            </span>
+            </Badge>
           </div>
 
           <div className="flex flex-wrap gap-3">
             {/* Resource Filter */}
             <select 
-              className="text-sm border border-gray-300 rounded-lg px-3 py-2 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex h-9 rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4] min-w-[180px]"
               value={selectedResource}
               onChange={e => setSelectedResource(e.target.value)}
             >
@@ -114,7 +126,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
             {/* Club Filter for High-Level Admins */}
             {(scope === 'MUNICIPALITY' || scope === 'SUPER') && (
               <select 
-                className="text-sm border border-gray-300 rounded-lg px-3 py-2 min-w-[150px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex h-9 rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4] min-w-[150px]"
                 value={selectedClub}
                 onChange={e => setSelectedClub(e.target.value)}
               >
@@ -122,173 +134,287 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                 {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             )}
+
+            {/* Clear Filters Button */}
+            {(selectedClub || selectedResource) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+              >
+                <X className="h-4 w-4" /> Clear
+              </Button>
+            )}
           </div>
         </div>
-      </div>
+      </CardHeader>
 
       {/* Table */}
-      {loading && requests.length === 0 ? (
-        <div className="p-8 text-center text-gray-400">Loading requests...</div>
-      ) : requests.length === 0 ? (
-        <div className="p-8 text-center text-gray-500">No pending requests 🎉</div>
-      ) : (
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Resource</th>
-              {scope !== 'CLUB' && (
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Club</th>
-              )}
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Time</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Guests</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Requested</th>
-              <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {requests.map((req: any) => {
-              const startDate = new Date(req.start_time);
-              const endDate = new Date(req.end_time);
-              const participantCount = getParticipantCount(req.participants || []);
-              
-              return (
-                <tr 
-                  key={req.id}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => setSelectedBooking(req)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {req.user_detail?.first_name} {req.user_detail?.last_name}
+      <CardContent className="p-0">
+        {loading && requests.length === 0 ? (
+          <div className="p-12 text-center text-gray-400">Loading requests...</div>
+        ) : requests.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">No pending requests 🎉</div>
+        ) : (
+          <>
+            {/* Mobile: Cards */}
+            <div className="block md:hidden divide-y divide-gray-100">
+              {requests.map((req: any) => {
+                const startDate = new Date(req.start_time);
+                const endDate = new Date(req.end_time);
+                const participantCount = getParticipantCount(req.participants || []);
+                
+                return (
+                  <div
+                    key={req.id}
+                    className="p-4 space-y-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => setSelectedBooking(req)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
+                          <AvatarImage src={req.user_detail?.avatar ? getMediaUrl(req.user_detail.avatar) : undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                            {getInitials(req.user_detail?.first_name, req.user_detail?.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-[#121213] truncate">
+                            {req.user_detail?.first_name} {req.user_detail?.last_name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {req.user_detail?.email}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedBooking(req);
+                        }}
+                        className="h-8 text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE] flex-shrink-0"
+                      >
+                        Review
+                      </Button>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {req.user_detail?.email}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{req.resource_name}</div>
-                  </td>
-                  {scope !== 'CLUB' && (
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {req.club_name ? (
-                        <span className="text-sm text-gray-900">{req.club_name}</span>
-                      ) : (
-                        <span className="text-sm text-gray-400">—</span>
+                    <div className="space-y-2 pl-13">
+                      <div className="text-sm">
+                        <span className="text-gray-500">Resource: </span>
+                        <span className="font-medium text-[#121213]">{req.resource_name}</span>
+                      </div>
+                      {scope !== 'CLUB' && req.club_name && (
+                        <div className="text-sm">
+                          <span className="text-gray-500">Club: </span>
+                          <span className="font-medium text-[#121213]">{req.club_name}</span>
+                        </div>
                       )}
-                    </td>
+                      <div className="text-sm">
+                        <span className="text-gray-500">Date: </span>
+                        <span className="font-medium text-[#121213]">{format(startDate, 'MMM d, yyyy')}</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-gray-500">Time: </span>
+                        <span className="font-medium text-[#121213]">
+                          {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-500">Guests: </span>
+                        <span className="font-medium text-[#121213]">{participantCount}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Requested {formatDistanceToNow(new Date(req.created_at))} ago
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: Table */}
+            <Table className="hidden md:table">
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold">User</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Resource</TableHead>
+                  {scope !== 'CLUB' && (
+                    <TableHead className="h-12 text-gray-600 font-semibold">Club</TableHead>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{format(startDate, 'MMM d, yyyy')}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5 text-sm text-gray-900">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span>{participantCount}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(req.created_at))} ago
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedBooking(req);
-                      }}
-                      className="text-blue-600 hover:text-blue-900 font-semibold"
+                  <TableHead className="h-12 text-gray-600 font-semibold">Date</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Time</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Guests</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Requested</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {requests.map((req: any) => {
+                  const startDate = new Date(req.start_time);
+                  const endDate = new Date(req.end_time);
+                  const participantCount = getParticipantCount(req.participants || []);
+                  
+                  return (
+                    <TableRow
+                      key={req.id}
+                      className="hover:bg-gray-50/50 cursor-pointer transition-colors"
+                      onClick={() => setSelectedBooking(req)}
                     >
-                      Review
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8 rounded-full border border-gray-200 bg-gray-50">
+                            <AvatarImage src={req.user_detail?.avatar ? getMediaUrl(req.user_detail.avatar) : undefined} className="object-cover" />
+                            <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                              {getInitials(req.user_detail?.first_name, req.user_detail?.last_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="text-sm font-semibold text-[#121213]">
+                              {req.user_detail?.first_name} {req.user_detail?.last_name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {req.user_detail?.email}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="text-sm font-medium text-[#121213]">{req.resource_name}</div>
+                      </TableCell>
+                      {scope !== 'CLUB' && (
+                        <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                          {req.club_name ? (
+                            <span className="text-sm text-[#121213]">{req.club_name}</span>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="text-sm text-[#121213]">{format(startDate, 'MMM d, yyyy')}</div>
+                      </TableCell>
+                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="text-sm text-[#121213]">
+                          {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex items-center gap-1.5 text-sm text-[#121213]">
+                          <Users className="w-4 h-4 text-gray-400" />
+                          <span>{participantCount}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="text-xs text-gray-500">
+                          {formatDistanceToNow(new Date(req.created_at))} ago
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBooking(req);
+                          }}
+                          className="h-8 text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE]"
+                        >
+                          Review
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </>
+        )}
+      </CardContent>
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
           <div className="flex flex-1 justify-between sm:hidden">
-            <button 
-              disabled={currentPage === 1}
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage(currentPage - 1)}
-              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={currentPage === 1}
+              className="gap-2"
             >
+              <ChevronLeft className="h-4 w-4" />
               Previous
-            </button>
-            <button 
-              disabled={currentPage >= totalPages}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage(currentPage + 1)}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={currentPage >= totalPages}
+              className="gap-2"
             >
               Next
-            </button>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
               <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                {' '}(Total: {totalCount})
+                Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of{' '}
+                <span className="font-medium">{totalCount}</span> results
               </p>
             </div>
-            <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="sr-only">Previous</span>
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="gap-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              {/* Page Numbers */}
+              {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
                 
-                {/* Page Numbers */}
-                {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                        ${pageNum === currentPage 
-                          ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="sr-only">Next</span>
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </nav>
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={pageNum === currentPage 
+                      ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' 
+                      : ''}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="gap-2"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -301,7 +427,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
           onUpdate={fetchRequests}
         />
       )}
-    </div>
+    </Card>
   );
 }
 

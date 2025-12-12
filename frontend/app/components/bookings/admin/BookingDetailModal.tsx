@@ -3,9 +3,16 @@
 import { useState } from 'react';
 import api from '../../../../lib/api';
 import { format } from 'date-fns';
-import { X, Check, AlertCircle, Clock, Calendar, User, XCircle } from 'lucide-react';
-import { getMediaUrl } from '../../../utils';
+import { X, Check, AlertCircle, Clock, Calendar, User, XCircle, Users, Package } from 'lucide-react';
+import { getMediaUrl, getInitials } from '../../../utils';
 import Toast from '../../Toast';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 interface Props {
   booking: any;
@@ -82,195 +89,253 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
       onClick={handleBackdropClick}
       style={{ animation: 'fadeIn 0.2s ease-out' }}
     >
-      <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all duration-200"
+      <Card 
+        className="bg-white w-full max-w-2xl shadow-2xl overflow-hidden transform transition-all duration-200 max-h-[90vh] flex flex-col"
         style={{ animation: 'slideUp 0.2s ease-out' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-start p-6 border-b bg-gray-50">
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">Booking Details</h3>
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 border-b border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-2xl font-bold text-[#121213] mb-1">Booking Details</CardTitle>
             <p className="text-sm text-gray-500">#{booking.id} • {format(new Date(booking.created_at), 'MMM d, yyyy')}</p>
           </div>
-          <button 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             disabled={processing}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+            className="h-8 w-8 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full"
           >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+            <X className="h-5 w-5" />
+          </Button>
+        </CardHeader>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <CardContent className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* User Info */}
-          <div className="flex items-center gap-4">
-            {booking.user_detail?.avatar ? (
-              <img src={getMediaUrl(booking.user_detail.avatar) || ''} className="w-12 h-12 rounded-full object-cover" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                <User className="w-6 h-6" />
-              </div>
-            )}
-            <div>
-              <div className="font-bold text-lg">{booking.user_detail?.first_name} {booking.user_detail?.last_name}</div>
-              <div className="text-sm text-gray-500">{booking.user_detail?.email}</div>
-            </div>
-          </div>
-
-          {/* Details Grid */}
-          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <div className="flex items-center gap-3 text-sm">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              <span className="font-medium">Resource:</span>
-              <span>{booking.resource_name}</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm">
-              <Clock className="w-4 h-4 text-gray-400" />
-              <span className="font-medium">Time:</span>
-              <span>
-                {format(new Date(booking.start_time), 'MMM d, HH:mm')} - {format(new Date(booking.end_time), 'HH:mm')}
-              </span>
-            </div>
-            {booking.participants?.length > 0 && (
-              <div className="border-t pt-2 mt-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">Participants</span>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {booking.participants.map((p: any) => (
-                    <span key={p.id} className="text-xs bg-white border px-2 py-1 rounded shadow-sm">
-                      {p.name}
-                    </span>
-                  ))}
+          <Card className="border border-gray-100 shadow-sm bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-14 w-14 rounded-full border-2 border-[#EBEBFE] bg-gray-50">
+                  <AvatarImage src={booking.user_detail?.avatar ? getMediaUrl(booking.user_detail.avatar) : undefined} className="object-cover" />
+                  <AvatarFallback className="rounded-full font-bold text-sm bg-[#EBEBFE] text-[#4D4DA4]">
+                    {getInitials(booking.user_detail?.first_name, booking.user_detail?.last_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-lg text-[#121213]">
+                    {booking.user_detail?.first_name} {booking.user_detail?.last_name}
+                  </div>
+                  <div className="text-sm text-gray-500 truncate">{booking.user_detail?.email}</div>
                 </div>
               </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
+
+          {/* Details Grid */}
+          <Card className="border border-gray-100 shadow-sm bg-white">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-[#EBEBFE]/30 flex items-center justify-center flex-shrink-0">
+                  <Package className="h-5 w-5 text-[#4D4DA4]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-gray-500 uppercase mb-0.5">Resource</div>
+                  <div className="text-sm font-semibold text-[#121213]">{booking.resource_name}</div>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-[#EBEBFE]/30 flex items-center justify-center flex-shrink-0">
+                  <Clock className="h-5 w-5 text-[#4D4DA4]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-gray-500 uppercase mb-0.5">Time</div>
+                  <div className="text-sm font-semibold text-[#121213]">
+                    {format(new Date(booking.start_time), 'MMM d, HH:mm')} - {format(new Date(booking.end_time), 'HH:mm')}
+                  </div>
+                </div>
+              </div>
+              
+              {booking.participants?.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-[#EBEBFE]/30 flex items-center justify-center flex-shrink-0">
+                      <Users className="h-5 w-5 text-[#4D4DA4]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Participants</div>
+                      <div className="flex flex-wrap gap-2">
+                        {booking.participants.map((p: any) => (
+                          <Badge key={p.id} variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE] text-xs">
+                            {p.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Action Area */}
           {booking.status === 'PENDING' && (
-            <div className="space-y-3">
-              <label className="block text-sm font-bold text-gray-700">Message to User (Optional)</label>
-              <textarea 
-                className="w-full border rounded p-2 text-sm" 
-                rows={3}
-                placeholder="Reason for rejection or extra info..."
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-              />
-              <div className="flex gap-3 pt-2">
-                <button 
-                  onClick={() => handleAction('reject')}
-                  disabled={processing}
-                  className="flex-1 py-3 border border-red-200 text-red-700 bg-red-50 rounded-lg font-bold hover:bg-red-100 flex items-center justify-center gap-2"
-                >
-                  <X className="w-4 h-4" /> Reject
-                </button>
-                <button 
-                  onClick={() => handleAction('approve')}
-                  disabled={processing}
-                  className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2"
-                >
-                  <Check className="w-4 h-4" /> Approve
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {booking.status === 'APPROVED' && (
-            <div className="space-y-3">
-              <div className={`p-3 rounded-lg text-center font-bold bg-green-100 text-green-800`}>
-                This booking is APPROVED
-                {isRecurringBooking && (
-                  <div className="text-xs text-green-700 mt-1 font-normal">
-                    🔄 This is a recurring booking
-                  </div>
-                )}
-              </div>
-              
-              {!showCancelOptions ? (
-                <>
-                  <label className="block text-sm font-bold text-gray-700">Cancellation Note (Optional)</label>
-                  <textarea 
-                    className="w-full border rounded p-2 text-sm" 
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-[#121213]">Message to User (Optional)</Label>
+                  <Textarea 
+                    className="bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl min-h-[80px]"
                     rows={3}
-                    placeholder="Reason for cancellation..."
+                    placeholder="Reason for rejection or extra info..."
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
                   />
-                  <button 
-                    onClick={() => {
-                      if (isRecurringBooking) {
-                        setShowCancelOptions(true);
-                      } else {
-                        if (window.confirm('Are you sure you want to cancel this booking? The time slot will become available again.')) {
-                          handleAction('cancel', false);
-                        }
-                      }
-                    }}
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button 
+                    onClick={() => handleAction('reject')}
                     disabled={processing}
-                    className="w-full py-3 border border-orange-200 text-orange-700 bg-orange-50 rounded-xl font-semibold hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    variant="outline"
+                    className="flex-1 h-11 border-2 border-red-200 text-red-700 bg-red-50 hover:bg-red-100 hover:border-red-300 font-semibold rounded-full gap-2"
                   >
-                    <XCircle className="w-4 h-4" /> Cancel Booking
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                    <h4 className="font-bold text-blue-900 mb-3">Cancel Recurring Booking</h4>
-                    <p className="text-sm text-blue-800 mb-4">
-                      This booking is part of a recurring series. What would you like to cancel?
-                    </p>
+                    <X className="h-4 w-4" /> Reject
+                  </Button>
+                  <Button 
+                    onClick={() => handleAction('approve')}
+                    disabled={processing}
+                    className="flex-1 h-11 bg-[#4D4DA4] hover:bg-[#FF5485] text-white font-semibold rounded-full gap-2 transition-colors"
+                  >
+                    <Check className="h-4 w-4" /> Approve
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {booking.status === 'APPROVED' && (
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-4">
+                <div className="p-4 rounded-xl text-center bg-green-50 border border-green-200">
+                  <div className="font-bold text-green-800 text-base">This booking is APPROVED</div>
+                  {isRecurringBooking && (
+                    <div className="text-xs text-green-700 mt-2 font-medium">
+                      🔄 This is a recurring booking
+                    </div>
+                  )}
+                </div>
+                
+                {!showCancelOptions ? (
+                  <>
                     <div className="space-y-2">
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Cancel only this instance? The rest of the series will remain.')) {
+                      <Label className="text-sm font-semibold text-[#121213]">Cancellation Note (Optional)</Label>
+                      <Textarea 
+                        className="bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl min-h-[80px]"
+                        rows={3}
+                        placeholder="Reason for cancellation..."
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        if (isRecurringBooking) {
+                          setShowCancelOptions(true);
+                        } else {
+                          if (window.confirm('Are you sure you want to cancel this booking? The time slot will become available again.')) {
                             handleAction('cancel', false);
                           }
-                        }}
-                        disabled={processing}
-                        className="w-full py-2.5 px-4 bg-white border-2 border-blue-300 text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
-                      >
-                        <div className="font-bold">Cancel This Instance Only</div>
-                        <div className="text-xs text-blue-600 mt-0.5">Only this booking will be cancelled</div>
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Cancel this instance and all future instances? This cannot be undone.')) {
-                            handleAction('cancel', true);
-                          }
-                        }}
-                        disabled={processing}
-                        className="w-full py-2.5 px-4 bg-orange-100 border-2 border-orange-300 text-orange-800 rounded-lg font-semibold hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
-                      >
-                        <div className="font-bold">Cancel Entire Series</div>
-                        <div className="text-xs text-orange-700 mt-0.5">This instance and all future instances will be cancelled</div>
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowCancelOptions(false)}
-                    disabled={processing}
-                    className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium text-sm"
-                  >
-                    ← Back
-                  </button>
-                </>
-              )}
-            </div>
+                        }
+                      }}
+                      disabled={processing}
+                      variant="outline"
+                      className="w-full h-11 border-2 border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 hover:border-orange-300 font-semibold rounded-full gap-2"
+                    >
+                      <XCircle className="h-4 w-4" /> Cancel Booking
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Card className="bg-[#EBEBFE]/30 border border-[#EBEBFE]">
+                      <CardContent className="p-4 space-y-4">
+                        <div>
+                          <h4 className="font-bold text-[#121213] mb-2 text-base">Cancel Recurring Booking</h4>
+                          <p className="text-sm text-gray-600">
+                            This booking is part of a recurring series. What would you like to cancel?
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Button
+                            onClick={() => {
+                              if (window.confirm('Cancel only this instance? The rest of the series will remain.')) {
+                                handleAction('cancel', false);
+                              }
+                            }}
+                            disabled={processing}
+                            variant="outline"
+                            className="w-full h-auto py-3 px-4 bg-white border-2 border-[#4D4DA4] text-[#4D4DA4] hover:bg-[#EBEBFE] hover:border-[#4D4DA4] font-semibold rounded-xl text-left justify-start"
+                          >
+                            <div className="w-full">
+                              <div className="font-bold text-sm">Cancel This Instance Only</div>
+                              <div className="text-xs text-gray-600 mt-0.5 font-normal">Only this booking will be cancelled</div>
+                            </div>
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              if (window.confirm('Cancel this instance and all future instances? This cannot be undone.')) {
+                                handleAction('cancel', true);
+                              }
+                            }}
+                            disabled={processing}
+                            variant="outline"
+                            className="w-full h-auto py-3 px-4 bg-orange-50 border-2 border-orange-300 text-orange-800 hover:bg-orange-100 hover:border-orange-400 font-semibold rounded-xl text-left justify-start"
+                          >
+                            <div className="w-full">
+                              <div className="font-bold text-sm">Cancel Entire Series</div>
+                              <div className="text-xs text-orange-700 mt-0.5 font-normal">This instance and all future instances will be cancelled</div>
+                            </div>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Button
+                      onClick={() => setShowCancelOptions(false)}
+                      disabled={processing}
+                      variant="ghost"
+                      className="w-full text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    >
+                      ← Back
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           )}
           
           {booking.status !== 'PENDING' && booking.status !== 'APPROVED' && (
-             <div className={`p-3 rounded-lg text-center font-bold ${
-               booking.status === 'CANCELLED' ? 'bg-gray-100 text-gray-800' : 
-               booking.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 
-               'bg-gray-100 text-gray-800'
-             }`}>
-                This booking is {booking.status}
-             </div>
+            <Card className={`border shadow-sm ${
+              booking.status === 'CANCELLED' ? 'bg-gray-50 border-gray-200' : 
+              booking.status === 'REJECTED' ? 'bg-red-50 border-red-200' : 
+              'bg-gray-50 border-gray-200'
+            }`}>
+              <CardContent className="p-4">
+                <div className={`text-center font-bold text-base ${
+                  booking.status === 'CANCELLED' ? 'text-gray-800' : 
+                  booking.status === 'REJECTED' ? 'text-red-800' : 
+                  'text-gray-800'
+                }`}>
+                  This booking is {booking.status}
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
       
       {/* Toast Notification */}
       <Toast 

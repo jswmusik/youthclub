@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import api from '../../../lib/api';
 import { questionnaireApi } from '../../../lib/questionnaire-api';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface Props {
   userId: string | number;
@@ -133,151 +138,190 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
     });
   };
 
+  const getInitial = (title: string) => {
+    return title?.charAt(0)?.toUpperCase() || 'Q';
+  };
+
   return (
     <div className="space-y-4">
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading history...</div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Questionnaire</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Completed</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {paginatedHistory.map((h: any) => (
-                <tr key={h.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="font-bold text-gray-900">{h.questionnaire_title}</div>
-                    {h.is_anonymous && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+      {loading ? (
+        <Card className="border border-gray-100 shadow-sm bg-white">
+          <div className="p-8 text-center text-gray-400 animate-pulse">Loading history...</div>
+        </Card>
+      ) : paginatedHistory.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm bg-white">
+          <div className="p-8 text-center text-gray-500">
+            {history.length === 0 
+              ? 'No questionnaires taken by this user.' 
+              : 'No questionnaires match your search.'}
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* MOBILE: Cards */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {paginatedHistory.map((h: any) => (
+              <Card key={h.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
+                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                        {getInitial(h.questionnaire_title)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[#121213] truncate">{h.questionnaire_title}</div>
+                      {h.is_anonymous && (
+                        <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200 mt-1">
                           Anonymous
-                        </span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {formatDate(h.completed_at)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      {/* PDF Download Button */}
-                      <button
-                        onClick={() => handleDownload(h)}
-                        disabled={downloadingId === h.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors disabled:opacity-50"
-                      >
-                        {downloadingId === h.id ? (
-                          <span className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></span>
-                        ) : (
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        )}
-                        PDF
-                      </button>
-
-                      {/* View Answers Button (Only if not anonymous) */}
-                      {!h.is_anonymous ? (
-                        <button 
-                          onClick={() => setSelectedResponse(h)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-900 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          View Answers
-                        </button>
-                      ) : null}
+                        </Badge>
+                      )}
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {paginatedHistory.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={3} className="p-8 text-center text-gray-500">
-                    {history.length === 0 
-                      ? 'No questionnaires taken by this user.' 
-                      : 'No questionnaires match your search.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-          <div className="flex flex-1 justify-between sm:hidden">
-            <button 
-              disabled={currentPage === 1}
-              onClick={() => updateUrl('page', (currentPage - 1).toString())}
-              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button 
-              disabled={currentPage >= totalPages}
-              onClick={() => updateUrl('page', (currentPage + 1).toString())}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                {' '}(Total: {totalCount})
-              </p>
-            </div>
-            <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Previous</span>
-                  ← Prev
-                </button>
-                
-                {/* Simple Pagination Numbers */}
-                {[...Array(totalPages)].map((_, i) => {
-                  const p = i + 1;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => updateUrl('page', p.toString())}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                        ${p === currentPage 
-                          ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                  </div>
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-xs text-gray-500 uppercase font-semibold">Completed</span>
+                      <span className="text-sm text-gray-700">{formatDate(h.completed_at)}</span>
+                    </div>
+                  </div>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDownload(h)}
+                      disabled={downloadingId === h.id}
+                      className="flex-1 justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     >
-                      {p}
-                    </button>
-                  );
-                })}
-
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Next</span>
-                  Next →
-                </button>
-              </nav>
-            </div>
+                      {downloadingId === h.id ? (
+                        <span className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></span>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      )}
+                      PDF
+                    </Button>
+                    {!h.is_anonymous && (
+                      <Button 
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedResponse(h)}
+                        className="flex-1 justify-center gap-2 text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE]"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View Answers
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
+
+          {/* DESKTOP: Table */}
+          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold">Questionnaire</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Completed</TableHead>
+                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedHistory.map((h: any) => (
+                  <TableRow key={h.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                            {getInitial(h.questionnaire_title)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-[#121213] truncate">{h.questionnaire_title}</div>
+                          {h.is_anonymous && (
+                            <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200 mt-1">
+                              Anonymous
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 text-gray-600 whitespace-nowrap">
+                      {formatDate(h.completed_at)}
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        {/* PDF Download Button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownload(h)}
+                          disabled={downloadingId === h.id}
+                          className="h-8 text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                        >
+                          {downloadingId === h.id ? (
+                            <span className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></span>
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          )}
+                          PDF
+                        </Button>
+
+                        {/* View Answers Button (Only if not anonymous) */}
+                        {!h.is_anonymous && (
+                          <Button 
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedResponse(h)}
+                            className="h-8 text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE]"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Answers
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            disabled={currentPage === 1} 
+            onClick={() => updateUrl('page', (currentPage - 1).toString())}
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            Prev
+          </Button>
+          <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            disabled={currentPage >= totalPages} 
+            onClick={() => updateUrl('page', (currentPage + 1).toString())}
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            Next
+          </Button>
         </div>
       )}
       

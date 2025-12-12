@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { ChevronLeft, Loader2, Edit, History } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface RewardDetailProps {
   rewardId: string;
@@ -17,6 +22,10 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
   const [analytics, setAnalytics] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextPage, setNextPage] = useState<string | null>(null);
+  const historyEndRef = useRef<HTMLDivElement>(null);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -42,242 +51,414 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
     }
   }, [rewardId]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     try {
-      const [rewardRes, statsRes, historyRes] = await Promise.all([
+      const [rewardRes, statsRes] = await Promise.all([
         api.get(`/rewards/${rewardId}/`),
-        api.get(`/rewards/${rewardId}/analytics_detail/`),
-        api.get(`/rewards/${rewardId}/history/`)
+        api.get(`/rewards/${rewardId}/analytics_detail/`)
       ]);
       setReward(rewardRes.data);
       setAnalytics(statsRes.data);
-      setHistory(historyRes.data.results || historyRes.data);
+      
+      // Fetch history with pagination
+      let historyUrl: string;
+      if (append && nextPage) {
+        // Extract path from full URL if needed
+        historyUrl = nextPage.startsWith('http') ? new URL(nextPage).pathname + new URL(nextPage).search : nextPage;
+      } else {
+        historyUrl = `/rewards/${rewardId}/history/`;
+      }
+      
+      const historyRes = await api.get(historyUrl);
+      const historyData = historyRes.data.results || historyRes.data;
+      
+      if (append) {
+        setHistory(prev => [...prev, ...historyData]);
+      } else {
+        setHistory(historyData);
+      }
+      
+      // Handle pagination - check if there's a next page
+      if (historyRes.data.next) {
+        // Store the full URL or relative path
+        const nextUrl = historyRes.data.next.startsWith('http') 
+          ? new URL(historyRes.data.next).pathname + new URL(historyRes.data.next).search 
+          : historyRes.data.next;
+        setNextPage(nextUrl);
+        setHasMore(true);
+      } else {
+        setNextPage(null);
+        setHasMore(false);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore && nextPage) {
+      fetchData(true);
+    }
+  };
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (historyEndRef.current) {
+      observer.observe(historyEndRef.current);
+    }
+
+    return () => {
+      if (historyEndRef.current) {
+        observer.unobserve(historyEndRef.current);
+      }
+    };
+  }, [hasMore, loadingMore, nextPage]);
 
   if (loading) return <div className="p-12 text-center text-gray-500">Loading details...</div>;
   if (!reward) return <div className="p-12 text-center text-red-500">Reward not found.</div>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6">
       
-      {/* 1. HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-        <div className="flex items-start gap-6">
-          {/* Image */}
-          <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden border flex-shrink-0">
-            {reward.image ? (
-              <img src={getMediaUrl(reward.image) || ''} className="w-full h-full object-cover" alt="Reward" />
+      {/* Header with Back Button and Edit Button */}
+      <div className="flex items-center justify-between">
+        <Link href={buildUrlWithParams(basePath)}>
+          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+            <ChevronLeft className="h-4 w-4" />
+            Back to List
+          </Button>
+        </Link>
+        
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Link href={buildUrlWithParams(`${basePath}/${reward.id}/history`)}>
+            <Button variant="outline" size="sm" className="gap-2 text-gray-700 hover:text-[#4D4DA4] hover:border-[#4D4DA4]">
+              <History className="h-4 w-4" />
+              Claim History
+            </Button>
+          </Link>
+          <Link href={buildUrlWithParams(`${basePath}/edit/${reward.id}`)}>
+            <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white">
+              <Edit className="h-4 w-4" />
+              Edit Reward
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* 1. REWARD INFO */}
+      <div className="flex items-start gap-4 sm:gap-6">
+        {/* Image */}
+        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#EBEBFE]/30 rounded-xl overflow-hidden border-2 border-[#EBEBFE] flex-shrink-0">
+          {reward.image ? (
+            <img src={getMediaUrl(reward.image) || ''} className="w-full h-full object-cover" alt="Reward" />
+          ) : (
+            <div className="flex items-center justify-center h-full text-2xl">🎁</div>
+          )}
+        </div>
+        
+        {/* Title & Status */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#121213] break-words">{reward.name}</h1>
+            {reward.is_active ? (
+              <Badge className="bg-green-50 text-green-700 border-green-200 text-xs font-semibold">Active</Badge>
             ) : (
-              <div className="flex items-center justify-center h-full text-2xl">🎁</div>
+              <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200 text-xs font-semibold">Inactive</Badge>
             )}
           </div>
           
-          {/* Title & Status */}
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold text-gray-900">{reward.name}</h1>
-              {reward.is_active ? (
-                <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">Active</span>
-              ) : (
-                <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">Inactive</span>
-              )}
-            </div>
-            
-            <p className="text-gray-500 text-sm mb-2">
-              Owned by: <span className="font-semibold">{reward.municipality_name || reward.club_name || 'Super Admin'}</span>
-            </p>
-
-            <div className="flex gap-2">
-              <Link href={buildUrlWithParams(`${basePath}/edit/${reward.id}`)} className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-200">
-                Edit Reward
-              </Link>
-              <Link href={buildUrlWithParams(basePath)} className="text-gray-500 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50">
-                Back to List
-              </Link>
-            </div>
-          </div>
+          <p className="text-sm text-gray-500">
+            Owned by: <span className="font-semibold text-[#121213]">{reward.municipality_name || reward.club_name || 'Super Admin'}</span>
+          </p>
         </div>
       </div>
 
       {/* 2. ANALYTICS GRID */}
       {analytics && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-xs font-bold text-gray-500 uppercase">Total Claims</p>
-            <p className="text-2xl font-bold text-blue-600">{analytics.total_uses}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-xs font-bold text-gray-500 uppercase">Last 24h</p>
-            <p className="text-2xl font-bold text-gray-900">{analytics.uses_last_24h}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-xs font-bold text-gray-500 uppercase">Last 7 Days</p>
-            <p className="text-2xl font-bold text-gray-900">{analytics.uses_last_7d}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-xs font-bold text-gray-500 uppercase">Last 30 Days</p>
-            <p className="text-2xl font-bold text-gray-900">{analytics.uses_last_30d}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-xs font-bold text-gray-500 uppercase">Days Left</p>
-            <p className="text-2xl font-bold text-orange-600">{analytics.days_remaining !== null ? analytics.days_remaining : '∞'}</p>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Total Claims</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-[#4D4DA4]">{analytics.total_uses}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Last 24h</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-[#4D4DA4]">{analytics.uses_last_24h}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Last 7 Days</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-[#4D4DA4]">{analytics.uses_last_7d}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Last 30 Days</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-[#4D4DA4]">{analytics.uses_last_30d}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Days Left</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-[#FF5485]">{analytics.days_remaining !== null ? analytics.days_remaining : '∞'}</div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         
         {/* 3. LEFT COL: INFO & CONFIG */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Description */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">About</h3>
-            <p className="text-gray-700 whitespace-pre-wrap">{reward.description}</p>
-            
-            {(reward.sponsor_name || reward.sponsor_link) && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs font-bold text-gray-500 uppercase">Sponsor</p>
-                <p className="text-sm font-medium">
-                  {reward.sponsor_name || 'Anonymous'} 
-                  {reward.sponsor_link && (
-                    <a href={reward.sponsor_link} target="_blank" className="ml-2 text-blue-600 hover:underline">
-                      (Visit Website)
-                    </a>
-                  )}
-                </p>
-              </div>
-            )}
-          </div>
+          <Card className="border border-gray-100 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">About</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm sm:text-base text-[#121213] whitespace-pre-wrap">{reward.description}</p>
+              
+              {(reward.sponsor_name || reward.sponsor_link) && (
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Sponsor</p>
+                  <p className="text-sm sm:text-base font-medium text-[#121213]">
+                    {reward.sponsor_name || 'Anonymous'} 
+                    {reward.sponsor_link && (
+                      <a href={reward.sponsor_link} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#4D4DA4] hover:text-[#FF5485] hover:underline transition-colors">
+                        (Visit Website)
+                      </a>
+                    )}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Usage History Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-900">Claim History</h3>
-              <span className="text-xs text-gray-500">Latest claims</span>
-            </div>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Date Claimed</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {history.map((usage) => (
-                  <tr key={usage.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{usage.user_name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{usage.user_email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 text-right">
-                      {/* Show redeemed_at if available, otherwise fallback to created_at */}
-                      {(() => {
-                        const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
-                        if (!date) return 'N/A';
-                        const dateStr = date.toLocaleDateString();
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const minutes = String(date.getMinutes()).padStart(2, '0');
-                        return `${dateStr} ${hours}:${minutes}`;
-                      })()}
-                    </td>
-                  </tr>
-                ))}
-                {history.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
-                      No one has claimed this reward yet.
-                    </td>
-                  </tr>
+          <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="border-b border-gray-100">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Claim History</CardTitle>
+                {history.length > 0 && (
+                  <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE] text-xs font-semibold">
+                    {history.length} {history.length === 1 ? 'claim' : 'claims'}
+                  </Badge>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {history.length === 0 ? (
+                <div className="p-8 sm:p-12 text-center text-gray-500">
+                  <p className="text-sm sm:text-base">No one has claimed this reward yet.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Mobile: Cards */}
+                  <div className="block md:hidden divide-y divide-gray-100">
+                    {history.map((usage) => (
+                      <div key={usage.id} className="p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-[#121213] truncate">{usage.user_name}</p>
+                            <p className="text-xs text-gray-500 truncate">{usage.user_email}</p>
+                          </div>
+                          <div className="text-xs text-gray-500 flex-shrink-0 text-right">
+                            {(() => {
+                              const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
+                              if (!date) return 'N/A';
+                              const dateStr = date.toLocaleDateString();
+                              const hours = String(date.getHours()).padStart(2, '0');
+                              const minutes = String(date.getMinutes()).padStart(2, '0');
+                              return `${dateStr} ${hours}:${minutes}`;
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop: Table */}
+                  <Table className="hidden md:table">
+                    <TableHeader>
+                      <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                        <TableHead className="h-12 text-gray-600 font-semibold">User</TableHead>
+                        <TableHead className="h-12 text-gray-600 font-semibold">Email</TableHead>
+                        <TableHead className="h-12 text-right text-gray-600 font-semibold">Date Claimed</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {history.map((usage) => (
+                        <TableRow key={usage.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                          <TableCell className="py-4">
+                            <div className="font-semibold text-[#121213] text-sm">{usage.user_name}</div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="text-sm text-gray-500">{usage.user_email}</div>
+                          </TableCell>
+                          <TableCell className="py-4 text-right">
+                            <div className="text-sm text-gray-500">
+                              {(() => {
+                                const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
+                                if (!date) return 'N/A';
+                                const dateStr = date.toLocaleDateString();
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                return `${dateStr} ${hours}:${minutes}`;
+                              })()}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Load More / Pagination */}
+                  {hasMore && (
+                    <div className="p-4 border-t border-gray-100">
+                      <div ref={historyEndRef} className="h-1" />
+                      <Button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        variant="ghost"
+                        className="w-full h-11 text-sm sm:text-base font-semibold text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE]/30 disabled:opacity-50 touch-manipulation"
+                      >
+                        {loadingMore ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          'Load More'
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* 4. RIGHT COL: RULES */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           
           {/* Target Rules */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Targeting Rules</h3>
-            <div className="space-y-3 text-sm">
+          <Card className="border border-gray-100 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Targeting Rules</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <span className="block text-gray-500 text-xs font-bold uppercase">Target Audience</span>
-                <span className="font-medium">{reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}</span>
+                <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Target Audience</span>
+                <span className="text-sm sm:text-base font-medium text-[#121213]">{reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}</span>
               </div>
               
               <div>
-                <span className="block text-gray-500 text-xs font-bold uppercase">Age Range</span>
-                <span>{reward.min_age || 0} - {reward.max_age || 'Any'} years</span>
+                <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Age Range</span>
+                <span className="text-sm sm:text-base text-[#121213]">{reward.min_age || 0} - {reward.max_age || 'Any'} years</span>
               </div>
 
               {reward.target_grades && reward.target_grades.length > 0 && (
                 <div>
-                  <span className="block text-gray-500 text-xs font-bold uppercase">Grades</span>
-                  <span>{reward.target_grades.join(', ')}</span>
+                  <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Grades</span>
+                  <span className="text-sm sm:text-base text-[#121213]">{reward.target_grades.join(', ')}</span>
                 </div>
               )}
 
               {reward.target_genders && reward.target_genders.length > 0 && (
                 <div>
-                  <span className="block text-gray-500 text-xs font-bold uppercase">Genders</span>
-                  <span className="capitalize">{reward.target_genders.join(', ').toLowerCase()}</span>
+                  <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Genders</span>
+                  <span className="text-sm sm:text-base text-[#121213] capitalize">{reward.target_genders.join(', ').toLowerCase()}</span>
                 </div>
               )}
 
               {reward.target_groups_details && reward.target_groups_details.length > 0 && (
                 <div>
-                  <span className="block text-gray-500 text-xs font-bold uppercase mb-1">Specific Groups</span>
-                  <div className="flex flex-wrap gap-1">
+                  <span className="block text-xs font-semibold text-gray-500 uppercase mb-2">Specific Groups</span>
+                  <div className="flex flex-wrap gap-2">
                     {reward.target_groups_details.map((g: any) => (
-                      <span key={g.id} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs border border-blue-100">
+                      <Badge key={g.id} variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE] text-xs font-semibold">
                         {g.name}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Active Triggers */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Active Triggers</h3>
-            {reward.active_triggers && reward.active_triggers.length > 0 ? (
-              <div className="space-y-2">
-                {reward.active_triggers.map((t: string) => (
-                  <div key={t} className="flex items-center gap-2 bg-green-50 text-green-800 px-3 py-2 rounded-lg border border-green-100">
-                    <span>⚡</span>
-                    <span className="font-bold text-sm">{t}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">No automatic triggers set. Manual claim only.</p>
-            )}
-          </div>
+          <Card className="border border-gray-100 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Active Triggers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {reward.active_triggers && reward.active_triggers.length > 0 ? (
+                <div className="space-y-2">
+                  {reward.active_triggers.map((t: string) => (
+                    <div key={t} className="flex items-center gap-2 bg-green-50 text-green-800 px-3 py-2 rounded-lg border border-green-200">
+                      <span>⚡</span>
+                      <span className="font-semibold text-sm">{t}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No automatic triggers set. Manual claim only.</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Limits */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Availability</h3>
-            <div className="space-y-3 text-sm">
+          <Card className="border border-gray-100 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Availability</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <span className="block text-gray-500 text-xs font-bold uppercase">Expires On</span>
-                <span className={reward.expiration_date ? '' : 'text-gray-400'}>
+                <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Expires On</span>
+                <span className={`text-sm sm:text-base ${reward.expiration_date ? 'text-[#121213]' : 'text-gray-400'}`}>
                   {reward.expiration_date ? new Date(reward.expiration_date).toLocaleDateString() : 'No Expiration'}
                 </span>
               </div>
               <div>
-                <span className="block text-gray-500 text-xs font-bold uppercase">Usage Limit</span>
-                <span>{reward.usage_limit ? `${reward.usage_limit} total claims` : 'Unlimited'}</span>
+                <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Usage Limit</span>
+                <span className="text-sm sm:text-base text-[#121213]">{reward.usage_limit ? `${reward.usage_limit} total claims` : 'Unlimited'}</span>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
         </div>
       </div>

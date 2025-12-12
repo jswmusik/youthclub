@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Search, X } from 'lucide-react';
 import api from '../../../lib/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 interface QuestionnaireSettingsProps {
   data: any;
@@ -114,7 +121,6 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         page++;
       }
       setRewards(allRewards);
-      console.log('Loaded rewards:', allRewards.length);
 
       // Fetch groups (handle pagination)
       let allGroups: any[] = [];
@@ -130,7 +136,6 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         page++;
       }
       setGroups(allGroups);
-      console.log('Loaded groups:', allGroups.length);
 
       // Fetch municipalities (only for SUPER admin)
       if (scope === 'SUPER') {
@@ -146,7 +151,6 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
           page++;
         }
         setMunicipalities(allMunicipalities);
-        console.log('Loaded municipalities:', allMunicipalities.length);
       }
 
       // Fetch clubs (handle pagination and scope)
@@ -162,7 +166,6 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         page++;
       }
       setAllClubs(allClubs);
-      console.log('Loaded clubs:', allClubs.length);
     } catch (err) {
       console.error("Error fetching settings options", err);
     } finally {
@@ -204,256 +207,255 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
   });
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto p-1">
-      <div className="grid grid-cols-1 gap-6">
-        {/* Basic Info */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Basic Information</h3>
-          <div className="grid gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-              <input
-                type="text"
+    <div className="space-y-4 sm:space-y-6">
+      {/* Basic Information */}
+      <Card className="border-none shadow-sm">
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl">Basic Information</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Enter the questionnaire title, description, and dates.</CardDescription>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-4 sm:pt-6 space-y-4 px-4 sm:px-6">
+          <div className="space-y-2">
+            <Label>Title <span className="text-red-500">*</span></Label>
+            <Input
+              type="text"
+              required
+              value={data.title || ''}
+              onChange={(e) => handleChange('title', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <textarea
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={data.description || ''}
+              onChange={(e) => handleChange('description', e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Schedule Publish Date (Optional)</Label>
+              <Input
+                type="datetime-local"
+                value={data.scheduled_publish_date ? data.scheduled_publish_date.slice(0, 16) : ''}
+                onChange={(e) => handleChange('scheduled_publish_date', e.target.value || null)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to publish immediately when you click "Publish". Set a future date to schedule automatic publishing.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Expiration Date <span className="text-red-500">*</span></Label>
+              <Input
+                type="datetime-local"
                 required
-                className="w-full border rounded-md p-2"
-                value={data.title || ''}
-                onChange={(e) => handleChange('title', e.target.value)}
+                value={data.expiration_date ? data.expiration_date.slice(0, 16) : ''}
+                onChange={(e) => handleChange('expiration_date', e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                className="w-full border rounded-md p-2 h-24"
-                value={data.description || ''}
-                onChange={(e) => handleChange('description', e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule Publish Date (Optional)</label>
-                <input
-                  type="datetime-local"
-                  className="w-full border rounded-md p-2"
-                  value={data.scheduled_publish_date ? data.scheduled_publish_date.slice(0, 16) : ''}
-                  onChange={(e) => handleChange('scheduled_publish_date', e.target.value || null)}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Leave empty to publish immediately when you click "Publish". Set a future date to schedule automatic publishing.
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiration Date *</label>
-                <input
-                  type="datetime-local"
-                  required
-                  className="w-full border rounded-md p-2"
-                  value={data.expiration_date ? data.expiration_date.slice(0, 16) : ''}
-                  onChange={(e) => handleChange('expiration_date', e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-                <input 
-                    type="checkbox" 
-                    id="is_anonymous"
-                    checked={data.is_anonymous || false}
-                    onChange={(e) => handleChange('is_anonymous', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded"
-                />
-                <label htmlFor="is_anonymous" className="text-sm text-gray-700 font-medium">Anonymous Responses (Admins cannot see who answered)</label>
+          </div>
+          <div className="flex items-start gap-3 p-3 sm:p-4 rounded-lg border border-input">
+            <input 
+              type="checkbox" 
+              id="is_anonymous"
+              checked={data.is_anonymous || false}
+              onChange={(e) => handleChange('is_anonymous', e.target.checked)}
+              className="w-5 h-5 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded mt-0.5 flex-shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <Label htmlFor="is_anonymous" className="font-semibold text-foreground cursor-pointer block">Anonymous Responses</Label>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Admins cannot see who answered</p>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Targeting */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Target Audience</h3>
-          <div className="grid gap-4">
-            
-            {/* Scope Selection for Super/Muni Admins */}
-            {scope === 'SUPER' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Municipality (Optional - Limits scope)</label>
-                <select 
-                    className="w-full border rounded-md p-2"
-                    value={data.municipality || ''}
-                    onChange={(e) => handleChange('municipality', e.target.value || null)}
-                >
-                    <option value="">All / Global</option>
-                    {municipalities.map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                </select>
-              </div>
-            )}
-            
-            {(scope === 'SUPER' || scope === 'MUNICIPALITY') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Club (Optional - Limits scope)</label>
-                <select 
-                    className="w-full border rounded-md p-2"
-                    value={data.club || ''}
-                    onChange={(e) => handleChange('club', e.target.value || null)}
-                    disabled={scope === 'CLUB'} // Club admins can't change club
-                >
-                    <option value="">All in Scope</option>
-                    {filteredClubs.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                </select>
-                {data.municipality && filteredClubs.length === 0 && (
-                  <p className="text-xs text-gray-500 mt-1">No clubs found in this municipality.</p>
-                )}
-              </div>
-            )}
-
-            {/* Role / Group Selection */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Who can answer?</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <select
-                        className="w-full border rounded-md p-2"
-                        value={data.target_audience || 'YOUTH'}
-                        onChange={(e) => handleChange('target_audience', e.target.value)}
-                        disabled={!!data.visibility_group} // Disable if group is selected
-                    >
-                        <option value="YOUTH">Youth Members</option>
-                        <option value="GUARDIAN">Guardians</option>
-                        <option value="BOTH">Both</option>
-                    </select>
-                    
-                    <select
-                        className="w-full border rounded-md p-2"
-                        value={data.visibility_group || ''}
-                        onChange={(e) => handleChange('visibility_group', e.target.value || null)}
-                    >
-                        <option value="">-- Or Target Specific Group --</option>
-                        {filteredGroups.map(g => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                    </select>
-                    {filteredGroups.length === 0 && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {data.club 
-                          ? "No groups found in this club." 
-                          : data.municipality 
-                          ? "No groups found in this municipality." 
-                          : "No groups available."}
-                      </p>
-                    )}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Note: Selecting a Group overrides the Youth/Guardian setting.</p>
+      {/* Target Audience */}
+      <Card className="border-none shadow-sm">
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl">Target Audience</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Configure who can see and answer this questionnaire.</CardDescription>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-4 sm:pt-6 space-y-4 px-4 sm:px-6">
+          {/* Scope Selection for Super/Muni Admins */}
+          {scope === 'SUPER' && (
+            <div className="space-y-2">
+              <Label>Municipality (Optional - Limits scope)</Label>
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={data.municipality || ''}
+                onChange={(e) => handleChange('municipality', e.target.value || null)}
+              >
+                <option value="">All / Global</option>
+                {municipalities.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
             </div>
-          </div>
-        </div>
-
-        {/* Rewards */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Rewards (Optional)</h3>
-          <div className="grid gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Reward(s)</label>
-              
-              {/* Selected Rewards Display */}
-              {getSelectedRewards().length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  {getSelectedRewards().map(reward => (
-                    <span 
-                      key={reward.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-full font-medium"
-                    >
-                      {reward.name}
-                      <button
-                        type="button"
-                        onClick={() => removeReward(reward.id)}
-                        className="hover:bg-blue-700 rounded-full p-0.5 transition-colors"
-                        title="Remove reward"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </span>
-                  ))}
-                </div>
+          )}
+          
+          {(scope === 'SUPER' || scope === 'MUNICIPALITY') && (
+            <div className="space-y-2">
+              <Label>Club (Optional - Limits scope)</Label>
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={data.club || ''}
+                onChange={(e) => handleChange('club', e.target.value || null)}
+                disabled={scope === 'CLUB'} // Club admins can't change club
+              >
+                <option value="">All in Scope</option>
+                {filteredClubs.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              {data.municipality && filteredClubs.length === 0 && (
+                <p className="text-xs text-muted-foreground mt-1">No clubs found in this municipality.</p>
               )}
-
-              {/* Searchable Dropdown */}
-              <div className="relative">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search rewards by name..."
-                    value={rewardSearchTerm}
-                    onChange={(e) => {
-                      setRewardSearchTerm(e.target.value);
-                      setShowRewardDropdown(true);
-                    }}
-                    onFocus={() => setShowRewardDropdown(true)}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <svg 
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-
-                {/* Dropdown List */}
-                {showRewardDropdown && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={() => setShowRewardDropdown(false)}
-                    ></div>
-                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {filteredRewards.length > 0 ? (
-                        filteredRewards.map(reward => (
-                          <button
-                            key={reward.id}
-                            type="button"
-                            onClick={() => toggleReward(reward.id)}
-                            className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
-                          >
-                            <div className="font-medium text-gray-900">{reward.name}</div>
-                            {reward.description && (
-                              <div className="text-xs text-gray-500">{reward.description}</div>
-                            )}
-                          </button>
-                        ))
-                      ) : rewardSearchTerm ? (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                          No rewards found matching "{rewardSearchTerm}"
-                        </div>
-                      ) : (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                          {getSelectedRewards().length === 0 
-                            ? 'No rewards available. Create a reward first.'
-                            : 'All rewards are already selected.'}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Limit (Optional)</label>
-              <input
-                type="number"
-                placeholder="e.g. First 10 users only"
-                className="w-full border rounded-md p-2"
-                value={data.benefit_limit || ''}
-                onChange={(e) => handleChange('benefit_limit', parseInt(e.target.value) || null)}
-              />
+          )}
+
+          {/* Role / Group Selection */}
+          <div className="space-y-2">
+            <Label>Who can answer?</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={data.target_audience || 'YOUTH'}
+                onChange={(e) => handleChange('target_audience', e.target.value)}
+                disabled={!!data.visibility_group} // Disable if group is selected
+              >
+                <option value="YOUTH">Youth Members</option>
+                <option value="GUARDIAN">Guardians</option>
+                <option value="BOTH">Both</option>
+              </select>
+              
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={data.visibility_group || ''}
+                onChange={(e) => handleChange('visibility_group', e.target.value || null)}
+              >
+                <option value="">-- Or Target Specific Group --</option>
+                {filteredGroups.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+            {filteredGroups.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {data.club 
+                  ? "No groups found in this club." 
+                  : data.municipality 
+                  ? "No groups found in this municipality." 
+                  : "No groups available."}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">Note: Selecting a Group overrides the Youth/Guardian setting.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Rewards */}
+      <Card className="border-none shadow-sm">
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl">Rewards (Optional)</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Select rewards to give to users who complete this questionnaire.</CardDescription>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-4 sm:pt-6 space-y-4 px-4 sm:px-6">
+          <div className="space-y-2">
+            <Label>Select Reward(s)</Label>
+            
+            {/* Selected Rewards Display */}
+            {getSelectedRewards().length > 0 && (
+              <div className="flex flex-wrap gap-2 p-3 bg-[#EBEBFE]/30 rounded-lg border border-[#4D4DA4]/20">
+                {getSelectedRewards().map(reward => (
+                  <Badge 
+                    key={reward.id}
+                    variant="outline" 
+                    className="bg-[#4D4DA4] text-white border-[#4D4DA4] px-3 py-1 flex items-center gap-2"
+                  >
+                    {reward.name}
+                    <button
+                      type="button"
+                      onClick={() => removeReward(reward.id)}
+                      className="ml-1 hover:bg-[#4D4DA4]/80 rounded-full p-0.5 transition-colors"
+                      aria-label={`Remove ${reward.name}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Searchable Dropdown */}
+            <div className="relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search rewards by name..."
+                  value={rewardSearchTerm}
+                  onChange={(e) => {
+                    setRewardSearchTerm(e.target.value);
+                    setShowRewardDropdown(true);
+                  }}
+                  onFocus={() => setShowRewardDropdown(true)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Dropdown List */}
+              {showRewardDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setShowRewardDropdown(false)}
+                  ></div>
+                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredRewards.length > 0 ? (
+                      filteredRewards.map(reward => (
+                        <button
+                          key={reward.id}
+                          type="button"
+                          onClick={() => toggleReward(reward.id)}
+                          className="w-full text-left px-4 py-2.5 hover:bg-[#EBEBFE]/50 transition-colors border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="font-medium text-gray-900">{reward.name}</div>
+                          {reward.description && (
+                            <div className="text-xs text-gray-500">{reward.description}</div>
+                          )}
+                        </button>
+                      ))
+                    ) : rewardSearchTerm ? (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        No rewards found matching "{rewardSearchTerm}"
+                      </div>
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        {getSelectedRewards().length === 0 
+                          ? 'No rewards available. Create a reward first.'
+                          : 'All rewards are already selected.'}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      </div>
+          <div className="space-y-2">
+            <Label>Limit (Optional)</Label>
+            <Input
+              type="number"
+              placeholder="e.g. First 10 users only"
+              value={data.benefit_limit || ''}
+              onChange={(e) => handleChange('benefit_limit', parseInt(e.target.value) || null)}
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

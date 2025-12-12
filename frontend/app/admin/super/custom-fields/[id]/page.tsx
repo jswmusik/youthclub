@@ -8,7 +8,9 @@ function CustomFieldDetailPageContent() {
   const { id } = useParams() as { id: string };
   
   return (
-    <CustomFieldDetailView fieldId={id} basePath="/admin/super/custom-fields" />
+    <div className="p-8">
+      <CustomFieldDetailView fieldId={id} basePath="/admin/super/custom-fields" />
+    </div>
   );
 }
 

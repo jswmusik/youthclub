@@ -1,6 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { X, Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 interface QuestionModalProps {
   isVisible: boolean;
@@ -35,7 +42,6 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
     }
   }, [isVisible, initialData, allQuestions.length]);
 
-
   if (!isVisible) return null;
 
   const handleOptionChange = (idx: number, val: string) => {
@@ -53,21 +59,59 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
     setQ({ ...q, options: newOptions });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">{initialData ? 'Edit Question' : 'Add Question'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
-        </div>
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
-        <div className="p-6 flex-1 space-y-4">
+  const handleSave = () => {
+    if (!q.text.trim()) {
+      return;
+    }
+    if (['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && (!q.options || q.options.length === 0)) {
+      return;
+    }
+    onSave(q);
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={handleBackdropClick}
+      style={{ animation: 'fadeIn 0.2s ease-out' }}
+    >
+      <Card 
+        className="bg-white w-full max-w-2xl shadow-2xl border border-gray-100 rounded-2xl overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-200"
+        style={{ animation: 'slideUp 0.2s ease-out' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 border-b border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-2xl font-bold text-[#121213] mb-1">
+              {initialData ? 'Edit Question' : 'Add Question'}
+            </CardTitle>
+            <p className="text-sm text-gray-500">Configure your question settings and options</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="h-8 w-8 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </CardHeader>
+
+        {/* Content */}
+        <CardContent className="p-6 space-y-6 overflow-y-auto flex-1">
           
-          {/* Type Selector */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Question Type</label>
+          {/* Question Type */}
+          <div className="space-y-2">
+            <Label>Question Type</Label>
             <select
-              className="w-full border rounded p-2 bg-gray-50"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               value={q.question_type}
               onChange={(e) => setQ({ ...q, question_type: e.target.value })}
             >
@@ -79,11 +123,11 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
           </div>
 
           {/* Question Text */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Question Text</label>
-            <input
+          <div className="space-y-2">
+            <Label>Question Text <span className="text-red-500">*</span></Label>
+            <Input
               type="text"
-              className="w-full border rounded p-2"
+              required
               value={q.text}
               onChange={(e) => setQ({ ...q, text: e.target.value })}
               placeholder="e.g. How satisfied are you with..."
@@ -91,10 +135,10 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
           </div>
 
           {/* Description */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Description (Optional)</label>
+          <div className="space-y-2">
+            <Label>Description (Optional)</Label>
             <textarea
-              className="w-full border rounded p-2"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               value={q.description || ''}
               onChange={(e) => setQ({ ...q, description: e.target.value })}
               placeholder="Helper text for the user..."
@@ -103,49 +147,68 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
 
           {/* Options Builder (Only for Choice types) */}
           {['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && (
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <label className="block text-sm font-bold text-blue-900 mb-2">Answer Options</label>
-              <div className="space-y-2">
+            <Card className="bg-[#EBEBFE]/30 border border-[#4D4DA4]/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-[#4D4DA4]">Answer Options</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 {q.options?.map((opt: any, idx: number) => (
-                  <div key={idx} className="flex gap-2">
-                    <input
+                  <div key={idx} className="flex gap-2 items-center">
+                    <Input
                       type="text"
-                      className="flex-1 border rounded p-2 text-sm"
+                      className="flex-1"
                       value={opt.text}
                       onChange={(e) => handleOptionChange(idx, e.target.value)}
                       placeholder={`Option ${idx + 1}`}
                     />
-                    <button 
-                        onClick={() => removeOption(idx)}
-                        className="text-red-500 hover:bg-red-100 p-2 rounded"
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeOption(idx)}
+                      className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                        🗑️
-                    </button>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
-                <button
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={addOption}
-                  className="text-sm font-semibold text-blue-600 hover:text-blue-800 mt-2 flex items-center gap-1"
+                  className="w-full border-dashed border-[#4D4DA4]/30 text-[#4D4DA4] hover:bg-[#EBEBFE] hover:border-[#4D4DA4] gap-2"
                 >
-                  + Add Option
-                </button>
-              </div>
-            </div>
+                  <Plus className="h-4 w-4" />
+                  Add Option
+                </Button>
+                {(!q.options || q.options.length === 0) && (
+                  <p className="text-xs text-gray-500 text-center py-2">
+                    Add at least one option to continue
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           )}
 
-        </div>
+        </CardContent>
 
-        <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-          <button 
-            onClick={() => onSave(q)} 
-            className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700"
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+          <Button 
+            variant="ghost" 
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSave}
+            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2"
+            disabled={!q.text.trim() || (['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && (!q.options || q.options.length === 0))}
           >
             Save Question
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
-

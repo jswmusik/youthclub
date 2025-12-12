@@ -4,7 +4,7 @@ import BookingResourceForm from '../../../../../components/bookings/BookingResou
 
 export default function CreateSuperBookingResourcePage() {
   return (
-    <div className="p-6">
+    <div className="p-8">
        <BookingResourceForm redirectPath="/admin/super/bookings/resources" />
     </div>
   );

@@ -1,98 +1,232 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { inventoryApi, InventoryTag } from '@/lib/inventory-api';
+import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
+import Toast from '@/app/components/Toast';
 
 export default function TagsManagerPage() {
   const [tags, setTags] = useState<InventoryTag[]>([]);
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [tagToDelete, setTagToDelete] = useState<number | null>(null);
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
 
   useEffect(() => {
     loadTags();
   }, []);
 
-  const loadTags = () => {
-    inventoryApi.getTags()
-      .then(data => {
-        // Handle paginated response (results) or direct array
-        setTags(Array.isArray(data) ? data : (data.results || []));
-      })
-      .catch(err => {
-        console.error("Failed to load tags", err);
-        setTags([]);
-      });
+  const loadTags = async () => {
+    try {
+      setLoading(true);
+      const data = await inventoryApi.getTags();
+      // Handle paginated response (results) or direct array
+      setTags(Array.isArray(data) ? data : (data.results || []));
+    } catch (err) {
+      console.error("Failed to load tags", err);
+      setTags([]);
+      setToast({ message: 'Failed to load tags', type: 'error', isVisible: true });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Tags created here will have club=null (Global)
-    await inventoryApi.createTag({ name: newName, icon: newIcon });
-    setNewName(''); setNewIcon('');
-    loadTags();
+    try {
+      // Tags created here will have club=null (Global)
+      await inventoryApi.createTag({ name: newName, icon: newIcon });
+      setNewName('');
+      setNewIcon('');
+      setToast({ message: 'Tag created successfully', type: 'success', isVisible: true });
+      loadTags();
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || 'Failed to create tag';
+      setToast({ message: errorMsg, type: 'error', isVisible: true });
+    }
   };
 
-  const handleDelete = async (id: number) => {
-    if(confirm('Delete this tag?')) {
-        await inventoryApi.deleteTag(id);
-        loadTags();
+  const handleDeleteConfirm = async () => {
+    if (!tagToDelete) return;
+    
+    try {
+      await inventoryApi.deleteTag(tagToDelete);
+      setToast({ message: 'Tag deleted successfully', type: 'success', isVisible: true });
+      setTagToDelete(null);
+      loadTags();
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || 'Failed to delete tag';
+      setToast({ message: errorMsg, type: 'error', isVisible: true });
+      setTagToDelete(null);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Global Item Tags</h1>
-        <p className="text-slate-500">Define tags that can be used across all clubs. Tags created here are global.</p>
+    <div className="p-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <Link href="/admin/super/inventory">
+          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+            <ChevronLeft className="h-4 w-4" />
+            Back to Inventory
+          </Button>
+        </Link>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Global Item Tags</h1>
+          <p className="text-gray-500 mt-1">Define tags that can be used across all clubs. Tags created here are global.</p>
+        </div>
       </div>
 
       {/* Create Form */}
-      <form onSubmit={handleCreate} className="flex gap-4 items-end bg-white p-4 rounded shadow-sm">
-        <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase">Tag Name</label>
-            <input 
-                className="border p-2 rounded w-64" 
-                value={newName} 
-                onChange={e => setNewName(e.target.value)} 
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Create New Tag</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="flex-1 min-w-0">
+              <Label className="text-sm sm:text-base font-semibold text-[#121213] mb-2 block">
+                Tag Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="text"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
                 placeholder="e.g. Popular"
-                required 
-            />
-        </div>
-        <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase">Icon (Emoji)</label>
-            <input 
-                className="border p-2 rounded w-24" 
-                value={newIcon} 
-                onChange={e => setNewIcon(e.target.value)} 
-                placeholder="⭐" 
-            />
-        </div>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
-      </form>
+                className="h-11 sm:h-12 text-sm sm:text-base bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl"
+                required
+              />
+            </div>
+            <div className="w-full sm:w-32">
+              <Label className="text-sm sm:text-base font-semibold text-[#121213] mb-2 block">
+                Icon (Emoji)
+              </Label>
+              <Input
+                type="text"
+                value={newIcon}
+                onChange={e => setNewIcon(e.target.value)}
+                placeholder="⭐"
+                className="h-11 sm:h-12 text-sm sm:text-base bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl text-center text-xl"
+                maxLength={2}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto h-11 sm:h-12 text-sm sm:text-base font-semibold bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2 rounded-full transition-colors shadow-lg hover:shadow-xl"
+            >
+              <Plus className="h-4 w-4" />
+              Add Tag
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-      {/* List */}
-      <div className="bg-white rounded shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-                <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Icon</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Name</th>
-                    <th className="px-6 py-3 text-right">Action</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-                {(Array.isArray(tags) ? tags : []).map(tag => (
-                    <tr key={tag.id}>
-                        <td className="px-6 py-4 text-2xl">{tag.icon}</td>
-                        <td className="px-6 py-4 font-medium">{tag.name}</td>
-                        <td className="px-6 py-4 text-right">
-                            <button onClick={() => handleDelete(tag.id)} className="text-red-600 hover:underline">Delete</button>
-                        </td>
-                    </tr>
+      {/* Tags List */}
+      {loading ? (
+        <Card className="border border-gray-100 shadow-sm bg-white">
+          <CardContent className="p-12 text-center text-gray-500">
+            Loading tags...
+          </CardContent>
+        </Card>
+      ) : tags.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm bg-white">
+          <CardContent className="p-12 text-center text-gray-500">
+            No tags found. Create your first tag above.
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
+          <CardContent className="p-0">
+            {/* Mobile: Cards */}
+            <div className="block md:hidden divide-y divide-gray-100">
+              {tags.map(tag => (
+                <div key={tag.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="text-2xl flex-shrink-0">{tag.icon || '🏷️'}</div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[#121213] truncate">{tag.name}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setTagToDelete(tag.id)}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: Table */}
+            <Table className="hidden md:table">
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold w-20">Icon</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Name</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tags.map(tag => (
+                  <TableRow key={tag.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="text-2xl">{tag.icon || '🏷️'}</div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="text-sm font-semibold text-[#121213]">{tag.name}</div>
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setTagToDelete(tag.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-            </tbody>
-        </table>
-      </div>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isVisible={tagToDelete !== null}
+        onClose={() => setTagToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Tag"
+        message={`Are you sure you want to delete "${tags.find(t => t.id === tagToDelete)?.name}"? This action cannot be undone.`}
+        confirmButtonText="Delete"
+        cancelButtonText="Cancel"
+        variant="danger"
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast({ ...toast, isVisible: false })}
+      />
     </div>
   );
 }

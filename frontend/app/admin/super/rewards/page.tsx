@@ -1,11 +1,20 @@
 'use client';
 
+import { Suspense } from 'react';
 import RewardManager from '../../../components/RewardManager';
 
-export default function SuperAdminRewardsPage() {
+function RewardManagerPageContent() {
   return (
-    <div className="max-w-7xl mx-auto p-4">
+    <div className="p-8">
       <RewardManager basePath="/admin/super/rewards" />
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <RewardManagerPageContent />
+    </Suspense>
   );
 }

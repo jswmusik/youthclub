@@ -4,7 +4,7 @@ import BookingResourceManager from '../../../../components/bookings/BookingResou
 
 export default function SuperBookingResourcesPage() {
   return (
-    <div className="p-6">
+    <div className="p-8 space-y-6">
       <BookingResourceManager 
         basePath="/admin/super/bookings/resources" 
         scope="SUPER" 

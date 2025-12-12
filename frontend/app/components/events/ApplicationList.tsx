@@ -2,9 +2,21 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Search, CheckCircle, XCircle, Calendar, MapPin, User, Clock } from 'lucide-react';
 import api from '@/lib/api';
 import Toast from '../Toast';
-import { Search, CheckCircle, XCircle } from 'lucide-react';
+import { getMediaUrl, getInitials } from '@/app/utils';
+
+// Shadcn
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface ApplicationListProps {
     scope: 'SUPER' | 'MUNICIPALITY' | 'CLUB';
@@ -82,119 +94,252 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
     );
 
     return (
-        <div className="bg-white rounded-xl shadow border border-gray-200 h-full flex flex-col">
-            {/* Toolbar */}
-            <div className="p-4 border-b flex flex-wrap gap-4 justify-between items-center bg-gray-50">
-                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border shadow-sm w-full md:w-auto">
-                    <Search size={18} className="text-gray-400" />
-                    <input 
-                        type="text" 
-                        placeholder="Search user or event..." 
-                        className="outline-none text-sm w-64"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
-                </div>
+        <>
+            {/* Filters */}
+            <Card className="border border-gray-100 shadow-sm bg-white">
+                <div className="p-4 space-y-4">
+                    {/* Main Filters Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                        {/* Search */}
+                        <div className="relative md:col-span-4 lg:col-span-3">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                            <Input 
+                                placeholder="Search user or event..." 
+                                className="pl-9 bg-gray-50 border-0"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
 
-                <div className="flex gap-2">
-                    {['PENDING', 'WAITLIST', 'APPROVED', 'ALL'].map(status => (
-                        <button
-                            key={status}
-                            onClick={() => setFilterStatus(status)}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-md transition border ${
-                                filterStatus === status 
-                                ? 'bg-blue-600 text-white border-blue-600' 
-                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                            }`}
+                        {/* Status Filter Buttons */}
+                        <div className="md:col-span-8 lg:col-span-9 flex flex-wrap gap-2">
+                            {['PENDING', 'WAITLIST', 'APPROVED', 'ALL'].map(status => (
+                                <Button
+                                    key={status}
+                                    variant={filterStatus === status ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setFilterStatus(status)}
+                                    className={filterStatus === status ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
+                                >
+                                    {status === 'PENDING' ? 'Needs Action' : status}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </Card>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+                    {filteredList.map((reg) => (
+                        <Card 
+                            key={reg.id} 
+                            className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() => router.push(`/admin/${scope.toLowerCase()}/events/${reg.event}`)}
                         >
-                            {status === 'PENDING' ? 'Needs Action' : status}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* List */}
-            <div className="flex-1 overflow-y-auto">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase sticky top-0 z-10">
-                        <tr>
-                            <th className="p-4 border-b">Applicant</th>
-                            <th className="p-4 border-b">Event</th>
-                            <th className="p-4 border-b">Applied</th>
-                            <th className="p-4 border-b">Status</th>
-                            <th className="p-4 border-b text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                        {filteredList.map((reg) => (
-                            <tr 
-                                key={reg.id} 
-                                className="hover:bg-gray-50 transition group cursor-pointer"
-                                onClick={() => router.push(`/admin/${scope.toLowerCase()}/events/${reg.event}`)}
-                            >
-                                <td className="p-4">
-                                    <div className="font-bold text-gray-900">
-                                        {reg.user_detail?.first_name} {reg.user_detail?.last_name}
+                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
+                                        <AvatarImage src={getMediaUrl(reg.user_detail?.avatar) || undefined} className="object-cover" />
+                                        <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                                            {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                                            {reg.user_detail?.first_name} {reg.user_detail?.last_name}
+                                        </CardTitle>
+                                        <CardDescription className="text-xs truncate">
+                                            {reg.user_detail?.email}
+                                        </CardDescription>
                                     </div>
-                                    <div className="text-xs text-gray-500">{reg.user_detail?.email}</div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="font-medium text-blue-600">
-                                        {reg.event_detail?.title || `Event #${reg.event}`}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 pt-0">
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-xs text-muted-foreground uppercase font-semibold">Event</span>
+                                        <Link 
+                                            href={`/admin/${scope.toLowerCase()}/events/${reg.event}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="font-medium text-[#4D4DA4] hover:text-[#FF5485] truncate max-w-[200px]"
+                                        >
+                                            {reg.event_detail?.title || `Event #${reg.event}`}
+                                        </Link>
                                     </div>
                                     {reg.event_detail?.location_name && (
-                                        <div className="text-xs text-gray-500">{reg.event_detail.location_name}</div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-xs text-muted-foreground uppercase font-semibold">Location</span>
+                                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{reg.event_detail.location_name}</span>
+                                        </div>
                                     )}
-                                </td>
-                                <td className="p-4 text-sm text-gray-500">
-                                    {new Date(reg.created_at).toLocaleDateString()}
-                                </td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-bold
-                                        ${reg.status.includes('PENDING') ? 'bg-yellow-100 text-yellow-700' : 
-                                          reg.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
-                                          reg.status === 'WAITLIST' ? 'bg-orange-100 text-orange-700' :
-                                          'bg-gray-100 text-gray-600'}
-                                    `}>
-                                        {reg.status.replace('_', ' ')}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-right">
-                                    <div 
-                                        className="flex justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <button 
-                                            onClick={() => handleAction(reg.id, 'APPROVED')}
-                                            className="p-1 text-green-600 hover:bg-green-50 rounded"
-                                            title="Approve"
-                                        >
-                                            <CheckCircle size={20} />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleAction(reg.id, 'REJECTED')}
-                                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                            title="Reject"
-                                        >
-                                            <XCircle size={20} />
-                                        </button>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-xs text-muted-foreground uppercase font-semibold">Applied</span>
+                                        <span className="text-xs text-muted-foreground">{new Date(reg.created_at).toLocaleDateString()}</span>
                                     </div>
-                                </td>
-                            </tr>
-                        ))}
-                        {filteredList.length === 0 && (
-                            <tr>
-                                <td colSpan={5} className="p-10 text-center text-gray-400">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-xs text-muted-foreground uppercase font-semibold">Status</span>
+                                        <Badge variant="outline" className={cn(
+                                            reg.status.includes('PENDING') && 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                                            reg.status === 'APPROVED' && 'bg-green-50 text-green-700 border-green-200',
+                                            reg.status === 'WAITLIST' && 'bg-orange-50 text-orange-700 border-orange-200',
+                                            reg.status === 'REJECTED' && 'bg-red-50 text-red-700 border-red-200',
+                                            'bg-gray-50 text-gray-700 border-gray-200'
+                                        )}>
+                                            {reg.status.replace('_', ' ')}
+                                        </Badge>
+                                    </div>
+                                </div>
+                                <Separator />
+                                <div className="flex gap-2 pt-2">
+                                    <Button 
+                                        size="sm"
+                                        variant="outline"
+                                        className="flex-1 gap-2 text-green-700 hover:text-green-800 hover:bg-green-50"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleAction(reg.id, 'APPROVED');
+                                        }}
+                                    >
+                                        <CheckCircle className="h-4 w-4" />
+                                        Approve
+                                    </Button>
+                                    <Button 
+                                        size="sm"
+                                        variant="outline"
+                                        className="flex-1 gap-2 text-red-700 hover:text-red-800 hover:bg-red-50"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleAction(reg.id, 'REJECTED');
+                                        }}
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        Reject
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    {filteredList.length === 0 && (
+                        <Card>
+                            <CardContent className="py-20 text-center">
+                                <p className="text-muted-foreground">
                                     {loading ? 'Loading...' : 'No applications found matching criteria.'}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
             </div>
 
+            {/* Desktop Table View */}
+            <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                                <TableHead className="h-12 text-gray-600 font-semibold">Applicant</TableHead>
+                                <TableHead className="h-12 text-gray-600 font-semibold">Event</TableHead>
+                                <TableHead className="h-12 text-gray-600 font-semibold">Applied</TableHead>
+                                <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+                                <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredList.map((reg) => (
+                                <TableRow 
+                                    key={reg.id} 
+                                    className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer"
+                                    onClick={() => router.push(`/admin/${scope.toLowerCase()}/events/${reg.event}`)}
+                                >
+                                    <TableCell className="py-4">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
+                                                <AvatarImage src={getMediaUrl(reg.user_detail?.avatar) || undefined} className="object-cover" />
+                                                <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                                                    {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <div className="font-semibold text-[#121213]">
+                                                    {reg.user_detail?.first_name} {reg.user_detail?.last_name}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">{reg.user_detail?.email}</div>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="py-4">
+                                        <Link 
+                                            href={`/admin/${scope.toLowerCase()}/events/${reg.event}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="font-medium text-[#4D4DA4] hover:text-[#FF5485] block"
+                                        >
+                                            {reg.event_detail?.title || `Event #${reg.event}`}
+                                        </Link>
+                                        {reg.event_detail?.location_name && (
+                                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                                <MapPin className="h-3 w-3" />
+                                                {reg.event_detail.location_name}
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="py-4">
+                                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                            <Clock className="h-3 w-3" />
+                                            {new Date(reg.created_at).toLocaleDateString()}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="py-4">
+                                        <Badge variant="outline" className={cn(
+                                            reg.status.includes('PENDING') && 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                                            reg.status === 'APPROVED' && 'bg-green-50 text-green-700 border-green-200',
+                                            reg.status === 'WAITLIST' && 'bg-orange-50 text-orange-700 border-orange-200',
+                                            reg.status === 'REJECTED' && 'bg-red-50 text-red-700 border-red-200',
+                                            'bg-gray-50 text-gray-700 border-gray-200'
+                                        )}>
+                                            {reg.status.replace('_', ' ')}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="py-4 text-right">
+                                        <div 
+                                            className="flex items-center justify-end gap-1"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <Button 
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleAction(reg.id, 'APPROVED')}
+                                                className="h-8 w-8 p-0 text-gray-500 hover:text-green-600 hover:bg-green-50"
+                                                title="Approve"
+                                            >
+                                                <CheckCircle className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleAction(reg.id, 'REJECTED')}
+                                                className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                                title="Reject"
+                                            >
+                                                <XCircle className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {filteredList.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="py-20 text-center">
+                                        <p className="text-muted-foreground">
+                                            {loading ? 'Loading...' : 'No applications found matching criteria.'}
+                                        </p>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+            </Card>
+
             <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
-        </div>
+        </>
     );
 }
 

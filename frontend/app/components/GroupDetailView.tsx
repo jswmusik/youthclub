@@ -3,10 +3,18 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, Edit, Copy, Building, MapPin, Globe, Users } from 'lucide-react';
 import api from '../../lib/api';
 import Toast from './Toast';
 import ConfirmationModal from './ConfirmationModal';
 import { getMediaUrl } from '../utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 // Helper function to get initials from first and last name
 const getInitials = (first?: string | null, last?: string | null): string => {
@@ -78,14 +86,17 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
     }
   };
 
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+
   const handleDuplicate = async () => {
-    if (!confirm("Create a copy of this group?")) return;
     try {
       await api.post(`/groups/${groupId}/duplicate/`);
       setToast({ message: 'Group duplicated! Check the list.', type: 'success', isVisible: true });
+      setShowDuplicateConfirm(false);
       setTimeout(() => router.push(buildUrlWithParams(basePath)), 1000);
     } catch (err) {
       setToast({ message: 'Failed to duplicate.', type: 'error', isVisible: true });
+      setShowDuplicateConfirm(false);
     }
   };
 
@@ -111,67 +122,107 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
     }
   };
 
-  if (loading) return <div className="p-12 text-center text-gray-500">Loading group details...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-pulse text-gray-400">Loading...</div>
+    </div>
+  );
   if (!group) return <div className="p-12 text-center text-red-500">Group not found.</div>;
+
+  const getBadgeStyle = (type: string) => {
+    switch (type) {
+      case 'OPEN': return 'bg-green-50 text-green-700 border-green-200';
+      case 'APPLICATION': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'CLOSED': return 'bg-gray-50 text-gray-700 border-gray-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
 
   return (
     <div className="space-y-6">
-      
-      {/* HEADER */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
-            <span className={`px-2 py-1 rounded text-xs font-bold uppercase
-              ${group.group_type === 'OPEN' ? 'bg-green-100 text-green-800' : 
-                group.group_type === 'CLOSED' ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800'}
-            `}>
-              {group.group_type}
-            </span>
-          </div>
-          
-          {/* NEW: Context Info (Club/Muni) */}
-          <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-            {group.club_name && (
-              <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                🏢 <b>Club:</b> {group.club_name}
-              </span>
-            )}
-            {group.municipality_name && (
-              <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                🏛️ <b>Municipality:</b> {group.municipality_name}
-              </span>
-            )}
-            {!group.club_name && !group.municipality_name && !group.is_system_group && (
-              <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                🌍 Global Group
-              </span>
-            )}
-          </div>
-
-          <p className="text-gray-500 mt-2">{group.description || 'No description provided.'}</p>
-        </div>
+      {/* Header with Back Button */}
+      <div className="flex items-center justify-between">
+        <Link href={buildUrlWithParams(basePath)}>
+          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="h-4 w-4" />
+            Back to List
+          </Button>
+        </Link>
         
-        {/* Buttons remain the same */}
-        <div className="flex gap-2">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
           {!group.is_system_group && (
             <>
-              <Link 
-                href={buildUrlWithParams(`${basePath}/edit/${group.id}`)}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200"
-              >
-                Edit
+              <Link href={buildUrlWithParams(`${basePath}/edit/${group.id}`)}>
+                <Button variant="outline" size="sm" className="gap-2 text-gray-700 hover:text-[#4D4DA4] hover:border-[#4D4DA4]">
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
               </Link>
-              <button 
-                onClick={handleDuplicate}
-                className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-medium hover:bg-indigo-100"
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowDuplicateConfirm(true)}
+                className="gap-2 text-gray-700 hover:text-[#4D4DA4] hover:border-[#4D4DA4]"
               >
+                <Copy className="h-4 w-4" />
                 Duplicate
-              </button>
+              </Button>
             </>
           )}
         </div>
       </div>
+
+      {/* Group Info Card */}
+      <Card className="border-none shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Avatar */}
+            <div className="flex-shrink-0">
+              <Avatar className="h-24 w-24 rounded-lg border-2 border-gray-200">
+                <AvatarImage src={group.avatar ? getMediaUrl(group.avatar) : undefined} className="object-cover" />
+                <AvatarFallback className="rounded-lg bg-[#EBEBFE] text-[#4D4DA4] text-2xl font-bold">
+                  {group.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold tracking-tight text-[#121213]">{group.name}</h1>
+                <Badge variant="outline" className={getBadgeStyle(group.group_type)}>
+                  {group.group_type}
+                </Badge>
+              </div>
+
+              {/* Context Info */}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                {group.club_name && (
+                  <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 gap-1">
+                    <Building className="h-3 w-3" />
+                    {group.club_name}
+                  </Badge>
+                )}
+                {group.municipality_name && (
+                  <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 gap-1">
+                    <MapPin className="h-3 w-3" />
+                    {group.municipality_name}
+                  </Badge>
+                )}
+                {!group.club_name && !group.municipality_name && !group.is_system_group && (
+                  <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 gap-1">
+                    <Globe className="h-3 w-3" />
+                    Global Group
+                  </Badge>
+                )}
+              </div>
+
+              <p className="text-gray-500">{group.description || 'No description provided.'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* TABS */}
       <div className="border-b border-gray-200">
@@ -180,11 +231,12 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
-              className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors
-                ${activeTab === tab 
-                  ? 'border-indigo-600 text-indigo-600' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
-              `}
+              className={cn(
+                "pb-4 px-2 text-sm font-medium border-b-2 transition-colors",
+                activeTab === tab 
+                  ? 'border-[#4D4DA4] text-[#4D4DA4]' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              )}
             >
               {tab.charAt(0) + tab.slice(1).toLowerCase()}
             </button>
@@ -194,176 +246,244 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
 
       {/* DASHBOARD TAB */}
       {activeTab === 'DASHBOARD' && analytics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-gray-500 text-xs font-bold uppercase">Total Members</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{analytics.total_members}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-gray-500 text-xs font-bold uppercase">New This Week</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">+{analytics.new_this_week}</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Total Members</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_members}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">New This Week</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">+{analytics.new_this_week}</div>
+            </CardContent>
+          </Card>
           
           {/* Gender Dist */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 col-span-1 md:col-span-2">
-            <h3 className="text-gray-500 text-xs font-bold uppercase mb-4">Gender Distribution</h3>
-            <div className="flex gap-4">
-              {Object.entries(analytics.gender_distribution || {}).map(([key, val]: any) => (
-                <div key={key} className="text-center bg-gray-50 p-3 rounded-lg min-w-[80px]">
-                  <span className="block text-xl font-bold text-gray-800">{val}</span>
-                  <span className="text-xs text-gray-500 uppercase">{key || 'Unset'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Card className="md:col-span-2 border-none shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-gray-500">Gender Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                {Object.entries(analytics.gender_distribution || {}).map(([key, val]: any) => (
+                  <div key={key} className="text-center bg-gray-50 p-3 rounded-lg min-w-[80px]">
+                    <span className="block text-xl font-bold text-gray-800">{val}</span>
+                    <span className="text-xs text-gray-500 uppercase">{key || 'Unset'}</span>
+                  </div>
+                ))}
+                {Object.keys(analytics.gender_distribution || {}).length === 0 && (
+                  <p className="text-sm text-gray-400">No data available.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Grade Dist */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 col-span-1 md:col-span-4">
-            <h3 className="text-gray-500 text-xs font-bold uppercase mb-4">Grade Distribution</h3>
-            <div className="flex flex-wrap gap-3">
-              {Object.entries(analytics.grade_distribution || {}).map(([grade, count]: any) => (
-                <div key={grade} className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
-                  <span className="text-xs font-bold text-indigo-800">Grade {grade}</span>
-                  <span className="bg-white text-indigo-600 px-2 py-0.5 rounded-full text-xs font-bold shadow-sm">{count}</span>
-                </div>
-              ))}
-              {Object.keys(analytics.grade_distribution || {}).length === 0 && <p className="text-sm text-gray-400">No data available.</p>}
-            </div>
-          </div>
+          <Card className="col-span-1 md:col-span-4 border-none shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-gray-500">Grade Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(analytics.grade_distribution || {}).map(([grade, count]: any) => (
+                  <Badge key={grade} variant="outline" className="bg-[#4D4DA4] text-white border-[#4D4DA4] px-3 py-1">
+                    Grade {grade}: {count}
+                  </Badge>
+                ))}
+                {Object.keys(analytics.grade_distribution || {}).length === 0 && (
+                  <p className="text-sm text-gray-400">No data available.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* MEMBERS TAB */}
       {activeTab === 'MEMBERS' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Member</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Joined</th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {members.map((m: any) => (
-                <tr key={m.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {m.user_avatar ? (
-                        <img src={getMediaUrl(m.user_avatar) || m.user_avatar} className="w-8 h-8 rounded-full object-cover" alt={m.user_name} />
-                      ) : (
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                          {getInitials(m.user_first_name, m.user_last_name)}
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-[#121213]">Group Members</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {members.length} {members.length === 1 ? 'member' : 'members'} total
+              </p>
+            </div>
+          </div>
+
+          {/* Members Table */}
+          <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
+            {members.length === 0 ? (
+              <div className="py-20 text-center">
+                <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 font-medium">No members in this group yet</p>
+                <p className="text-sm text-gray-400 mt-1">Members will appear here once they join</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                    <TableHead className="h-12 text-gray-600 font-semibold">Member</TableHead>
+                    <TableHead className="h-12 text-gray-600 font-semibold">Email</TableHead>
+                    <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+                    <TableHead className="h-12 text-gray-600 font-semibold">Joined</TableHead>
+                    <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {members.map((m: any) => (
+                    <TableRow key={m.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50">
+                            <AvatarImage src={m.user_avatar ? getMediaUrl(m.user_avatar) : undefined} className="object-cover" />
+                            <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                              {getInitials(m.user_first_name, m.user_last_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-semibold text-[#121213]">{m.user_name}</div>
+                            {m.user_first_name && m.user_last_name && (
+                              <div className="text-xs text-gray-400">
+                                {m.user_first_name} {m.user_last_name}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      <span className="font-medium text-gray-900">{m.user_name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{m.user_email}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold 
-                      ${m.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
-                        m.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}
-                    `}>
-                      {m.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {new Date(m.joined_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-right space-x-2">
-                    {m.status === 'PENDING' && (
-                      <button 
-                        onClick={() => handleApproveMember(m.id)}
-                        className="text-green-600 hover:text-green-800 font-bold text-xs uppercase"
-                      >
-                        Approve
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => setMemberToRemove(m.id)}
-                      className="text-red-600 hover:text-red-800 font-bold text-xs uppercase"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {members.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    No members in this group yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-sm text-gray-600">{m.user_email}</span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <Badge variant="outline" className={
+                          m.status === 'APPROVED' ? 'bg-green-50 text-green-700 border-green-200' : 
+                          m.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                          'bg-red-50 text-red-700 border-red-200'
+                        }>
+                          {m.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-sm text-gray-600">
+                          {new Date(m.joined_at).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {m.status === 'PENDING' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleApproveMember(m.id)}
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Approve member"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setMemberToRemove(m.id)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Remove member"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
         </div>
       )}
 
       {/* SETTINGS TAB */}
       {activeTab === 'SETTINGS' && (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
-            <div>
-              <span className="block text-gray-500 font-bold uppercase text-xs">Target Audience</span>
-              <span className="text-gray-900">{group.target_member_type === 'YOUTH' ? 'Youth Members' : 'Guardians'}</span>
-            </div>
-            <div>
-              <span className="block text-gray-500 font-bold uppercase text-xs">Age Range</span>
-              <span className="text-gray-900">
-                {group.min_age || 0} - {group.max_age || 'Any'} years
-              </span>
-            </div>
-            <div>
-              <span className="block text-gray-500 font-bold uppercase text-xs">Allowed Grades</span>
-              <span className="text-gray-900">
-                {group.grades?.length > 0 ? group.grades.join(', ') : 'All Grades'}
-              </span>
-            </div>
-            <div>
-              <span className="block text-gray-500 font-bold uppercase text-xs">Allowed Genders</span>
-              <span className="text-gray-900">
-                {group.genders?.length > 0 ? group.genders.join(', ') : 'All Genders'}
-              </span>
-            </div>
-            <div className="col-span-2">
-              <span className="block text-gray-500 font-bold uppercase text-xs mb-2">Required Interests</span>
-              <div className="flex flex-wrap gap-2">
-                {group.interests_details?.map((i: any) => (
-                  <span key={i.id} className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md text-xs font-medium border border-purple-100">
-                    {i.name}
-                  </span>
-                ))}
-                {(!group.interests_details || group.interests_details.length === 0) && (
-                  <span className="text-gray-400 italic">None</span>
-                )}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Group Settings</CardTitle>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-gray-500 uppercase">Target Audience</span>
+                <p className="text-sm text-[#121213] font-medium">{group.target_member_type === 'YOUTH' ? 'Youth Members' : 'Guardians'}</p>
               </div>
-            </div>
-            {group.custom_field_rules && Object.keys(group.custom_field_rules).length > 0 && (
-              <div className="col-span-2">
-                <span className="block text-gray-500 font-bold uppercase text-xs mb-2">Custom Field Rules</span>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-gray-500 uppercase">Age Range</span>
+                <p className="text-sm text-[#121213] font-medium">
+                  {group.min_age || 0} - {group.max_age || 'Any'} years
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-gray-500 uppercase">Allowed Grades</span>
+                <p className="text-sm text-[#121213] font-medium">
+                  {group.grades?.length > 0 ? group.grades.join(', ') : 'All Grades'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-gray-500 uppercase">Allowed Genders</span>
+                <p className="text-sm text-[#121213] font-medium">
+                  {group.genders?.length > 0 ? group.genders.join(', ') : 'All Genders'}
+                </p>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <span className="text-xs font-semibold text-gray-500 uppercase block">Required Interests</span>
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(group.custom_field_rules).map(([fieldId, value]: [string, any]) => {
-                    const field = customFields.find((f: any) => f.id.toString() === fieldId);
-                    const fieldName = field?.name || `Field #${fieldId}`;
-                    let displayValue = value;
-                    if (typeof value === 'boolean') {
-                      displayValue = value ? 'Yes' : 'No';
-                    }
-                    return (
-                      <span key={fieldId} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md text-xs font-medium border border-blue-100">
-                        <b>{fieldName}</b>: {displayValue}
-                      </span>
-                    );
-                  })}
+                  {group.interests_details?.map((i: any) => (
+                    <Badge key={i.id} variant="outline" className="bg-[#4D4DA4] text-white border-[#4D4DA4]">
+                      {i.name}
+                    </Badge>
+                  ))}
+                  {(!group.interests_details || group.interests_details.length === 0) && (
+                    <span className="text-sm text-gray-400 italic">None</span>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+              {group.custom_field_rules && Object.keys(group.custom_field_rules).length > 0 && (
+                <div className="md:col-span-2 space-y-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase block">Custom Field Rules</span>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(group.custom_field_rules).map(([fieldId, value]: [string, any]) => {
+                      const field = customFields.find((f: any) => f.id.toString() === fieldId);
+                      const fieldName = field?.name || `Field #${fieldId}`;
+                      let displayValue = value;
+                      if (typeof value === 'boolean') {
+                        displayValue = value ? 'Yes' : 'No';
+                      }
+                      return (
+                        <Badge key={fieldId} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <b>{fieldName}</b>: {displayValue}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* MODALS */}
@@ -375,6 +495,17 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
         message="Are you sure you want to remove this member from the group?"
         confirmButtonText="Remove"
         variant="warning"
+      />
+
+      <ConfirmationModal
+        isVisible={showDuplicateConfirm}
+        onClose={() => setShowDuplicateConfirm(false)}
+        onConfirm={handleDuplicate}
+        title="Duplicate Group"
+        message="Create a copy of this group?"
+        confirmButtonText="Duplicate"
+        cancelButtonText="Cancel"
+        variant="info"
       />
 
       <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} />

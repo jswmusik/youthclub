@@ -4,9 +4,12 @@ import ApplicationList from '@/app/components/events/ApplicationList';
 
 export default function SuperApplicationsPage() {
     return (
-        <div className="h-[calc(100vh-64px)] p-6 flex flex-col">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Global Application Queue</h1>
-            <div className="flex-1 min-h-0"><ApplicationList scope="SUPER" /></div>
+        <div className="p-8 space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Global Application Queue</h1>
+                <p className="text-sm text-muted-foreground mt-1">Review and manage event registration applications.</p>
+            </div>
+            <ApplicationList scope="SUPER" />
         </div>
     );
 }

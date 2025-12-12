@@ -5,7 +5,7 @@ import GuardianManager from '@/app/components/GuardianManager';
 
 function GuardianManagerPageContent() {
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <GuardianManager basePath="/admin/super/guardians" scope="SUPER" />
     </div>
   );

@@ -3,9 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Plus, Search, BarChart3, ChevronUp, Edit, Trash2, X, Tag, ArrowLeft } from 'lucide-react';
 import api from '../../lib/api';
-import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface TagManagerProps {
   basePath: string;
@@ -17,16 +25,71 @@ export default function TagManager({ basePath }: TagManagerProps) {
   const searchParams = useSearchParams();
   
   const [tags, setTags] = useState<any[]>([]);
+  const [allTagsForAnalytics, setAllTagsForAnalytics] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
   useEffect(() => {
+    fetchAllTagsForAnalytics();
+  }, []);
+
+  useEffect(() => {
     fetchTags();
   }, [searchParams]);
+
+  const fetchAllTagsForAnalytics = async () => {
+    try {
+      let allTags: any[] = [];
+      let page = 1;
+      let totalCount = 0;
+      const pageSize = 100;
+      const maxPages = 100;
+      
+      while (page <= maxPages) {
+        const params = new URLSearchParams();
+        params.set('page', page.toString());
+        params.set('page_size', pageSize.toString());
+        
+        const res: any = await api.get(`/news_tags/?${params.toString()}`);
+        const responseData: any = res?.data;
+        
+        if (!responseData) break;
+        
+        let pageTags: any[] = [];
+        
+        if (Array.isArray(responseData)) {
+          pageTags = responseData;
+          allTags = [...allTags, ...pageTags];
+          break;
+        } else if (responseData.results && Array.isArray(responseData.results)) {
+          pageTags = responseData.results;
+          allTags = [...allTags, ...pageTags];
+          
+          if (page === 1) {
+            totalCount = responseData.count || 0;
+          }
+          
+          const hasNext = responseData.next !== null && responseData.next !== undefined;
+          const hasAllResults = totalCount > 0 && allTags.length >= totalCount;
+          const gotEmptyPage = pageTags.length === 0;
+          
+          if (!hasNext || hasAllResults || gotEmptyPage) break;
+          page++;
+        } else {
+          break;
+        }
+      }
+      
+      setAllTagsForAnalytics(allTags);
+    } catch (err) {
+      console.error('Error fetching tags for analytics:', err);
+      setAllTagsForAnalytics([]);
+    }
+  };
 
   const fetchTags = async () => {
     setLoading(true);
@@ -123,7 +186,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const buildUrlWithPage = (path: string) => {
+  const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
     const page = searchParams.get('page');
     const search = searchParams.get('search');
@@ -135,17 +198,13 @@ export default function TagManager({ basePath }: TagManagerProps) {
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  const clearFilters = () => {
-    router.push(pathname); // Navigate to base path to clear all params
-  };
-
   const handleDelete = async () => {
     if (!itemToDelete) return;
     try {
       await api.delete(`/news_tags/${itemToDelete.id}/`);
       setToast({ message: 'Tag deleted.', type: 'success', isVisible: true });
-      // Re-fetch to preserve current page
       fetchTags();
+      fetchAllTagsForAnalytics();
     } catch (err) {
       setToast({ message: 'Delete failed.', type: 'error', isVisible: true });
     } finally {
@@ -153,198 +212,242 @@ export default function TagManager({ basePath }: TagManagerProps) {
     }
   };
 
+  // Calculate analytics from allTagsForAnalytics
+  const analytics = {
+    total: allTagsForAnalytics.length,
+  };
+
+  // Pagination logic
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const pageSize = 10;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const paginatedTags = tags;
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Manage Tags</h1>
-        <Link href={`${basePath}/create`} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 shadow">
-          + New Tag
+      {/* Header */}
+      <div className="flex flex-col gap-4">
+        <Link href="/admin/super/news">
+          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900 w-fit">
+            <ArrowLeft className="h-4 w-4" />
+            Back to News
+          </Button>
         </Link>
-      </div>
-
-      {/* Filters Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-          className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span className="text-sm font-semibold text-gray-700">Filters</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Tags</h1>
+            <p className="text-gray-500 mt-1">Manage news article tags and categories.</p>
           </div>
-          <svg 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Filter Fields - Collapsible */}
-        <div 
-          className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-            filtersExpanded 
-              ? 'max-h-[1000px] opacity-100' 
-              : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          <div className="p-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Search by Name */}
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search by Name</label>
-                <input 
-                  type="text" 
-                  placeholder="Search by name..." 
-                  className="w-full border rounded p-2 text-sm bg-gray-50"
-                  value={searchParams.get('search') || ''} 
-                  onChange={e => updateUrl('search', e.target.value)}
-                />
-              </div>
-
-              {/* Clear Filters */}
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 text-sm text-gray-500 hover:text-red-500 font-medium"
-              >
-                Clear Filters
-              </button>
-            </div>
-          </div>
+          <Link href={`${basePath}/create`}>
+            <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+              <Plus className="h-4 w-4" /> Create Tag
+            </Button>
+          </Link>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? <div className="p-8 text-center">Loading...</div> : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Slug</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {tags.map(tag => (
-                <tr key={tag.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-bold text-gray-900">{tag.name}</td>
-                  <td className="px-6 py-4 text-gray-500 font-mono text-sm">{tag.slug}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link 
-                        href={buildUrlWithPage(`${basePath}/edit/${tag.id}`)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit
-                      </Link>
-                      <button 
-                        onClick={() => setItemToDelete(tag)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {tags.length === 0 && <tr><td colSpan={3} className="p-8 text-center text-gray-500">No tags found.</td></tr>}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Analytics */}
+      <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+          </div>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
+              <ChevronUp className={cn(
+                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                analyticsExpanded ? "rotate-0" : "rotate-180"
+              )} />
+              <span className="sr-only">Toggle Analytics</span>
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 pt-2">
+            {/* Card: Total Tags */}
+            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Total Tags</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total}</div>
+              </CardContent>
+            </Card>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Pagination Controls */}
-      {(() => {
-        const currentPage = Number(searchParams.get('page')) || 1;
-        const pageSize = 10;
-        const totalPages = Math.ceil(totalCount / pageSize);
-        
-        if (totalPages <= 1) return null;
-        
-        return (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-            <div className="flex flex-1 justify-between sm:hidden">
-              <button 
-                disabled={currentPage === 1}
-                onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button 
-                disabled={currentPage >= totalPages}
-                onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
+      {/* Filters */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="p-4 space-y-4">
+          {/* Main Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            {/* Search - Takes more space on larger screens */}
+            <div className="relative md:col-span-10 lg:col-span-11">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search by name or slug..." 
+                className="pl-9 bg-gray-50 border-0"
+                value={searchParams.get('search') || ''}
+                onChange={e => updateUrl('search', e.target.value)}
+              />
             </div>
-            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                  {' '}(Total: {totalCount})
-                </p>
-              </div>
-              <div>
-                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                  >
-                    <span className="sr-only">Previous</span>
-                    ← Prev
-                  </button>
-                  
-                  {/* Simple Pagination Numbers */}
-                  {[...Array(totalPages)].map((_, i) => {
-                    const p = i + 1;
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => updateUrl('page', p.toString())}
-                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                          ${p === currentPage 
-                            ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    disabled={currentPage >= totalPages}
-                    onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                  >
-                    <span className="sr-only">Next</span>
-                    Next →
-                  </button>
-                </nav>
-              </div>
+            
+            {/* Clear Button */}
+            <div className="md:col-span-2 lg:col-span-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(pathname)}
+                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+              >
+                <X className="h-4 w-4" /> Clear
+              </Button>
             </div>
           </div>
-        );
-      })()}
+        </div>
+      </Card>
 
-      <DeleteConfirmationModal 
+      {/* Content */}
+      {loading ? (
+        <div className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      ) : paginatedTags.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 text-center">
+            <p className="text-gray-500">No tags found.</p>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* MOBILE: Cards */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {paginatedTags.map(tag => (
+              <Card key={tag.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
+                      <Tag className="h-5 w-5 text-[#4D4DA4]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                        {tag.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs text-gray-500 truncate font-mono">
+                        {tag.slug}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <Link href={buildUrlWithParams(`${basePath}/edit/${tag.id}`)} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => setItemToDelete(tag)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* DESKTOP: Table */}
+          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold">Tag</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Slug</TableHead>
+                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedTags.map(tag => (
+                  <TableRow key={tag.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
+                          <Tag className="h-5 w-5 text-[#4D4DA4]" />
+                        </div>
+                        <div className="font-semibold text-[#121213]">{tag.name}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <code className="text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded font-mono">{tag.slug}</code>
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={buildUrlWithParams(`${basePath}/edit/${tag.id}`)}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setItemToDelete(tag)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            disabled={currentPage === 1} 
+            onClick={() => updateUrl('page', (currentPage - 1).toString())}
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            Prev
+          </Button>
+          <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            disabled={currentPage >= totalPages} 
+            onClick={() => updateUrl('page', (currentPage + 1).toString())}
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            Next
+          </Button>
+        </div>
+      )}
+
+      <ConfirmationModal 
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
-        itemName={itemToDelete?.name}
+        title="Delete Tag"
+        message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
+        confirmButtonText="Delete"
+        cancelButtonText="Cancel"
+        variant="danger"
       />
       <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>

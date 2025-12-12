@@ -3,10 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, CheckCircle2, Clock, Calendar } from 'lucide-react';
 import { questionnaireApi } from '../../../lib/questionnaire-api';
 import api from '../../../lib/api';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import Toast from '../Toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface QuestionnaireManagerProps {
   basePath: string; // e.g., '/admin/club/questionnaires'
@@ -22,7 +30,6 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [analytics, setAnalytics] = useState({
     total_created: 0,
     total_completed: 0,
@@ -62,7 +69,6 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     try {
       const res = await api.get('/municipalities/');
       const data = Array.isArray(res.data) ? res.data : res.data.results || [];
-      console.log('[QuestionnaireManager] Fetched municipalities:', data.length, data);
       setMunicipalities(data);
     } catch (err) {
       console.error('Failed to fetch municipalities:', err);
@@ -87,7 +93,6 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
         if (page > 100) break; // Safety limit
       } while (nextUrl);
       
-      console.log('[QuestionnaireManager] Fetched clubs:', allClubs.length, allClubs);
       setClubs(allClubs);
     } catch (err) {
       console.error('Failed to fetch clubs:', err);
@@ -98,7 +103,6 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
   // Fetch municipalities and clubs once on mount for SUPER admins
   useEffect(() => {
     if (scope === 'SUPER') {
-      console.log('[QuestionnaireManager] Fetching municipalities and clubs for SUPER admin');
       fetchMunicipalities();
       fetchClubs();
     }
@@ -177,20 +181,20 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     if (expirationDate) {
       const expDate = new Date(expirationDate);
       if (expDate < new Date()) {
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
       }
     }
     
     // If it's DRAFT but has a scheduled publish date, show as SCHEDULED
     if (status === 'DRAFT' && scheduledPublishDate) {
-      return 'bg-purple-100 text-purple-800';
+      return 'bg-purple-50 text-purple-700 border-purple-200';
     }
     
     switch (status) {
-      case 'PUBLISHED': return 'bg-green-100 text-green-800';
-      case 'DRAFT': return 'bg-gray-100 text-gray-800';
-      case 'ARCHIVED': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'PUBLISHED': return 'bg-green-50 text-green-700 border-green-200';
+      case 'DRAFT': return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'ARCHIVED': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
   
@@ -210,374 +214,385 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     return status;
   };
 
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Manage Questionnaires</h1>
-        <Link 
-          href={`${basePath}/create`} 
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 shadow flex items-center gap-2"
-        >
-          <span>+ Create New</span>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#121213]">Manage Questionnaires</h1>
+          <p className="text-sm sm:text-base text-gray-500 mt-1">Create and manage questionnaires for your organization.</p>
+        </div>
+        <Link href={`${basePath}/create`} className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+            <Plus className="h-4 w-4" /> Create New
+          </Button>
         </Link>
       </div>
 
-      {/* Analytics Dashboard */}
-      {!loading && (
-        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {/* Toggle Button */}
-          <button
-            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-            className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
-            </div>
-            <svg 
-              className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Analytics Cards - Collapsible */}
-          <div 
-            className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-              analyticsExpanded 
-                ? 'max-h-[500px] opacity-100' 
-                : 'max-h-0 opacity-0'
-            } overflow-hidden`}
-          >
-            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Card 1: Total Questionnaires Created */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Created</h3>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.total_created}</p>
-              </div>
-
-              {/* Card 2: Completed Questionnaires */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-green-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Completed</h3>
-                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.total_completed}</p>
-              </div>
-
-              {/* Card 3: Started Questionnaires */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-orange-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Started</h3>
-                  <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.total_started}</p>
-              </div>
-            </div>
+      {/* Analytics */}
+      <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
           </div>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
+              <ChevronUp className={cn(
+                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                analyticsExpanded ? "rotate-0" : "rotate-180"
+              )} />
+              <span className="sr-only">Toggle Analytics</span>
+            </Button>
+          </CollapsibleTrigger>
         </div>
-      )}
+        <CollapsibleContent className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pt-2">
+            {/* Card 1: Total Created */}
+            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Total Created</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_created}</div>
+              </CardContent>
+            </Card>
+
+            {/* Card 2: Completed */}
+            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Completed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_completed}</div>
+              </CardContent>
+            </Card>
+
+            {/* Card 3: Started */}
+            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Started</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_started}</div>
+              </CardContent>
+            </Card>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-          className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span className="text-sm font-semibold text-gray-700">Filters</span>
-          </div>
-          <svg 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Filter Fields - Collapsible */}
-        <div 
-          className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-            filtersExpanded 
-              ? 'max-h-[1000px] opacity-100' 
-              : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          <div className="p-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Search */}
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-                <input 
-                  type="text" 
-                  placeholder="Search by title..." 
-                  className="w-full border rounded p-2 text-sm bg-gray-50"
-                  value={searchParams.get('search') || ''} 
-                  onChange={e => updateUrl('search', e.target.value)}
-                />
-              </div>
-
-              {/* Status */}
-              <div className="w-40">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+          {/* Main Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 items-end">
+            {/* Search - Takes more space on larger screens */}
+            <div className="relative md:col-span-4 lg:col-span-3">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search by title..." 
+                className="pl-9 bg-gray-50 border-0"
+                value={searchParams.get('search') || ''} 
+                onChange={e => updateUrl('search', e.target.value)}
+              />
+            </div>
+            
+            {/* Status Filter */}
+            <div className="md:col-span-2 lg:col-span-2">
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={searchParams.get('status') || ''} 
+                onChange={e => updateUrl('status', e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PUBLISHED">Published</option>
+                <option value="ARCHIVED">Archived</option>
+              </select>
+            </div>
+            
+            {/* Municipality Filter - Only for SUPER scope */}
+            {scope === 'SUPER' && (
+              <div className="md:col-span-2 lg:col-span-2">
                 <select 
-                  className="w-full border rounded p-2 text-sm bg-gray-50" 
-                  value={searchParams.get('status') || ''} 
-                  onChange={e => updateUrl('status', e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                  value={searchParams.get('municipality') || ''} 
+                  onChange={e => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    const municipalityValue = e.target.value;
+                    
+                    // Update municipality
+                    if (municipalityValue) {
+                      params.set('municipality', municipalityValue);
+                    } else {
+                      params.delete('municipality');
+                    }
+                    
+                    // Clear club selection when municipality changes
+                    params.delete('club');
+                    
+                    // Reset to page 1
+                    params.set('page', '1');
+                    
+                    router.replace(`${pathname}?${params.toString()}`);
+                  }}
                 >
-                  <option value="">All Statuses</option>
-                  <option value="DRAFT">Scheduled</option>
-                  <option value="PUBLISHED">Published</option>
-                  <option value="ARCHIVED">Archived</option>
+                  <option value="">All Municipalities</option>
+                  {municipalities.map(m => (
+                    <option key={m.id} value={m.id.toString()}>{m.name}</option>
+                  ))}
                 </select>
               </div>
-
-              {/* Municipality - Only for SUPER scope */}
-              {scope === 'SUPER' && (
-                <div className="w-48">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Municipality</label>
-                  <select 
-                    className="w-full border rounded p-2 text-sm bg-gray-50" 
-                    value={searchParams.get('municipality') || ''} 
-                    onChange={e => {
-                      const params = new URLSearchParams(searchParams.toString());
-                      const municipalityValue = e.target.value;
-                      
-                      // Update municipality
-                      if (municipalityValue) {
-                        params.set('municipality', municipalityValue);
-                      } else {
-                        params.delete('municipality');
-                      }
-                      
-                      // Clear club selection when municipality changes
-                      params.delete('club');
-                      
-                      // Reset to page 1
-                      params.set('page', '1');
-                      
-                      router.replace(`${pathname}?${params.toString()}`);
-                    }}
-                  >
-                    <option value="">All Municipalities</option>
-                    {municipalities.map(m => (
-                      <option key={m.id} value={m.id.toString()}>{m.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Club - Only for SUPER scope */}
-              {scope === 'SUPER' && (
-                <div className="w-48">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Club</label>
-                  <select 
-                    className="w-full border rounded p-2 text-sm bg-gray-50" 
-                    value={searchParams.get('club') || ''} 
-                    onChange={e => updateUrl('club', e.target.value)}
-                  >
-                    <option value="">All Clubs</option>
-                    {(() => {
-                      const selectedMunicipalityId = searchParams.get('municipality');
-                      let filteredClubs = clubs;
-                      
-                      // Filter clubs by selected municipality
-                      if (selectedMunicipalityId) {
-                        filteredClubs = clubs.filter((c: any) => 
-                          c.municipality?.toString() === selectedMunicipalityId || 
-                          c.municipality_id?.toString() === selectedMunicipalityId
-                        );
-                      }
-                      
-                      return filteredClubs.map(c => (
-                        <option key={c.id} value={c.id.toString()}>{c.name}</option>
-                      ));
-                    })()}
-                  </select>
-                </div>
-              )}
+            )}
+            
+            {/* Club Filter - Only for SUPER scope */}
+            {scope === 'SUPER' && (
+              <div className={cn("md:col-span-2", scope === 'SUPER' && municipalities.length > 0 ? "lg:col-span-2" : "lg:col-span-3")}>
+                <select 
+                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                  value={searchParams.get('club') || ''} 
+                  onChange={e => updateUrl('club', e.target.value)}
+                >
+                  <option value="">All Clubs</option>
+                  {(() => {
+                    const selectedMunicipalityId = searchParams.get('municipality');
+                    let filteredClubs = clubs;
+                    
+                    // Filter clubs by selected municipality
+                    if (selectedMunicipalityId) {
+                      filteredClubs = clubs.filter((c: any) => 
+                        c.municipality?.toString() === selectedMunicipalityId || 
+                        c.municipality_id?.toString() === selectedMunicipalityId
+                      );
+                    }
+                    
+                    return filteredClubs.map(c => (
+                      <option key={c.id} value={c.id.toString()}>{c.name}</option>
+                    ));
+                  })()}
+                </select>
+              </div>
+            )}
+            
+            {/* Clear Button */}
+            <div className="md:col-span-2 lg:col-span-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(pathname)}
+                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+              >
+                <X className="h-4 w-4" /> Clear
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* List */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading questionnaires...</div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Expires</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Responses</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {items.map((q) => (
-                <tr key={q.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+      {/* Content */}
+      {loading ? (
+        <div className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      ) : items.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 text-center">
+            <p className="text-gray-500">No questionnaires found.</p>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* MOBILE: Cards */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {items.map((q) => (
+              <Card key={q.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3 px-4 pt-4">
+                  <div className="flex-1 min-w-0">
                     <Link 
                       href={`${basePath}/${q.id}/analytics${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}
-                      className="font-bold text-gray-900 hover:text-blue-600 hover:underline"
+                      className="block"
                     >
-                      {q.title}
+                      <CardTitle className="text-base font-semibold text-[#121213] break-words hover:text-[#4D4DA4] transition-colors">
+                        {q.title}
+                      </CardTitle>
                     </Link>
-                    <div className="text-xs text-gray-500 truncate max-w-xs">{q.description}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${getStatusBadge(q.status, q.scheduled_publish_date, q.expiration_date)}`}>
-                      {getStatusDisplay(q.status, q.scheduled_publish_date, q.expiration_date)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {q.expiration_date ? new Date(q.expiration_date).toLocaleDateString() : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">
-                      <span className="font-semibold">{q.response_count || 0}</span>{' '}
-                      <span className="text-gray-500">completed</span>
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      {q.status === 'DRAFT' && (
-                        <button 
-                          onClick={() => handleTogglePublish(q)}
-                          className="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded text-xs font-semibold"
-                          title="Publish questionnaire"
-                        >
-                          Publish
-                        </button>
-                      )}
-                      {q.status === 'PUBLISHED' && (
-                        <button 
-                          onClick={() => handleTogglePublish(q)}
-                          className="text-yellow-600 hover:text-yellow-900 bg-yellow-50 px-3 py-1 rounded text-xs font-semibold"
-                          title="Unpublish questionnaire"
-                        >
-                          Unpublish
-                        </button>
-                      )}
-                      <Link 
-                        href={`${basePath}/edit/${q.id}${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}
-                        className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded text-xs font-semibold"
-                      >
-                        Edit
-                      </Link>
-                      <button 
-                        onClick={() => setItemToDelete(q)}
-                        className="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded text-xs font-semibold"
-                      >
-                        Delete
-                      </button>
+                    {q.description && (
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 break-words">{q.description}</p>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0 px-4 pb-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
+                      <Badge variant="outline" className={getStatusBadge(q.status, q.scheduled_publish_date, q.expiration_date)}>
+                        {getStatusDisplay(q.status, q.scheduled_publish_date, q.expiration_date)}
+                      </Badge>
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 && (
-                <tr><td colSpan={5} className="p-8 text-center text-gray-500">No questionnaires found.</td></tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-          <div className="flex flex-1 justify-between sm:hidden">
-            <button 
-              disabled={currentPage === 1}
-              onClick={() => updateUrl('page', (currentPage - 1).toString())}
-              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button 
-              disabled={currentPage >= totalPages}
-              onClick={() => updateUrl('page', (currentPage + 1).toString())}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                {' '}(Total: {totalCount})
-              </p>
-            </div>
-            <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Previous</span>
-                  ← Prev
-                </button>
-                
-                {/* Simple Pagination Numbers */}
-                {[...Array(totalPages)].map((_, i) => {
-                  const p = i + 1;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => updateUrl('page', p.toString())}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                        ${p === currentPage 
-                          ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-xs text-gray-500 uppercase font-semibold">Expires</span>
+                      <span className="text-gray-900 font-medium">
+                        {q.expiration_date ? new Date(q.expiration_date).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-xs text-gray-500 uppercase font-semibold">Responses</span>
+                      <span className="text-gray-900 font-medium">
+                        {q.response_count || 0} completed
+                      </span>
+                    </div>
+                  </div>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <Link href={`${basePath}/${q.id}/analytics${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        <Eye className="h-4 w-4" />
+                        View
+                      </Button>
+                    </Link>
+                    <Link href={`${basePath}/edit/${q.id}${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => setItemToDelete(q)}
                     >
-                      {p}
-                    </button>
-                  );
-                })}
-
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Next</span>
-                  Next →
-                </button>
-              </nav>
-            </div>
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
+
+          {/* DESKTOP: Table */}
+          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold">Title</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Expires</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Responses</TableHead>
+                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((q) => (
+                  <TableRow key={q.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div>
+                        <Link 
+                          href={`${basePath}/${q.id}/analytics${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}
+                          className="font-semibold text-[#121213] hover:text-[#4D4DA4] transition-colors"
+                        >
+                          {q.title}
+                        </Link>
+                        {q.description && (
+                          <div className="text-xs text-gray-500 mt-1 truncate max-w-md">
+                            {q.description}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Badge variant="outline" className={getStatusBadge(q.status, q.scheduled_publish_date, q.expiration_date)}>
+                        {getStatusDisplay(q.status, q.scheduled_publish_date, q.expiration_date)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="text-sm text-gray-900">
+                        {q.expiration_date ? new Date(q.expiration_date).toLocaleDateString() : 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <span className="text-sm text-gray-900">
+                        <span className="font-semibold">{q.response_count || 0}</span>{' '}
+                        <span className="text-gray-500">completed</span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={`${basePath}/${q.id}/analytics${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        {q.status === 'DRAFT' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleTogglePublish(q)}
+                            title="Publish questionnaire"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {q.status === 'PUBLISHED' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                            onClick={() => handleTogglePublish(q)}
+                            title="Unpublish questionnaire"
+                          >
+                            <Clock className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Link href={`${basePath}/edit/${q.id}${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setItemToDelete(q)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1} 
+                onClick={() => updateUrl('page', (currentPage - 1).toString())}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              >
+                Prev
+              </Button>
+              <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage >= totalPages} 
+                onClick={() => updateUrl('page', (currentPage + 1).toString())}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       <DeleteConfirmationModal 
@@ -590,4 +605,3 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     </div>
   );
 }
-

@@ -37,7 +37,7 @@ export default function ConfirmationModal({
     }
   };
 
-  // Variant styles
+  // Variant styles with brand colors
   const variantStyles = {
     danger: {
       iconBg: 'bg-red-100',
@@ -60,9 +60,9 @@ export default function ConfirmationModal({
       ),
     },
     info: {
-      iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      confirmBg: 'bg-blue-600 hover:bg-blue-700',
+      iconBg: 'bg-[#EBEBFE]',
+      iconColor: 'text-[#4D4DA4]',
+      confirmBg: 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -90,11 +90,12 @@ export default function ConfirmationModal({
       style={{ animation: 'fadeIn 0.2s ease-out' }}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all duration-200"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all duration-200 border border-gray-100"
         style={{ animation: 'slideUp 0.2s ease-out' }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Icon */}
-        <div className={`flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full ${styles.iconBg}`}>
+        <div className={`flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full ${styles.iconBg}`}>
           <div className={styles.iconColor}>
             {styles.icon}
           </div>
@@ -102,14 +103,14 @@ export default function ConfirmationModal({
 
         {/* Title */}
         {title && (
-          <h2 className="text-xl font-bold text-gray-900 text-center mb-3">
+          <h2 className="text-xl font-bold text-[#121213] text-center mb-3 tracking-tight">
             {title}
           </h2>
         )}
 
         {/* Message */}
         {message && (
-          <p className="text-gray-600 text-center mb-6 leading-relaxed">
+          <p className="text-gray-600 text-center mb-6 leading-relaxed text-sm">
             {message}
           </p>
         )}
@@ -120,7 +121,7 @@ export default function ConfirmationModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-full font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cancelButtonText}
           </button>
@@ -128,7 +129,7 @@ export default function ConfirmationModal({
             type="button"
             onClick={handleConfirm}
             disabled={isLoading}
-            className={`flex-1 px-4 py-2.5 text-white ${styles.confirmBg} rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+            className={`flex-1 px-4 py-2.5 ${styles.confirmBg} rounded-full font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm`}
           >
             {isLoading ? (
               <>

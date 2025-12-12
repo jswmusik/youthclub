@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, Upload, X, Globe, Building, Users } from 'lucide-react';
+import Link from 'next/link';
 import api from '../../../lib/api';
 import { Post, PostImage } from '../../../types/post';
 import RichTextEditor from '../RichTextEditor';
 import { getMediaUrl } from '../../utils';
 import Toast from '../Toast';
 import { useAuth } from '../../../context/AuthContext';
+
+// Shadcn
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 interface PostFormProps {
     initialData?: Post;
@@ -133,6 +143,13 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     const toggleSelection = (id: any, list: any[], setList: (l: any[]) => void) => {
         if (list.includes(id)) setList(list.filter(item => item !== id));
         else setList([...list, id]);
+    };
+
+    const handleCustomFieldChange = (fieldId: number, value: string) => {
+        setCustomFieldRules(prev => ({
+            ...prev,
+            [fieldId]: value || undefined
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -265,302 +282,589 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     // Prevent municipality and club admins from editing global posts
     if (initialData?.is_global && role !== 'super') {
         return (
-            <div className="space-y-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">Edit Post</h2>
-                    <p className="text-red-600 bg-red-50 p-4 rounded text-sm border border-red-200">
-                        <strong>Access Denied:</strong> You do not have permission to edit global posts. Only super admins can create and edit global posts.
-                    </p>
-                </div>
+            <div className="max-w-4xl mx-auto space-y-6">
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Edit Post</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-red-600 bg-red-50 p-4 rounded text-sm border border-red-200">
+                            <strong>Access Denied:</strong> You do not have permission to edit global posts. Only super admins can create and edit global posts.
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-2">{initialData ? 'Edit Post' : 'Create New Post'}</h2>
-                {error && <p className="text-red-600 bg-red-50 p-2 rounded text-sm">{error}</p>}
-            </div>
-
-            {/* --- DISTRIBUTION SECTION --- */}
-            <div className="bg-blue-50 p-5 rounded-lg border border-blue-100 space-y-4">
-                <h3 className="text-lg font-bold text-blue-900">Distribution Scope</h3>
-                
-                {/* SUPER ADMIN UI */}
-                {role === 'super' && (
-                    <>
-                        <div className="flex gap-4 mb-4">
-                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
-                                <input type="radio" checked={distributionMode === 'GLOBAL'} onChange={() => setDistributionMode('GLOBAL')} className="mr-2" />
-                                <span className="font-medium">Global (All Users)</span>
-                            </label>
-                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
-                                <input type="radio" checked={distributionMode === 'MUNICIPALITY'} onChange={() => setDistributionMode('MUNICIPALITY')} className="mr-2" />
-                                <span className="font-medium">Specific Municipalities</span>
-                            </label>
-                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
-                                <input type="radio" checked={distributionMode === 'CLUB'} onChange={() => setDistributionMode('CLUB')} className="mr-2" />
-                                <span className="font-medium">Specific Clubs</span>
-                            </label>
-                        </div>
-
-                        {distributionMode === 'MUNICIPALITY' && (
-                            <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
-                                {municipalities.map(m => (
-                                    <label key={m.id} className="flex items-center space-x-2 text-sm">
-                                        <input type="checkbox" checked={selectedMunis.includes(m.id)} onChange={() => toggleSelection(m.id, selectedMunis, setSelectedMunis)} />
-                                        <span>{m.name}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        )}
-                        {distributionMode === 'CLUB' && (
-                            <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
-                                {clubs.map(c => (
-                                    <label key={c.id} className="flex items-center space-x-2 text-sm">
-                                        <input type="checkbox" checked={selectedClubs.includes(c.id)} onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)} />
-                                        <span>{c.name}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* MUNICIPALITY ADMIN UI */}
-                {role === 'municipality' && (
-                    <>
-                        <div className="flex gap-4 mb-4">
-                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
-                                <input type="radio" checked={muniScope === 'ALL'} onChange={() => setMuniScope('ALL')} className="mr-2" />
-                                <span className="font-medium">Entire Municipality</span>
-                            </label>
-                            <label className="flex items-center cursor-pointer bg-white px-3 py-2 rounded border hover:border-blue-300">
-                                <input type="radio" checked={muniScope === 'SPECIFIC'} onChange={() => setMuniScope('SPECIFIC')} className="mr-2" />
-                                <span className="font-medium">Specific Clubs</span>
-                            </label>
-                        </div>
-
-                        {muniScope === 'SPECIFIC' && (
-                            <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto grid grid-cols-2 gap-2">
-                                {clubs.map(c => (
-                                    <label key={c.id} className="flex items-center space-x-2 text-sm">
-                                        <input type="checkbox" checked={selectedClubs.includes(c.id)} onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)} />
-                                        <span>{c.name}</span>
-                                    </label>
-                                ))}
-                                {clubs.length === 0 && <p className="text-sm text-gray-500">No clubs found.</p>}
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* CLUB ADMIN UI */}
-                {role === 'club' && (
-                    <div className="bg-white p-4 rounded border border-blue-200">
-                         <p className="text-sm text-blue-800 font-medium flex items-center gap-2">
-                            <span className="text-lg">📢</span>
-                            This post will be visible to members of your assigned club.
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            {/* --- CONTENT --- */}
-            <div className="space-y-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => router.back()}>
+                    <ArrowLeft className="h-4 w-4" />
+                </Button>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Title</label>
-                    <input type="text" required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" value={title} onChange={e => setTitle(e.target.value)} />
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                        {initialData ? 'Edit Post' : 'Create New Post'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">Share updates, news, or media with your members.</p>
                 </div>
-                <RichTextEditor value={content} onChange={setContent} />
-                
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Media</label>
-                    <div className="flex gap-4 mb-2">
-                        {['TEXT', 'IMAGE', 'VIDEO'].map((type) => (
-                            <button key={type} type="button" onClick={() => setPostType(type as any)} 
-                                className={`px-4 py-2 rounded text-sm font-medium border ${postType === type ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}>
-                                {type}
-                            </button>
-                        ))}
-                    </div>
-                    
-                    {postType === 'IMAGE' && (
-                        <div className="space-y-3">
-                            {existingImages.length > 0 && (
-                                <div className="flex gap-2 flex-wrap">
-                                    {existingImages.map(img => (
-                                        <div key={img.id} className="relative w-24 h-24">
-                                            <img src={getMediaUrl(img.image) || ''} className={`w-full h-full object-cover rounded ${imagesToDelete.includes(img.id) ? 'opacity-50' : ''}`} alt={`Post image ${img.id}`} />
-                                            <button type="button" onClick={() => toggleSelection(img.id, imagesToDelete, setImagesToDelete)} 
-                                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">×</button>
-                                        </div>
-                                    ))}
+            </div>
+
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-sm">
+                    {error}
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+
+                {/* --- DISTRIBUTION SECTION --- */}
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Distribution Scope</CardTitle>
+                        <CardDescription>Choose where this post will be visible.</CardDescription>
+                    </CardHeader>
+                    <Separator />
+                    <CardContent className="pt-6 space-y-4">
+                        {/* SUPER ADMIN UI */}
+                        {role === 'super' && (
+                            <>
+                                <div className="flex flex-wrap gap-4">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            checked={distributionMode === 'GLOBAL'} 
+                                            onChange={() => setDistributionMode('GLOBAL')} 
+                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
+                                        />
+                                        <span className="font-medium flex items-center gap-2">
+                                            <Globe className="h-4 w-4" />
+                                            Global (All Users)
+                                        </span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            checked={distributionMode === 'MUNICIPALITY'} 
+                                            onChange={() => setDistributionMode('MUNICIPALITY')} 
+                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
+                                        />
+                                        <span className="font-medium flex items-center gap-2">
+                                            <Building className="h-4 w-4" />
+                                            Specific Municipalities
+                                        </span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            checked={distributionMode === 'CLUB'} 
+                                            onChange={() => setDistributionMode('CLUB')} 
+                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
+                                        />
+                                        <span className="font-medium flex items-center gap-2">
+                                            <Users className="h-4 w-4" />
+                                            Specific Clubs
+                                        </span>
+                                    </label>
                                 </div>
-                            )}
-                            <input type="file" multiple accept="image/*" onChange={e => e.target.files && setNewImages(Array.from(e.target.files))} className="block w-full text-sm text-gray-500" />
+
+                                {distributionMode === 'MUNICIPALITY' && (
+                                    <div className="bg-muted/30 p-4 rounded-lg border max-h-48 overflow-y-auto">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {municipalities.map(m => (
+                                                <label key={m.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-background p-2 rounded">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedMunis.includes(m.id)} 
+                                                        onChange={() => toggleSelection(m.id, selectedMunis, setSelectedMunis)}
+                                                        className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                    />
+                                                    <span>{m.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {distributionMode === 'CLUB' && (
+                                    <div className="bg-muted/30 p-4 rounded-lg border max-h-48 overflow-y-auto">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {clubs.map(c => (
+                                                <label key={c.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-background p-2 rounded">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedClubs.includes(c.id)} 
+                                                        onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)}
+                                                        className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                    />
+                                                    <span>{c.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* MUNICIPALITY ADMIN UI */}
+                        {role === 'municipality' && (
+                            <>
+                                <div className="flex flex-wrap gap-4">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            checked={muniScope === 'ALL'} 
+                                            onChange={() => setMuniScope('ALL')} 
+                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
+                                        />
+                                        <span className="font-medium">Entire Municipality</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            checked={muniScope === 'SPECIFIC'} 
+                                            onChange={() => setMuniScope('SPECIFIC')} 
+                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
+                                        />
+                                        <span className="font-medium">Specific Clubs</span>
+                                    </label>
+                                </div>
+
+                                {muniScope === 'SPECIFIC' && (
+                                    <div className="bg-muted/30 p-4 rounded-lg border max-h-48 overflow-y-auto">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {clubs.map(c => (
+                                                <label key={c.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-background p-2 rounded">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedClubs.includes(c.id)} 
+                                                        onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)}
+                                                        className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                    />
+                                                    <span>{c.name}</span>
+                                                </label>
+                                            ))}
+                                            {clubs.length === 0 && <p className="text-sm text-muted-foreground col-span-2">No clubs found.</p>}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* CLUB ADMIN UI */}
+                        {role === 'club' && (
+                            <div className="bg-[#EBEBFE]/30 p-4 rounded-lg border border-[#4D4DA4]/20">
+                                <p className="text-sm font-medium flex items-center gap-2">
+                                    <Globe className="h-4 w-4 text-[#4D4DA4]" />
+                                    This post will be visible to members of your assigned club.
+                                </p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* --- CONTENT --- */}
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Post Content</CardTitle>
+                        <CardDescription>Enter the title and content for your post.</CardDescription>
+                    </CardHeader>
+                    <Separator />
+                    <CardContent className="pt-6 space-y-4">
+                        <div className="space-y-2">
+                            <Label>Title <span className="text-red-500">*</span></Label>
+                            <Input 
+                                type="text" 
+                                required 
+                                value={title} 
+                                onChange={e => setTitle(e.target.value)} 
+                            />
                         </div>
-                    )}
-                    
-                    {postType === 'VIDEO' && (
-                        <input type="url" placeholder="YouTube URL" className="w-full border p-2 rounded" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
-                    )}
-                </div>
-            </div>
+                        <div className="space-y-2">
+                            <Label>Content</Label>
+                            <RichTextEditor value={content} onChange={setContent} />
+                        </div>
+                    </CardContent>
+                </Card>
 
-            <hr />
+                {/* --- MEDIA TYPE --- */}
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Media Type</CardTitle>
+                        <CardDescription>Choose the type of media for this post.</CardDescription>
+                    </CardHeader>
+                    <Separator />
+                    <CardContent className="pt-6 space-y-4">
+                        <div className="flex flex-wrap gap-3">
+                            {['TEXT', 'IMAGE', 'VIDEO'].map((type) => (
+                                <Button 
+                                    key={type} 
+                                    type="button" 
+                                    onClick={() => setPostType(type as any)} 
+                                    variant={postType === type ? 'default' : 'outline'}
+                                    className={postType === type ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
+                                >
+                                    {type}
+                                </Button>
+                            ))}
+                        </div>
+                        
+                        {postType === 'IMAGE' && (
+                            <div className="space-y-3">
+                                {existingImages.length > 0 && (
+                                    <div className="flex gap-2 flex-wrap">
+                                        {existingImages.map(img => (
+                                            <div key={img.id} className="relative w-24 h-24 group">
+                                                <img 
+                                                    src={getMediaUrl(img.image) || ''} 
+                                                    className={`w-full h-full object-cover rounded-lg ${imagesToDelete.includes(img.id) ? 'opacity-50' : ''}`} 
+                                                    alt={`Post image ${img.id}`} 
+                                                />
+                                                {!imagesToDelete.includes(img.id) && (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => toggleSelection(img.id, imagesToDelete, setImagesToDelete)} 
+                                                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    <Label>Upload Images</Label>
+                                    <Input 
+                                        type="file" 
+                                        multiple 
+                                        accept="image/*" 
+                                        onChange={e => e.target.files && setNewImages(Array.from(e.target.files))} 
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        
+                        {postType === 'VIDEO' && (
+                            <div className="space-y-2">
+                                <Label>YouTube URL</Label>
+                                <Input 
+                                    type="url" 
+                                    placeholder="https://www.youtube.com/watch?v=..." 
+                                    value={videoUrl} 
+                                    onChange={e => setVideoUrl(e.target.value)} 
+                                />
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
-            {/* --- TARGETING (AUDIENCE) --- */}
-            <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Target Audience Filters</h3>
-                <div className="flex items-center gap-6 mb-4">
-                    <label className="flex items-center cursor-pointer">
-                        <input type="radio" checked={targetMode === 'ATTRIBUTES'} onChange={() => setTargetMode('ATTRIBUTES')} className="mr-2" />
-                        Attributes (Age, Interests)
-                    </label>
-                    <label className="flex items-center cursor-pointer">
-                        <input type="radio" checked={targetMode === 'GROUPS'} onChange={() => setTargetMode('GROUPS')} className="mr-2" />
-                        Specific Groups
-                    </label>
-                </div>
-
-                {targetMode === 'GROUPS' ? (
-                    <div className="bg-gray-50 p-4 rounded border max-h-48 overflow-y-auto">
-                        {availableGroups.map(g => (
-                            <label key={g.id} className="flex items-center p-1 cursor-pointer">
-                                <input type="checkbox" checked={selectedGroups.includes(g.id)} onChange={() => toggleSelection(g.id, selectedGroups, setSelectedGroups)} className="mr-2" />
-                                {g.name}
+                {/* --- TARGETING (AUDIENCE) --- */}
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Target Audience Filters</CardTitle>
+                        <CardDescription>Define who can see this post.</CardDescription>
+                    </CardHeader>
+                    <Separator />
+                    <CardContent className="pt-6 space-y-4">
+                        <div className="flex flex-wrap items-center gap-6">
+                            <label className="flex items-center cursor-pointer">
+                                <input 
+                                    type="radio" 
+                                    checked={targetMode === 'ATTRIBUTES'} 
+                                    onChange={() => setTargetMode('ATTRIBUTES')} 
+                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
+                                />
+                                <span className="font-medium">Attributes (Age, Interests)</span>
                             </label>
-                        ))}
-                        {availableGroups.length === 0 && <p className="text-sm text-gray-500">No groups available.</p>}
-                    </div>
-                ) : (
-                    <div className="space-y-4 bg-gray-50 p-4 rounded border">
-                        <div>
-                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Member Type</label>
-                            <div className="flex gap-4">
-                                {['BOTH', 'YOUTH', 'GUARDIAN'].map(t => (
-                                    <label key={t} className="flex items-center"><input type="radio" checked={memberType === t} onChange={() => setMemberType(t as any)} className="mr-1" /> {t}</label>
-                                ))}
-                            </div>
+                            <label className="flex items-center cursor-pointer">
+                                <input 
+                                    type="radio" 
+                                    checked={targetMode === 'GROUPS'} 
+                                    onChange={() => setTargetMode('GROUPS')} 
+                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
+                                />
+                                <span className="font-medium">Specific Groups</span>
+                            </label>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <input type="number" placeholder="Min Age" className="border p-2 rounded" value={minAge} onChange={e => setMinAge(e.target.value)} />
-                            <input type="number" placeholder="Max Age" className="border p-2 rounded" value={maxAge} onChange={e => setMaxAge(e.target.value)} />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Grades</label>
-                            <div className="flex flex-wrap gap-2">
-                                {[1,2,3,4,5,6,7,8,9,10,11,12].map(g => (
-                                    <button key={g} type="button" onClick={() => toggleSelection(g, selectedGrades, setSelectedGrades)} 
-                                        className={`w-8 h-8 rounded border ${selectedGrades.includes(g) ? 'bg-blue-600 text-white' : 'bg-white'}`}>{g}</button>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Gender</label>
-                            <div className="flex gap-3">
-                                {['MALE', 'FEMALE', 'OTHER'].map(g => (
-                                    <label key={g} className="inline-flex items-center bg-white px-3 py-1 rounded border shadow-sm cursor-pointer">
+
+                        {targetMode === 'GROUPS' ? (
+                            <div className="bg-muted/30 p-4 rounded-lg border max-h-48 overflow-y-auto">
+                                {availableGroups.map(g => (
+                                    <label key={g.id} className="flex items-center p-2 cursor-pointer hover:bg-background rounded">
                                         <input 
                                             type="checkbox" 
-                                            checked={selectedGenders.includes(g)}
-                                            onChange={() => toggleSelection(g, selectedGenders, setSelectedGenders)}
-                                            className="mr-2 text-blue-600"
+                                            checked={selectedGroups.includes(g.id)} 
+                                            onChange={() => toggleSelection(g.id, selectedGroups, setSelectedGroups)} 
+                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]"
                                         />
-                                        <span className="text-sm capitalize">{g.toLowerCase()}</span>
+                                        <span className="text-sm">{g.name}</span>
                                     </label>
                                 ))}
+                                {availableGroups.length === 0 && <p className="text-sm text-muted-foreground">No groups available.</p>}
                             </div>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Interests</label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                                {availableInterests.map(interest => (
-                                    <label key={interest.id} className="flex items-center text-sm cursor-pointer">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedInterests.includes(interest.id)}
-                                            onChange={() => toggleSelection(interest.id, selectedInterests, setSelectedInterests)}
-                                            className="mr-2 rounded text-blue-600 h-4 w-4 border-gray-300"
-                                        />
-                                        {interest.name}
-                                    </label>
-                                ))}
-                                {availableInterests.length === 0 && <span className="text-sm text-gray-400">No interests available.</span>}
-                            </div>
-                        </div>
-                        {availableCustomFields.length > 0 && (
-                            <div className="border-t pt-2 mt-2">
-                                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Custom Fields</label>
+                        ) : (
+                            <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
+                                <div>
+                                    <Label className="text-xs font-bold uppercase mb-2">Member Type</Label>
+                                    <div className="flex flex-wrap gap-4 mt-2">
+                                        {['BOTH', 'YOUTH', 'GUARDIAN'].map(t => (
+                                            <label key={t} className="flex items-center cursor-pointer">
+                                                <input 
+                                                    type="radio" 
+                                                    checked={memberType === t} 
+                                                    onChange={() => setMemberType(t as any)} 
+                                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                />
+                                                <span className="text-sm font-medium">{t}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    {availableCustomFields.map(f => (
-                                        <div key={f.id}>
-                                            <label className="text-xs block mb-1">{f.name}</label>
-                                            {f.field_type === 'BOOLEAN' ? (
-                                                <select className="w-full border p-1 rounded text-sm" value={customFieldRules[f.id] || ''} onChange={e => handleCustomFieldChange(f.id, e.target.value)}>
-                                                    <option value="">Any</option><option value="true">Yes</option><option value="false">No</option>
-                                                </select>
-                                            ) : (
-                                                <select className="w-full border p-1 rounded text-sm" value={customFieldRules[f.id] || ''} onChange={e => handleCustomFieldChange(f.id, e.target.value)}>
-                                                    <option value="">Any</option>
-                                                    {f.options?.map((o:string) => <option key={o} value={o}>{o}</option>)}
-                                                </select>
-                                            )}
-                                        </div>
-                                    ))}
+                                    <div className="space-y-2">
+                                        <Label>Min Age</Label>
+                                        <Input 
+                                            type="number" 
+                                            placeholder="Min Age" 
+                                            value={minAge} 
+                                            onChange={e => setMinAge(e.target.value)} 
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Max Age</Label>
+                                        <Input 
+                                            type="number" 
+                                            placeholder="Max Age" 
+                                            value={maxAge} 
+                                            onChange={e => setMaxAge(e.target.value)} 
+                                        />
+                                    </div>
                                 </div>
+                                <div>
+                                    <Label className="text-xs font-bold uppercase mb-2">Grades</Label>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {[1,2,3,4,5,6,7,8,9,10,11,12].map(g => (
+                                            <Button 
+                                                key={g} 
+                                                type="button" 
+                                                onClick={() => toggleSelection(g, selectedGrades, setSelectedGrades)} 
+                                                variant={selectedGrades.includes(g) ? 'default' : 'outline'}
+                                                size="sm"
+                                                className={selectedGrades.includes(g) ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white w-10 h-10' : 'w-10 h-10'}
+                                            >
+                                                {g}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-bold uppercase mb-2">Gender</Label>
+                                    <div className="flex flex-wrap gap-3 mt-2">
+                                        {['MALE', 'FEMALE', 'OTHER'].map(g => (
+                                            <label key={g} className="inline-flex items-center bg-background px-3 py-2 rounded-lg border shadow-sm cursor-pointer hover:bg-muted/50">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={selectedGenders.includes(g)}
+                                                    onChange={() => toggleSelection(g, selectedGenders, setSelectedGenders)}
+                                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                />
+                                                <span className="text-sm capitalize">{g.toLowerCase()}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-bold uppercase mb-2">Interests</Label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto mt-2">
+                                        {availableInterests.map(interest => (
+                                            <label key={interest.id} className="flex items-center text-sm cursor-pointer hover:bg-background p-2 rounded">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={selectedInterests.includes(interest.id)}
+                                                    onChange={() => toggleSelection(interest.id, selectedInterests, setSelectedInterests)}
+                                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                />
+                                                {interest.name}
+                                            </label>
+                                        ))}
+                                        {availableInterests.length === 0 && <span className="text-sm text-muted-foreground col-span-full">No interests available.</span>}
+                                    </div>
+                                </div>
+                                {availableCustomFields.length > 0 && (
+                                    <div className="border-t pt-4 mt-4">
+                                        <Label className="text-xs font-bold uppercase mb-3 block">Custom Fields</Label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {availableCustomFields.map(f => (
+                                                <div key={f.id} className="space-y-2">
+                                                    <Label className="text-sm">{f.name}</Label>
+                                                    <select 
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2" 
+                                                        value={customFieldRules[f.id] || ''} 
+                                                        onChange={e => handleCustomFieldChange(f.id, e.target.value)}
+                                                    >
+                                                        <option value="">Any</option>
+                                                        {f.field_type === 'BOOLEAN' ? (
+                                                            <>
+                                                                <option value="true">Yes</option>
+                                                                <option value="false">No</option>
+                                                            </>
+                                                        ) : (
+                                                            f.options?.map((o:string) => <option key={o} value={o}>{o}</option>)
+                                                        )}
+                                                    </select>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
-                    </div>
-                )}
-            </div>
+                    </CardContent>
+                </Card>
 
-            {/* --- PUBLISH SETTINGS --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium">Status</label>
-                        <select value={status} onChange={e => setStatus(e.target.value as any)} className="w-full border p-2 rounded">
-                            <option value="DRAFT">Draft</option>
-                            <option value="PUBLISHED">Publish Now</option>
-                            <option value="SCHEDULED">Schedule</option>
-                        </select>
-                    </div>
-                    {status === 'SCHEDULED' && <input type="datetime-local" className="w-full border p-2 rounded" value={publishedAt} onChange={e => setPublishedAt(e.target.value)} />}
-                    
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={isPinned} onChange={e => setIsPinned(e.target.checked)} />
-                        Pin to top
-                    </label>
-                </div>
-                <div className="bg-gray-50 p-4 rounded border">
-                    <label className="flex items-center gap-2 mb-2 font-bold"><input type="checkbox" checked={allowComments} onChange={e => setAllowComments(e.target.checked)} /> Allow Comments</label>
-                    {allowComments && (
-                        <div className="pl-6 space-y-2 text-sm">
-                            <label className="flex items-center gap-2"><input type="checkbox" checked={requireModeration} onChange={e => setRequireModeration(e.target.checked)} /> Moderation</label>
-                            <label className="flex items-center gap-2"><input type="checkbox" checked={allowReplies} onChange={e => setAllowReplies(e.target.checked)} /> Replies</label>
+                {/* --- PUBLISH SETTINGS --- */}
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Publication Settings</CardTitle>
+                        <CardDescription>Configure when and how this post will be published.</CardDescription>
+                    </CardHeader>
+                    <Separator />
+                    <CardContent className="pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Status</Label>
+                                    <select 
+                                        value={status} 
+                                        onChange={e => setStatus(e.target.value as any)} 
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2"
+                                    >
+                                        <option value="DRAFT">Draft</option>
+                                        <option value="PUBLISHED">Publish Now</option>
+                                        <option value="SCHEDULED">Schedule</option>
+                                    </select>
+                                </div>
+                                {status === 'SCHEDULED' && (
+                                    <div className="space-y-2">
+                                        <Label>Schedule Date & Time</Label>
+                                        <Input 
+                                            type="datetime-local" 
+                                            value={publishedAt} 
+                                            onChange={e => setPublishedAt(e.target.value)} 
+                                        />
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    <Label>Visibility End Date (Optional)</Label>
+                                    <Input 
+                                        type="datetime-local" 
+                                        value={visibilityEndDate} 
+                                        onChange={e => setVisibilityEndDate(e.target.value)} 
+                                    />
+                                </div>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isPinned} 
+                                        onChange={e => setIsPinned(e.target.checked)}
+                                        className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                    />
+                                    <span className="text-sm font-medium">Pin to top</span>
+                                </label>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-3">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={allowComments} 
+                                            onChange={e => setAllowComments(e.target.checked)}
+                                            className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                        />
+                                        <span className="text-sm font-bold">Allow Comments</span>
+                                    </label>
+                                    {allowComments && (
+                                        <div className="pl-6 space-y-2">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={requireModeration} 
+                                                    onChange={e => setRequireModeration(e.target.checked)}
+                                                    className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                />
+                                                <span className="text-sm">Require Moderation</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={allowReplies} 
+                                                    onChange={e => setAllowReplies(e.target.checked)}
+                                                    className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                />
+                                                <span className="text-sm">Allow Replies</span>
+                                            </label>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">Comment Limit Per User (0 = unlimited)</Label>
+                                                <Input 
+                                                    type="number" 
+                                                    min="0"
+                                                    value={limitComments} 
+                                                    onChange={e => setLimitComments(parseInt(e.target.value) || 0)} 
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-3 border-t pt-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={sendPush} 
+                                            onChange={e => setSendPush(e.target.checked)}
+                                            className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                        />
+                                        <span className="text-sm font-bold">Send Push Notification</span>
+                                    </label>
+                                    {sendPush && (
+                                        <div className="pl-6 space-y-2">
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">Notification Title</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    placeholder="Notification title" 
+                                                    value={pushTitle} 
+                                                    onChange={e => setPushTitle(e.target.value)} 
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">Notification Message</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    placeholder="Notification message" 
+                                                    value={pushMessage} 
+                                                    onChange={e => setPushMessage(e.target.value)} 
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                    )}
-                    <label className="flex items-center gap-2 mt-4 font-bold"><input type="checkbox" checked={sendPush} onChange={e => setSendPush(e.target.checked)} /> Send Push Notification</label>
-                    {sendPush && (
-                        <div className="pl-6 mt-2 space-y-2">
-                            <input type="text" placeholder="Notif Title" className="w-full border p-1 rounded text-sm" value={pushTitle} onChange={e => setPushTitle(e.target.value)} />
-                            <input type="text" placeholder="Notif Message" className="w-full border p-1 rounded text-sm" value={pushMessage} onChange={e => setPushMessage(e.target.value)} />
-                        </div>
-                    )}
-                </div>
-            </div>
+                    </CardContent>
+                </Card>
 
-            <div className="flex justify-end gap-4 pt-6 border-t">
-                <button type="button" onClick={() => router.back()} className="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
-                    {loading ? 'Saving...' : (initialData ? 'Update' : 'Create')}
-                </button>
-            </div>
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pb-10">
+                    <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
+                    <Button type="submit" disabled={loading} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]">
+                        {loading ? 'Saving...' : (initialData ? 'Update Post' : 'Create Post')}
+                    </Button>
+                </div>
+            </form>
 
             <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={() => setToast({...toast, isVisible: false})} />
-        </form>
+        </div>
     );
 }

@@ -10,6 +10,11 @@ import UserVisitsAnalytics from './UserVisitsAnalytics';
 import UserVisitsFilter from './UserVisitsFilter';
 import UserVisitsTable from './UserVisitsTable';
 import Link from 'next/link';
+import { ArrowLeft, BarChart3, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface Props {
   userId: string;
@@ -30,7 +35,6 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
 
   // URL Params
   const page = parseInt(searchParams.get('page') || '1');
@@ -143,122 +147,75 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
     : 'None';
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <Link 
-              href={`${basePath}/${userId}`} 
-              className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1 mb-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-              Back to Profile
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Visit History: <span className="text-blue-600">{user?.first_name} {user?.last_name}</span>
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Preferred Club: <span className="font-medium text-gray-700">{preferredClubName}</span>
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <Link 
+          href={`${basePath}/${userId}`} 
+          className="text-sm text-gray-500 hover:text-[#4D4DA4] flex items-center gap-1 w-fit transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Profile
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">
+            Visit History: <span className="text-[#4D4DA4]">{user?.first_name} {user?.last_name}</span>
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Preferred Club: <span className="font-medium text-gray-700">{preferredClubName}</span>
+          </p>
         </div>
-
-        {/* Analytics Dashboard */}
-        {stats && !loading && (
-          <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {/* Toggle Button */}
-            <button
-              onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-              className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
-              </div>
-              <svg 
-                className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {/* Analytics Cards - Collapsible */}
-            <div 
-              className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-                analyticsExpanded 
-                  ? 'max-h-[500px] opacity-100' 
-                  : 'max-h-0 opacity-0'
-              } overflow-hidden`}
-            >
-              <div className="p-4">
-                <UserVisitsAnalytics stats={stats} loading={false} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* FILTERS */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          {/* Toggle Button */}
-          <button
-            onClick={() => setFiltersExpanded(!filtersExpanded)}
-            className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-              <span className="text-sm font-semibold text-gray-700">Filters</span>
-            </div>
-            <svg 
-              className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Filter Fields - Collapsible */}
-          <div 
-            className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-              filtersExpanded 
-                ? 'max-h-[1000px] opacity-100' 
-                : 'max-h-0 opacity-0'
-            } overflow-hidden`}
-          >
-            <div className="p-4">
-              <UserVisitsFilter 
-                onFilter={handleFilter} 
-                showClubFilter={canFilterClubs}
-                clubs={clubs}
-                initialStartDate={startDate}
-                initialEndDate={endDate}
-                initialClubId={clubId}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* LIST */}
-        <UserVisitsTable 
-          visits={history}
-          preferredClubId={preferredClubId}
-          loading={loading}
-          page={page}
-          totalCount={totalCount}
-          onPageChange={handlePageChange}
-        />
-
       </div>
+
+      {/* Analytics */}
+      {stats && !loading && (
+        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-gray-500" />
+              <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
+                <ChevronUp className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                  analyticsExpanded ? "rotate-0" : "rotate-180"
+                )} />
+                <span className="sr-only">Toggle Analytics</span>
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent className="space-y-2">
+            <div className="pt-2">
+              <UserVisitsAnalytics stats={stats} loading={false} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Filters */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="p-4 space-y-4">
+          <UserVisitsFilter 
+            onFilter={handleFilter} 
+            showClubFilter={canFilterClubs}
+            clubs={clubs}
+            initialStartDate={startDate}
+            initialEndDate={endDate}
+            initialClubId={clubId}
+          />
+        </div>
+      </Card>
+
+      {/* Table */}
+      <UserVisitsTable 
+        visits={history}
+        preferredClubId={preferredClubId}
+        loading={loading}
+        page={page}
+        totalCount={totalCount}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }

@@ -39,7 +39,10 @@ import {
   CalendarDays,
   Wrench,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  Building2 as BuildingIcon,
+  Clock
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -54,6 +57,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // Helper to get initials
 const getInitials = (first?: string | null, last?: string | null) => {
@@ -64,7 +69,20 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  
+  // Collapsible groups state
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    organization: true,
+    users: true,
+    content: false,
+    events: false,
+    groups: false,
+    rewards: false,
+    inventory: false,
+    bookings: false,
+    settings: false,
+  });
   
   // Keep your existing state logic
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -78,6 +96,22 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     refreshPendingBookingsCount();
     refreshPendingEventApplicationsCount();
   }, [refreshMessageCount]);
+
+  // Auto-open groups when navigating to a page within that group
+  useEffect(() => {
+    setOpenGroups(prev => {
+      const updated: Record<string, boolean> = { ...prev };
+      navigationGroups.forEach((group) => {
+        if (group.title) {
+          const hasActiveItem = group.items.some(item => pathname === item.href);
+          if (hasActiveItem && !prev[group.id]) {
+            updated[group.id] = true;
+          }
+        }
+      });
+      return updated;
+    });
+  }, [pathname]);
 
   const refreshPendingRequestsCount = async () => {
     if (!user) {
@@ -142,53 +176,122 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
   };
 
-  // Navigation items
-  const navigation = [
-    { name: 'Overview', href: '/admin/super', icon: LayoutDashboard },
-    { name: 'Inbox', href: '/admin/super/inbox', showBadge: true, icon: MessageSquare },
-    { name: 'Manage Admins', href: '/admin/super/admins', icon: UserCog },
-    { name: 'Manage Youth', href: '/admin/super/youth', icon: Users },
-    { name: 'Manage Guardians', href: '/admin/super/guardians', icon: Shield },
-    { name: 'News Management', href: '/admin/super/news', icon: Newspaper }, 
-    { name: 'News Tags', href: '/admin/super/news/tags', icon: Tag },
-    { name: 'News Feed', href: '/admin/super/news-feed', icon: Rss },
-    { name: 'Manage Posts', href: '/admin/super/posts', icon: FileEdit },
-    { name: 'Events', href: '/admin/super/events', icon: Calendar },
-    { name: 'Event Calendar', href: '/admin/super/events/calendar', icon: CalendarDays },
-    { name: 'Event Applications', href: '/admin/super/events/applications', icon: ClipboardList },
-    { name: 'Questionnaires', href: '/admin/super/questionnaires', icon: FileText },
-    { name: 'Manage Interests', href: '/admin/super/interests', icon: HelpCircle },
-    { name: 'Manage Countries', href: '/admin/super/countries', icon: Flag },
-    { name: 'Manage Municipalities', href: '/admin/super/municipalities', icon: MapPinned },
-    { name: 'Manage Clubs', href: '/admin/super/clubs', icon: Building },
-    { name: 'System Messages', href: '/admin/super/messages', icon: MessageCircle },
-    { name: 'Manage Groups', href: '/admin/super/groups', icon: UsersRound },
-    { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true, icon: FileText },
-    { name: 'Manage Rewards', href: '/admin/super/rewards', icon: Gift },
-    { name: 'Inventory', href: '/admin/super/inventory', icon: Box },
-    { name: 'Bookings', href: '/admin/super/bookings', icon: BookOpen },
-    { name: 'Booking Calendar', href: '/admin/super/bookings/calendar', icon: CalendarDays },
-    { name: 'Booking Resources', href: '/admin/super/bookings/resources', icon: Package },
-    { name: 'Custom Fields', href: '/admin/super/custom-fields', icon: Wrench },
+  // Navigation structure with groups
+  const navigationGroups = [
+    {
+      id: 'main',
+      items: [
+        { name: 'Overview', href: '/admin/super', icon: LayoutDashboard },
+        { name: 'Inbox', href: '/admin/super/inbox', showBadge: true, icon: MessageSquare },
+      ]
+    },
+    {
+      id: 'organization',
+      title: 'Organization',
+      icon: BuildingIcon,
+      items: [
+        { name: 'Manage Countries', href: '/admin/super/countries', icon: Flag },
+        { name: 'Manage Municipalities', href: '/admin/super/municipalities', icon: MapPinned },
+        { name: 'Manage Clubs', href: '/admin/super/clubs', icon: Building },
+      ]
+    },
+    {
+      id: 'users',
+      title: 'Users & Access',
+      icon: Users,
+      items: [
+        { name: 'Manage Admins', href: '/admin/super/admins', icon: UserCog },
+        { name: 'Manage Youth', href: '/admin/super/youth', icon: Users },
+        { name: 'Manage Guardians', href: '/admin/super/guardians', icon: Shield },
+      ]
+    },
+    {
+      id: 'content',
+      title: 'Content',
+      icon: Newspaper,
+      items: [
+        { name: 'News Management', href: '/admin/super/news', icon: Newspaper },
+        { name: 'News Tags', href: '/admin/super/news/tags', icon: Tag },
+        { name: 'News Feed', href: '/admin/super/news-feed', icon: Rss },
+        { name: 'Manage Posts', href: '/admin/super/posts', icon: FileEdit },
+      ]
+    },
+    {
+      id: 'events',
+      title: 'Events',
+      icon: Calendar,
+      items: [
+        { name: 'Events', href: '/admin/super/events', icon: Calendar },
+        { name: 'Event Calendar', href: '/admin/super/events/calendar', icon: CalendarDays },
+        { name: 'Event Applications', href: '/admin/super/events/applications', icon: ClipboardList },
+      ]
+    },
+    {
+      id: 'groups',
+      title: 'Groups & Social',
+      icon: UsersRound,
+      items: [
+        { name: 'Manage Groups', href: '/admin/super/groups', icon: UsersRound },
+        { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true, icon: FileText },
+      ]
+    },
+    {
+      id: 'rewards',
+      title: 'Rewards and Loyalty',
+      icon: Gift,
+      items: [
+        { name: 'Manage Rewards', href: '/admin/super/rewards', icon: Gift },
+      ]
+    },
+    {
+      id: 'inventory',
+      title: 'Inventory',
+      icon: Box,
+      items: [
+        { name: 'Inventory', href: '/admin/super/inventory', icon: Box },
+        { name: 'Inventory History', href: '/admin/super/inventory/history', icon: Clock },
+      ]
+    },
+    {
+      id: 'bookings',
+      title: 'Bookings',
+      icon: BookOpen,
+      items: [
+        { name: 'Bookings', href: '/admin/super/bookings', icon: BookOpen },
+        { name: 'Booking Calendar', href: '/admin/super/bookings/calendar', icon: CalendarDays },
+        { name: 'Booking Resources', href: '/admin/super/bookings/resources', icon: Package },
+      ]
+    },
+    {
+      id: 'settings',
+      title: 'Settings & Configuration',
+      icon: Wrench,
+      items: [
+        { name: 'Custom Fields', href: '/admin/super/custom-fields', icon: Wrench },
+        { name: 'Questionnaires', href: '/admin/super/questionnaires', icon: FileText },
+        { name: 'Manage Interests', href: '/admin/super/interests', icon: HelpCircle },
+        { name: 'System Messages', href: '/admin/super/messages', icon: MessageCircle },
+      ]
+    },
   ];
 
   const SidebarContent = ({ isCollapsed = false }: { isCollapsed?: boolean }) => (
-    <div className="flex flex-col h-full bg-white border-r border-gray-100 w-full">
+    <div className="flex flex-col h-full bg-gray-900 border-r border-gray-800 w-full">
       {/* Brand Header */}
       <div className={cn(
-        "p-4 border-b border-gray-100 flex items-center gap-3 transition-all duration-500 ease-in-out flex-shrink-0",
+        "p-4 border-b border-gray-800 flex items-center gap-3 transition-all duration-500 ease-in-out flex-shrink-0",
         isCollapsed && "justify-center px-2"
       )}>
         <Link href="/admin/super/profile" className="inline-block transition-opacity duration-300 flex-shrink-0">
           {user?.avatar ? (
-            <Avatar className="h-9 w-9 border border-gray-200">
+            <Avatar className="h-9 w-9 rounded-full">
               <AvatarImage src={getMediaUrl(user.avatar) || ''} alt="Profile avatar" />
-              <AvatarFallback className="bg-gray-100 text-gray-700 text-sm font-semibold">
+              <AvatarFallback className="bg-[#4D4DA4] text-white text-sm font-semibold rounded-full">
                 {getInitials(user?.first_name, user?.last_name)}
               </AvatarFallback>
             </Avatar>
           ) : (
-            <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center font-semibold text-gray-700 border border-gray-200">
+            <div className="h-9 w-9 rounded-full bg-[#4D4DA4] flex items-center justify-center font-semibold text-white">
               <span className="text-xs">{getInitials(user?.first_name, user?.last_name)}</span>
             </div>
           )}
@@ -199,10 +302,10 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             ? "opacity-0 max-w-0 w-0" 
             : "opacity-100 max-w-full"
         )}>
-          <h2 className="text-sm font-semibold truncate text-gray-900">
+          <h2 className="text-sm font-semibold truncate text-gray-100">
             {user?.first_name} {user?.last_name}
           </h2>
-          <p className="text-xs text-gray-500 truncate">Super Admin</p>
+          <p className="text-xs text-gray-400 truncate">Super Admin</p>
         </div>
       </div>
 
@@ -211,87 +314,228 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         <ScrollArea className="h-full">
           <div className={cn("py-4", isCollapsed ? "px-2" : "px-3")}>
             <nav className={cn("space-y-1 transition-all duration-500 ease-in-out")}>
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
-            const hasBadge = 
-              ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
-              ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
-              (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
-              (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+              {navigationGroups.map((group) => {
+                // Check if any item in this group is active
+                const hasActiveItem = group.items.some(item => pathname === item.href);
+                
+                // Auto-open group if it has an active item
+                const isGroupOpen = isCollapsed ? false : (openGroups[group.id] ?? hasActiveItem);
 
-            const navItem = (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setIsMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
-                  isActive 
-                    ? "bg-[#4D4DA4]/10 text-[#4D4DA4] shadow-sm" 
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                  isCollapsed && "justify-center px-2"
-                )}
-              >
-                {item.icon && (
-                  <item.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors duration-300", isActive && "text-[#4D4DA4]")} />
-                )}
-                <span className={cn(
-                  "flex-1 truncate transition-all duration-500 ease-in-out overflow-hidden",
-                  isCollapsed 
-                    ? "opacity-0 max-w-0 w-0" 
-                    : "opacity-100 max-w-full"
-                )}>{item.name}</span>
-                {hasBadge && (
-                  <>
-                    <span className={cn(
-                      "ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5485] text-[10px] font-bold text-white flex-shrink-0 transition-all duration-500 ease-in-out overflow-hidden",
-                      isCollapsed 
-                        ? "opacity-0 max-w-0 w-0 ml-0" 
-                        : "opacity-100 max-w-full"
-                    )}>
-                      {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
-                    </span>
-                    {isCollapsed && (
-                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#FF5485] ring-2 ring-white transition-opacity duration-500 ease-in-out"></span>
-                    )}
-                  </>
-                )}
-              </Link>
-            );
+                // Render main items (no group)
+                if (!group.title) {
+                  return group.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    const hasBadge = 
+                      ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
+                      ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
+                      (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
+                      (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
 
-            if (isCollapsed) {
-              return (
-                <Tooltip key={item.name}>
-                  <TooltipTrigger asChild>
-                    {navItem}
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-gray-900 text-white">
-                    <p>{item.name}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
+                    const navItem = (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setIsMobileOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
+                          isActive 
+                            ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
+                            : "text-gray-400 hover:bg-[#4D4DA4] hover:text-white",
+                          isCollapsed && "justify-center px-2"
+                        )}
+                      >
+                        {item.icon && (
+                          <item.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors duration-300", isActive ? "text-[#FF5485]" : "text-gray-400 group-hover:text-white")} />
+                        )}
+                        <span className={cn(
+                          "flex-1 truncate transition-all duration-500 ease-in-out overflow-hidden",
+                          isCollapsed 
+                            ? "opacity-0 max-w-0 w-0" 
+                            : "opacity-100 max-w-full"
+                        )}>{item.name}</span>
+                        {hasBadge && (
+                          <>
+                            <span className={cn(
+                              "ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5485] text-[10px] font-bold text-white flex-shrink-0 transition-all duration-500 ease-in-out overflow-hidden",
+                              isCollapsed 
+                                ? "opacity-0 max-w-0 w-0 ml-0" 
+                                : "opacity-100 max-w-full"
+                            )}>
+                              {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                            </span>
+                            {isCollapsed && (
+                              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#FF5485] ring-2 ring-gray-900 transition-opacity duration-500 ease-in-out"></span>
+                            )}
+                          </>
+                        )}
+                      </Link>
+                    );
 
-            return navItem;
-          })}
+                    if (isCollapsed) {
+                      return (
+                        <Tooltip key={item.name}>
+                          <TooltipTrigger asChild>
+                            {navItem}
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="bg-gray-800 text-white border-gray-700">
+                            <p>{item.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+
+                    return navItem;
+                  });
+                }
+
+                // Render grouped items with Collapsible
+                if (isCollapsed) {
+                  // When collapsed, show group icon with popover flyout
+                  return (
+                    <Popover key={group.id}>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={cn(
+                            "w-full flex items-center justify-center px-2 py-2.5 rounded-lg text-gray-400 hover:bg-[#4D4DA4] hover:text-white transition-all duration-300 ease-in-out",
+                            hasActiveItem && "bg-[#4D4DA4]/10"
+                          )}
+                        >
+                          {group.icon && (
+                            <group.icon className={cn(
+                              "h-5 w-5 transition-colors duration-300",
+                              hasActiveItem ? "text-[#FF5485]" : "text-gray-400"
+                            )} />
+                          )}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent 
+                        side="right" 
+                        align="start"
+                        className="w-64 p-2 bg-gray-800 border-gray-700"
+                      >
+                        <div className="px-2 py-1.5 mb-2">
+                          <h3 className="text-sm font-semibold text-white">{group.title}</h3>
+                        </div>
+                        <div className="space-y-1">
+                          {group.items.map((item) => {
+                            const isActive = pathname === item.href;
+                            const hasBadge = 
+                              ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
+                              ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
+                              (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
+                              (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+
+                            return (
+                              <Link
+                                key={item.name}
+                                href={item.href}
+                                onClick={() => setIsMobileOpen(false)}
+                                className={cn(
+                                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
+                                  isActive 
+                                    ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
+                                    : "text-gray-400 hover:bg-[#4D4DA4] hover:text-white"
+                                )}
+                              >
+                                {item.icon && (
+                                  <item.icon className={cn("h-4 w-4 flex-shrink-0 transition-colors duration-300", isActive ? "text-[#FF5485]" : "text-gray-400 group-hover:text-white")} />
+                                )}
+                                <span className="flex-1 truncate">{item.name}</span>
+                                {hasBadge && (
+                                  <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5485] text-[10px] font-bold text-white flex-shrink-0">
+                                    {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                                  </span>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  );
+                }
+
+                return (
+                  <Collapsible
+                    key={group.id}
+                    open={isGroupOpen}
+                    onOpenChange={(open) => setOpenGroups(prev => ({ ...prev, [group.id]: open }))}
+                  >
+                    <CollapsibleTrigger
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-in-out",
+                        hasActiveItem 
+                          ? "text-white bg-[#4D4DA4]/10" 
+                          : "text-gray-400 hover:bg-[#4D4DA4] hover:text-white"
+                      )}
+                    >
+                      {group.icon && (
+                        <group.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors duration-300", hasActiveItem ? "text-[#FF5485]" : "text-gray-400")} />
+                      )}
+                      <span className="flex-1 text-left truncate">{group.title}</span>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-all duration-300 ease-in-out flex-shrink-0",
+                          hasActiveItem ? "text-[#FF5485]" : "text-gray-500",
+                          isGroupOpen && "transform rotate-180"
+                        )}
+                      />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-1 space-y-1 pl-4">
+                      {group.items.map((item) => {
+                        const isActive = pathname === item.href;
+                        const hasBadge = 
+                          ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
+                          ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
+                          (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
+                          (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            onClick={() => setIsMobileOpen(false)}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
+                              isActive 
+                                ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
+                                : "text-gray-400 hover:bg-[#4D4DA4] hover:text-white"
+                            )}
+                          >
+                            {item.icon && (
+                              <item.icon className={cn("h-4 w-4 flex-shrink-0 transition-colors duration-300", isActive ? "text-[#FF5485]" : "text-gray-400 group-hover:text-white")} />
+                            )}
+                            <span className="flex-1 truncate">{item.name}</span>
+                            {hasBadge && (
+                              <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5485] text-[10px] font-bold text-white flex-shrink-0">
+                                {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
             </nav>
           </div>
         </ScrollArea>
       </div>
 
       {/* Footer - Always Visible */}
-      <div className={cn("p-4 border-t border-gray-100 transition-all duration-500 ease-in-out flex-shrink-0", isCollapsed && "px-2")}>
+      <div className={cn("p-4 border-t border-gray-800 transition-all duration-500 ease-in-out flex-shrink-0", isCollapsed && "px-2")}>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 
               variant="ghost" 
               className={cn(
-                "w-full text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-300 ease-in-out",
+                "w-full text-gray-400 hover:text-white hover:bg-[#4D4DA4] transition-all duration-300 ease-in-out",
                 isCollapsed ? "justify-center" : "justify-start gap-2"
               )}
               onClick={logout}
             >
-              <LogOut className="h-4 w-4 transition-transform duration-300 flex-shrink-0" />
+              <LogOut className="h-4 w-4 text-[#FF5485] transition-transform duration-300 flex-shrink-0" />
               <span className={cn(
                 "transition-all duration-500 ease-in-out overflow-hidden",
                 isCollapsed 
@@ -301,7 +545,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             </Button>
           </TooltipTrigger>
           {isCollapsed && (
-            <TooltipContent side="right" className="bg-gray-900 text-white">
+            <TooltipContent side="right" className="bg-gray-800 text-white border-gray-700">
               <p>Sign Out</p>
             </TooltipContent>
           )}
@@ -330,14 +574,14 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             {/* Toggle Button - Positioned outside sidebar bounds */}
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center hover:bg-gray-50 transition-all duration-300 ease-in-out z-50 hover:scale-110"
+              className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-gray-800 border border-gray-700 shadow-md flex items-center justify-center hover:bg-[#4D4DA4] transition-all duration-300 ease-in-out z-50 hover:scale-110"
               style={{ right: '-12px' }}
               aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isSidebarCollapsed ? (
-                <ChevronRight className="h-3.5 w-3.5 text-gray-600 transition-transform duration-300" />
+                <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-transform duration-300" />
               ) : (
-                <ChevronLeft className="h-3.5 w-3.5 text-gray-600 transition-transform duration-300" />
+                <ChevronLeft className="h-3.5 w-3.5 text-gray-300 transition-transform duration-300" />
               )}
             </button>
           </div>
@@ -362,7 +606,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-72 bg-white border-r-gray-100">
+                <SheetContent side="left" className="p-0 w-72 bg-gray-900 border-r-gray-800">
                   <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                   <SidebarContent />
                 </SheetContent>
@@ -378,8 +622,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           </header>
 
           {/* MAIN CONTENT */}
-          <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-gray-50">
-            <div className="mx-auto max-w-7xl">
+          <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto overflow-x-hidden bg-gray-50">
+            <div className="mx-auto max-w-7xl w-full min-w-0">
               {children}
             </div>
           </main>

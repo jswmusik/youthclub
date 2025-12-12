@@ -6,7 +6,12 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import LendingHistoryTable from '@/app/components/inventory/LendingHistoryTable';
-import { BarChart3, ChevronDown, Package, Users, CheckCircle, Clock, Filter } from 'lucide-react';
+import { BarChart3, ChevronUp, Package, Users, CheckCircle, Clock, Search, X, ChevronLeft, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface HistoryAnalytics {
   total_borrowed: number;
@@ -29,13 +34,14 @@ export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewPro
     
     const [item, setItem] = useState<Item | null>(null);
     const [sessions, setSessions] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [itemLoading, setItemLoading] = useState(true);
     const [analyticsLoading, setAnalyticsLoading] = useState(true);
     const [analytics, setAnalytics] = useState<HistoryAnalytics | null>(null);
     const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
     const [filtersExpanded, setFiltersExpanded] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
+    const [isRedirecting, setIsRedirecting] = useState(false);
     
     // Get filter values from URL
     const search = searchParams.get('search') || '';
@@ -50,9 +56,11 @@ export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewPro
 
     useEffect(() => {
         if (item) {
+            setIsRedirecting(false); // Reset redirect flag when searchParams change
             loadHistory();
             loadAnalytics();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [item, searchParams]);
 
     const loadItem = async () => {
@@ -68,6 +76,8 @@ export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewPro
     };
 
     const loadHistory = async () => {
+        if (!item || isRedirecting) return; // Don't load if item is not loaded yet or redirecting
+        
         try {
             setLoading(true);
             const params = new URLSearchParams();
@@ -94,12 +104,30 @@ export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewPro
             if (Array.isArray(data)) {
                 setSessions(data);
                 setTotalCount(data.length);
-            } else {
+            } else if (data && typeof data === 'object') {
                 setSessions(data.results || []);
                 setTotalCount(data.count || 0);
+            } else {
+                setSessions([]);
+                setTotalCount(0);
             }
-        } catch (err) {
-            console.error(err);
+        } catch (err: any) {
+            console.error('Error loading history:', err);
+            const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || err?.message || 'Failed to load history';
+            
+            // If it's an "Invalid page" error and we're not on page 1, redirect to page 1
+            if (err?.response?.status === 404 && (errorMsg.includes('Invalid page') || errorMsg.includes('page')) && currentPage > 1 && !isRedirecting) {
+                console.log('Invalid page number, redirecting to page 1');
+                setIsRedirecting(true);
+                setLoading(false); // Stop loading before redirect
+                // Use router.push directly to update URL and trigger reload
+                const params = new URLSearchParams(searchParams.toString());
+                params.set('page', '1');
+                router.push(`${pathname}?${params.toString()}`);
+                return; // Exit early, don't clear sessions
+            }
+            
+            console.error('Error details:', errorMsg);
             setSessions([]);
             setTotalCount(0);
         } finally {
@@ -159,219 +187,219 @@ export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewPro
 
     if (itemLoading) {
         return (
-            <div className="p-8 text-center">
-                <p className="text-gray-500">Loading item details...</p>
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="animate-pulse text-gray-400">Loading item details...</div>
             </div>
         );
     }
 
     if (!item) {
         return (
-            <div className="p-8">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                    <p className="text-red-800">Item not found.</p>
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <Link href={buildUrlWithParams(basePath)}>
+                        <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+                            <ChevronLeft className="h-4 w-4" />
+                            Back to Inventory
+                        </Button>
+                    </Link>
                 </div>
-                <Link href={buildUrlWithParams(basePath)} className="text-blue-600 hover:text-blue-800 font-medium">
-                    ← Back to Inventory
-                </Link>
+                <Card className="border border-red-200 bg-red-50">
+                    <CardContent className="p-6">
+                        <p className="text-red-800 font-medium">Item not found.</p>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <div className="p-8 space-y-8">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Lending History</h1>
-                    <p className="text-slate-500">
-                        History for <span className="font-semibold text-slate-700">{item.title}</span>
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <Link 
-                        href={`${basePath}/view/${item.id}?${searchParams.toString()}`}
-                        className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
-                    >
+            <div className="flex items-center justify-between">
+                <Link href={buildUrlWithParams(`${basePath}/view/${item.id}`)}>
+                    <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+                        <ChevronLeft className="h-4 w-4" />
                         Back to Item
-                    </Link>
+                    </Button>
+                </Link>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Lending History</h1>
+                    <p className="text-gray-500 mt-1">
+                        History for <span className="font-semibold text-[#121213]">{item.title}</span>
+                    </p>
                 </div>
             </div>
 
-            {/* Analytics Dashboard - Collapsible */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                {/* Analytics Header */}
-                <button
-                    onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                >
-                    <div className="flex items-center gap-3">
-                        <BarChart3 className="w-5 h-5 text-gray-600" />
-                        <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
+            {/* Analytics */}
+            <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-gray-500" />
+                        <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
                     </div>
-                    <ChevronDown 
-                        className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-                    />
-                </button>
-
-                {/* Analytics Cards - Collapsible */}
-                <div 
-                    className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-                        analyticsExpanded 
-                            ? 'max-h-[500px] opacity-100' 
-                            : 'max-h-0 opacity-0'
-                    } overflow-hidden`}
-                >
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
+                            <ChevronUp className={cn(
+                                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                                analyticsExpanded ? "rotate-0" : "rotate-180"
+                            )} />
+                            <span className="sr-only">Toggle Analytics</span>
+                        </Button>
+                    </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent className="space-y-2">
                     {analyticsLoading ? (
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                             {[1, 2, 3, 4].map((i) => (
-                                <div key={i} className="bg-gray-50 p-5 rounded-lg border border-gray-200 animate-pulse">
-                                    <div className="h-4 bg-gray-200 rounded w-24 mb-4"></div>
-                                    <div className="h-10 bg-gray-200 rounded w-16"></div>
-                                </div>
+                                <Card key={i} className="bg-[#EBEBFE]/30 border-none shadow-sm animate-pulse">
+                                    <CardHeader className="pb-2">
+                                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="h-8 bg-gray-200 rounded w-16"></div>
+                                    </CardContent>
+                                </Card>
                             ))}
                         </div>
                     ) : analytics ? (
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {/* Total Items Borrowed */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Borrowed</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                                        <Package className="w-5 h-5 text-blue-600" />
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-gray-900">{analytics.total_borrowed}</p>
-                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                            {/* Total Borrowed */}
+                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-gray-500">Total Borrowed</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_borrowed}</div>
+                                </CardContent>
+                            </Card>
 
-                            {/* Demographics - Combined */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-purple-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Demographics</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                                        <Users className="w-5 h-5 text-purple-600" />
+                            {/* Demographics */}
+                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-gray-500">Demographics</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Male:</span>
+                                            <span className="font-bold text-[#4D4DA4]">{analytics.borrowed_male}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Female:</span>
+                                            <span className="font-bold text-[#4D4DA4]">{analytics.borrowed_female}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Other:</span>
+                                            <span className="font-bold text-[#4D4DA4]">{analytics.borrowed_other}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Male:</span>
-                                        <span className="text-lg font-bold text-indigo-600">{analytics.borrowed_male}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Female:</span>
-                                        <span className="text-lg font-bold text-pink-600">{analytics.borrowed_female}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Other:</span>
-                                        <span className="text-lg font-bold text-purple-600">{analytics.borrowed_other}</span>
-                                    </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
 
                             {/* Returned */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-green-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Returned</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                                        <CheckCircle className="w-5 h-5 text-green-600" />
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-green-600">{analytics.returned}</p>
-                            </div>
+                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-gray-500">Returned</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-green-600">{analytics.returned}</div>
+                                </CardContent>
+                            </Card>
 
                             {/* Active */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-orange-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                                        <Clock className="w-5 h-5 text-orange-600" />
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-orange-600">{analytics.active}</p>
-                            </div>
+                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-gray-500">Active</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-[#FF5485]">{analytics.active}</div>
+                                </CardContent>
+                            </Card>
                         </div>
                     ) : null}
-                </div>
-            </div>
+                </CollapsibleContent>
+            </Collapsible>
 
-            {/* Filters - Collapsible */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                {/* Filters Header */}
-                <button
-                    onClick={() => setFiltersExpanded(!filtersExpanded)}
-                    className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-                >
-                    <div className="flex items-center gap-2">
-                        <Filter className="w-5 h-5 text-gray-600" />
-                        <span className="text-sm font-semibold text-gray-700">Filters</span>
-                    </div>
-                    <ChevronDown 
-                        className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-                    />
-                </button>
-
-                {/* Filter Fields - Collapsible */}
-                <div 
-                    className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-                        filtersExpanded 
-                            ? 'max-h-[1000px] opacity-100' 
-                            : 'max-h-0 opacity-0'
-                    } overflow-hidden`}
-                >
-                    <div className="p-4">
-                        <div className="flex flex-wrap gap-4 items-end">
-                            {/* Search */}
-                            <div className="flex-1 min-w-[200px]">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-                                <input 
-                                    type="text" 
+            {/* Filters */}
+            <Card className="border border-gray-100 shadow-sm bg-white">
+                <div className="p-4 space-y-4">
+                    {/* Main Filters Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                        {/* Search - Takes more space on larger screens */}
+                        <div className="relative md:col-span-5 lg:col-span-4">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Search</label>
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                                <Input 
                                     placeholder="Search by borrower..." 
-                                    className="w-full border rounded p-2 text-sm bg-gray-50"
+                                    className="pl-9 bg-gray-50 border-0"
                                     value={search}
-                                    onChange={(e) => updateUrl('search', e.target.value)}
+                                    onChange={e => updateUrl('search', e.target.value)}
                                 />
                             </div>
-
-                            {/* Start Date */}
-                            <div className="w-48">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Date</label>
-                                <input
+                        </div>
+                        
+                        {/* Start Date */}
+                        <div className="md:col-span-3 lg:col-span-2">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">From Date</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                                <Input
                                     type="date"
-                                    className="w-full border rounded p-2 text-sm bg-gray-50"
+                                    className="pl-9 bg-gray-50 border-0"
                                     value={startDate}
-                                    onChange={(e) => updateUrl('start_date', e.target.value)}
+                                    onChange={e => updateUrl('start_date', e.target.value)}
                                 />
                             </div>
+                        </div>
 
-                            {/* End Date */}
-                            <div className="w-48">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Date</label>
-                                <input
+                        {/* End Date */}
+                        <div className="md:col-span-3 lg:col-span-2">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">To Date</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                                <Input
                                     type="date"
-                                    className="w-full border rounded p-2 text-sm bg-gray-50"
+                                    className="pl-9 bg-gray-50 border-0"
                                     value={endDate}
-                                    onChange={(e) => updateUrl('end_date', e.target.value)}
+                                    onChange={e => updateUrl('end_date', e.target.value)}
                                     min={startDate || undefined}
                                 />
                             </div>
-
-                            {/* Clear Filters */}
-                            <div className="flex items-end">
-                                <button
-                                    onClick={clearFilters}
-                                    className="text-xs text-gray-500 hover:text-gray-700 underline"
-                                >
-                                    Clear Filters
-                                </button>
-                            </div>
+                        </div>
+                        
+                        {/* Clear Button */}
+                        <div className="md:col-span-1 lg:col-span-1 flex items-end">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={clearFilters}
+                                className="w-full h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+                            >
+                                <X className="h-4 w-4" /> Clear
+                            </Button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Card>
 
             {/* History Table */}
             {loading ? (
-                <div className="text-center py-12 text-slate-500">Loading history...</div>
+                <Card className="border border-gray-100 shadow-sm bg-white">
+                    <CardContent className="p-12 text-center text-gray-500">
+                        Loading history...
+                    </CardContent>
+                </Card>
+            ) : sessions.length === 0 ? (
+                <Card className="border border-gray-100 shadow-sm bg-white">
+                    <CardContent className="p-12 text-center text-gray-500">
+                        No history found for this item.
+                    </CardContent>
+                </Card>
             ) : (
                 <LendingHistoryTable sessions={sessions} />
             )}
@@ -385,65 +413,56 @@ export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewPro
                 return (
                     <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
                         <div className="flex flex-1 justify-between sm:hidden">
-                            <button 
-                                disabled={currentPage === 1}
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                                className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                disabled={currentPage === 1}
+                                className="gap-2"
                             >
+                                <ChevronLeft className="h-4 w-4" />
                                 Previous
-                            </button>
-                            <button 
-                                disabled={currentPage >= totalPages}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                                className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                disabled={currentPage >= totalPages}
+                                className="gap-2"
                             >
                                 Next
-                            </button>
+                                <ChevronLeft className="h-4 w-4 rotate-180" />
+                            </Button>
                         </div>
                         <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                             <div>
                                 <p className="text-sm text-gray-700">
-                                    Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                                    {' '}(Total: {totalCount})
+                                    Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                                    <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of{' '}
+                                    <span className="font-medium">{totalCount}</span> results
                                 </p>
                             </div>
-                            <div>
-                                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                    <button
-                                        disabled={currentPage === 1}
-                                        onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                                        className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                                    >
-                                        <span className="sr-only">Previous</span>
-                                        ← Prev
-                                    </button>
-                                    
-                                    {/* Simple Pagination Numbers */}
-                                    {[...Array(totalPages)].map((_, i) => {
-                                        const p = i + 1;
-                                        return (
-                                            <button
-                                                key={p}
-                                                onClick={() => updateUrl('page', p.toString())}
-                                                className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                                                    ${p === currentPage 
-                                                        ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                                                        : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
-                                            >
-                                                {p}
-                                            </button>
-                                        );
-                                    })}
-
-                                    <button
-                                        disabled={currentPage >= totalPages}
-                                        onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                                        className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                                    >
-                                        <span className="sr-only">Next</span>
-                                        Next →
-                                    </button>
-                                </nav>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => updateUrl('page', (currentPage - 1).toString())}
+                                    disabled={currentPage === 1}
+                                    className="gap-2"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => updateUrl('page', (currentPage + 1).toString())}
+                                    disabled={currentPage >= totalPages}
+                                    className="gap-2"
+                                >
+                                    Next
+                                    <ChevronLeft className="h-4 w-4 rotate-180" />
+                                </Button>
                             </div>
                         </div>
                     </div>

@@ -1,8 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Paperclip, Send, Loader2 } from 'lucide-react';
 import { messengerApi } from '../../../lib/messenger-api';
 import Toast from '../../components/Toast';
+
+// Shadcn
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface QuickMessageModalProps {
     isOpen: boolean;
@@ -28,6 +36,7 @@ export default function QuickMessageModal({
     const [conversationId, setConversationId] = useState<number | null>(null);
     const [isExistingConversation, setIsExistingConversation] = useState(false);
     const [checkingConversation, setCheckingConversation] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     
     // Toast state
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
@@ -101,9 +110,12 @@ export default function QuickMessageModal({
             });
             
             // Backend returns {id: number, status: string}
-            const conversationId = res.data?.id;
-            if (conversationId) {
-                setConversationId(conversationId);
+            // Use conversationId from response, or fall back to existing one from state
+            const returnedConversationId = res.data?.id;
+            const finalConversationId = returnedConversationId || conversationId;
+            
+            if (finalConversationId) {
+                setConversationId(finalConversationId);
             }
 
             // Clear form
@@ -111,13 +123,23 @@ export default function QuickMessageModal({
             setContent('');
             setAttachment(null);
             
-            // Close modal immediately
-            onClose();
+            // Show success toast
+            setToast({ 
+                message: "Message sent successfully!", 
+                type: 'success', 
+                isVisible: true 
+            });
             
             // Call success callback if provided (parent will show toast and select conversation)
-            if (onSuccess) {
-                onSuccess(conversationId);
+            // Pass the conversationId so parent can navigate to the thread
+            if (onSuccess && finalConversationId) {
+                onSuccess(finalConversationId);
             }
+            
+            // Close modal after showing success toast (Toast auto-dismisses after 3 seconds, but we close modal earlier)
+            setTimeout(() => {
+                onClose();
+            }, 2000);
         } catch (err: any) {
             console.error("Failed to send message", err);
             const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || "Could not send message.";
@@ -143,127 +165,168 @@ export default function QuickMessageModal({
 
     return (
         <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4"
             onClick={handleBackdropClick}
         >
-            <div 
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6"
+            <Card 
+                className="w-full max-w-2xl shadow-2xl border border-gray-100 bg-white rounded-xl sm:rounded-2xl overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
-                <div className="flex justify-between items-center mb-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800">Send Message</h2>
-                        <p className="text-sm text-gray-500">To: {recipientName}</p>
-                    </div>
-                    <button 
-                        onClick={onClose}
-                        disabled={sending}
-                        className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-                    >
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Message Input */}
-                <div className="space-y-4">
-                    {checkingConversation ? (
-                        <div className="text-sm text-gray-500">Checking conversation...</div>
-                    ) : (
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                Subject {isExistingConversation ? '(Optional - will update existing subject)' : '(Required)'}
-                            </label>
-                            <input
-                                type="text"
-                                value={subject}
-                                onChange={(e) => setSubject(e.target.value)}
-                                placeholder={isExistingConversation 
-                                    ? "Leave empty to keep current subject, or enter new subject to update"
-                                    : "e.g., Question about event registration"}
-                                className={`w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${
-                                    !isExistingConversation && !subject.trim() ? 'border-red-300' : ''
-                                }`}
-                                disabled={sending}
-                                required={!isExistingConversation}
-                            />
-                            {!isExistingConversation && (
-                                <p className="text-xs text-red-600 mt-1">Subject is required for new conversations</p>
-                            )}
-                            {isExistingConversation && (
-                                <p className="text-xs text-gray-500 mt-1">Enter a new subject to override the current one</p>
-                            )}
+                <CardHeader className="pb-4 bg-white border-b border-gray-100 px-5 sm:px-6 pt-5">
+                    <div className="flex justify-between items-start gap-4">
+                        <div className="min-w-0 flex-1">
+                            <CardTitle className="text-xl sm:text-2xl font-bold text-[#121213]">Send Message</CardTitle>
+                            <p className="text-sm text-gray-500 mt-1 truncate">To: {recipientName}</p>
                         </div>
-                    )}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Message</label>
-                        <textarea
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder="Type your message here..."
-                            rows={6}
-                            className="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={onClose}
                             disabled={sending}
-                        />
+                            className="h-9 w-9 sm:h-10 sm:w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 active:bg-gray-100 flex-shrink-0 touch-manipulation rounded-full"
+                        >
+                            <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                        </Button>
                     </div>
-
-                    {/* Attachment */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Attachment (Optional)</label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-                            className="block w-full text-sm text-gray-500
-                                file:mr-4 file:py-2 file:px-4
-                                file:rounded-full file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-blue-50 file:text-blue-700
-                                hover:file:bg-blue-100"
-                            disabled={sending}
-                        />
-                        {attachment && (
-                            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-                                <span>📎 {attachment.name}</span>
-                                <button
-                                    onClick={() => setAttachment(null)}
-                                    className="text-red-500 hover:text-red-700"
+                </CardHeader>
+                <CardContent className="space-y-4 sm:space-y-5 bg-white p-5 sm:p-6">
+                    {/* Message Input */}
+                    {checkingConversation ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-5 w-5 animate-spin text-[#4D4DA4]" />
+                            <span className="ml-2 text-sm text-gray-500">Checking conversation...</span>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-2">
+                                <Label className="text-sm sm:text-base font-semibold text-[#121213]">
+                                    Subject {isExistingConversation ? <span className="text-gray-500 font-normal text-xs">(Optional)</span> : <span className="text-red-500">*</span>}
+                                </Label>
+                                <Input
+                                    type="text"
+                                    value={subject}
+                                    onChange={(e) => setSubject(e.target.value)}
+                                    placeholder={isExistingConversation 
+                                        ? "Leave empty to keep current subject, or enter new subject to update"
+                                        : "e.g., Question about event registration"}
+                                    className={`h-11 sm:h-12 text-sm sm:text-base bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl ${!isExistingConversation && !subject.trim() ? 'border-red-300 focus-visible:ring-red-500' : ''}`}
                                     disabled={sending}
-                                >
-                                    ✕
-                                </button>
+                                    required={!isExistingConversation}
+                                />
+                                {!isExistingConversation && !subject.trim() && (
+                                    <p className="text-xs text-red-600">Subject is required for new conversations</p>
+                                )}
+                                {isExistingConversation && (
+                                    <p className="text-xs text-gray-500">Enter a new subject to override the current one</p>
+                                )}
                             </div>
-                        )}
-                    </div>
-                </div>
 
-                {/* Footer */}
-                <div className="flex gap-3 mt-6">
-                    <button
-                        onClick={onClose}
-                        disabled={sending}
-                        className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSend}
-                        disabled={sending || checkingConversation || (!content.trim() && !attachment) || (!isExistingConversation && !subject.trim())}
-                        className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        {sending ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                <span>Sending...</span>
-                            </>
-                        ) : (
-                            'Send Message'
-                        )}
-                    </button>
-                </div>
-            </div>
+                            <div className="space-y-2">
+                                <Label className="text-sm sm:text-base font-semibold text-[#121213]">Message</Label>
+                                <Textarea
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                    placeholder="Type your message here..."
+                                    rows={5}
+                                    className="resize-none text-sm sm:text-base bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl min-h-[120px] p-3 sm:p-4"
+                                    disabled={sending}
+                                />
+                            </div>
+
+                            {/* Attachment */}
+                            <div className="space-y-2">
+                                <Label className="text-sm sm:text-base font-semibold text-[#121213] flex items-center gap-2">
+                                    <Paperclip className="h-4 w-4 text-gray-500" />
+                                    Attachment <span className="text-gray-500 font-normal text-xs">(Optional)</span>
+                                </Label>
+                                
+                                {!attachment ? (
+                                    <div className="relative">
+                                        <Input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                                            className="hidden"
+                                            disabled={sending}
+                                            id="file-upload"
+                                        />
+                                        <label
+                                            htmlFor="file-upload"
+                                            className="flex flex-col items-center justify-center w-full h-24 sm:h-28 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:border-[#4D4DA4] hover:bg-[#EBEBFE]/20 active:bg-[#EBEBFE]/30 transition-all cursor-pointer group touch-manipulation"
+                                        >
+                                            <div className="flex flex-col items-center justify-center pt-3 pb-3 px-4">
+                                                <div className="mb-2 p-2 rounded-full bg-[#EBEBFE]/50 group-hover:bg-[#EBEBFE] transition-colors">
+                                                    <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400 group-hover:text-[#4D4DA4] transition-colors" />
+                                                </div>
+                                                <p className="mb-0.5 text-xs sm:text-sm font-semibold text-gray-700 group-hover:text-[#4D4DA4] transition-colors text-center">
+                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                </p>
+                                                <p className="text-xs text-gray-500 text-center">
+                                                    PNG, JPG, GIF up to 10MB
+                                                </p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 text-sm sm:text-base text-[#121213] bg-[#EBEBFE]/30 p-3 sm:p-4 rounded-xl border-2 border-[#EBEBFE]">
+                                        <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center">
+                                            <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-[#4D4DA4]" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-sm truncate">{attachment.name}</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                {(attachment.size / 1024 / 1024).toFixed(2)} MB
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setAttachment(null)}
+                                            disabled={sending}
+                                            className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 flex-shrink-0 touch-manipulation rounded-full"
+                                        >
+                                            <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-gray-100">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={onClose}
+                            disabled={sending}
+                            className="flex-1 order-2 sm:order-1 h-11 sm:h-12 text-sm sm:text-base font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100 touch-manipulation rounded-xl"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleSend}
+                            disabled={sending || checkingConversation || (!content.trim() && !attachment) || (!isExistingConversation && !subject.trim())}
+                            className="flex-1 order-1 sm:order-2 h-11 sm:h-12 text-sm sm:text-base font-semibold bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2 rounded-full transition-colors disabled:opacity-50 disabled:hover:bg-[#4D4DA4] touch-manipulation shadow-lg hover:shadow-xl"
+                        >
+                            {sending ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                                    <span>Sending...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                                    <span>Send Message</span>
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
             
             {/* Toast Notification */}
             <Toast

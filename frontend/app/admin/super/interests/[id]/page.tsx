@@ -6,17 +6,15 @@ import InterestDetailView from '@/app/components/InterestDetailView';
 
 function InterestDetailPageContent() {
   const { id } = useParams() as { id: string };
-  return (
-    <div className="p-8">
-      <InterestDetailView interestId={id} basePath="/admin/super/interests" />
-    </div>
-  );
+  return <InterestDetailView interestId={id} basePath="/admin/super/interests" />;
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-8">Loading...</div>}>
-      <InterestDetailPageContent />
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><div className="animate-pulse text-gray-400">Loading...</div></div>}>
+      <div className="p-4 sm:p-6 md:p-8">
+        <InterestDetailPageContent />
+      </div>
     </Suspense>
   );
 }

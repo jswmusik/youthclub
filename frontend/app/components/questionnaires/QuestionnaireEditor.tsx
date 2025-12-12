@@ -2,10 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, Save, Eye, Plus, ChevronUp, ChevronDown, Edit, Trash2, CheckCircle2, Clock } from 'lucide-react';
 import { questionnaireApi, Questionnaire } from '../../../lib/questionnaire-api';
 import QuestionnaireSettings from './QuestionnaireSettings';
 import QuestionModal from './QuestionModal';
 import Toast from '../Toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface Props {
   initialId?: string; // If present, we are editing
@@ -301,73 +308,116 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
     setFormData({ ...formData, questions: reindexed });
   };
 
-  if (loading && initialId && !formData.title) return <div className="p-8 text-center">Loading...</div>;
+  if (loading && initialId && !formData.title) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-pulse text-gray-400">Loading...</div>
+    </div>
+  );
 
   return (
-    <div className="pb-20">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-20">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-                {initialId ? 'Edit Questionnaire' : 'New Questionnaire'}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Link href={basePath}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground break-words">
+              {initialId ? 'Edit Questionnaire' : 'Create New Questionnaire'}
             </h1>
-            <p className="text-gray-500 text-sm">
-                {formData.status === 'PUBLISHED' ? '🔴 Live' : 'Draft Mode'}
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              {formData.status === 'PUBLISHED' ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  Live
+                </span>
+              ) : (
+                'Draft Mode'
+              )}
             </p>
+          </div>
         </div>
-        <div className="flex gap-3">
-            <button 
-                onClick={() => {
-                  // Preserve page parameter if it exists
-                  const pageParam = searchParams.get('page');
-                  const redirectUrl = pageParam ? `${basePath}?page=${pageParam}` : basePath;
-                  router.push(redirectUrl);
-                }}
-                className="px-4 py-2 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+        <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:flex-shrink-0">
+          <Button 
+            type="button"
+            variant="ghost" 
+            onClick={() => {
+              const pageParam = searchParams.get('page');
+              const redirectUrl = pageParam ? `${basePath}?page=${pageParam}` : basePath;
+              router.push(redirectUrl);
+            }}
+            className="flex-1 sm:flex-none"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSave}
+            disabled={loading}
+            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2 flex-1 sm:flex-none"
+          >
+            <Save className="h-4 w-4" />
+            <span className="hidden sm:inline">{loading ? 'Saving...' : 'Save Changes'}</span>
+            <span className="sm:hidden">{loading ? 'Saving...' : 'Save'}</span>
+          </Button>
+          {formData.status === 'DRAFT' && initialId && (
+            <Button 
+              onClick={handlePublish}
+              disabled={loading}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50 gap-2 flex-1 sm:flex-none"
             >
-                Cancel
-            </button>
-            <button 
-                onClick={handleSave}
-                disabled={loading}
-                className="px-6 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700 disabled:opacity-50"
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="hidden sm:inline">{loading ? 'Publishing...' : 'Publish'}</span>
+              <span className="sm:hidden">{loading ? '...' : 'Publish'}</span>
+            </Button>
+          )}
+          {formData.status === 'PUBLISHED' && initialId && (
+            <Button 
+              onClick={handleUnpublish}
+              disabled={loading}
+              variant="outline"
+              className="border-yellow-600 text-yellow-600 hover:bg-yellow-50 gap-2 flex-1 sm:flex-none"
             >
-                {loading ? 'Saving...' : 'Save Changes'}
-            </button>
-            {formData.status === 'DRAFT' && initialId && (
-                <button 
-                    onClick={handlePublish}
-                    disabled={loading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
-                >
-                    {loading ? 'Publishing...' : 'Publish'}
-                </button>
-            )}
-            {formData.status === 'PUBLISHED' && initialId && (
-                <button 
-                    onClick={handleUnpublish}
-                    disabled={loading}
-                    className="px-6 py-2 bg-yellow-600 text-white rounded font-bold hover:bg-yellow-700 disabled:opacity-50"
-                >
-                    {loading ? 'Unpublishing...' : 'Unpublish'}
-                </button>
-            )}
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">{loading ? 'Unpublishing...' : 'Unpublish'}</span>
+              <span className="sm:hidden">{loading ? '...' : 'Unpublish'}</span>
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-gray-200 mb-6">
+      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
         <button
-            onClick={() => setActiveTab('SETTINGS')}
-            className={`pb-2 px-4 font-medium ${activeTab === 'SETTINGS' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setActiveTab('SETTINGS')}
+          className={cn(
+            "px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0",
+            activeTab === 'SETTINGS' 
+              ? 'text-[#4D4DA4]' 
+              : 'text-gray-500 hover:text-gray-700'
+          )}
         >
-            Settings & Targeting
+          Settings & Targeting
+          {activeTab === 'SETTINGS' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4D4DA4]" />
+          )}
         </button>
         <button
-            onClick={() => setActiveTab('QUESTIONS')}
-            className={`pb-2 px-4 font-medium ${activeTab === 'QUESTIONS' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setActiveTab('QUESTIONS')}
+          className={cn(
+            "px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0",
+            activeTab === 'QUESTIONS' 
+              ? 'text-[#4D4DA4]' 
+              : 'text-gray-500 hover:text-gray-700'
+          )}
         >
-            Questions Builder ({formData.questions?.length || 0})
+          Questions ({formData.questions?.length || 0})
+          {activeTab === 'QUESTIONS' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4D4DA4]" />
+          )}
         </button>
       </div>
 
@@ -375,85 +425,120 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
       {activeTab === 'SETTINGS' ? (
         <QuestionnaireSettings data={formData} onChange={setFormData} scope={scope} />
       ) : (
-        <div className="max-w-4xl mx-auto">
-            {/* Empty State */}
-            {(!formData.questions || formData.questions.length === 0) && (
-                <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                    <p className="text-gray-500 mb-4">No questions added yet.</p>
-                    <button 
-                        onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
-                    >
-                        + Add First Question
-                    </button>
-                </div>
-            )}
-
-            {/* List */}
-            <div className="space-y-4">
-                {formData.questions?.map((q: any, idx: number) => (
-                    <div key={idx} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex gap-4 items-start group">
-                        <div className="flex flex-col gap-1 pt-1">
-                            <button onClick={() => moveQuestion(idx, 'up')} className="text-gray-400 hover:text-blue-600 disabled:opacity-0" disabled={idx === 0}>▲</button>
-                            <span className="font-bold text-gray-400 text-center w-6">{idx + 1}</span>
-                            <button onClick={() => moveQuestion(idx, 'down')} className="text-gray-400 hover:text-blue-600 disabled:opacity-0" disabled={idx === (formData.questions?.length || 0) - 1}>▼</button>
-                        </div>
-                        
-                        <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-gray-900">{q.text}</h3>
-                                </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
-                                        onClick={() => { setEditingQuestionIndex(idx); setShowModal(true); }}
-                                        className="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded text-xs font-bold"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button 
-                                        onClick={() => deleteQuestion(idx)}
-                                        className="text-red-600 hover:bg-red-50 px-2 py-1 rounded text-xs font-bold"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div className="flex gap-3 text-xs text-gray-500 mt-1">
-                                <span className="bg-gray-100 px-2 py-0.5 rounded uppercase tracking-wide">{q.question_type.replace('_', ' ')}</span>
-                                {q.parent_question && (
-                                    <span className="text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
-                                        ↳ Logic: Dependent on Q{q.parent_question}
-                                    </span>
-                                )}
-                            </div>
-                            
-                            {/* Preview Options */}
-                            {['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && (
-                                <div className="mt-3 pl-4 border-l-2 border-gray-100 space-y-1">
-                                    {q.options?.map((opt: any, i: number) => (
-                                        <div key={i} className="text-sm text-gray-600 flex items-center gap-2">
-                                            <span className="w-2 h-2 rounded-full border border-gray-400"></span>
-                                            {opt.text}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Add Button (Bottom) */}
-            {formData.questions && formData.questions.length > 0 && (
-                <button 
-                    onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
-                    className="w-full mt-6 py-3 border-2 border-dashed border-gray-300 text-gray-500 font-bold rounded-lg hover:border-blue-400 hover:text-blue-600 transition-colors"
+        <div className="space-y-4 sm:space-y-6">
+          {/* Empty State */}
+          {(!formData.questions || formData.questions.length === 0) && (
+            <Card className="border border-gray-100 shadow-sm">
+              <CardContent className="py-12 sm:py-20 text-center">
+                <p className="text-gray-500 mb-4">No questions added yet.</p>
+                <Button 
+                  onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
+                  className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2"
                 >
-                    + Add Next Question
-                </button>
-            )}
+                  <Plus className="h-4 w-4" />
+                  Add First Question
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Questions List */}
+          <div className="space-y-3 sm:space-y-4">
+            {formData.questions?.map((q: any, idx: number) => (
+              <Card key={idx} className="border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex gap-3 sm:gap-4 items-start">
+                    {/* Order Controls */}
+                    <div className="flex flex-col gap-1 pt-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-gray-400 hover:text-[#4D4DA4] disabled:opacity-0"
+                        onClick={() => moveQuestion(idx, 'up')}
+                        disabled={idx === 0}
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#EBEBFE] flex items-center justify-center">
+                        <span className="font-bold text-[#4D4DA4] text-xs sm:text-sm">{idx + 1}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-gray-400 hover:text-[#4D4DA4] disabled:opacity-0"
+                        onClick={() => moveQuestion(idx, 'down')}
+                        disabled={idx === (formData.questions?.length || 0) - 1}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {/* Question Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
+                        <h3 className="font-semibold text-[#121213] text-base sm:text-lg break-words">{q.text}</h3>
+                        <div className="flex gap-1 sm:gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setEditingQuestionIndex(idx); setShowModal(true); }}
+                            className="text-gray-600 hover:text-[#4D4DA4] hover:bg-[#EBEBFE] h-8 px-2 sm:px-3"
+                          >
+                            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteQuestion(idx)}
+                            className="text-gray-600 hover:text-red-600 hover:bg-red-50 h-8 px-2 sm:px-3"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 flex-wrap mb-3">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                          {q.question_type.replace('_', ' ')}
+                        </Badge>
+                        {q.parent_question && (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs">
+                            ↳ Logic: Dependent on Q{q.parent_question}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Preview Options */}
+                      {['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && q.options && q.options.length > 0 && (
+                        <div className="mt-3 pl-3 sm:pl-4 border-l-2 border-[#EBEBFE] space-y-2">
+                          {q.options.map((opt: any, i: number) => (
+                            <div key={i} className="text-xs sm:text-sm text-gray-700 flex items-center gap-2 break-words">
+                              <span className="w-2 h-2 rounded-full bg-[#4D4DA4] flex-shrink-0"></span>
+                              <span>{opt.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Add Button */}
+          {formData.questions && formData.questions.length > 0 && (
+            <Button 
+              onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
+              variant="outline"
+              className="w-full py-4 sm:py-6 border-2 border-dashed border-gray-300 text-gray-500 hover:border-[#4D4DA4] hover:text-[#4D4DA4] hover:bg-[#EBEBFE]/30 transition-colors gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Next Question
+            </Button>
+          )}
         </div>
       )}
 
@@ -470,4 +555,3 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
     </div>
   );
 }
-

@@ -3,10 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, UserPlus, UsersRound, CheckCircle2 } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface GuardianManagerProps {
   basePath: string;
@@ -24,7 +33,6 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [avatarErrors, setAvatarErrors] = useState<Set<number>>(new Set());
   
   // Dropdowns
@@ -38,9 +46,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
   });
   
   // Delete Confirmation Modal State
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
 
   // --- LOAD DATA ---
   useEffect(() => {
@@ -199,15 +205,8 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  const handleDeleteClick = (user: any) => {
-    setUserToDelete({ id: user.id, name: `${user.first_name} ${user.last_name}` });
-    setShowDeleteModal(true);
-  };
-
-  const handleDeleteConfirm = async () => {
+  const handleDelete = async () => {
     if (!userToDelete) return;
-
-    setIsDeleting(true);
     try { 
       await api.delete(`/users/${userToDelete.id}/`);
       setToast({
@@ -215,7 +214,6 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
         type: 'success',
         isVisible: true,
       });
-      setShowDeleteModal(false);
       setUserToDelete(null);
       fetchGuardians(); 
       fetchAllUsersForAnalytics(); 
@@ -226,8 +224,6 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
         type: 'error',
         isVisible: true,
       });
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -238,10 +234,6 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     return first + last || '?';
   };
 
-  // Helper function to get avatar color (consistent for all guardians)
-  const getAvatarColor = () => {
-    return 'bg-blue-200 text-blue-800';
-  };
 
   // Calculate analytics from allUsersForAnalytics
   const analytics = {
@@ -266,410 +258,394 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     },
   };
 
-  const currentPage = Number(searchParams.get('page')) || 1;
-  const totalPages = Math.ceil(totalCount / 10);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'VERIFIED': return 'bg-green-50 text-green-700 border-green-200';
+      case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 'UNVERIFIED': return 'bg-gray-50 text-gray-700 border-gray-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Loading guardians...</p>
-      </div>
-    );
-  }
+  // Pagination logic
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const pageSize = 10;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const paginatedUsers = users;
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Manage Guardians</h1>
-        <Link 
-          href={`${basePath}/create`}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow"
-        >
-          + Create New Guardian
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Guardians</h1>
+          <p className="text-gray-500 mt-1">Manage guardians and their information.</p>
+        </div>
+        <Link href={`${basePath}/create`}>
+          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+            <Plus className="h-4 w-4" /> Add Guardian
+          </Button>
         </Link>
       </div>
 
-      {/* Analytics Dashboard */}
+      {/* Analytics */}
       {!isLoading && (
-        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {/* Toggle Button */}
-          <button
-            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-            className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
+        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+          <Card className="border-0 shadow-sm bg-gray-900">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-400">Analytics Dashboard</h3>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                  <ChevronUp className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                    analyticsExpanded ? "rotate-0" : "rotate-180"
+                  )} />
+                  <span className="sr-only">Toggle Analytics</span>
+                </Button>
+              </CollapsibleTrigger>
             </div>
-            <svg 
-              className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+            <CollapsibleContent className="transition-all duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Card 1: Total Guardians */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">Total Guardians</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-[#4D4DA4]/30 flex items-center justify-center shadow-md">
+                          <Users className="h-5 w-5 text-[#4D4DA4]" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-white">{analytics.total_guardians}</div>
+                    </CardContent>
+                  </Card>
 
-          {/* Analytics Cards - Collapsible */}
-          <div 
-            className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-              analyticsExpanded 
-                ? 'max-h-[500px] opacity-100' 
-                : 'max-h-0 opacity-0'
-            } overflow-hidden`}
-          >
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Total Guardians */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Guardians</h3>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.total_guardians}</p>
-              </div>
+                  {/* Card 2: New Last 7 Days */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">New (7 Days)</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center shadow-md">
+                          <UserPlus className="h-5 w-5 text-blue-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-white">{analytics.new_last_7_days}</div>
+                    </CardContent>
+                  </Card>
 
-              {/* Card 2: New Last 7 Days */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-green-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">New (7 Days)</h3>
-                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.new_last_7_days}</p>
-              </div>
+                  {/* Card 3: Gender Breakdown */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">Gender Breakdown</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/30 flex items-center justify-center shadow-md">
+                          <UsersRound className="h-5 w-5 text-purple-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Male:</span>
+                          <span className="font-bold text-white">{analytics.gender.male}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Female:</span>
+                          <span className="font-bold text-white">{analytics.gender.female}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Other:</span>
+                          <span className="font-bold text-white">{analytics.gender.other}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              {/* Card 3: Gender Breakdown */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-purple-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Gender</h3>
-                  <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
+                  {/* Card 4: Verification Status */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">Verification</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-green-500/30 flex items-center justify-center shadow-md">
+                          <CheckCircle2 className="h-5 w-5 text-green-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Verified:</span>
+                          <span className="font-bold text-white">{analytics.verification.verified}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Unverified/Pending:</span>
+                          <span className="font-bold text-white">{analytics.verification.unverified_pending}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Male:</span>
-                    <span className="font-bold text-gray-900">{analytics.gender.male}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Female:</span>
-                    <span className="font-bold text-gray-900">{analytics.gender.female}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Other:</span>
-                    <span className="font-bold text-gray-900">{analytics.gender.other}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 4: Verification Status */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-orange-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Verification</h3>
-                  <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Verified:</span>
-                    <span className="font-bold text-green-600">{analytics.verification.verified}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Unverified/Pending:</span>
-                    <span className="font-bold text-yellow-600">{analytics.verification.unverified_pending}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       )}
 
-      {/* FILTERS */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-          className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span className="text-sm font-semibold text-gray-700">Filters</span>
-          </div>
-          <svg 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Filter Fields - Collapsible */}
-        <div 
-          className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-            filtersExpanded 
-              ? 'max-h-[1000px] opacity-100' 
-              : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          <div className="p-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Search */}
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-                <input 
-                  type="text" 
-                  placeholder="Search by name or email..." 
-                  className="w-full border rounded p-2 text-sm bg-gray-50"
-                  value={searchParams.get('search') || ''} 
-                  onChange={e => updateUrl('search', e.target.value)}
-                />
-              </div>
-
-              {/* Gender */}
-              <div className="w-32">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Gender</label>
-                <select 
-                  className="w-full border rounded p-2 text-sm bg-gray-50" 
-                  value={searchParams.get('legal_gender') || ''} 
-                  onChange={e => updateUrl('legal_gender', e.target.value)}
-                >
-                  <option value="">Any</option>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-
-              {/* Status */}
-              <div className="w-40">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                <select 
-                  className="w-full border rounded p-2 text-sm bg-gray-50" 
-                  value={searchParams.get('verification_status') || ''} 
-                  onChange={e => updateUrl('verification_status', e.target.value)}
-                >
-                  <option value="">All Statuses</option>
-                  <option value="VERIFIED">Verified</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="UNVERIFIED">Unverified</option>
-                </select>
-              </div>
-
-              {/* Municipality - Only for SUPER scope */}
-              {scope === 'SUPER' && (
-                <div className="w-48">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Municipality</label>
-                  <select 
-                    className="w-full border rounded p-2 text-sm bg-gray-50" 
-                    value={searchParams.get('municipality') || ''} 
-                    onChange={e => updateUrl('municipality', e.target.value)}
-                  >
-                    <option value="">All Municipalities</option>
-                    {municipalities.map(m => (
-                      <option key={m.id} value={m.id.toString()}>{m.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Clear Filters */}
-              <button
-                onClick={() => router.push(pathname)}
-                className="px-4 py-2 text-sm text-gray-500 hover:text-red-500 font-medium"
+      {/* Filters */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="p-4 space-y-4">
+          {/* Main Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            {/* Search - Takes more space on larger screens */}
+            <div className="relative md:col-span-4 lg:col-span-3">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search by name or email..." 
+                className="pl-9 bg-gray-50 border-0"
+                value={searchParams.get('search') || ''}
+                onChange={e => updateUrl('search', e.target.value)}
+              />
+            </div>
+            
+            {/* Gender Filter */}
+            <div className="md:col-span-2 lg:col-span-2">
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={searchParams.get('legal_gender') || ''} 
+                onChange={e => updateUrl('legal_gender', e.target.value)}
               >
-                Clear Filters
-              </button>
+                <option value="">All Genders</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            
+            {/* Status Filter */}
+            <div className="md:col-span-2 lg:col-span-2">
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={searchParams.get('verification_status') || ''} 
+                onChange={e => updateUrl('verification_status', e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="VERIFIED">Verified</option>
+                <option value="PENDING">Pending</option>
+                <option value="UNVERIFIED">Unverified</option>
+              </select>
+            </div>
+            
+            {/* Municipality Filter - Only for SUPER scope */}
+            {scope === 'SUPER' && (
+              <div className="md:col-span-2 lg:col-span-2">
+                <select 
+                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                  value={searchParams.get('municipality') || ''} 
+                  onChange={e => updateUrl('municipality', e.target.value)}
+                >
+                  <option value="">All Municipalities</option>
+                  {municipalities.map(m => (
+                    <option key={m.id} value={m.id.toString()}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {/* Clear Button */}
+            <div className={cn("md:col-span-2", scope === 'SUPER' ? "lg:col-span-1" : "lg:col-span-3")}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(pathname)}
+                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+              >
+                <X className="h-4 w-4" /> Clear
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* --- LIST --- */}
-      <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Guardian</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Connected Youth</th>
-              <th className="px-6 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    {user.avatar && !avatarErrors.has(user.id) ? (
-                      <img 
-                        src={getMediaUrl(user.avatar) || ''}
-                        alt="Avatar"
-                        className="w-10 h-10 rounded-full object-cover mr-3"
-                        onError={() => {
-                          setAvatarErrors(prev => new Set(prev).add(user.id));
-                        }}
-                      />
-                    ) : (
-                      <div className={`w-10 h-10 rounded-full ${getAvatarColor()} flex items-center justify-center font-semibold text-sm mr-3`}>
+      {/* Content */}
+      {isLoading ? (
+        <div className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      ) : paginatedUsers.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 text-center">
+            <p className="text-gray-500">No guardians found.</p>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* MOBILE: Cards */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {paginatedUsers.map(user => (
+              <Card key={user.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
+                      <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
+                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
                         {getInitials(user.first_name, user.last_name)}
-                      </div>
-                    )}
-                    <div>
-                        <div className="text-sm font-medium text-gray-900">{user.first_name} {user.last_name}</div>
-                        <div className="text-xs text-gray-500">{user.email}</div>
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                        {user.first_name} {user.last_name}
+                      </CardTitle>
+                      <CardDescription className="text-xs text-gray-500 truncate">{user.email}</CardDescription>
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                   <span className={`px-2 py-1 text-xs font-bold rounded-full ${
-                       user.verification_status === 'VERIFIED' ? 'bg-green-100 text-green-800' :
-                       user.verification_status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                       'bg-gray-100 text-gray-600'
-                   }`}>
-                       {user.verification_status || 'UNVERIFIED'}
-                   </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="font-bold">{user.youth_members ? user.youth_members.length : 0}</span> linked
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center justify-end gap-2">
-                    <Link 
-                      href={buildUrlWithParams(`${basePath}/${user.id}`)} 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-900 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      View
-                    </Link>
-                    <Link 
-                      href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-900 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
-                    </Link>
-                    <button 
-                      onClick={() => handleDeleteClick(user)} 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete
-                    </button>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
+                      <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
+                        {user.verification_status || 'UNVERIFIED'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-xs text-gray-500 uppercase font-semibold">Connected Youth</span>
+                      <span className="font-bold text-[#4D4DA4]">{user.youth_members ? user.youth_members.length : 0}</span>
+                    </div>
                   </div>
-                </td>
-              </tr>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <Link href={buildUrlWithParams(`${basePath}/${user.id}`)} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        <Eye className="h-4 w-4" />
+                        View
+                      </Button>
+                    </Link>
+                    <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => setUserToDelete(user)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-        <div className="flex flex-1 justify-between sm:hidden">
-          <button 
-            disabled={currentPage === 1}
-            onClick={() => updateUrl('page', (currentPage - 1).toString())}
-            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <button 
-            disabled={currentPage >= totalPages}
-            onClick={() => updateUrl('page', (currentPage + 1).toString())}
-            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-              {' '}(Total: {totalCount})
-            </p>
           </div>
-          <div>
-            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-              <button
-                disabled={currentPage === 1}
+
+          {/* DESKTOP: Table */}
+          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold">Guardian</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Connected Youth</TableHead>
+                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedUsers.map(user => (
+                  <TableRow key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
+                          <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                            {getInitials(user.first_name, user.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-semibold text-[#121213]">{user.first_name} {user.last_name}</div>
+                          <div className="text-xs text-gray-500">{user.email}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
+                        {user.verification_status || 'UNVERIFIED'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <span className="font-semibold text-[#4D4DA4]">{user.youth_members ? user.youth_members.length : 0}</span>
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={buildUrlWithParams(`${basePath}/${user.id}`)}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setUserToDelete(user)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1} 
                 onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               >
-                <span className="sr-only">Previous</span>
-                ← Prev
-              </button>
-              
-              {/* Simple Pagination Numbers */}
-              {[...Array(totalPages)].map((_, i) => {
-                const p = i + 1;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => updateUrl('page', p.toString())}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                      ${p === currentPage 
-                        ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                        : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-
-              <button
-                disabled={currentPage >= totalPages}
+                Prev
+              </Button>
+              <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage >= totalPages} 
                 onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               >
-                <span className="sr-only">Next</span>
-                Next →
-              </button>
-            </nav>
-          </div>
-        </div>
-        </div>
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isVisible={showDeleteModal}
-        onClose={() => {
-          if (!isDeleting) {
-            setShowDeleteModal(false);
-            setUserToDelete(null);
-          }
-        }}
-        onConfirm={handleDeleteConfirm}
-        itemName={userToDelete?.name}
-        isLoading={isDeleting}
+      <ConfirmationModal
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Guardian"
+        message={`Are you sure you want to delete ${userToDelete?.first_name} ${userToDelete?.last_name}? This action cannot be undone.`}
       />
 
       {/* Toast Notification */}

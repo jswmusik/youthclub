@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft, Edit, FileText, Tag, Users, Building, ShieldCheck, CheckCircle2, XCircle, AlertCircle, List, ToggleLeft } from 'lucide-react';
 import api from '../../lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 interface CustomFieldDetailProps {
   fieldId: string;
@@ -14,207 +19,371 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
   const searchParams = useSearchParams();
   const [field, setField] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [clubs, setClubs] = useState<any[]>([]);
 
   useEffect(() => {
-    if (fieldId) {
-      api.get(`/custom-fields/${fieldId}/`)
-        .then(res => {
-          setField(res.data);
-          setLoading(false);
-        })
-        .catch(err => {
+    const loadData = async () => {
+      if (fieldId) {
+        try {
+          const [fieldRes, clubsRes] = await Promise.all([
+            api.get(`/custom-fields/${fieldId}/`),
+            api.get('/clubs/?page_size=1000').catch(() => ({ data: [] }))
+          ]);
+          setField(fieldRes.data);
+          setClubs(Array.isArray(clubsRes.data) ? clubsRes.data : clubsRes.data.results || []);
+        } catch (err) {
           console.error(err);
+        } finally {
           setLoading(false);
-        });
-    }
+        }
+      }
+    };
+    loadData();
   }, [fieldId]);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
     const page = searchParams.get('page');
     const search = searchParams.get('search');
+    const fieldType = searchParams.get('field_type');
+    const context = searchParams.get('context');
+    const targetRole = searchParams.get('target_role');
+    const status = searchParams.get('status');
     
     if (page && page !== '1') params.set('page', page);
     if (search) params.set('search', search);
+    if (fieldType) params.set('field_type', fieldType);
+    if (context) params.set('context', context);
+    if (targetRole) params.set('target_role', targetRole);
+    if (status) params.set('status', status);
     
     const queryString = params.toString();
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  if (loading) return <div className="p-12 text-center text-gray-500">Loading...</div>;
-  if (!field) return <div className="p-12 text-center text-red-500">Field not found.</div>;
+  const getFieldTypeLabel = (type: string) => {
+    return type.replace('_', ' ');
+  };
+
+  const getFieldTypeIcon = (type: string) => {
+    switch (type) {
+      case 'TEXT':
+        return <FileText className="h-5 w-5" />;
+      case 'SINGLE_SELECT':
+      case 'MULTI_SELECT':
+        return <List className="h-5 w-5" />;
+      case 'BOOLEAN':
+        return <ToggleLeft className="h-5 w-5" />;
+      default:
+        return <Tag className="h-5 w-5" />;
+    }
+  };
+
+  // Resolve club names
+  const getClubNames = () => {
+    if (!field?.specific_clubs || field.specific_clubs.length === 0) return [];
+    return field.specific_clubs.map((club: any) => {
+      const clubId = typeof club === 'object' ? club.id : club;
+      const clubData = clubs.find(c => c.id === clubId);
+      return clubData?.name || (typeof club === 'object' ? club.name : club);
+    });
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-pulse text-gray-400">Loading...</div>
+    </div>
+  );
+  
+  if (!field) return (
+    <div className="p-12 text-center text-red-500">Field not found.</div>
+  );
+
+  const clubNames = getClubNames();
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Custom Field Details</h1>
-          <p className="text-gray-500 mt-1">View and manage field configuration</p>
-        </div>
-        <Link 
-          href={buildUrlWithParams(basePath)}
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to List
+      {/* Header with Back Button */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <Link href={buildUrlWithParams(basePath)}>
+          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="h-4 w-4" />
+            Back to List
+          </Button>
+        </Link>
+        
+        {/* Edit Button */}
+        <Link href={buildUrlWithParams(`${basePath}/edit/${field.id}`)}>
+          <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white w-full sm:w-auto">
+            <Edit className="h-4 w-4" />
+            Edit Field
+          </Button>
         </Link>
       </div>
 
-      {/* Main Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-6 border-b border-gray-200">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{field.name}</h2>
-              {field.help_text && (
-                <p className="text-gray-600 text-sm">{field.help_text}</p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {field.required && (
-                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-800 rounded-lg text-xs font-bold">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  Required
-                </span>
-              )}
-              {field.is_published ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-800 rounded-lg text-xs font-bold">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Active
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Inactive
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Content Section */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Field Type */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Field Type
-              </label>
-              <p className="text-gray-900 font-semibold text-lg">{field.field_type.replace('_', ' ')}</p>
-            </div>
-
-            {/* Context */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                Context
-              </label>
-              <p className="text-gray-900 font-semibold text-lg">{field.context === 'EVENT' ? 'Event Booking' : 'User Profile'}</p>
-            </div>
-
-            {/* Target Roles */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                Target Roles
-              </label>
-              <div className="flex gap-2 flex-wrap mt-1">
-                {field.target_roles?.map((role: string) => (
-                  <span key={role} className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-sm font-semibold">
-                    {role === 'YOUTH_MEMBER' ? 'Youth' : 'Guardian'}
-                  </span>
-                ))}
+      {/* Profile Header Card */}
+      <Card className="border border-gray-100 shadow-sm overflow-hidden bg-gradient-to-br from-[#EBEBFE] via-[#EBEBFE]/50 to-white">
+        <CardContent className="p-6 sm:p-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            {/* Icon */}
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#4D4DA4] flex items-center justify-center flex-shrink-0 shadow-lg">
+              <div className="text-white">
+                {getFieldTypeIcon(field.field_type)}
               </div>
             </div>
-
-            {/* Owner Info */}
-            {field.owner_role && (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  Owner
-                </label>
-                <p className="text-gray-900 font-semibold text-lg">
-                  {field.owner_role === 'SUPER_ADMIN' ? 'Super Admin' : 
-                   field.owner_role === 'MUNICIPALITY_ADMIN' ? 'Municipality Admin' : 
-                   'Club Admin'}
-                </p>
+            
+            <div className="flex-1 space-y-3 min-w-0">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#121213] break-words">
+                  {field.name}
+                </h1>
+                {field.help_text && (
+                  <p className="text-gray-600 mt-2 break-words">{field.help_text}</p>
+                )}
               </div>
-            )}
+              
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge 
+                  variant="outline" 
+                  className={field.is_published 
+                    ? "bg-green-50 text-green-700 border-green-200" 
+                    : "bg-gray-50 text-gray-600 border-gray-200"
+                  }
+                >
+                  {field.is_published ? (
+                    <>
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Active
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Inactive
+                    </>
+                  )}
+                </Badge>
+                {field.required && (
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Required
+                  </Badge>
+                )}
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  {getFieldTypeLabel(field.field_type)}
+                </Badge>
+              </div>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Main Column */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* Quick Info Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card className="border border-gray-100 shadow-sm bg-[#EBEBFE]/30">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center flex-shrink-0">
+                    <Tag className="h-6 w-6 text-[#4D4DA4]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-500 font-semibold">Field Type</p>
+                    <p className="text-lg font-bold text-[#4D4DA4] break-words">{getFieldTypeLabel(field.field_type)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border border-gray-100 shadow-sm bg-[#EBEBFE]/30">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-6 w-6 text-[#4D4DA4]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-500 font-semibold">Context</p>
+                    <p className="text-lg font-bold text-[#4D4DA4] break-words">
+                      {field.context === 'EVENT' ? 'Event Booking' : 'User Profile'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Field Details */}
+          <Card className="border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-[#121213]">Field Details</CardTitle>
+            </CardHeader>
+            <Separator />
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Field Type</label>
+                    <p className="text-gray-900 font-medium flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      {getFieldTypeLabel(field.field_type)}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Context</label>
+                    <p className="text-gray-900 font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      {field.context === 'EVENT' ? 'Event Booking' : 'User Profile'}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Status</label>
+                    <p className="text-gray-900 font-medium">
+                      <Badge 
+                        variant="outline" 
+                        className={field.is_published 
+                          ? "bg-green-50 text-green-700 border-green-200" 
+                          : "bg-gray-50 text-gray-600 border-gray-200"
+                        }
+                      >
+                        {field.is_published ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Required</label>
+                    <p className="text-gray-900 font-medium">
+                      <Badge 
+                        variant="outline" 
+                        className={field.required 
+                          ? "bg-red-50 text-red-700 border-red-200" 
+                          : "bg-gray-50 text-gray-600 border-gray-200"
+                        }
+                      >
+                        {field.required ? 'Yes' : 'No'}
+                      </Badge>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Options Section */}
           {(field.field_type === 'SINGLE_SELECT' || field.field_type === 'MULTI_SELECT') && field.options && field.options.length > 0 && (
-            <div className="mt-6 bg-blue-50 rounded-lg p-5 border border-blue-100">
-              <label className="block text-xs font-bold text-blue-800 uppercase mb-3 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Available Options ({field.options.length})
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {field.options.map((opt: string, idx: number) => (
-                  <span key={idx} className="inline-flex items-center gap-1 px-3 py-2 bg-white border border-blue-200 text-blue-900 rounded-lg text-sm font-medium shadow-sm">
-                    {opt}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <Card className="border border-gray-100 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                  <List className="h-5 w-5 text-[#4D4DA4]" />
+                  Available Options ({field.options.length})
+                </CardTitle>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap gap-2">
+                  {field.options.map((opt: string, idx: number) => (
+                    <Badge 
+                      key={idx} 
+                      variant="outline" 
+                      className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/20 px-3 py-1.5"
+                    >
+                      {opt}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Limited to Clubs Section */}
-          {field.specific_clubs && field.specific_clubs.length > 0 && (
-            <div className="mt-6 bg-purple-50 rounded-lg p-5 border border-purple-100">
-              <label className="block text-xs font-bold text-purple-800 uppercase mb-3 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Limited to Clubs ({field.specific_clubs.length})
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {field.specific_clubs.map((club: any) => (
-                  <span key={club.id || club} className="inline-flex items-center gap-1 px-3 py-2 bg-white border border-purple-200 text-purple-900 rounded-lg text-sm font-medium shadow-sm">
-                    {club.name || club}
-                  </span>
-                ))}
-              </div>
-            </div>
+          {clubNames.length > 0 && (
+            <Card className="border border-gray-100 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                  <Building className="h-5 w-5 text-[#4D4DA4]" />
+                  Limited to Clubs ({clubNames.length})
+                </CardTitle>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap gap-2">
+                  {clubNames.map((name: string, idx: number) => (
+                    <Badge 
+                      key={idx} 
+                      variant="outline" 
+                      className="bg-pink-50 text-pink-700 border-pink-200 px-3 py-1.5"
+                    >
+                      <Building className="h-3 w-3 mr-1" />
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
-        {/* Action Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <Link 
-            href={buildUrlWithParams(`${basePath}/edit/${field.id}`)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 hover:text-blue-900 transition-colors shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Edit Field
-          </Link>
+        {/* Sidebar */}
+        <div className="space-y-6">
+          
+          {/* Target Roles Card */}
+          <Card className="border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold text-[#121213] flex items-center gap-2">
+                <Users className="h-5 w-5 text-[#4D4DA4]" />
+                Target Roles
+              </CardTitle>
+            </CardHeader>
+            <Separator />
+            <CardContent className="pt-6">
+              {field.target_roles && field.target_roles.length > 0 ? (
+                <div className="space-y-2">
+                  {field.target_roles.map((role: string) => (
+                    <Badge 
+                      key={role} 
+                      variant="outline" 
+                      className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/20 px-3 py-1.5 w-full justify-start"
+                    >
+                      <Users className="h-3 w-3 mr-2" />
+                      {role === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No target roles specified.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Owner Info Card */}
+          {field.owner_role && (
+            <Card className="border border-gray-100 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-bold text-[#121213] flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-[#4D4DA4]" />
+                  Owner
+                </CardTitle>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-6">
+                <div className="p-4 rounded-lg bg-[#EBEBFE]/30 border border-[#4D4DA4]/20">
+                  <p className="font-semibold text-[#121213]">
+                    {field.owner_role === 'SUPER_ADMIN' ? 'Super Admin' : 
+                     field.owner_role === 'MUNICIPALITY_ADMIN' ? 'Municipality Admin' : 
+                     'Club Admin'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
   );
 }
-

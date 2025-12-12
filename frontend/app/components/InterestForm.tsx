@@ -2,9 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, Upload, X } from 'lucide-react';
+import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import Toast from './Toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 interface InterestFormProps {
   initialData?: any;
@@ -71,6 +78,11 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
     }
   };
 
+  const handleRemoveImage = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -107,76 +119,142 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        {initialData ? 'Edit Interest' : 'Create New Interest'}
-      </h2>
+    <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link href={redirectPath}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {initialData ? 'Edit Interest' : 'Create New Interest'}
+          </h1>
+          <p className="text-sm text-muted-foreground">Manage interest details and information.</p>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        <div>
-          <label className="block text-sm font-bold mb-2 text-gray-700">Interest Name</label>
-          <input 
-            required 
-            type="text" 
-            className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-            placeholder="e.g. Football"
-            value={formData.name}
-            onChange={e => setFormData({ ...formData, name: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-bold mb-2 text-gray-700">Icon (Emoji)</label>
-          <div className="flex gap-4 items-center">
-            <input 
-              type="text" 
-              className="w-20 border p-3 rounded-lg text-center text-2xl" 
-              placeholder="⚽"
-              value={formData.icon}
-              onChange={e => setFormData({ ...formData, icon: e.target.value })}
-            />
-            <p className="text-sm text-gray-500">
-              Type an emoji (Win + . or Cmd + Ctrl + Space)
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-bold mb-2 text-gray-700">Cover Image / SVG Icon</label>
-          <div className="flex items-center gap-6">
-            <div className="flex-1">
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
-                onChange={handleFileChange}
+        {/* Basic Information */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+            <CardDescription>Enter the interest name and icon.</CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                Interest Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                required
+                type="text"
+                placeholder="e.g. Football"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                className="focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
               />
-              <p className="text-xs text-gray-400 mt-2">Optional. Used for detailed views or cards.</p>
             </div>
-            {avatarPreview && (
-              <div className="w-24 h-24 border rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
-                <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
-              </div>
-            )}
-          </div>
-        </div>
 
-        <div className="flex justify-end gap-4 border-t pt-6">
-          <button 
+            <div className="space-y-2">
+              <Label htmlFor="icon">Icon (Emoji)</Label>
+              <div className="flex gap-4 items-center">
+                <Input
+                  id="icon"
+                  type="text"
+                  className="w-20 text-center text-2xl border-gray-200 focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
+                  placeholder="⚽"
+                  value={formData.icon}
+                  onChange={e => setFormData({ ...formData, icon: e.target.value })}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Type an emoji (Win + . or Cmd + Ctrl + Space)
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cover Image */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Cover Image</CardTitle>
+            <CardDescription>Upload a cover image or SVG icon for this interest.</CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-6">
+            <div className="flex gap-4 items-center">
+              <div className="relative group h-24 w-24 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => document.getElementById('avatar-input')?.click()}>
+                {avatarPreview ? (
+                  <>
+                    <img src={avatarPreview} alt="Preview" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Upload className="h-5 w-5 text-white" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center p-2">
+                    <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+                    <span className="text-[10px] text-muted-foreground">Click to upload</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    size="sm" 
+                    onClick={() => document.getElementById('avatar-input')?.click()}
+                  >
+                    Choose File
+                  </Button>
+                  {avatarPreview && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-destructive hover:text-destructive" 
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-4 w-4 mr-1" /> Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Optional. Used for detailed views or cards. Recommended: Square image, 400x400px</p>
+                <input 
+                  id="avatar-input"
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleFileChange}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pt-4">
+          <Button 
             type="button" 
-            onClick={() => router.push(redirectPath)} 
-            className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition"
+            variant="outline"
+            onClick={() => router.push(redirectPath)}
+            disabled={loading}
           >
             Cancel
-          </button>
-          <button 
+          </Button>
+          <Button 
             type="submit" 
-            disabled={loading} 
-            className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 shadow-lg transition"
+            disabled={loading}
+            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors"
           >
-            {loading ? 'Saving...' : 'Save Interest'}
-          </button>
+            {loading ? 'Saving...' : initialData ? 'Update Interest' : 'Create Interest'}
+          </Button>
         </div>
 
       </form>

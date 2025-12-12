@@ -1,11 +1,20 @@
 'use client';
 
+import { Suspense } from 'react';
 import GroupManager from '../../../components/GroupManager';
 
-export default function SuperAdminGroupsPage() {
+function GroupManagerPageContent() {
   return (
-    <div className="max-w-7xl mx-auto p-4">
+    <div className="p-8">
       <GroupManager basePath="/admin/super/groups" />
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <GroupManagerPageContent />
+    </Suspense>
   );
 }

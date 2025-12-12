@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 interface CountryFormProps {
   initialData?: any;
@@ -22,6 +23,7 @@ interface CountryFormProps {
 
 export default function CountryForm({ initialData, redirectPath }: CountryFormProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
@@ -42,9 +44,16 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      setAvatarFile(e.target.files[0]);
-      setAvatarPreview(URL.createObjectURL(e.target.files[0]));
+      const file = e.target.files[0];
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
     }
+  };
+
+  const handleRemoveImage = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,7 +95,7 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={redirectPath}>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-600 hover:text-gray-900">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
@@ -94,67 +103,136 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             {initialData ? 'Edit Country' : 'Add New Country'}
           </h1>
-          <p className="text-gray-500 mt-1.5 text-sm">
+          <p className="text-sm text-gray-500 mt-1.5">
             {initialData ? 'Update country information and settings' : 'Create a new country configuration'}
           </p>
         </div>
       </div>
 
       {/* Form Card */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
+      <Card className="border border-gray-100 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold text-gray-900">
-            {initialData ? 'Country Details' : 'Country Information'}
-          </CardTitle>
+          <CardTitle className="text-xl font-semibold text-gray-900">General Information</CardTitle>
+          <CardDescription className="text-gray-500">Enter the basic details for the country.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <Separator />
+        
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             
+            {/* Image Upload Area */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-gray-900">Country Flag / Avatar</Label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                <div 
+                  className="relative group w-32 h-24 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 flex items-center justify-center overflow-hidden hover:border-[#4D4DA4]/50 transition-colors cursor-pointer flex-shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {avatarPreview ? (
+                    <>
+                      <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Upload className="h-5 w-5 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center p-2">
+                      <Upload className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                      <span className="text-[10px] text-gray-400">Click to upload</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-2 flex-1">
+                  <p className="text-sm text-gray-500">
+                    Upload a high-quality flag or representative image.
+                    <br />Recommended size: 400x300px (JPG, PNG).
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-900"
+                    >
+                      Choose File
+                    </Button>
+                    {avatarPreview && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        onClick={handleRemoveImage}
+                      >
+                        <X className="h-4 w-4 mr-1" /> Remove
+                      </Button>
+                    )}
+                  </div>
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Inputs Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-semibold text-gray-900">Name</Label>
+                <Label htmlFor="name" className="text-sm font-semibold text-gray-900">
+                  Name <span className="text-red-500">*</span>
+                </Label>
                 <Input 
                   id="name"
                   required 
-                  type="text" 
                   placeholder="e.g. Sweden"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="country_code" className="text-sm font-semibold text-gray-900">Country Code (ISO)</Label>
+                <Label htmlFor="country_code" className="text-sm font-semibold text-gray-900">
+                  Country Code (ISO) <span className="text-red-500">*</span>
+                </Label>
                 <Input 
                   id="country_code"
                   required 
-                  type="text" 
                   placeholder="e.g. SE"
                   maxLength={5}
                   value={formData.country_code}
                   onChange={e => setFormData({ ...formData, country_code: e.target.value.toUpperCase() })}
-                  className="uppercase"
+                  className="uppercase font-mono"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-semibold text-gray-900">Description</Label>
+              <Label htmlFor="description" className="text-sm font-semibold text-gray-900">
+                Description <span className="text-red-500">*</span>
+              </Label>
               <Textarea 
                 id="description"
                 required 
-                rows={3} 
-                placeholder="General description of the country settings..."
+                rows={4} 
+                className="resize-none"
+                placeholder="Brief description of this region..."
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="currency_code" className="text-sm font-semibold text-gray-900">Currency</Label>
                 <Input 
                   id="currency_code"
-                  type="text" 
                   placeholder="e.g. SEK"
                   value={formData.currency_code}
                   onChange={e => setFormData({ ...formData, currency_code: e.target.value.toUpperCase() })}
@@ -165,7 +243,6 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
                 <Label htmlFor="default_language" className="text-sm font-semibold text-gray-900">Language</Label>
                 <Input 
                   id="default_language"
-                  type="text" 
                   placeholder="e.g. sv"
                   value={formData.default_language}
                   onChange={e => setFormData({ ...formData, default_language: e.target.value })}
@@ -175,7 +252,6 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
                 <Label htmlFor="timezone" className="text-sm font-semibold text-gray-900">Timezone</Label>
                 <Input 
                   id="timezone"
-                  type="text" 
                   placeholder="e.g. Europe/Stockholm"
                   value={formData.timezone}
                   onChange={e => setFormData({ ...formData, timezone: e.target.value })}
@@ -183,40 +259,20 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
               </div>
             </div>
 
-            {/* Avatar / Flag */}
-            <div className="space-y-2">
-              <Label htmlFor="avatar" className="text-sm font-semibold text-gray-900">Flag / Avatar</Label>
-              <div className="flex items-center gap-6">
-                <div className="flex-1">
-                  <Input 
-                    id="avatar"
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleFileChange}
-                    className="cursor-pointer"
-                  />
-                </div>
-                {avatarPreview && (
-                  <div className="w-24 h-24 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm flex-shrink-0">
-                    <img src={avatarPreview} alt="Preview" className="w-full h-full object-contain" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 border-t border-gray-100 pt-6">
+            {/* Actions */}
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
               <Button 
                 type="button" 
                 variant="ghost"
                 onClick={() => router.push(redirectPath)} 
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                className="w-full sm:w-auto text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={loading} 
-                className="bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white"
+                className="w-full sm:w-auto bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white min-w-[120px]"
               >
                 {loading ? 'Saving...' : (initialData ? 'Save Changes' : 'Create Country')}
               </Button>

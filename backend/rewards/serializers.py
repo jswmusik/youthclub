@@ -5,13 +5,38 @@ from groups.serializers import GroupSerializer
 import json
 
 class RewardUsageSerializer(serializers.ModelSerializer):
-    user_name = serializers.CharField(source='user.first_name', read_only=True)
+    user_name = serializers.SerializerMethodField()
     user_email = serializers.CharField(source='user.email', read_only=True)
+    user_first_name = serializers.CharField(source='user.first_name', read_only=True)
+    user_last_name = serializers.CharField(source='user.last_name', read_only=True)
+    user_gender = serializers.CharField(source='user.legal_gender', read_only=True)
+    user_birth_date = serializers.DateField(source='user.date_of_birth', read_only=True)
+    user_club_name = serializers.CharField(source='user.preferred_club.name', read_only=True)
+    user_avatar = serializers.SerializerMethodField()
+
+    def get_user_name(self, obj):
+        """Return full name: first_name last_name"""
+        if obj.user:
+            return f"{obj.user.first_name or ''} {obj.user.last_name or ''}".strip() or 'Unknown User'
+        return 'Unknown User'
+    
+    def get_user_avatar(self, obj):
+        """Return avatar URL if available"""
+        if obj.user and obj.user.avatar:
+            try:
+                return obj.user.avatar.url
+            except (ValueError, AttributeError):
+                return None
+        return None
 
     class Meta:
         model = RewardUsage
         # Include created_at as fallback if redeemed_at is null
-        fields = ['id', 'user_name', 'user_email', 'redeemed_at', 'created_at']
+        fields = [
+            'id', 'user_name', 'user_first_name', 'user_last_name', 'user_email', 
+            'user_gender', 'user_birth_date', 'user_club_name', 'user_avatar',
+            'redeemed_at', 'created_at'
+        ]
 
 class RewardSerializer(serializers.ModelSerializer):
     # Read-only fields to show details nicely in the frontend

@@ -145,11 +145,44 @@ class RewardViewSet(viewsets.ModelViewSet):
     def history(self, request, pk=None):
         """
         Returns the list of users who claimed (redeemed) this reward.
+        Supports filtering by:
+        - search: Search by user first name, last name, or email
+        - date_from: Filter claims from this date onwards
+        - date_to: Filter claims up to this date
         """
         reward = self.get_object()
         
         # Only show REDEEMED rewards, ordered by when they were redeemed
-        usages = reward.usages.filter(is_redeemed=True).select_related('user').order_by('-redeemed_at')
+        usages = reward.usages.filter(is_redeemed=True).select_related('user', 'user__preferred_club').order_by('-redeemed_at')
+        
+        # Apply search filter
+        search = request.query_params.get('search', '').strip()
+        if search:
+            usages = usages.filter(
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search) |
+                Q(user__email__icontains=search)
+            )
+        
+        # Apply date filters
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        
+        if date_from:
+            try:
+                from datetime import datetime
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                usages = usages.filter(redeemed_at__date__gte=date_from_obj)
+            except ValueError:
+                pass  # Invalid date format, ignore filter
+        
+        if date_to:
+            try:
+                from datetime import datetime
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                usages = usages.filter(redeemed_at__date__lte=date_to_obj)
+            except ValueError:
+                pass  # Invalid date format, ignore filter
         
         page = self.paginate_queryset(usages)
         if page is not None:

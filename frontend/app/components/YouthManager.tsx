@@ -3,10 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, Clock, UserCheck, ShieldCheck, Building, UserPlus, UsersRound, CheckCircle2 } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface YouthManagerProps {
   basePath: string;
@@ -23,7 +32,6 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
   
   // Dropdowns
   const [interests, setInterests] = useState<any[]>([]);
@@ -61,8 +69,6 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
 
   const fetchAllUsersForAnalytics = async () => {
     try {
-      // Fetch all youth members for analytics calculation
-      // Fetch page by page until we have all results
       let allUsers: any[] = [];
       let page = 1;
       let totalCount = 0;
@@ -78,52 +84,33 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
         const res: any = await api.get(`/users/?${params.toString()}`);
         const responseData: any = res?.data;
         
-        if (!responseData) {
-          console.warn(`No response data for page ${page}`);
-          break;
-        }
+        if (!responseData) break;
         
         let pageUsers: any[] = [];
         
         if (Array.isArray(responseData)) {
-          // Direct array response
           pageUsers = responseData;
           allUsers = [...allUsers, ...pageUsers];
-          console.log(`Got array response with ${pageUsers.length} users, total: ${allUsers.length}`);
           break;
         } else if (responseData.results && Array.isArray(responseData.results)) {
-          // Paginated response
           pageUsers = responseData.results;
           allUsers = [...allUsers, ...pageUsers];
           
-          // Get total count from first page
           if (page === 1) {
             totalCount = responseData.count || 0;
-            console.log(`First page: ${pageUsers.length} users, total count: ${totalCount}, has next: ${!!responseData.next}`);
           }
           
-          // Check if we should continue
           const hasNext = responseData.next !== null && responseData.next !== undefined;
           const hasAllResults = totalCount > 0 && allUsers.length >= totalCount;
           const gotEmptyPage = pageUsers.length === 0;
           
-          console.log(`Page ${page}: Got ${pageUsers.length} users, total so far: ${allUsers.length}/${totalCount}, hasNext: ${hasNext}`);
-          
-          // Stop if: no next page, we have all results, or got empty page
-          if (!hasNext || hasAllResults || gotEmptyPage) {
-            console.log(`Stopping: hasNext=${hasNext}, hasAllResults=${hasAllResults}, gotEmptyPage=${gotEmptyPage}`);
-            break;
-          }
-          
-          // Continue to next page
+          if (!hasNext || hasAllResults || gotEmptyPage) break;
           page++;
         } else {
-          console.warn(`Unexpected response format on page ${page}:`, responseData);
           break;
         }
       }
       
-      console.log(`Analytics complete: Fetched ${allUsers.length} users (expected ${totalCount || 'unknown'})`);
       setAllUsersForAnalytics(allUsers);
     } catch (err) {
       console.error('Error fetching users for analytics:', err);
@@ -137,7 +124,6 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
       const params = new URLSearchParams();
       params.set('role', 'YOUTH_MEMBER');
       
-      // Get filters from URL
       const search = searchParams.get('search') || '';
       const status = searchParams.get('verification_status') || '';
       const gender = searchParams.get('legal_gender') || '';
@@ -161,20 +147,15 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
       if (municipality) params.set('municipality', municipality);
       if (club) params.set('preferred_club', club);
       
-      // Handle birthday filter - filter client-side if needed
-      // Note: Backend doesn't have birthday_today filter, so we'll filter client-side
-      
-      // Use server-side pagination
       params.set('page', page);
       params.set('page_size', '10');
 
       const res = await api.get(`/users/?${params.toString()}`);
       let usersData = Array.isArray(res.data) ? res.data : res.data.results || [];
       
-      // Client-side filtering for birthday and interest (if backend doesn't support)
       if (birthdayToday === 'true') {
         const today = new Date();
-        const todayMonth = today.getMonth() + 1; // 1-12
+        const todayMonth = today.getMonth() + 1;
         const todayDay = today.getDate();
         usersData = usersData.filter((u: any) => {
           if (!u.date_of_birth) return false;
@@ -195,7 +176,6 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
       }
       
       setAllUsers(usersData);
-      // Get total count from API response
       const count = Array.isArray(res.data) ? usersData.length : (res.data.count || usersData.length);
       setTotalCount(count);
     } catch (err) {
@@ -248,7 +228,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     if (!userToDelete) return;
     try {
       await api.delete(`/users/${userToDelete.id}/`);
-      setToast({ message: 'User deleted.', type: 'success', isVisible: true });
+      setToast({ message: 'Youth member deleted.', type: 'success', isVisible: true });
       fetchYouth();
       fetchAllUsersForAnalytics();
     } catch (err) {
@@ -256,6 +236,40 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     } finally {
       setUserToDelete(null);
     }
+  };
+
+  const getInitials = (first?: string | null, last?: string | null) => {
+    const firstInitial = first?.charAt(0)?.toUpperCase() || '';
+    const lastInitial = last?.charAt(0)?.toUpperCase() || '';
+    return firstInitial + lastInitial || '?';
+  };
+
+  const calculateAge = (dateOfBirth: string | null) => {
+    if (!dateOfBirth) return null;
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'VERIFIED': return 'bg-green-50 text-green-700 border-green-200';
+      case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 'UNVERIFIED': return 'bg-gray-50 text-gray-700 border-gray-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getClubName = (user: any) => {
+    if (!user.preferred_club) return 'No club';
+    const clubId = typeof user.preferred_club === 'object' ? user.preferred_club.id : user.preferred_club;
+    const club = clubs.find(c => c.id === clubId);
+    return club?.name || 'No club';
   };
 
   // Calculate analytics from allUsersForAnalytics
@@ -281,520 +295,494 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     },
   };
 
-  const getInitials = (first?: string | null, last?: string | null) => {
-    const firstInitial = first?.charAt(0)?.toUpperCase() || '';
-    const lastInitial = last?.charAt(0)?.toUpperCase() || '';
-    return firstInitial + lastInitial || '?';
-  };
-
-  const calculateAge = (dateOfBirth: string | null) => {
-    if (!dateOfBirth) return null;
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
   // Pagination logic
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = 10;
   const totalPages = Math.ceil(totalCount / pageSize);
-  // Use allUsers directly since we're doing server-side pagination
   const paginatedUsers = allUsers;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Manage Youth Members</h1>
-        <Link href={`${basePath}/create`} className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 shadow">
-          + Add Youth
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Youth Members</h1>
+          <p className="text-gray-500 mt-1">Manage youth members and their information.</p>
+        </div>
+        <Link href={`${basePath}/create`}>
+          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+            <Plus className="h-4 w-4" /> Add Youth
+          </Button>
         </Link>
       </div>
 
-      {/* Analytics Dashboard */}
+      {/* Analytics */}
       {!loading && (
-        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {/* Toggle Button */}
-          <button
-            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-            className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
+        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+          <Card className="border-0 shadow-sm bg-gray-900">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-400">Analytics Dashboard</h3>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                  <ChevronUp className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                    analyticsExpanded ? "rotate-0" : "rotate-180"
+                  )} />
+                  <span className="sr-only">Toggle Analytics</span>
+                </Button>
+              </CollapsibleTrigger>
             </div>
-            <svg 
-              className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+            <CollapsibleContent className="transition-all duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Card 1: Total Youth */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">Total Youth</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-[#4D4DA4]/30 flex items-center justify-center shadow-md">
+                          <Users className="h-5 w-5 text-[#4D4DA4]" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-white">{analytics.total_youth}</div>
+                    </CardContent>
+                  </Card>
 
-          {/* Analytics Cards - Collapsible */}
-          <div 
-            className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-              analyticsExpanded 
-                ? 'max-h-[500px] opacity-100' 
-                : 'max-h-0 opacity-0'
-            } overflow-hidden`}
-          >
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Total Youth Members */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Youth</h3>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.total_youth}</p>
-              </div>
+                  {/* Card 2: New Last 7 Days */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">New (7 Days)</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center shadow-md">
+                          <UserPlus className="h-5 w-5 text-blue-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-white">{analytics.new_last_7_days}</div>
+                    </CardContent>
+                  </Card>
 
-              {/* Card 2: New Last 7 Days */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-green-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">New (7 Days)</h3>
-                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.new_last_7_days}</p>
-              </div>
+                  {/* Card 3: Gender Breakdown */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">Gender Breakdown</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/30 flex items-center justify-center shadow-md">
+                          <UsersRound className="h-5 w-5 text-purple-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Male:</span>
+                          <span className="font-bold text-white">{analytics.gender.male}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Female:</span>
+                          <span className="font-bold text-white">{analytics.gender.female}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Other:</span>
+                          <span className="font-bold text-white">{analytics.gender.other}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              {/* Card 3: Gender Breakdown */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-purple-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Gender</h3>
-                  <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
+                  {/* Card 4: Verification Status */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white/90">Verification</CardTitle>
+                        <div className="w-10 h-10 rounded-xl bg-green-500/30 flex items-center justify-center shadow-md">
+                          <CheckCircle2 className="h-5 w-5 text-green-400" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Verified:</span>
+                          <span className="font-bold text-white">{analytics.verification.verified}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Unverified/Pending:</span>
+                          <span className="font-bold text-white">{analytics.verification.unverified_pending}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Male:</span>
-                    <span className="font-bold text-gray-900">{analytics.gender.male}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Female:</span>
-                    <span className="font-bold text-gray-900">{analytics.gender.female}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Other:</span>
-                    <span className="font-bold text-gray-900">{analytics.gender.other}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 4: Verification Status */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-orange-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Verification</h3>
-                  <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Verified:</span>
-                    <span className="font-bold text-green-600">{analytics.verification.verified}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Unverified/Pending:</span>
-                    <span className="font-bold text-yellow-600">{analytics.verification.unverified_pending}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       )}
 
-      {/* FILTERS */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-          className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span className="text-sm font-semibold text-gray-700">Filters</span>
-          </div>
-          <svg 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Filter Fields - Collapsible */}
-        <div 
-          className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-            filtersExpanded 
-              ? 'max-h-[1000px] opacity-100' 
-              : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          <div className="p-4">
-            <div className="flex flex-wrap gap-4 items-end">
-          {/* Search */}
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-            <input 
-              type="text" 
-              placeholder="Search by name or email..." 
-              className="w-full border rounded p-2 text-sm bg-gray-50"
-              value={searchParams.get('search') || ''} 
-              onChange={e => updateUrl('search', e.target.value)}
-            />
-          </div>
-
-          {/* Age Range */}
-          <div className="w-24">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Age From</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              placeholder="Min"
-              className="w-full border rounded p-2 text-sm bg-gray-50"
-              value={searchParams.get('age_from') || ''}
-              onChange={e => updateUrl('age_from', e.target.value)}
-            />
-          </div>
-          <div className="w-24">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Age To</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              placeholder="Max"
-              className="w-full border rounded p-2 text-sm bg-gray-50"
-              value={searchParams.get('age_to') || ''}
-              onChange={e => updateUrl('age_to', e.target.value)}
-            />
-          </div>
-
-          {/* Grade Range */}
-          <div className="w-24">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Grade From</label>
-            <input
-              type="number"
-              min="1"
-              max="12"
-              placeholder="Min"
-              className="w-full border rounded p-2 text-sm bg-gray-50"
-              value={searchParams.get('grade_from') || ''}
-              onChange={e => updateUrl('grade_from', e.target.value)}
-            />
-          </div>
-          <div className="w-24">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Grade To</label>
-            <input
-              type="number"
-              min="1"
-              max="12"
-              placeholder="Max"
-              className="w-full border rounded p-2 text-sm bg-gray-50"
-              value={searchParams.get('grade_to') || ''}
-              onChange={e => updateUrl('grade_to', e.target.value)}
-            />
-          </div>
-
-          {/* Gender */}
-          <div className="w-32">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Gender</label>
-            <select 
-              className="w-full border rounded p-2 text-sm bg-gray-50" 
-              value={searchParams.get('legal_gender') || ''} 
-              onChange={e => updateUrl('legal_gender', e.target.value)}
-            >
-              <option value="">Any</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </div>
-
-          {/* Status */}
-          <div className="w-40">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-            <select 
-              className="w-full border rounded p-2 text-sm bg-gray-50" 
-              value={searchParams.get('verification_status') || ''} 
-              onChange={e => updateUrl('verification_status', e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              <option value="VERIFIED">Verified</option>
-              <option value="PENDING">Pending</option>
-              <option value="UNVERIFIED">Unverified</option>
-            </select>
-          </div>
-
-          {/* Interests */}
-          <div className="w-48">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Interest</label>
-            <select 
-              className="w-full border rounded p-2 text-sm bg-gray-50" 
-              value={searchParams.get('interest') || ''} 
-              onChange={e => updateUrl('interest', e.target.value)}
-            >
-              <option value="">All Interests</option>
-              {interests.map(i => (
-                <option key={i.id} value={i.id.toString()}>{i.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Municipality - Only for SUPER scope */}
-          {scope === 'SUPER' && (
-            <div className="w-48">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Municipality</label>
+      {/* Filters */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="p-4 space-y-4">
+          {/* Main Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            {/* Search - Takes more space on larger screens */}
+            <div className="relative md:col-span-4 lg:col-span-3">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search by name or email..." 
+                className="pl-9 bg-gray-50 border-0"
+                value={searchParams.get('search') || ''}
+                onChange={e => updateUrl('search', e.target.value)}
+              />
+            </div>
+            
+            {/* Gender Filter */}
+            <div className="md:col-span-2 lg:col-span-2">
               <select 
-                className="w-full border rounded p-2 text-sm bg-gray-50" 
-                value={searchParams.get('municipality') || ''} 
-                onChange={e => updateUrl('municipality', e.target.value)}
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={searchParams.get('legal_gender') || ''} 
+                onChange={e => updateUrl('legal_gender', e.target.value)}
               >
-                <option value="">All Municipalities</option>
-                {municipalities.map(m => (
-                  <option key={m.id} value={m.id.toString()}>{m.name}</option>
+                <option value="">All Genders</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            
+            {/* Status Filter */}
+            <div className="md:col-span-2 lg:col-span-2">
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={searchParams.get('verification_status') || ''} 
+                onChange={e => updateUrl('verification_status', e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="VERIFIED">Verified</option>
+                <option value="PENDING">Pending</option>
+                <option value="UNVERIFIED">Unverified</option>
+              </select>
+            </div>
+            
+            {/* Municipality Filter - Only for SUPER scope */}
+            {scope === 'SUPER' && (
+              <div className="md:col-span-2 lg:col-span-2">
+                <select 
+                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                  value={searchParams.get('municipality') || ''} 
+                  onChange={e => updateUrl('municipality', e.target.value)}
+                >
+                  <option value="">All Municipalities</option>
+                  {municipalities.map(m => (
+                    <option key={m.id} value={m.id.toString()}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {/* Club Filter */}
+            <div className={cn("md:col-span-2", scope === 'SUPER' ? "lg:col-span-2" : "lg:col-span-3")}>
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={searchParams.get('preferred_club') || ''} 
+                onChange={e => updateUrl('preferred_club', e.target.value)}
+              >
+                <option value="">All Clubs</option>
+                {clubs.map(c => (
+                  <option key={c.id} value={c.id.toString()}>{c.name}</option>
                 ))}
               </select>
             </div>
-          )}
-
-          {/* Club */}
-          <div className="w-48">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Club</label>
-            <select 
-              className="w-full border rounded p-2 text-sm bg-gray-50" 
-              value={searchParams.get('preferred_club') || ''} 
-              onChange={e => updateUrl('preferred_club', e.target.value)}
-            >
-              <option value="">All Clubs</option>
-              {clubs.map(c => (
-                <option key={c.id} value={c.id.toString()}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Birthday Today */}
-          <div className="w-40">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Birthday</label>
-            <select 
-              className="w-full border rounded p-2 text-sm bg-gray-50" 
-              value={searchParams.get('birthday_today') || ''} 
-              onChange={e => updateUrl('birthday_today', e.target.value)}
-            >
-              <option value="">All</option>
-              <option value="true">Today</option>
-            </select>
-          </div>
-
-              {/* Clear Filters */}
-              <button
+            
+            {/* Clear Button */}
+            <div className="md:col-span-2 lg:col-span-1">
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => router.push(pathname)}
-                className="px-4 py-2 text-sm text-gray-500 hover:text-red-500 font-medium"
+                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
               >
-                Clear Filters
-              </button>
+                <X className="h-4 w-4" /> Clear
+              </Button>
+            </div>
+          </div>
+          
+          {/* Advanced Filters Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-3 pt-3 border-t border-gray-100">
+            <div className="col-span-1">
+              <Input
+                type="number"
+                placeholder="Age from"
+                className="h-9 bg-gray-50 border-0"
+                value={searchParams.get('age_from') || ''}
+                onChange={e => updateUrl('age_from', e.target.value)}
+              />
+            </div>
+            <div className="col-span-1">
+              <Input
+                type="number"
+                placeholder="Age to"
+                className="h-9 bg-gray-50 border-0"
+                value={searchParams.get('age_to') || ''}
+                onChange={e => updateUrl('age_to', e.target.value)}
+              />
+            </div>
+            <div className="col-span-1">
+              <Input
+                type="number"
+                placeholder="Grade from"
+                className="h-9 bg-gray-50 border-0"
+                value={searchParams.get('grade_from') || ''}
+                onChange={e => updateUrl('grade_from', e.target.value)}
+              />
+            </div>
+            <div className="col-span-1">
+              <Input
+                type="number"
+                placeholder="Grade to"
+                className="h-9 bg-gray-50 border-0"
+                value={searchParams.get('grade_to') || ''}
+                onChange={e => updateUrl('grade_to', e.target.value)}
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1 md:col-span-2 lg:col-span-2">
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={searchParams.get('interest') || ''} 
+                onChange={e => updateUrl('interest', e.target.value)}
+              >
+                <option value="">All Interests</option>
+                {interests.map(i => (
+                  <option key={i.id} value={i.id.toString()}>{i.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-2 sm:col-span-1 md:col-span-2 lg:col-span-2">
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={searchParams.get('birthday_today') || ''} 
+                onChange={e => updateUrl('birthday_today', e.target.value)}
+              >
+                <option value="">All Birthdays</option>
+                <option value="true">Today</option>
+              </select>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* LIST */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? <div className="p-8 text-center">Loading...</div> : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Grade / Age</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {paginatedUsers.map(u => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {u.avatar ? (
-                        <img src={getMediaUrl(u.avatar) || ''} className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
-                          {getInitials(u.first_name, u.last_name)}
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-bold text-gray-900">{u.first_name} {u.last_name}</div>
-                        <div className="text-xs text-gray-500">{u.email}</div>
+      {/* Content */}
+      {loading ? (
+        <div className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      ) : paginatedUsers.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 text-center">
+            <p className="text-gray-500">No youth members found.</p>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* MOBILE: Cards */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {paginatedUsers.map(user => (
+              <Card key={user.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
+                      <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
+                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                        {getInitials(user.first_name, user.last_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                        {user.first_name} {user.last_name}
+                      </CardTitle>
+                      <CardDescription className="text-xs text-gray-500 truncate flex items-center gap-1">
+                        <Building className="h-3 w-3 flex-shrink-0" />
+                        {getClubName(user)}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
+                      <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
+                        {user.verification_status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-xs text-gray-500 uppercase font-semibold">Grade / Age</span>
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        {user.grade && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            Grade {user.grade}
+                          </Badge>
+                        )}
+                        {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
+                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            {calculateAge(user.date_of_birth)} years
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                        u.verification_status === 'VERIFIED' ? 'bg-green-100 text-green-800' : 
-                        u.verification_status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                        {u.verification_status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {u.grade && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                          Grade {u.grade}
-                        </span>
-                      )}
-                      {u.date_of_birth && calculateAge(u.date_of_birth) !== null && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
-                          {calculateAge(u.date_of_birth)} years old
-                        </span>
-                      )}
-                      {!u.grade && (!u.date_of_birth || calculateAge(u.date_of_birth) === null) && (
-                        <span className="text-sm text-gray-400">-</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link 
-                        href={buildUrlWithParams(`${basePath}/${u.id}`)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
+                  </div>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <Link href={buildUrlWithParams(`${basePath}/${user.id}`)} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        <Eye className="h-4 w-4" />
                         View
-                      </Link>
-                      <Link 
-                        href={buildUrlWithParams(`${basePath}/edit/${u.id}`)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
+                      </Button>
+                    </Link>
+                    <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} className="flex-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        <Edit className="h-4 w-4" />
                         Edit
-                      </Link>
-                      <button 
-                        onClick={() => setUserToDelete(u)} 
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {paginatedUsers.length === 0 && (
-                <tr><td colSpan={4} className="p-8 text-center text-gray-500">No youth members found.</td></tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-          <div className="flex flex-1 justify-between sm:hidden">
-            <button 
-              disabled={currentPage === 1}
-              onClick={() => updateUrl('page', (currentPage - 1).toString())}
-              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button 
-              disabled={currentPage >= totalPages}
-              onClick={() => updateUrl('page', (currentPage + 1).toString())}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                {' '}(Total: {totalCount})
-              </p>
-            </div>
-            <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Previous</span>
-                  ← Prev
-                </button>
-                
-                {/* Simple Pagination Numbers */}
-                {[...Array(totalPages)].map((_, i) => {
-                  const p = i + 1;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => updateUrl('page', p.toString())}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                        ${p === currentPage 
-                          ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => setUserToDelete(user)}
                     >
-                      {p}
-                    </button>
-                  );
-                })}
-
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  <span className="sr-only">Next</span>
-                  Next →
-                </button>
-              </nav>
-            </div>
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
+
+          {/* DESKTOP: Table */}
+          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="h-12 text-gray-600 font-semibold">User</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+                  <TableHead className="h-12 text-gray-600 font-semibold">Grade / Age</TableHead>
+                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedUsers.map(user => (
+                  <TableRow key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
+                          <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                            {getInitials(user.first_name, user.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-semibold text-[#121213]">{user.first_name} {user.last_name}</div>
+                          <div className="text-xs text-gray-500 flex items-center gap-1">
+                            <Building className="h-3 w-3 flex-shrink-0" />
+                            {getClubName(user)}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
+                        {user.verification_status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {user.grade && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            Grade {user.grade}
+                          </Badge>
+                        )}
+                        {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
+                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            {calculateAge(user.date_of_birth)} years
+                          </Badge>
+                        )}
+                        {!user.grade && (!user.date_of_birth || calculateAge(user.date_of_birth) === null) && (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={buildUrlWithParams(`${basePath}/${user.id}`)}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setUserToDelete(user)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1} 
+                onClick={() => updateUrl('page', (currentPage - 1).toString())}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              >
+                Prev
+              </Button>
+              <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage >= totalPages} 
+                onClick={() => updateUrl('page', (currentPage + 1).toString())}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
-      <DeleteConfirmationModal 
+      <ConfirmationModal 
         isVisible={!!userToDelete}
         onClose={() => setUserToDelete(null)}
         onConfirm={handleDelete}
-        itemName={`${userToDelete?.first_name} ${userToDelete?.last_name}`}
+        title="Delete Youth Member"
+        message={`Are you sure you want to delete "${userToDelete?.first_name} ${userToDelete?.last_name}"? This action cannot be undone.`}
+        confirmButtonText="Delete"
+        cancelButtonText="Cancel"
+        variant="danger"
       />
       <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>

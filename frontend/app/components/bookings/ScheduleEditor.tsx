@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import api from '../../../lib/api';
-import { Pencil, Trash2, X, Plus, Save, AlertCircle } from 'lucide-react';
+import { Pencil, Trash2, X, Plus, Save, AlertCircle, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import Toast from '../Toast';
 
 interface ScheduleSlot {
   id?: number;
@@ -33,11 +40,8 @@ export default function ScheduleEditor({ resourceId }: Props) {
   // Edit Mode State
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  // Error Modal State
-  const [errorModal, setErrorModal] = useState<{ isVisible: boolean; message: string }>({
-    isVisible: false,
-    message: ''
-  });
+  // Toast State
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
   // Form State
   const [formSlot, setFormSlot] = useState<ScheduleSlot>({
@@ -123,10 +127,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
   const handleSaveSlot = async () => {
     // Validate time range
     if (formSlot.start_time >= formSlot.end_time) {
-      setErrorModal({
-        isVisible: true,
-        message: 'End time must be after start time.'
-      });
+      setToast({ message: 'End time must be after start time.', type: 'error', isVisible: true });
       return;
     }
     
@@ -157,13 +158,10 @@ export default function ScheduleEditor({ resourceId }: Props) {
           : 'Even Weeks';
       
       const message = overlappingSlot
-        ? `This time slot overlaps with an existing slot:\n\n${overlappingSlot.start_time.slice(0, 5)} - ${overlappingSlot.end_time.slice(0, 5)} (${weekCycleLabel})\n\nPlease choose a different time or adjust the existing slot.`
+        ? `This time slot overlaps with an existing slot: ${overlappingSlot.start_time.slice(0, 5)} - ${overlappingSlot.end_time.slice(0, 5)} (${weekCycleLabel}). Please choose a different time or adjust the existing slot.`
         : 'This time slot overlaps with an existing slot on the same day. Please choose a different time.';
       
-      setErrorModal({
-        isVisible: true,
-        message
-      });
+      setToast({ message, type: 'error', isVisible: true });
       return;
     }
     
@@ -178,6 +176,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
         // Update local state
         setSlots(slots.map(s => s.id === editingId ? res.data : s));
         setEditingId(null); // Exit edit mode
+        setToast({ message: 'Schedule slot updated successfully!', type: 'success', isVisible: true });
       } else {
         // CREATE New
         const res = await api.post('/bookings/schedules/', {
@@ -185,10 +184,10 @@ export default function ScheduleEditor({ resourceId }: Props) {
           resource: resourceId
         });
         setSlots([...slots, res.data]);
+        setToast({ message: 'Schedule slot added successfully!', type: 'success', isVisible: true });
       }
       
-      // Reset Form to defaults (keep weekday to make entering multiple slots for same day easier?)
-      // Let's reset purely to keep it simple
+      // Reset Form to defaults
       setFormSlot({
         weekday: 1,
         start_time: '10:00',
@@ -201,10 +200,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
                           err.response?.data?.detail || 
                           err.response?.data?.end_time?.[0] ||
                           'Failed to save slot. Please check the time format and ensure there are no overlaps.';
-      setErrorModal({
-        isVisible: true,
-        message: errorMessage
-      });
+      setToast({ message: errorMessage, type: 'error', isVisible: true });
     }
   };
 
@@ -236,180 +232,181 @@ export default function ScheduleEditor({ resourceId }: Props) {
       if (editingId === id) {
         handleCancelEdit();
       }
+      setToast({ message: 'Schedule slot deleted successfully!', type: 'success', isVisible: true });
     } catch (err) {
-      alert('Failed to delete slot.');
+      setToast({ message: 'Failed to delete slot.', type: 'error', isVisible: true });
     }
   };
 
-  if (loading) return <div>Loading schedule...</div>;
+  if (loading) {
+    return (
+      <Card className="border border-gray-100 shadow-sm">
+        <CardContent className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading schedule...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="p-4 bg-gray-50 border-b border-gray-200">
-        <h3 className="font-bold text-gray-800">Weekly Schedule</h3>
-        <p className="text-sm text-gray-500">Define when this resource is available for booking.</p>
-      </div>
+    <>
+      <Card className="border-none shadow-sm">
+        <CardHeader>
+          <CardTitle>Weekly Schedule</CardTitle>
+          <CardDescription>Define when this resource is available for booking.</CardDescription>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-4 space-y-4">
+          {/* Editor Form (Used for both Create and Edit) */}
+          <Card className={`border-2 transition-colors ${editingId ? 'bg-yellow-50/30 border-yellow-200' : 'bg-[#EBEBFE]/30 border-[#EBEBFE]'}`}>
+            <CardContent className="p-3">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div className="md:col-span-3 space-y-1.5">
+                  <Label className={`text-xs ${editingId ? 'text-yellow-800' : 'text-[#4D4DA4]'}`}>Day</Label>
+                  <select 
+                    className="flex h-10 w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
+                    value={formSlot.weekday}
+                    onChange={e => setFormSlot({...formSlot, weekday: parseInt(e.target.value)})}
+                  >
+                    {WEEKDAYS.map(d => <option key={d.val} value={d.val}>{d.label}</option>)}
+                  </select>
+                </div>
 
-      <div className="p-6">
-        {/* Editor Form (Used for both Create and Edit) */}
-        <div className={`flex flex-wrap items-end gap-3 mb-8 p-4 rounded-lg border transition-colors ${editingId ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-100'}`}>
-          <div>
-            <label className={`block text-xs font-bold uppercase mb-1 ${editingId ? 'text-yellow-800' : 'text-blue-800'}`}>Day</label>
-            <select 
-              className="border p-2 rounded text-sm w-32"
-              value={formSlot.weekday}
-              onChange={e => setFormSlot({...formSlot, weekday: parseInt(e.target.value)})}
-            >
-              {WEEKDAYS.map(d => <option key={d.val} value={d.val}>{d.label}</option>)}
-            </select>
-          </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className={`text-xs ${editingId ? 'text-yellow-800' : 'text-[#4D4DA4]'}`}>Start Time</Label>
+                  <Input 
+                    type="time" 
+                    className="h-10 bg-white border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-lg"
+                    value={formSlot.start_time}
+                    onChange={e => setFormSlot({...formSlot, start_time: e.target.value})}
+                  />
+                </div>
 
-          <div>
-            <label className={`block text-xs font-bold uppercase mb-1 ${editingId ? 'text-yellow-800' : 'text-blue-800'}`}>Start</label>
-            <input 
-              type="time" 
-              className="border p-2 rounded text-sm"
-              value={formSlot.start_time}
-              onChange={e => setFormSlot({...formSlot, start_time: e.target.value})}
-            />
-          </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className={`text-xs ${editingId ? 'text-yellow-800' : 'text-[#4D4DA4]'}`}>End Time</Label>
+                  <Input 
+                    type="time" 
+                    className="h-10 bg-white border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-lg"
+                    value={formSlot.end_time}
+                    onChange={e => setFormSlot({...formSlot, end_time: e.target.value})}
+                  />
+                </div>
 
-          <div>
-            <label className={`block text-xs font-bold uppercase mb-1 ${editingId ? 'text-yellow-800' : 'text-blue-800'}`}>End</label>
-            <input 
-              type="time" 
-              className="border p-2 rounded text-sm"
-              value={formSlot.end_time}
-              onChange={e => setFormSlot({...formSlot, end_time: e.target.value})}
-            />
-          </div>
+                <div className="md:col-span-3 space-y-1.5">
+                  <Label className={`text-xs ${editingId ? 'text-yellow-800' : 'text-[#4D4DA4]'}`}>Week Cycle</Label>
+                  <select 
+                    className="flex h-10 w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
+                    value={formSlot.week_cycle}
+                    onChange={e => setFormSlot({...formSlot, week_cycle: e.target.value as any})}
+                  >
+                    <option value="ALL">Every Week</option>
+                    <option value="ODD">Odd Weeks</option>
+                    <option value="EVEN">Even Weeks</option>
+                  </select>
+                </div>
+                
+                <div className="md:col-span-2 flex gap-2">
+                  <Button 
+                    onClick={handleSaveSlot}
+                    className={`flex-1 h-10 rounded-full transition-colors text-sm ${
+                      editingId 
+                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                        : 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white'
+                    }`}
+                  >
+                    {editingId ? <Save className="w-3.5 h-3.5 mr-1.5" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
+                    {editingId ? 'Update' : 'Add Slot'}
+                  </Button>
 
-          <div>
-            <label className={`block text-xs font-bold uppercase mb-1 ${editingId ? 'text-yellow-800' : 'text-blue-800'}`}>Weeks</label>
-            <select 
-              className="border p-2 rounded text-sm w-32"
-              value={formSlot.week_cycle}
-              onChange={e => setFormSlot({...formSlot, week_cycle: e.target.value as any})}
-            >
-              <option value="ALL">Every Week</option>
-              <option value="ODD">Odd Weeks</option>
-              <option value="EVEN">Even Weeks</option>
-            </select>
-          </div>
-          
-          <div className="flex gap-2">
-            <button 
-                onClick={handleSaveSlot}
-                className={`text-white px-4 py-2 rounded font-bold text-sm h-10 flex items-center gap-2 shadow-sm
-                    ${editingId ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'}
-                `}
-            >
-                {editingId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                {editingId ? 'Update Slot' : 'Add Slot'}
-            </button>
+                  {editingId && (
+                    <Button 
+                      onClick={handleCancelEdit}
+                      variant="outline"
+                      size="sm"
+                      className="h-10 w-10 rounded-full p-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {editingId && (
-                <button 
-                    onClick={handleCancelEdit}
-                    className="bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded font-bold text-sm h-10 hover:bg-gray-50 flex items-center gap-2"
-                >
-                    <X className="w-4 h-4" /> Cancel
-                </button>
+          {/* Schedule Grid */}
+          <div className="space-y-3">
+            {WEEKDAYS.map(day => {
+              const daySlots = slots
+                  .filter(s => s.weekday === day.val)
+                  .sort((a, b) => a.start_time.localeCompare(b.start_time));
+              
+              if (daySlots.length === 0) return null;
+
+              return (
+                <div key={day.val} className="flex flex-col sm:flex-row gap-3 pb-3 border-b border-gray-100 last:border-0">
+                  <div className="w-full sm:w-28 font-semibold text-sm text-[#121213] pt-1">{day.label}</div>
+                  <div className="flex-1 flex flex-wrap gap-2">
+                    {daySlots.map(slot => (
+                      <div 
+                          key={slot.id} 
+                          className={`border-2 rounded-lg px-3 py-2 flex items-center gap-2 shadow-sm transition-all
+                              ${editingId === slot.id ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-200' : 'bg-white border-gray-200 hover:border-[#4D4DA4]'}
+                          `}
+                      >
+                        <Clock className={`h-3.5 w-3.5 flex-shrink-0 ${editingId === slot.id ? 'text-yellow-700' : 'text-[#4D4DA4]'}`} />
+                        <div className="flex flex-col leading-tight">
+                            <span className="font-mono text-[#121213] font-semibold text-xs">
+                              {slot.start_time.slice(0,5)} - {slot.end_time.slice(0,5)}
+                            </span>
+                            {slot.week_cycle !== 'ALL' && (
+                              <Badge variant="outline" className="mt-0.5 w-fit text-[10px] px-1.5 py-0 bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE]">
+                                {slot.week_cycle === 'ODD' ? 'Odd' : 'Even'}
+                              </Badge>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-0.5 border-l pl-2 ml-auto border-gray-200">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditClick(slot)}
+                            className="h-7 w-7 p-0 text-gray-500 hover:text-[#4D4DA4] hover:bg-[#EBEBFE]"
+                            title="Edit"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteSlot(slot.id!)}
+                            className="h-7 w-7 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {slots.length === 0 && (
+              <div className="text-center py-8">
+                <Clock className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-400 italic">No opening hours defined yet. Add a schedule slot above.</p>
+              </div>
             )}
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Schedule Grid */}
-        <div className="space-y-4">
-          {WEEKDAYS.map(day => {
-            const daySlots = slots
-                .filter(s => s.weekday === day.val)
-                .sort((a, b) => a.start_time.localeCompare(b.start_time));
-            
-            if (daySlots.length === 0) return null;
-
-            return (
-              <div key={day.val} className="flex border-b border-gray-100 pb-3 last:border-0">
-                <div className="w-32 font-bold text-gray-700 pt-2">{day.label}</div>
-                <div className="flex-1 flex flex-wrap gap-2">
-                  {daySlots.map(slot => (
-                    <div 
-                        key={slot.id} 
-                        className={`border rounded px-3 py-1.5 flex items-center gap-3 text-sm shadow-sm transition-all
-                            ${editingId === slot.id ? 'bg-yellow-50 border-yellow-400 ring-1 ring-yellow-200' : 'bg-white border-gray-200 hover:border-blue-300'}
-                        `}
-                    >
-                      <div className="flex flex-col leading-none">
-                          <span className="font-mono text-gray-900 font-bold">
-                            {slot.start_time.slice(0,5)} - {slot.end_time.slice(0,5)}
-                          </span>
-                          {slot.week_cycle !== 'ALL' && (
-                            <span className="text-[10px] text-gray-500 uppercase mt-0.5 font-bold">
-                              {slot.week_cycle === 'ODD' ? 'Odd Weeks' : 'Even Weeks'}
-                            </span>
-                          )}
-                      </div>
-
-                      <div className="flex items-center gap-1 border-l pl-2 border-gray-200">
-                        <button 
-                            onClick={() => handleEditClick(slot)}
-                            className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50"
-                            title="Edit"
-                        >
-                            <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                            onClick={() => handleDeleteSlot(slot.id!)}
-                            className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50"
-                            title="Delete"
-                        >
-                            <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-          {slots.length === 0 && <p className="text-center text-gray-400 italic py-8">No opening hours defined yet.</p>}
-        </div>
-      </div>
-
-      {/* Error Modal */}
-      {errorModal.isVisible && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setErrorModal({ isVisible: false, message: '' })}
-        >
-          <div 
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">Time Slot Error</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                    {errorModal.message}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={() => setErrorModal({ isVisible: false, message: '' })}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Toast 
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast({ ...toast, isVisible: false })}
+      />
+    </>
   );
 }

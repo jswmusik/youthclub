@@ -21,11 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${inter.className}`}>
+    <html lang="en" className="overflow-x-hidden">
+      <body className={`${inter.variable} ${inter.className} overflow-x-hidden max-w-full`}>
         <AuthProvider>
           <SystemAlert />
-          {children}
+          <div className="min-w-0 max-w-full overflow-x-hidden">
+            {children}
+          </div>
         </AuthProvider>
       </body>
     </html>

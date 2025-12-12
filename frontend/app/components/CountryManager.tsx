@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
 // Your existing Modals (Preserved)
-import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
 
 interface CountryManagerProps {
@@ -269,12 +269,15 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
       )}
 
       {/* Preserve Modals */}
-      <DeleteConfirmationModal 
+      <ConfirmationModal 
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
-        itemName={itemToDelete?.name}
-        message={`Are you sure you want to delete "${itemToDelete?.name}"?`}
+        variant="danger"
+        title="Delete Country"
+        message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
+        confirmButtonText="Delete"
+        cancelButtonText="Cancel"
       />
       <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>

@@ -3,9 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Calendar, Clock, Users, Repeat } from 'lucide-react';
 import api from '@/lib/api';
 import { Event } from '@/types/event';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 export default function SuperEventsPage() {
     const router = useRouter();
@@ -152,11 +161,15 @@ export default function SuperEventsPage() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            // Get filters from URL
+            // Get filters from URL - only get valid parameters
             const search = searchParams.get('search') || '';
             const status = searchParams.get('status') || '';
             const recurringFilter = searchParams.get('recurring') || '';
             const page = searchParams.get('page') || '1';
+            
+            // Validate status parameter - only allow valid event statuses
+            const validStatuses = ['DRAFT', 'PUBLISHED', 'SCHEDULED', 'CANCELLED'];
+            const validStatus = status && validStatuses.includes(status) ? status : '';
             
             // Fetch ALL events for client-side filtering and pagination
             // We need all events because we're doing client-side filtering for recurring
@@ -167,37 +180,47 @@ export default function SuperEventsPage() {
             
             while (pageNum <= maxPages) {
                 const params = new URLSearchParams();
-                if (search) params.set('search', search);
-                if (status) params.set('status', status);
+                if (search && search.trim()) params.set('search', search.trim());
+                if (validStatus) params.set('status', validStatus);
                 params.set('page', pageNum.toString());
                 params.set('page_size', fetchPageSize.toString());
                 
-                const res: any = await api.get(`/events/?${params.toString()}`);
-                const responseData: any = res?.data;
+                try {
+                    const res: any = await api.get(`/events/?${params.toString()}`);
+                    const responseData: any = res?.data;
                 
-                if (!responseData) {
-                    break;
-                }
-                
-                let pageEvents: Event[] = [];
-                
-                if (Array.isArray(responseData)) {
-                    pageEvents = responseData;
-                    eventsData = [...eventsData, ...pageEvents];
-                    break;
-                } else if (responseData.results && Array.isArray(responseData.results)) {
-                    pageEvents = responseData.results;
-                    eventsData = [...eventsData, ...pageEvents];
-                    
-                    const hasNext = responseData.next !== null && responseData.next !== undefined;
-                    const gotEmptyPage = pageEvents.length === 0;
-                    
-                    if (!hasNext || gotEmptyPage) {
+                    if (!responseData) {
                         break;
                     }
                     
-                    pageNum++;
-                } else {
+                    let pageEvents: Event[] = [];
+                    
+                    if (Array.isArray(responseData)) {
+                        pageEvents = responseData;
+                        eventsData = [...eventsData, ...pageEvents];
+                        break;
+                    } else if (responseData.results && Array.isArray(responseData.results)) {
+                        pageEvents = responseData.results;
+                        eventsData = [...eventsData, ...pageEvents];
+                        
+                        const hasNext = responseData.next !== null && responseData.next !== undefined;
+                        const gotEmptyPage = pageEvents.length === 0;
+                        
+                        if (!hasNext || gotEmptyPage) {
+                            break;
+                        }
+                        
+                        pageNum++;
+                    } else {
+                        break;
+                    }
+                } catch (error: any) {
+                    console.error(`Error fetching events page ${pageNum}:`, error);
+                    if (error.response?.status === 400) {
+                        console.error('Bad request parameters:', params.toString());
+                        console.error('Error details:', error.response?.data);
+                    }
+                    // Break on error to prevent infinite loop
                     break;
                 }
             }
@@ -275,8 +298,32 @@ export default function SuperEventsPage() {
             setEvents(paginatedEvents);
             // Set total count based on filtered results
             setTotalCount(eventsData.length);
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            console.error('Error fetching events:', error);
+            if (error.response?.status === 400) {
+                console.error('Bad request - check URL parameters:', searchParams.toString());
+                console.error('Error details:', error.response?.data);
+                // Try to fetch without problematic parameters
+                try {
+                    const params = new URLSearchParams();
+                    params.set('page', '1');
+                    params.set('page_size', '100');
+                    const res: any = await api.get(`/events/?${params.toString()}`);
+                    const responseData: any = res?.data;
+                    if (responseData) {
+                        const events = Array.isArray(responseData) ? responseData : (responseData.results || []);
+                        setEvents(events.slice(0, 10));
+                        setTotalCount(events.length);
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback fetch also failed:', fallbackError);
+                    setEvents([]);
+                    setTotalCount(0);
+                }
+            } else {
+                setEvents([]);
+                setTotalCount(0);
+            }
         } finally {
             setLoading(false);
         }
@@ -369,369 +416,394 @@ export default function SuperEventsPage() {
     const paginatedEvents = events;
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">Manage Events</h1>
-                <Link href="/admin/super/events/create" className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 shadow">
-                    + Create Event
+        <div className="p-8">
+            <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Events</h1>
+                    <p className="text-gray-500 mt-1">Manage events and their information.</p>
+                </div>
+                <Link href="/admin/super/events/create">
+                    <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+                        <Plus className="h-4 w-4" /> Create Event
+                    </Button>
                 </Link>
             </div>
 
-            {/* Analytics Dashboard */}
+            {/* Analytics */}
             {!loading && (
-                <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    {/* Toggle Button */}
-                    <button
-                        onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-                        className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-                    >
+                <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
+                            <BarChart3 className="h-4 w-4 text-gray-500" />
+                            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
                         </div>
-                        <svg 
-                            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-
-                    {/* Analytics Cards - Collapsible */}
-                    <div 
-                        className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-                            analyticsExpanded 
-                                ? 'max-h-[500px] opacity-100' 
-                                : 'max-h-0 opacity-0'
-                        } overflow-hidden`}
-                    >
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
+                                <ChevronUp className={cn(
+                                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                                    analyticsExpanded ? "rotate-0" : "rotate-180"
+                                )} />
+                                <span className="sr-only">Toggle Analytics</span>
+                            </Button>
+                        </CollapsibleTrigger>
+                    </div>
+                    <CollapsibleContent className="space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
                             {/* Card 1: Total Events */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Events</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-gray-900">{analytics.total_events}</p>
-                            </div>
+                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-gray-500">Total Events</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_events}</div>
+                                </CardContent>
+                            </Card>
 
                             {/* Card 2: Upcoming Events */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-green-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upcoming Events</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-gray-900">{analytics.upcoming_events}</p>
-                            </div>
+                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-gray-500">Upcoming Events</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.upcoming_events}</div>
+                                </CardContent>
+                            </Card>
 
                             {/* Card 3: Total Members Who Attended */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-purple-300 hover:shadow-sm transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Members Attended</h3>
-                                    <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold text-gray-900">{analytics.total_attended}</p>
-                            </div>
+                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-gray-500">Members Attended</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_attended}</div>
+                                </CardContent>
+                            </Card>
                         </div>
-                    </div>
-                </div>
+                    </CollapsibleContent>
+                </Collapsible>
             )}
 
-            {/* FILTERS */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                {/* Toggle Button */}
-                <button
-                    onClick={() => setFiltersExpanded(!filtersExpanded)}
-                    className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-                >
-                    <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                        </svg>
-                        <span className="text-sm font-semibold text-gray-700">Filters</span>
-                    </div>
-                    <svg 
-                        className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-
-                {/* Filter Fields - Collapsible */}
-                <div 
-                    className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-                        filtersExpanded 
-                            ? 'max-h-[1000px] opacity-100' 
-                            : 'max-h-0 opacity-0'
-                    } overflow-hidden`}
-                >
-                    <div className="p-4">
-                        <div className="flex flex-wrap gap-4 items-end">
-                            {/* Search */}
-                            <div className="flex-1 min-w-[200px]">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="Search by title or location..." 
-                                    className="w-full border rounded p-2 text-sm bg-gray-50"
-                                    value={searchParams.get('search') || ''} 
-                                    onChange={e => updateUrl('search', e.target.value)}
-                                />
-                            </div>
-
-                            {/* Status */}
-                            <div className="w-40">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                                <select 
-                                    className="w-full border rounded p-2 text-sm bg-gray-50" 
-                                    value={searchParams.get('status') || ''} 
-                                    onChange={e => updateUrl('status', e.target.value)}
-                                >
-                                    <option value="">All Statuses</option>
-                                    <option value="DRAFT">Draft</option>
-                                    <option value="SCHEDULED">Scheduled</option>
-                                    <option value="PUBLISHED">Published</option>
-                                    <option value="CANCELLED">Cancelled</option>
-                                    <option value="ARCHIVED">Archived</option>
-                                </select>
-                            </div>
-
-                            {/* Recurring Events Filter */}
-                            <div className="w-48">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Recurring Events</label>
-                                <select 
-                                    className="w-full border rounded p-2 text-sm bg-gray-50" 
-                                    value={searchParams.get('recurring') || ''} 
-                                    onChange={e => updateUrl('recurring', e.target.value)}
-                                >
-                                    <option value="">All Events</option>
-                                    <option value="only">Only Recurring (with instances)</option>
-                                    <option value="exclude">Exclude Recurring</option>
-                                </select>
-                            </div>
-
-                            {/* Clear Filters */}
-                            <button
-                                onClick={() => {
-                                    // Clear all filters but preserve page number if user wants to stay on current page
-                                    // Or reset to page 1 - let's reset to page 1 for consistency
-                                    router.replace(`${pathname}?page=1`);
-                                }}
-                                className="px-4 py-2 text-sm text-gray-500 hover:text-red-500 font-medium"
+            {/* Filters */}
+            <Card className="border border-gray-100 shadow-sm bg-white">
+                <div className="p-4 space-y-4">
+                    {/* Main Filters Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                        {/* Search - Takes more space on larger screens */}
+                        <div className="relative md:col-span-4 lg:col-span-3">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                            <Input 
+                                placeholder="Search by title or location..." 
+                                className="pl-9 bg-gray-50 border-0"
+                                value={searchParams.get('search') || ''} 
+                                onChange={e => updateUrl('search', e.target.value)}
+                            />
+                        </div>
+                        
+                        {/* Status Filter */}
+                        <div className="md:col-span-2 lg:col-span-2">
+                            <select 
+                                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                                value={searchParams.get('status') || ''} 
+                                onChange={e => updateUrl('status', e.target.value)}
                             >
-                                Clear Filters
-                            </button>
+                                <option value="">All Statuses</option>
+                                <option value="DRAFT">Draft</option>
+                                <option value="SCHEDULED">Scheduled</option>
+                                <option value="PUBLISHED">Published</option>
+                                <option value="CANCELLED">Cancelled</option>
+                                <option value="ARCHIVED">Archived</option>
+                            </select>
+                        </div>
+                        
+                        {/* Recurring Events Filter */}
+                        <div className="md:col-span-2 lg:col-span-2">
+                            <select 
+                                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                                value={searchParams.get('recurring') || ''} 
+                                onChange={e => updateUrl('recurring', e.target.value)}
+                            >
+                                <option value="">All Events</option>
+                                <option value="only">Only Recurring</option>
+                                <option value="exclude">Exclude Recurring</option>
+                            </select>
+                        </div>
+                        
+                        {/* Clear Button */}
+                        <div className="md:col-span-2 lg:col-span-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.replace(`${pathname}?page=1`)}
+                                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+                            >
+                                <X className="h-4 w-4" /> Clear
+                            </Button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Card>
 
-            {/* LIST */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                {loading ? <div className="p-8 text-center">Loading...</div> : (
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Event</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Recurring</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Registrations</th>
-                                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {paginatedEvents.map(event => (
-                                <tr key={event.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4">
-                                        <div className="font-bold text-gray-900">{event.title}</div>
-                                        <div className="text-xs text-gray-500 truncate max-w-xs">{event.location_name}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-sm">
-                                            {new Date(event.start_date).toLocaleDateString()}
+            {/* Content */}
+            {loading ? (
+                <div className="py-20 flex justify-center text-gray-400">
+                    <div className="animate-pulse">Loading events...</div>
+                </div>
+            ) : paginatedEvents.length === 0 ? (
+                <Card className="border border-gray-100 shadow-sm">
+                    <div className="py-20 text-center">
+                        <p className="text-gray-500">
+                            {searchParams.get('search') || searchParams.get('status') || searchParams.get('recurring')
+                                ? 'No events found matching your filters.'
+                                : 'No events found. Create your first one!'}
+                        </p>
+                    </div>
+                </Card>
+            ) : (
+                <>
+                    {/* MOBILE: Cards */}
+                    <div className="grid grid-cols-1 gap-3 md:hidden">
+                        {paginatedEvents.map(event => (
+                            <Card key={event.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
+                                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-[#EBEBFE] flex-shrink-0">
+                                            <AvatarFallback className="rounded-lg font-bold text-sm text-[#4D4DA4] bg-[#EBEBFE]">
+                                                <Calendar className="h-5 w-5" />
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 min-w-0">
+                                            <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                                                {event.title}
+                                            </CardTitle>
+                                            <CardDescription className="text-xs text-gray-500 truncate">
+                                                {event.location_name}
+                                            </CardDescription>
                                         </div>
-                                        <div className="text-xs text-gray-500">
-                                            {new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3 pt-0">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-xs text-gray-500 uppercase font-semibold">Date</span>
+                                            <div className="text-right">
+                                                <div className="text-sm text-gray-600">{new Date(event.start_date).toLocaleDateString()}</div>
+                                                <div className="text-xs text-gray-500">{new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {event.is_recurring || event.parent_event ? (
-                                            <div className="flex flex-col gap-1">
-                                                {event.is_recurring && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">
-                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                        </svg>
-                                                        {event.recurrence_pattern || 'Recurring'}
-                                                    </span>
-                                                )}
-                                                {event.parent_event && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
-                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                                        </svg>
-                                                        Instance
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-gray-400">-</span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                            event.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' : 
-                                            event.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' : 
-                                            event.status === 'SCHEDULED' ? 'bg-blue-100 text-blue-800' :
-                                            event.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                                            'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                            {event.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">
-                                        {event.allow_registration ? (
-                                            <div className="flex items-center gap-1">
-                                                <span className="font-medium">{event.confirmed_participants_count}</span>
-                                                <span className="text-gray-400">/</span>
-                                                <span className="text-gray-500">{event.max_seats === 0 ? '∞' : event.max_seats}</span>
-                                                {event.waitlist_count > 0 && (
-                                                    <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-1 rounded">
-                                                        +{event.waitlist_count} WL
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <span className="text-sm text-gray-400">-</span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Link 
-                                                href={buildUrlWithParams(`/admin/super/events/edit/${event.id}`)} 
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-900 transition-colors"
-                                            >
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                </svg>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-xs text-gray-500 uppercase font-semibold">Recurring</span>
+                                            {event.is_recurring || event.parent_event ? (
+                                                <div className="flex flex-wrap gap-1 justify-end">
+                                                    {event.is_recurring && (
+                                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                                                            <Repeat className="h-3 w-3 mr-1" />
+                                                            {event.recurrence_pattern || 'Recurring'}
+                                                        </Badge>
+                                                    )}
+                                                    {event.parent_event && (
+                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                                            Instance
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">-</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
+                                            <Badge variant="outline" className={`text-xs ${
+                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                event.status === 'DRAFT' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                event.status === 'SCHEDULED' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                event.status === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                'bg-gray-50 text-gray-700 border-gray-200'
+                                            }`}>
+                                                {event.status}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-xs text-gray-500 uppercase font-semibold">Registrations</span>
+                                            {event.allow_registration ? (
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-sm font-medium text-gray-600">{event.confirmed_participants_count}</span>
+                                                    <span className="text-gray-400">/</span>
+                                                    <span className="text-sm text-gray-500">{event.max_seats === 0 ? '∞' : event.max_seats}</span>
+                                                    {event.waitlist_count > 0 && (
+                                                        <Badge variant="outline" className="ml-2 bg-orange-50 text-orange-700 border-orange-200 text-xs">
+                                                            +{event.waitlist_count} WL
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-sm text-gray-400">-</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* Action Buttons */}
+                                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                        <Link href={buildUrlWithParams(`/admin/super/events/edit/${event.id}`)} className="flex-1">
+                                            <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                                                <Edit className="h-4 w-4" />
                                                 Edit
-                                            </Link>
-                                            <Link 
-                                                href={buildUrlWithParams(`/admin/super/events/${event.id}`)} 
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-900 transition-colors"
-                                            >
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                </svg>
-                                                Manage
-                                            </Link>
-                                            <button
-                                                onClick={() => handleDeleteClick(event)}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors"
-                                            >
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {paginatedEvents.length === 0 && (
-                                <tr><td colSpan={6} className="p-8 text-center text-gray-500">No events found. Click "Create Event" to get started.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-                    <div className="flex flex-1 justify-between sm:hidden">
-                        <button 
-                            disabled={currentPage === 1}
-                            onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                        >
-                            Previous
-                        </button>
-                        <button 
-                            disabled={currentPage >= totalPages}
-                            onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                        >
-                            Next
-                        </button>
-                    </div>
-                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                        <div>
-                            <p className="text-sm text-gray-700">
-                                Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                                {' '}(Total: {totalCount})
-                            </p>
-                        </div>
-                        <div>
-                            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                <button
-                                    disabled={currentPage === 1}
-                                    onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                                >
-                                    <span className="sr-only">Previous</span>
-                                    ← Prev
-                                </button>
-                                
-                                {/* Simple Pagination Numbers */}
-                                {[...Array(totalPages)].map((_, i) => {
-                                    const p = i + 1;
-                                    return (
-                                        <button
-                                            key={p}
-                                            onClick={() => updateUrl('page', p.toString())}
-                                            className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                                                ${p === currentPage 
-                                                    ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                                                    : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                                            </Button>
+                                        </Link>
+                                        <Link href={buildUrlWithParams(`/admin/super/events/${event.id}`)} className="flex-1">
+                                            <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                                                <Eye className="h-4 w-4" />
+                                                View
+                                            </Button>
+                                        </Link>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            onClick={() => handleDeleteClick(event)}
                                         >
-                                            {p}
-                                        </button>
-                                    );
-                                })}
-
-                                <button
-                                    disabled={currentPage >= totalPages}
-                                    onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                                >
-                                    <span className="sr-only">Next</span>
-                                    Next →
-                                </button>
-                            </nav>
-                        </div>
+                                            <Trash2 className="h-4 w-4" />
+                                            Delete
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
+
+                    {/* DESKTOP: Table */}
+                    <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                                    <TableHead className="h-12 text-gray-600 font-semibold">Event</TableHead>
+                                    <TableHead className="h-12 text-gray-600 font-semibold">Date</TableHead>
+                                    <TableHead className="h-12 text-gray-600 font-semibold">Recurring</TableHead>
+                                    <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+                                    <TableHead className="h-12 text-gray-600 font-semibold">Registrations</TableHead>
+                                    <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {paginatedEvents.map(event => (
+                                    <TableRow key={event.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                        <TableCell className="py-4">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-9 w-9 rounded-lg bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
+                                                    <AvatarFallback className="rounded-lg font-bold text-sm text-[#4D4DA4] bg-[#EBEBFE]">
+                                                        <Calendar className="h-5 w-5" />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="font-semibold text-[#121213]">{event.title}</div>
+                                                    <div className="text-xs text-gray-500 truncate max-w-xs">{event.location_name}</div>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <div className="text-sm text-gray-600">{new Date(event.start_date).toLocaleDateString()}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            {event.is_recurring || event.parent_event ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {event.is_recurring && (
+                                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                                                            <Repeat className="h-3 w-3 mr-1" />
+                                                            {event.recurrence_pattern || 'Recurring'}
+                                                        </Badge>
+                                                    )}
+                                                    {event.parent_event && (
+                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                                            Instance
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-sm text-gray-400">-</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <Badge variant="outline" className={`text-xs ${
+                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                event.status === 'DRAFT' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                event.status === 'SCHEDULED' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                event.status === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                'bg-gray-50 text-gray-700 border-gray-200'
+                                            }`}>
+                                                {event.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            {event.allow_registration ? (
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-sm font-medium text-gray-600">{event.confirmed_participants_count}</span>
+                                                    <span className="text-gray-400">/</span>
+                                                    <span className="text-sm text-gray-500">{event.max_seats === 0 ? '∞' : event.max_seats}</span>
+                                                    {event.waitlist_count > 0 && (
+                                                        <Badge variant="outline" className="ml-2 bg-orange-50 text-orange-700 border-orange-200 text-xs">
+                                                            +{event.waitlist_count} WL
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-sm text-gray-400">-</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="py-4 text-right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Link href={buildUrlWithParams(`/admin/super/events/edit/${event.id}`)}>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                <Link href={buildUrlWithParams(`/admin/super/events/${event.id}`)}>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={() => handleDeleteClick(event)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Card>
+                </>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 py-4">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        disabled={currentPage === 1} 
+                        onClick={() => updateUrl('page', (currentPage - 1).toString())}
+                        className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    >
+                        Prev
+                    </Button>
+                    <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        disabled={currentPage >= totalPages} 
+                        onClick={() => updateUrl('page', (currentPage + 1).toString())}
+                        className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    >
+                        Next
+                    </Button>
                 </div>
             )}
 
@@ -845,6 +917,7 @@ export default function SuperEventsPage() {
                     )}
                 </>
             )}
+            </div>
         </div>
     );
 }

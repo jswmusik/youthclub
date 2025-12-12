@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
-import { X, Search, User, Calendar, Clock } from 'lucide-react';
+import { X, Search, User, Calendar, Clock, Loader2 } from 'lucide-react';
 import { format, addDays, startOfWeek } from 'date-fns';
 import Toast from '../../Toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { getMediaUrl, getInitials } from '../../../utils';
+import { cn } from '@/lib/utils';
 
 interface Props {
   onClose: () => void;
@@ -191,7 +200,11 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
             errorMessage = err.message;
         }
         
-        alert(errorMessage);
+        setToast({ 
+          message: errorMessage, 
+          type: 'error', 
+          isVisible: true 
+        });
         setLoading(false);
     }
   };
@@ -208,200 +221,251 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
       onClick={handleBackdropClick}
       style={{ animation: 'fadeIn 0.2s ease-out' }}
     >
-      <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-200"
+      <Card 
+        className="bg-white w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-200"
         style={{ animation: 'slideUp 0.2s ease-out' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-900">Create Booking</h2>
-          <button 
+        {/* Header */}
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 border-b border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-2xl font-bold text-[#121213] mb-1">Create Booking</CardTitle>
+            <p className="text-sm text-gray-500">Book a resource for a youth member</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             disabled={loading}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+            className="h-8 w-8 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full"
           >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+            <X className="h-5 w-5" />
+          </Button>
+        </CardHeader>
 
-        <div className="p-6 overflow-y-auto space-y-6">
-            {/* Step 1: Select User */}
-            <div className="space-y-2">
-                <label className="block text-sm font-bold text-gray-700">1. Select Youth Member</label>
-                {selectedUser ? (
-                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                                {selectedUser.first_name[0]}
-                            </div>
-                            <div>
-                                <div className="font-bold text-sm">{selectedUser.first_name} {selectedUser.last_name}</div>
-                                <div className="text-xs text-gray-500">{selectedUser.email}</div>
-                            </div>
+        <CardContent className="p-6 overflow-y-auto flex-1 space-y-6">
+          {/* Step 1: Select User */}
+          <Card className="border border-gray-100 shadow-sm bg-white">
+            <CardContent className="p-4 space-y-3">
+              <Label className="text-sm font-semibold text-[#121213]">1. Select Youth Member</Label>
+              {selectedUser ? (
+                <Card className="bg-[#EBEBFE]/30 border-[#EBEBFE]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Avatar className="h-12 w-12 rounded-full border-2 border-[#EBEBFE] bg-gray-50">
+                          <AvatarImage src={selectedUser.avatar ? getMediaUrl(selectedUser.avatar) : undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-full font-bold text-sm bg-[#EBEBFE] text-[#4D4DA4]">
+                            {getInitials(selectedUser.first_name, selectedUser.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-sm text-[#121213] truncate">
+                            {selectedUser.first_name} {selectedUser.last_name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">{selectedUser.email}</div>
                         </div>
-                        <button onClick={() => setSelectedUser(null)} className="text-xs text-red-600 font-bold hover:underline">Change</button>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedUser(null)} 
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs"
+                      >
+                        Change
+                      </Button>
                     </div>
-                ) : (
-                    <div className="relative">
-                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Search by name or email..." 
-                            className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm"
-                            value={userSearch}
-                            onChange={(e) => handleUserSearch(e.target.value)}
-                        />
-                        {users.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 bg-white border shadow-lg mt-1 rounded-lg z-10 max-h-48 overflow-y-auto">
-                                {users.map(u => (
-                                    <button 
-                                        key={u.id}
-                                        onClick={() => { setSelectedUser(u); setUsers([]); setUserSearch(''); }}
-                                        className="w-full text-left p-3 hover:bg-gray-50 text-sm border-b last:border-0"
-                                    >
-                                        <div className="font-bold">{u.first_name} {u.last_name}</div>
-                                        <div className="text-xs text-gray-500">{u.email}</div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Step 2: Select Resource (only show if not pre-selected) */}
-            {!preSelectedSlot && (
-              <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">2. Select Resource</label>
-                  <select 
-                      className="w-full border p-2 rounded-lg text-sm"
-                      value={selectedResource?.id || ''}
-                      onChange={e => {
-                        const resource = resources.find(r => r.id === parseInt(e.target.value));
-                        setSelectedResource(resource);
-                        setDate(''); // Reset date when resource changes
-                        setSelectedSlot(null);
-                      }}
-                  >
-                      <option value="">-- Choose Room or Equipment --</option>
-                      {resources.map(r => (
-                          <option key={r.id} value={r.id}>{r.name} ({r.club_name})</option>
-                      ))}
-                  </select>
-              </div>
-            )}
-
-            {/* Step 2b: Show Resource Info if pre-selected */}
-            {preSelectedSlot && selectedResource && (
-              <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">2. Resource</label>
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
-                    <div className="font-semibold text-gray-900">{selectedResource.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{selectedResource.club_name}</div>
-                  </div>
-              </div>
-            )}
-
-            {/* Step 3: Select Date (only show if not pre-selected) */}
-            {!preSelectedSlot && selectedResource && (
-              <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">3. Select Date</label>
-                  <input 
-                      type="date" 
-                      className="w-full border p-2 rounded-lg text-sm"
-                      value={date}
-                      min={format(new Date(), 'yyyy-MM-dd')}
-                      onChange={e => {
-                        setDate(e.target.value);
-                        setSelectedSlot(null);
-                      }}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input 
+                    type="text" 
+                    placeholder="Search by name or email..." 
+                    className="pl-9 h-12 bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl"
+                    value={userSearch}
+                    onChange={(e) => handleUserSearch(e.target.value)}
                   />
-              </div>
-            )}
-
-            {/* Step 3b: Show Date Info if pre-selected */}
-            {preSelectedSlot && date && (
-              <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">3. Date</label>
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
-                    <div className="font-semibold text-gray-900">{format(new Date(date), 'EEEE, MMMM d, yyyy')}</div>
-                  </div>
-              </div>
-            )}
-
-            {/* Step 4: Time Slot */}
-            {preSelectedSlot && selectedSlot ? (
-              // Show locked pre-selected slot - cannot be changed
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-gray-700">4. Time Slot</label>
-                <div className="p-4 bg-blue-50 border-2 border-blue-500 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-blue-900 text-base">
-                          {format(new Date(selectedSlot.start), 'HH:mm')} - {format(new Date(selectedSlot.end), 'HH:mm')}
-                        </div>
-                        <div className="text-xs text-blue-600 mt-0.5">Pre-selected from calendar</div>
-                      </div>
-                    </div>
-                    <div className="px-3 py-1 bg-blue-200 text-blue-800 text-xs font-bold rounded-full">
-                      Locked
-                    </div>
-                  </div>
-                  <p className="text-xs text-blue-700 mt-3 pt-3 border-t border-blue-200">
-                    To select a different time slot, close this modal and click on another available slot in the calendar.
-                  </p>
+                  {users.length > 0 && (
+                    <Card className="absolute top-full left-0 right-0 mt-2 shadow-lg z-10 max-h-48 overflow-y-auto">
+                      <CardContent className="p-0">
+                        {users.map(u => (
+                          <button 
+                            key={u.id}
+                            onClick={() => { setSelectedUser(u); setUsers([]); setUserSearch(''); }}
+                            className="w-full text-left p-3 hover:bg-gray-50 text-sm border-b last:border-0 transition-colors"
+                          >
+                            <div className="font-semibold text-[#121213]">{u.first_name} {u.last_name}</div>
+                            <div className="text-xs text-gray-500">{u.email}</div>
+                          </button>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
-              </div>
-            ) : !preSelectedSlot && selectedResource && date && (
-              // Show slot picker only if not pre-selected
-              <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">4. Select Available Time Slot</label>
-                  {loadingSlots ? (
-                    <div className="text-center py-4 text-gray-400 text-sm">Loading available slots...</div>
-                  ) : availableSlots.length === 0 ? (
-                    <div className="text-center py-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Step 2: Select Resource (only show if not pre-selected) */}
+          {!preSelectedSlot && (
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-3">
+                <Label className="text-sm font-semibold text-[#121213]">2. Select Resource</Label>
+                <select 
+                  className="flex h-12 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
+                  value={selectedResource?.id || ''}
+                  onChange={e => {
+                    const resource = resources.find(r => r.id === parseInt(e.target.value));
+                    setSelectedResource(resource);
+                    setDate(''); // Reset date when resource changes
+                    setSelectedSlot(null);
+                  }}
+                >
+                  <option value="">-- Choose Room or Equipment --</option>
+                  {resources.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} ({r.club_name})</option>
+                  ))}
+                </select>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 2b: Show Resource Info if pre-selected */}
+          {preSelectedSlot && selectedResource && (
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-3">
+                <Label className="text-sm font-semibold text-[#121213]">2. Resource</Label>
+                <Card className="bg-[#EBEBFE]/30 border-[#EBEBFE]">
+                  <CardContent className="p-4">
+                    <div className="font-semibold text-[#121213]">{selectedResource.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">{selectedResource.club_name}</div>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 3: Select Date (only show if not pre-selected) */}
+          {!preSelectedSlot && selectedResource && (
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-3">
+                <Label className="text-sm font-semibold text-[#121213]">3. Select Date</Label>
+                <Input 
+                  type="date" 
+                  className="h-12 bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl"
+                  value={date}
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                  onChange={e => {
+                    setDate(e.target.value);
+                    setSelectedSlot(null);
+                  }}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 3b: Show Date Info if pre-selected */}
+          {preSelectedSlot && date && (
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-3">
+                <Label className="text-sm font-semibold text-[#121213]">3. Date</Label>
+                <Card className="bg-[#EBEBFE]/30 border-[#EBEBFE]">
+                  <CardContent className="p-4">
+                    <div className="font-semibold text-[#121213]">{format(new Date(date), 'EEEE, MMMM d, yyyy')}</div>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: Time Slot */}
+          {preSelectedSlot && selectedSlot ? (
+            // Show locked pre-selected slot - cannot be changed
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-3">
+                <Label className="text-sm font-semibold text-[#121213]">4. Time Slot</Label>
+                <Card className="bg-[#EBEBFE]/30 border-2 border-[#4D4DA4]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="h-12 w-12 rounded-full bg-[#4D4DA4] flex items-center justify-center flex-shrink-0">
+                          <Clock className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-[#121213] text-base">
+                            {format(new Date(selectedSlot.start), 'HH:mm')} - {format(new Date(selectedSlot.end), 'HH:mm')}
+                          </div>
+                          <div className="text-xs text-[#4D4DA4] mt-0.5">Pre-selected from calendar</div>
+                        </div>
+                      </div>
+                      <Badge className="bg-[#4D4DA4] text-white border-[#4D4DA4]">Locked</Badge>
+                    </div>
+                    <Separator className="my-3" />
+                    <p className="text-xs text-gray-600">
+                      To select a different time slot, close this modal and click on another available slot in the calendar.
+                    </p>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          ) : !preSelectedSlot && selectedResource && date && (
+            // Show slot picker only if not pre-selected
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-3">
+                <Label className="text-sm font-semibold text-[#121213]">4. Select Available Time Slot</Label>
+                {loadingSlots ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                    <p className="text-sm">Loading available slots...</p>
+                  </div>
+                ) : availableSlots.length === 0 ? (
+                  <Card className="bg-yellow-50 border-yellow-200">
+                    <CardContent className="p-4 text-center">
                       <p className="text-sm text-yellow-800 font-medium">No available slots for this date</p>
                       <p className="text-xs text-yellow-600 mt-1">Please check the schedule or select a different date</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border rounded-xl bg-gray-50">
-                      {availableSlots.map((slot, idx) => {
-                        const slotStart = new Date(slot.start);
-                        const slotEnd = new Date(slot.end);
-                        const isSelected = selectedSlot?.start === slot.start;
-                        
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => setSelectedSlot(slot)}
-                            className={`p-3 rounded-lg border text-sm font-bold transition-all text-left ${
-                              isSelected
-                                ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-200'
-                                : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Clock className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
-                              <span>
-                                {format(slotStart, 'HH:mm')} - {format(slotEnd, 'HH:mm')}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-              </div>
-            )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border-2 border-gray-200 rounded-xl bg-gray-50">
+                    {availableSlots.map((slot, idx) => {
+                      const slotStart = new Date(slot.start);
+                      const slotEnd = new Date(slot.end);
+                      const isSelected = selectedSlot?.start === slot.start;
+                      
+                      return (
+                        <Button
+                          key={idx}
+                          variant="outline"
+                          onClick={() => setSelectedSlot(slot)}
+                          className={cn(
+                            "h-auto py-3 px-3 rounded-lg border-2 transition-all text-left justify-start",
+                            isSelected
+                              ? 'bg-[#4D4DA4] text-white border-[#4D4DA4] hover:bg-[#FF5485] hover:border-[#FF5485] ring-2 ring-[#EBEBFE]'
+                              : 'bg-white text-gray-700 border-gray-200 hover:border-[#4D4DA4] hover:bg-[#EBEBFE]/30'
+                          )}
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <Clock className={cn("h-4 w-4 flex-shrink-0", isSelected ? 'text-white' : 'text-gray-400')} />
+                            <span className="text-xs font-semibold">
+                              {format(slotStart, 'HH:mm')} - {format(slotEnd, 'HH:mm')}
+                            </span>
+                          </div>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-            {/* Step 5: Recurring Booking Options */}
-            {selectedSlot && (
-              <div className="space-y-3 border-t pt-4 mt-4">
-                <div className="flex items-center gap-3">
+          {/* Step 5: Recurring Booking Options */}
+          {selectedSlot && (
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id="isRecurring"
@@ -413,117 +477,106 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                         setRecurringWeeks(4);
                       }
                     }}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="h-4 w-4 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded border-gray-300"
                   />
-                  <label htmlFor="isRecurring" className="text-sm font-bold text-gray-700 cursor-pointer">
+                  <Label htmlFor="isRecurring" className="text-sm font-semibold text-[#121213] cursor-pointer">
                     Make this a recurring booking
-                  </label>
+                  </Label>
                 </div>
                 
                 {isRecurring && (
-                  <div className="ml-7 space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-gray-700">Recurrence Type</label>
-                      <div className="flex gap-3">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="recurringType"
-                            value="WEEKS"
-                            checked={recurringType === 'WEEKS'}
-                            onChange={(e) => setRecurringType(e.target.value as 'WEEKS')}
-                            className="w-4 h-4 text-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">For a specific number of weeks</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="recurringType"
-                            value="FOREVER"
-                            checked={recurringType === 'FOREVER'}
-                            onChange={(e) => setRecurringType(e.target.value as 'FOREVER')}
-                            className="w-4 h-4 text-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">Forever</span>
-                        </label>
-                      </div>
-                    </div>
-                    
-                    {recurringType === 'WEEKS' && (
+                  <Card className="bg-[#EBEBFE]/30 border-[#EBEBFE]">
+                    <CardContent className="p-4 space-y-4">
                       <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-700">Number of Weeks</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="52"
-                          value={recurringWeeks}
-                          onChange={(e) => setRecurringWeeks(parseInt(e.target.value) || 1)}
-                          className="w-full border p-2 rounded-lg text-sm"
-                          placeholder="e.g., 4"
-                        />
-                        <p className="text-xs text-gray-500">
-                          Bookings will be created for the same day and time each week, respecting even/odd week schedules.
-                        </p>
+                        <Label className="text-sm font-semibold text-[#121213]">Recurrence Type</Label>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="recurringType"
+                              value="WEEKS"
+                              checked={recurringType === 'WEEKS'}
+                              onChange={(e) => setRecurringType(e.target.value as 'WEEKS')}
+                              className="h-4 w-4 text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                            />
+                            <span className="text-sm text-gray-700">For a specific number of weeks</span>
+                          </label>
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="recurringType"
+                              value="FOREVER"
+                              checked={recurringType === 'FOREVER'}
+                              onChange={(e) => setRecurringType(e.target.value as 'FOREVER')}
+                              className="h-4 w-4 text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                            />
+                            <span className="text-sm text-gray-700">Forever</span>
+                          </label>
+                        </div>
                       </div>
-                    )}
-                    
-                    {recurringType === 'FOREVER' && (
-                      <div className="bg-blue-100 p-3 rounded-lg">
-                        <p className="text-xs text-blue-800 font-medium">
-                          ⚠️ Bookings will be created indefinitely (up to 1 year initially). The system will respect even/odd week schedules automatically.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                      
+                      {recurringType === 'WEEKS' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold text-[#121213]">Number of Weeks</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="52"
+                            value={recurringWeeks}
+                            onChange={(e) => setRecurringWeeks(parseInt(e.target.value) || 1)}
+                            className="h-12 bg-white border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl"
+                            placeholder="e.g., 4"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Bookings will be created for the same day and time each week, respecting even/odd week schedules.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {recurringType === 'FOREVER' && (
+                        <Card className="bg-yellow-50 border-yellow-200">
+                          <CardContent className="p-3">
+                            <p className="text-xs text-yellow-800 font-medium">
+                              ⚠️ Bookings will be created indefinitely (up to 1 year initially). The system will respect even/odd week schedules automatically.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
-              </div>
+              </CardContent>
+            </Card>
+          )}
+
+        </CardContent>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3">
+          <Button 
+            onClick={onClose}
+            disabled={loading}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={loading || !selectedUser || !selectedResource || !selectedSlot}
+            className="w-full sm:w-auto bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Creating...</span>
+              </>
+            ) : (
+              'Create Booking'
             )}
-
+          </Button>
         </div>
-
-        <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
-            <button 
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2.5 text-gray-700 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button 
-                onClick={handleSubmit} 
-                disabled={loading || !selectedUser || !selectedResource || !selectedSlot}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-                {loading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    <span>Creating...</span>
-                  </>
-                ) : (
-                  'Create Booking'
-                )}
-            </button>
-        </div>
-      </div>
+      </Card>
       
       {/* Toast Notification */}
       <Toast 

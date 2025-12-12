@@ -1,23 +1,23 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import NewsArchive from '../../../../components/NewsArchive';
 
 export default function SuperAdminNewsArchive() {
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-8 flex items-center gap-4">
-        <Link 
-          href="/admin/super/news-feed"
-          className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-500 hover:text-blue-600 transition"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
+        <Link href="/admin/super/news-feed">
+          <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Feed
+          </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">News Archive</h1>
-          <p className="text-gray-500">Browse all published articles.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">News Archive</h1>
+          <p className="text-sm text-muted-foreground mt-1">Browse all published articles.</p>
         </div>
       </div>
       

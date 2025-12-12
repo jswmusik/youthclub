@@ -5,7 +5,7 @@ import YouthManager from '@/app/components/YouthManager';
 
 function YouthManagerPageContent() {
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <YouthManager basePath="/admin/super/youth" scope="SUPER" />
     </div>
   );

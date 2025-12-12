@@ -37,6 +37,8 @@ class GroupSerializer(serializers.ModelSerializer):
     membership_status = serializers.SerializerMethodField()
     club_name = serializers.CharField(source='club.name', read_only=True)
     municipality_name = serializers.CharField(source='municipality.name', read_only=True)
+    member_count = serializers.SerializerMethodField()
+    pending_request_count = serializers.SerializerMethodField()
     members_to_add = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
@@ -51,7 +53,7 @@ class GroupSerializer(serializers.ModelSerializer):
             'target_member_type', 'min_age', 'max_age', 'grades', 'genders', 'interests',
             'custom_field_rules', 'eligibility', 'membership_status', 'created_at', 
             'municipality', 'club', 'club_name', 'municipality_name',
-            'is_system_group', 'members_to_add'
+            'is_system_group', 'member_count', 'pending_request_count', 'members_to_add'
         ]
         depth = 1
 
@@ -172,6 +174,14 @@ class GroupSerializer(serializers.ModelSerializer):
             "is_eligible": len(reasons) == 0,
             "reasons": reasons
         }
+    
+    def get_member_count(self, obj):
+        """Return the count of approved memberships for this group."""
+        return obj.memberships.filter(status='APPROVED').count()
+    
+    def get_pending_request_count(self, obj):
+        """Return the count of pending membership requests for this group."""
+        return obj.memberships.filter(status='PENDING').count()
     
     def create(self, validated_data):
         """Handle creating a group and adding members."""

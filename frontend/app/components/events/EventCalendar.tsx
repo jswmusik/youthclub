@@ -2,16 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { 
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
   eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, 
   isToday 
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import api from '@/lib/api';
 import { Event } from '@/types/event';
 import EventActionModal from './EventActionModal';
+
+// Shadcn
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface EventCalendarProps {
     scope: 'SUPER' | 'MUNICIPALITY' | 'CLUB';
@@ -128,121 +133,239 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
             return 'bg-gray-100 text-gray-500 border-gray-200 opacity-60';
         }
         switch (status) {
-            case 'PUBLISHED': return 'bg-green-100 text-green-800 border-green-200';
-            case 'DRAFT': return 'bg-gray-100 text-gray-800 border-gray-200';
-            case 'CANCELLED': return 'bg-red-50 text-red-800 border-red-100 line-through opacity-75';
-            default: return 'bg-blue-50 text-blue-800 border-blue-100';
+            case 'PUBLISHED': return 'bg-green-50 text-green-700 border-green-200';
+            case 'DRAFT': return 'bg-gray-50 text-gray-700 border-gray-200';
+            case 'CANCELLED': return 'bg-red-50 text-red-700 border-red-200 line-through opacity-75';
+            case 'SCHEDULED': return 'bg-blue-50 text-blue-700 border-blue-200';
+            default: return 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/20';
         }
     };
 
     return (
-        <div className="bg-white rounded-xl shadow border border-gray-200 h-full flex flex-col">
+        <Card className="border-none shadow-sm h-full flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold text-gray-800 capitalize">
-                        {format(currentDate, 'MMMM yyyy')}
-                    </h2>
-                    <div className="flex items-center rounded-md border shadow-sm">
-                        <button 
-                            onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-                            className="p-1 hover:bg-gray-100 border-r"
-                        >
-                            <ChevronLeft size={20} />
-                        </button>
-                        <button 
-                            onClick={() => setCurrentDate(new Date())}
-                            className="px-3 py-1 text-sm font-medium hover:bg-gray-100"
-                        >
-                            Today
-                        </button>
-                        <button 
-                            onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-                            className="p-1 hover:bg-gray-100 border-l"
-                        >
-                            <ChevronRight size={20} />
-                        </button>
+            <CardHeader className="border-b border-gray-200 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                        <div className="flex items-center gap-2">
+                            <CalendarIcon className="h-5 w-5 text-[#4D4DA4]" />
+                            <CardTitle className="text-xl font-bold text-[#121213] capitalize">
+                                {format(currentDate, 'MMMM yyyy')}
+                            </CardTitle>
+                        </div>
+                        <div className="flex items-center rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                            <Button 
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                                className="h-9 w-9 rounded-none hover:bg-muted"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setCurrentDate(new Date())}
+                                className="h-9 px-3 text-sm font-medium rounded-none hover:bg-muted border-x border-gray-200"
+                            >
+                                Today
+                            </Button>
+                            <Button 
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                                className="h-9 w-9 rounded-none hover:bg-muted"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
-                
-                <Link 
-                    href={`/admin/${scope.toLowerCase()}/events/create`} 
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700"
-                >
-                    <Plus size={16} /> New Event
-                </Link>
-            </div>
+            </CardHeader>
 
             {/* Days Header */}
-            <div className="grid grid-cols-7 border-b bg-gray-50">
+            <div className="grid grid-cols-7 border-b border-gray-200 bg-muted/30">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                    <div key={day} className="py-2 text-center text-xs font-bold text-gray-500 uppercase">
-                        {day}
+                    <div key={day} className="py-2 sm:py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        <span className="hidden sm:inline">{day}</span>
+                        <span className="sm:hidden">{day.slice(0, 1)}</span>
                     </div>
                 ))}
             </div>
 
             {/* Calendar Grid */}
-            {loading ? (
-                <div className="flex-1 flex items-center justify-center p-8">
-                    <div className="text-gray-500">Loading events...</div>
-                </div>
-            ) : (
-                <div className="grid grid-cols-7 flex-1 auto-rows-fr bg-gray-100 gap-px border-b">
-                    {calendarDays.map((day, dayIdx) => {
-                        const dayEvents = getEventsForDay(day);
-                        const isCurrentMonth = isSameMonth(day, monthStart);
-                        
-                        return (
-                            <div 
-                                key={day.toString()} 
-                                className={`min-h-[120px] bg-white p-2 flex flex-col gap-1 transition
-                                    ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'text-gray-900'}
-                                    ${isToday(day) ? 'bg-blue-50/30' : ''}
-                                `}
-                            >
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full
-                                        ${isToday(day) ? 'bg-blue-600 text-white' : ''}
-                                    `}>
-                                        {format(day, 'd')}
-                                    </span>
-                                    {dayEvents.length > 0 && (
-                                        <span className="text-xs text-gray-400 font-medium">{dayEvents.length} events</span>
-                                    )}
-                                </div>
+            <div className="flex-1 overflow-auto">
+                {loading ? (
+                    <div className="flex-1 flex items-center justify-center p-8 min-h-[400px]">
+                        <div className="text-muted-foreground">Loading events...</div>
+                    </div>
+                ) : (
+                    <>
+                        {/* Desktop Calendar Grid */}
+                        <div className="hidden md:grid grid-cols-7 auto-rows-fr bg-gray-100 gap-px min-h-[600px]">
+                            {calendarDays.map((day) => {
+                                const dayEvents = getEventsForDay(day);
+                                const isCurrentMonth = isSameMonth(day, monthStart);
+                                const isTodayDate = isToday(day);
+                                
+                                return (
+                                    <div 
+                                        key={day.toString()} 
+                                        className={cn(
+                                            "min-h-[120px] bg-white p-2 flex flex-col gap-1.5 transition-colors",
+                                            !isCurrentMonth && "bg-muted/30 text-muted-foreground",
+                                            isTodayDate && "bg-[#EBEBFE]/30"
+                                        )}
+                                    >
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className={cn(
+                                                "text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full transition-colors",
+                                                isTodayDate 
+                                                    ? "bg-[#4D4DA4] text-white" 
+                                                    : "text-[#121213]"
+                                            )}>
+                                                {format(day, 'd')}
+                                            </span>
+                                            {dayEvents.length > 0 && (
+                                                <Badge variant="outline" className="text-xs h-5 px-1.5 bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/20">
+                                                    {dayEvents.length}
+                                                </Badge>
+                                            )}
+                                        </div>
 
-                                <div className="flex-1 flex flex-col gap-1 overflow-y-auto max-h-[120px]">
-                                    {dayEvents.map(event => {
-                                        const past = isEventPast(event);
-                                        return (
-                                            <button
-                                                key={event.id}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    setSelectedEvent(event);
-                                                    setShowActionModal(true);
-                                                }}
-                                                className={`w-full text-left px-2 py-1 rounded border text-xs truncate transition hover:opacity-80 hover:shadow-sm ${getStatusColor(event.status, past)}`}
-                                                title={event.title}
-                                            >
-                                                <div className="font-bold truncate">{event.title}</div>
-                                                <div className="flex items-center gap-1 opacity-75 text-[10px]">
-                                                    <span>{format(new Date(event.start_date), 'HH:mm')}</span>
-                                                    {event.location_name && <span>• {event.location_name}</span>}
+                                        <div className="flex-1 flex flex-col gap-1 overflow-y-auto max-h-[100px]">
+                                            {dayEvents.map(event => {
+                                                const past = isEventPast(event);
+                                                return (
+                                                    <button
+                                                        key={event.id}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            setSelectedEvent(event);
+                                                            setShowActionModal(true);
+                                                        }}
+                                                        className={cn(
+                                                            "w-full text-left px-2 py-1.5 rounded border text-xs transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer",
+                                                            getStatusColor(event.status, past)
+                                                        )}
+                                                        title={event.title}
+                                                    >
+                                                        <div className="font-semibold truncate">{event.title}</div>
+                                                        <div className="flex items-center gap-1 opacity-75 text-[10px] mt-0.5">
+                                                            <span>{format(new Date(event.start_date), 'HH:mm')}</span>
+                                                            {event.location_name && <span>• {event.location_name}</span>}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Mobile Calendar Grid */}
+                        <div className="md:hidden space-y-3 p-4">
+                            {calendarDays.filter(day => isSameMonth(day, monthStart)).map((day) => {
+                                const dayEvents = getEventsForDay(day);
+                                const isTodayDate = isToday(day);
+                                
+                                // Show all days, but only highlight days with events or today
+                                if (dayEvents.length === 0 && !isTodayDate) {
+                                    return (
+                                        <div 
+                                            key={day.toString()} 
+                                            className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-muted/20"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className={cn(
+                                                    "text-base font-semibold w-8 h-8 flex items-center justify-center rounded-full",
+                                                    isTodayDate 
+                                                        ? "bg-[#4D4DA4] text-white" 
+                                                        : "text-muted-foreground"
+                                                )}>
+                                                    {format(day, 'd')}
+                                                </span>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {format(day, 'EEEE, MMMM d')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                
+                                return (
+                                    <Card 
+                                        key={day.toString()} 
+                                        className={cn(
+                                            "border shadow-sm",
+                                            isTodayDate && "border-[#4D4DA4] border-2"
+                                        )}
+                                    >
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn(
+                                                        "text-lg font-bold w-8 h-8 flex items-center justify-center rounded-full",
+                                                        isTodayDate 
+                                                            ? "bg-[#4D4DA4] text-white" 
+                                                            : "text-[#121213]"
+                                                    )}>
+                                                        {format(day, 'd')}
+                                                    </span>
+                                                    <span className="text-sm font-medium text-muted-foreground">
+                                                        {format(day, 'EEEE, MMMM d')}
+                                                    </span>
                                                 </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                                                {dayEvents.length > 0 && (
+                                                    <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/20">
+                                                        {dayEvents.length} {dayEvents.length === 1 ? 'event' : 'events'}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </CardHeader>
+                                        {dayEvents.length > 0 && (
+                                            <CardContent className="pt-0 space-y-2">
+                                                {dayEvents.map(event => {
+                                                    const past = isEventPast(event);
+                                                    return (
+                                                        <button
+                                                            key={event.id}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                setSelectedEvent(event);
+                                                                setShowActionModal(true);
+                                                            }}
+                                                            className={cn(
+                                                                "w-full text-left p-3 rounded-lg border transition-all hover:shadow-md",
+                                                                getStatusColor(event.status, past)
+                                                            )}
+                                                        >
+                                                            <div className="font-semibold text-sm mb-1">{event.title}</div>
+                                                            <div className="flex flex-wrap items-center gap-2 text-xs opacity-75">
+                                                                <span>{format(new Date(event.start_date), 'HH:mm')}</span>
+                                                                {event.location_name && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span>{event.location_name}</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </CardContent>
+                                        )}
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+            </div>
             
-            <div className="p-2 text-xs text-gray-400 text-center">
-                Click an event to view options.
+            <div className="p-3 border-t border-gray-200 bg-muted/30">
+                <p className="text-xs text-muted-foreground text-center">Click an event to view options.</p>
             </div>
 
             {/* Event Action Modal */}
@@ -256,7 +379,7 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
                 onEventUpdated={fetchEvents}
                 scope={scope}
             />
-        </div>
+        </Card>
     );
 }
 

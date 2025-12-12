@@ -1,12 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation'; // Added useRouter, usePathname
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft, Edit, Mail, Phone, MessageSquare, User, Briefcase, Building2, Users } from 'lucide-react';
 import api from '../../lib/api';
-import { messengerApi } from '../../lib/messenger-api'; // Import messengerApi
+import { messengerApi } from '../../lib/messenger-api';
 import { getMediaUrl } from '../../app/utils';
 import QuickMessageModal from './messenger/QuickMessageModal';
+
+// UI
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 interface AdminDetailProps {
   userId: string;
@@ -82,99 +90,208 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  if (loading) return <div className="p-12 text-center">Loading...</div>;
-  if (!admin) return <div className="p-12 text-center text-red-500">Admin not found.</div>;
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'SUPER_ADMIN': return 'bg-red-50 text-red-700 border-red-200';
+      case 'MUNICIPALITY_ADMIN': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'CLUB_ADMIN': return 'bg-green-50 text-green-700 border-green-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center text-gray-400 animate-pulse">Loading details...</div>
+    );
+  }
+
+  if (!admin) {
+    return (
+      <div className="py-20 text-center text-red-600">Admin not found.</div>
+    );
+  }
+
+  const municipalityName = admin.assigned_municipality ? (() => {
+    const muniId = typeof admin.assigned_municipality === 'object' 
+      ? admin.assigned_municipality.id 
+      : admin.assigned_municipality;
+    const municipality = municipalities.find(m => m.id === muniId);
+    return municipality?.name || null;
+  })() : null;
+
+  const clubName = admin.assigned_club ? (() => {
+    const clubId = typeof admin.assigned_club === 'object' 
+      ? admin.assigned_club.id 
+      : admin.assigned_club;
+    const club = clubs.find(c => c.id === clubId);
+    return club?.name || null;
+  })() : null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <Link href={buildUrlWithParams(basePath)} className="text-gray-500 hover:text-gray-900 font-bold">← Back to List</Link>
-        <div className="flex gap-2">
-          <button 
-            onClick={handleSendMessage}
-            className="bg-indigo-600 text-white px-4 py-2 rounded font-bold hover:bg-indigo-700 flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            Message
-          </button>
-        <Link href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)} className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">
-          Edit Admin
+    <div className="space-y-6">
+      {/* Navigation */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <Link href={buildUrlWithParams(basePath)}>
+          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="h-4 w-4" /> Back to List
+          </Button>
         </Link>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={handleSendMessage}
+            variant="outline"
+            size="sm"
+            className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+          >
+            <MessageSquare className="h-4 w-4" /> Message
+          </Button>
+          <Link href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)}>
+            <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white shadow-sm">
+              <Edit className="h-4 w-4" /> Edit
+            </Button>
+          </Link>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-        <div className="flex items-center gap-6 mb-8 border-b pb-8">
-          {admin.avatar ? (
-            <img src={getMediaUrl(admin.avatar) || ''} className="w-24 h-24 rounded-full object-cover border-4 border-gray-100" />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-3xl font-bold text-gray-500">
-              {getInitials(admin.first_name, admin.last_name)}
+      {/* Profile Hero Card */}
+      <Card className="border border-gray-100 shadow-sm overflow-hidden bg-gradient-to-br from-[#EBEBFE] via-[#EBEBFE]/50 to-white">
+        <div className="p-6 sm:p-10">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
+            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 rounded-2xl border-4 border-white shadow-lg bg-white flex-shrink-0">
+              <AvatarImage src={getMediaUrl(admin.avatar) || undefined} className="object-cover" />
+              <AvatarFallback className="text-4xl font-bold text-[#4D4DA4] bg-white">
+                {getInitials(admin.first_name, admin.last_name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-center sm:text-left flex-1 space-y-2">
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#121213]">
+                {admin.first_name} {admin.last_name}
+              </h1>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                <Badge variant="outline" className={getRoleBadge(admin.role)}>
+                  {admin.role.replace(/_/g, ' ')}
+                </Badge>
+                {municipalityName && (
+                  <Badge variant="outline" className="bg-white/80 text-gray-700 border-gray-200">
+                    <Building2 className="h-3 w-3 mr-1" /> {municipalityName}
+                  </Badge>
+                )}
+                {clubName && (
+                  <Badge variant="outline" className="bg-white/80 text-gray-700 border-gray-200">
+                    <Users className="h-3 w-3 mr-1" /> {clubName}
+                  </Badge>
+                )}
+              </div>
             </div>
-          )}
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{admin.first_name} {admin.last_name}</h1>
-            <p className="text-gray-500">{admin.email}</p>
-            <span className="inline-block mt-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold">
-              {admin.role.replace('_', ' ')}
-            </span>
           </div>
         </div>
+      </Card>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase">Phone</label>
-            <p className="text-gray-900 font-medium">{admin.phone_number || '-'}</p>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase">Gender</label>
-            <p className="text-gray-900 font-medium">{admin.legal_gender}</p>
-          </div>
-          
-          {admin.role === 'CLUB_ADMIN' && admin.nickname && (
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase">Nickname</label>
-              <p className="text-gray-900 font-medium">{admin.nickname}</p>
-            </div>
-          )}
-          
-          {admin.role === 'CLUB_ADMIN' && admin.profession && (
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase">Profession</label>
-              <p className="text-gray-900 font-medium">{admin.profession}</p>
-            </div>
-          )}
-          
-          {admin.assigned_municipality && (
-             <div className="col-span-2">
-                <label className="block text-xs font-bold text-gray-500 uppercase">Municipality</label>
-                <p className="text-gray-900 font-medium">
-                  {(() => {
-                    const muniId = typeof admin.assigned_municipality === 'object' 
-                      ? admin.assigned_municipality.id 
-                      : admin.assigned_municipality;
-                    const municipality = municipalities.find(m => m.id === muniId);
-                    return municipality?.name || `Municipality (ID: ${muniId})`;
-                  })()}
-                </p>
-             </div>
-          )}
-          {admin.assigned_club && (
-             <div className="col-span-2">
-                <label className="block text-xs font-bold text-gray-500 uppercase">Club</label>
-                <p className="text-gray-900 font-medium">
-                  {(() => {
-                    const clubId = typeof admin.assigned_club === 'object' 
-                      ? admin.assigned_club.id 
-                      : admin.assigned_club;
-                    const club = clubs.find(c => c.id === clubId);
-                    return club?.name || `Club (ID: ${clubId})`;
-                  })()}
-                </p>
-             </div>
-          )}
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Main Column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Contact Information */}
+          <Card className="border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Mail className="h-5 w-5 text-[#4D4DA4]" />
+                Contact Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
+                  <Mail className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 uppercase font-medium">Email</div>
+                  <div className="text-gray-900 font-medium">{admin.email}</div>
+                </div>
+              </div>
+              {admin.phone_number && (
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 uppercase font-medium">Phone</div>
+                    <div className="text-gray-900 font-medium">{admin.phone_number}</div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Personal Details */}
+          <Card className="border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <User className="h-5 w-5 text-[#4D4DA4]" />
+                Personal Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <div className="text-xs text-gray-500 uppercase font-medium mb-1">Gender</div>
+                  <div className="text-gray-900 font-medium">{admin.legal_gender || '-'}</div>
+                </div>
+                {admin.role === 'CLUB_ADMIN' && admin.nickname && (
+                  <div>
+                    <div className="text-xs text-gray-500 uppercase font-medium mb-1">Nickname</div>
+                    <div className="text-gray-900 font-medium">{admin.nickname}</div>
+                  </div>
+                )}
+                {admin.role === 'CLUB_ADMIN' && admin.profession && (
+                  <div className="sm:col-span-2">
+                    <div className="text-xs text-gray-500 uppercase font-medium mb-1 flex items-center gap-1">
+                      <Briefcase className="h-3 w-3" /> Profession / Title
+                    </div>
+                    <div className="text-gray-900 font-medium">{admin.profession}</div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar Column */}
+        <div className="space-y-6">
+          {/* Assignments */}
+          <Card className="border border-gray-100 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-gray-900">Assignments</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {municipalityName && (
+                <div className="flex items-start gap-3 text-sm">
+                  <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
+                    <Building2 className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-gray-500 uppercase font-medium mb-1">Municipality</div>
+                    <div className="text-gray-900 font-medium truncate">{municipalityName}</div>
+                  </div>
+                </div>
+              )}
+              {clubName && (
+                <div className="flex items-start gap-3 text-sm">
+                  <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-gray-500 uppercase font-medium mb-1">Club</div>
+                    <div className="text-gray-900 font-medium truncate">{clubName}</div>
+                  </div>
+                </div>
+              )}
+              {!municipalityName && !clubName && (
+                <div className="text-sm text-gray-500 italic">No assignments</div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 

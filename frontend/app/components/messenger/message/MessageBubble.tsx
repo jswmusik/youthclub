@@ -177,8 +177,8 @@ export default function MessageBubble({ message, onReactionUpdate }: MessageBubb
     };
 
     return (
-        <div className={`flex w-full mb-4 ${isMe ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex max-w-[75%] ${isMe ? 'flex-row-reverse' : 'flex-row'} gap-2`}>
+        <div className={`flex w-full mb-3 sm:mb-4 min-w-0 ${isMe ? 'justify-end' : 'justify-start'}`}>
+            <div className={`flex max-w-[85%] sm:max-w-[75%] min-w-0 ${isMe ? 'flex-row-reverse' : 'flex-row'} gap-1.5 sm:gap-2`}>
                 
                 {/* Avatar (Only for others) */}
                 {!isMe && (
@@ -187,10 +187,10 @@ export default function MessageBubble({ message, onReactionUpdate }: MessageBubb
                             <img 
                                 src={getMediaUrl(message.sender.avatar_url) || ''} 
                                 alt={message.sender.first_name} 
-                                className="w-8 h-8 rounded-full bg-gray-200 object-cover"
+                                className="w-8 h-8 rounded-full bg-gray-200 object-cover border border-gray-200"
                             />
                         ) : (
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                            <div className="w-8 h-8 rounded-full bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] font-bold text-xs border border-[#EBEBFE]">
                                 {message.sender.first_name[0]}
                             </div>
                         )}
@@ -209,21 +209,21 @@ export default function MessageBubble({ message, onReactionUpdate }: MessageBubb
 
                     <div className="relative group" ref={messageRef}>
                         <div className={`
-                            px-4 py-2 rounded-2xl text-sm shadow-sm relative
+                            px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs sm:text-sm shadow-sm relative break-words
                             ${isMe 
-                                ? 'bg-blue-600 text-white rounded-tr-none' 
-                                : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'}
+                                ? 'bg-[#4D4DA4] text-white rounded-tr-none' 
+                                : 'bg-white text-[#121213] border border-gray-100 rounded-tl-none'}
                         `}>
                             {message.attachment && (
-                                <div className="mb-2">
+                                <div className="mb-1.5 sm:mb-2 -mx-1 sm:-mx-0">
                                     <img 
                                         src={message.attachment} 
                                         alt="Attachment" 
-                                        className="max-w-full rounded-lg max-h-48 object-cover" 
+                                        className="max-w-full rounded-lg max-h-40 sm:max-h-48 object-cover w-full" 
                                     />
                                 </div>
                             )}
-                            <p className="whitespace-pre-wrap">{message.content}</p>
+                            <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
                         </div>
                         
                         {/* Reactions - positioned on top of bubble in bottom right corner */}
@@ -247,17 +247,15 @@ export default function MessageBubble({ message, onReactionUpdate }: MessageBubb
                         {/* Reaction Button - positioned on left of right-aligned bubbles, right of left-aligned bubbles, centered vertically */}
                         <button
                             onClick={handleReactionButtonClick}
-                            style={{
-                                [isMe ? 'left' : 'right']: '-1.5em'
-                            }}
-                            className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 opacity-60 hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-sm z-10 ${
+                            className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 active:text-gray-800 opacity-60 hover:opacity-100 active:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-sm z-10 touch-manipulation ${
                                 isMe 
-                                    ? 'left-0 -translate-x-full' 
-                                    : 'right-0 translate-x-full'
+                                    ? 'left-0 -translate-x-full sm:-translate-x-1/2' 
+                                    : 'right-0 translate-x-full sm:translate-x-1/2'
                             }`}
                             title="Add reaction"
+                            aria-label="Add reaction"
                         >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </button>
@@ -278,7 +276,7 @@ export default function MessageBubble({ message, onReactionUpdate }: MessageBubb
                                         key={reactionType}
                                         onClick={() => handleReaction(reactionType)}
                                         className={`w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-all text-xl ${
-                                            userReaction === reactionType ? 'bg-blue-50 scale-110' : ''
+                                            userReaction === reactionType ? 'bg-[#EBEBFE] scale-110' : ''
                                         } ${isAnimating ? 'animate-bounce' : ''}`}
                                         title={reactionType}
                                     >
@@ -297,7 +295,7 @@ export default function MessageBubble({ message, onReactionUpdate }: MessageBubb
                                 {format(new Date(message.created_at), 'HH:mm')}
                             </span>
                             {isMe && message.read_status?.is_read && (
-                                <span className="text-[10px] text-blue-600 font-bold">Read</span>
+                                <span className="text-[10px] text-[#4D4DA4] font-bold">Read</span>
                             )}
                         </div>
                     </div>

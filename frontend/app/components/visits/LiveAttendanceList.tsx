@@ -1,8 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { visits } from '@/lib/api';
+import { getMediaUrl } from '@/app/utils';
 import Toast from '@/app/components/Toast';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 // Define the shape of our session data based on the API serializer
 interface Session {
@@ -84,86 +90,101 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
     }
   };
 
-  if (loading) return <div className="p-10 text-center text-slate-500">Loading live data...</div>;
+  if (loading) return <div className="py-20 text-center text-gray-400 animate-pulse">Loading live data...</div>;
 
   // Ensure sessions is always an array
   const sessionsArray = Array.isArray(sessions) ? sessions : [];
 
   return (
-    <div className="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
-      <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-        <h3 className="font-semibold text-slate-700">Currently Inside ({sessionsArray.length})</h3>
-        <button onClick={fetchSessions} className="text-sm text-emerald-600 hover:underline">Refresh</button>
-      </div>
-      
-      {sessionsArray.length === 0 ? (
-        <div className="p-10 text-center text-slate-400">
-          No active check-ins. The club is empty.
+    <>
+      <div className="space-y-4">
+        <div className="flex flex-row items-center justify-between">
+          <h3 className="text-base font-semibold text-[#121213]">
+            Currently Inside ({sessionsArray.length})
+          </h3>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={fetchSessions}
+            className="gap-2 text-[#4D4DA4] hover:text-[#4D4DA4] hover:bg-[#EBEBFE]"
+          >
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </Button>
         </div>
-      ) : (
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-slate-500 font-medium">
-            <tr>
-              <th className="p-4">Member</th>
-              <th className="p-4">Check-in Time</th>
-              <th className="p-4">Method</th>
-              <th className="p-4 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {sessionsArray.map((session) => (
-              <tr key={session.id} className="hover:bg-slate-50 transition-colors">
-                <td className="p-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                       {/* You can use your UserAvatar component here */}
-                       {session.user_details.avatar ? (
-                         <img src={session.user_details.avatar} alt="avatar" />
-                       ) : (
-                         <span className="text-xs font-bold text-slate-500">
+
+        {sessionsArray.length === 0 ? (
+          <div className="py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            <p className="text-gray-500">No active check-ins. The club is empty.</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
+            <Table>
+              <TableHeader className="bg-[#EBEBFE]/50">
+                <TableRow className="border-b border-gray-100 hover:bg-transparent">
+                  <TableHead className="text-[#4D4DA4] font-semibold">Member</TableHead>
+                  <TableHead className="text-[#4D4DA4] font-semibold">Check-in Time</TableHead>
+                  <TableHead className="text-[#4D4DA4] font-semibold">Method</TableHead>
+                  <TableHead className="text-right text-[#4D4DA4] font-semibold">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sessionsArray.map((session) => (
+                  <TableRow key={session.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200">
+                          <AvatarImage src={getMediaUrl(session.user_details.avatar) || undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-lg font-bold text-[10px] bg-[#EBEBFE] text-[#4D4DA4]">
                             {(session.user_details.first_name || 'U')[0]}
-                         </span>
-                       )}
-                    </div>
-                    <div>
-                      <div className="font-medium text-slate-900">
-                        {session.user_details.first_name || 'User'} {session.user_details.last_name}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-semibold text-[#121213]">
+                            {session.user_details.first_name || 'User'} {session.user_details.last_name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {session.user_details.email}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-slate-500">
-                         {session.user_details.email}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4 text-slate-600">
-                  {new Date(session.check_in_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    session.method === 'QR_KIOSK' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                  }`}>
-                    {session.method === 'QR_KIOSK' ? 'Self Scan' : 'Manual'}
-                  </span>
-                </td>
-                <td className="p-4 text-right">
-                  {session.check_out_at ? (
-                    <span className="text-gray-400 text-sm">
-                      Checked out: {new Date(session.check_out_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
-                  ) : (
-                    <button 
-                      onClick={() => handleCheckOut(session.id)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded border border-red-200"
-                    >
-                      Check Out
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+                    </TableCell>
+                    <TableCell className="py-4 text-gray-600">
+                      {new Date(session.check_in_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Badge 
+                        variant="outline" 
+                        className={session.method === 'QR_KIOSK' 
+                          ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                          : 'bg-orange-50 text-orange-700 border-orange-200'
+                        }
+                      >
+                        {session.method === 'QR_KIOSK' ? 'Self Scan' : 'Manual'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      {session.check_out_at ? (
+                        <span className="text-gray-400 text-sm">
+                          Checked out: {new Date(session.check_out_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                      ) : (
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCheckOut(session.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        >
+                          Check Out
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
 
       {/* Toast Notification */}
       <Toast
@@ -172,6 +193,6 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
         isVisible={toast.isVisible}
         onClose={() => setToast({ ...toast, isVisible: false })}
       />
-    </div>
+    </>
   );
 }

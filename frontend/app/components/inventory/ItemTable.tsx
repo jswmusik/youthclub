@@ -4,7 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Item, inventoryApi } from '@/lib/inventory-api';
 import Link from 'next/link';
+import { Eye, Edit, Trash2, Package } from 'lucide-react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ItemTableProps {
   items: Item[];
@@ -50,13 +56,13 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
   const getStatusBadge = (status: string, activeLoan: any) => {
     switch(status) {
         case 'AVAILABLE':
-            return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Available</span>;
+            return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Available</Badge>;
         case 'BORROWED':
             return (
-                <div className="flex flex-col items-start">
-                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">Borrowed</span>
+                <div className="flex flex-col items-start gap-1">
+                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">Borrowed</Badge>
                     {activeLoan && (
-                        <span className="text-xs text-slate-500 mt-1">
+                        <span className="text-xs text-gray-500">
                             by {activeLoan.user_name} 
                             {activeLoan.is_guest && <span className="text-orange-600 font-bold ml-1">(Guest)</span>}
                         </span>
@@ -64,103 +70,179 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
                 </div>
             );
         case 'MAINTENANCE':
-            return <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Broken</span>;
+            return <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Broken</Badge>;
         case 'MISSING':
-            return <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">Missing</span>;
+            return <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Missing</Badge>;
         default:
-            return <span className="bg-slate-100 text-slate-800 text-xs px-2 py-1 rounded-full">{status}</span>;
+            return <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">{status}</Badge>;
     }
   };
 
-  return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <table className="min-w-full divide-y divide-slate-200">
-        <thead className="bg-slate-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Item</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Queue</th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-slate-200">
-          {itemsArray.map((item) => (
-            <tr key={item.id} className="hover:bg-slate-50">
-              <td className="px-6 py-4">
-                <div className="flex items-center">
-                    {item.image ? (
-                        <img src={item.image} alt="" className="h-10 w-10 rounded object-cover mr-3" />
-                    ) : (
-                        <div className="h-10 w-10 rounded bg-slate-200 flex items-center justify-center mr-3 text-slate-400">
-                            IMG
-                        </div>
-                    )}
-                    <div>
-                        <div className="text-sm font-medium text-slate-900">{item.title}</div>
-                        <div className="text-xs text-slate-500">{item.internal_note}</div>
-                    </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 text-sm text-slate-500">
-                {item.category_details ? (
-                    <span className="flex items-center gap-1">
-                        {item.category_details.icon} {item.category_details.name}
-                    </span>
-                ) : '-'}
-              </td>
-              <td className="px-6 py-4">
-                {getStatusBadge(item.status, item.active_loan)}
-              </td>
-              <td className="px-6 py-4 text-sm text-slate-500">
-                 {item.queue_count > 0 ? (
-                    <span className="text-purple-600 font-medium">{item.queue_count} waiting</span>
-                 ) : (
-                    <span className="text-slate-400">Empty</span>
-                 )}
-              </td>
-              <td className="px-6 py-4">
-                <div className="flex items-center justify-end gap-2">
-                  <Link 
-                    href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/view/${item.id}`) : `${basePath}/view/${item.id}`} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-900 transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    View
-                  </Link>
-                  <Link 
-                    href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/edit/${item.id}`) : `${basePath}/edit/${item.id}`} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 hover:text-blue-900 transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Edit
-                  </Link>
-                  <button
-                    onClick={() => setItemToDelete({ id: item.id, title: item.title })}
-                    disabled={deletingId === item.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {itemsArray.length === 0 && (
-        <div className="p-8 text-center text-slate-500">
-            No items found. Click "Create Item" to add some!
+  if (itemsArray.length === 0) {
+    return (
+      <Card className="border border-gray-100 shadow-sm">
+        <div className="py-20 text-center">
+          <p className="text-gray-500">No items found. Click "Add Item" to add some!</p>
         </div>
-      )}
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      {/* MOBILE: Cards */}
+      <div className="grid grid-cols-1 gap-3 md:hidden">
+        {itemsArray.map(item => (
+          <Card key={item.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0">
+                  <AvatarImage src={item.image || undefined} className="object-cover" />
+                  <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                    <Package className="h-5 w-5" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                    {item.title}
+                  </CardTitle>
+                  <CardDescription className="text-xs text-gray-500 truncate">
+                    {item.internal_note || 'No description'}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-xs text-gray-500 uppercase font-semibold">Category</span>
+                  {item.category_details ? (
+                    <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                      {item.category_details.icon} {item.category_details.name}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-gray-400">-</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
+                  {getStatusBadge(item.status, item.active_loan)}
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-xs text-gray-500 uppercase font-semibold">Queue</span>
+                  {item.queue_count > 0 ? (
+                    <span className="text-sm font-medium text-purple-600">{item.queue_count} waiting</span>
+                  ) : (
+                    <span className="text-sm text-gray-400">Empty</span>
+                  )}
+                </div>
+              </div>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/view/${item.id}`) : `${basePath}/view/${item.id}`} className="flex-1">
+                  <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                    <Eye className="h-4 w-4" />
+                    View
+                  </Button>
+                </Link>
+                <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/edit/${item.id}`) : `${basePath}/edit/${item.id}`} className="flex-1">
+                  <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => setItemToDelete({ id: item.id, title: item.title })}
+                  disabled={deletingId === item.id}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* DESKTOP: Table */}
+      <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-gray-100 hover:bg-transparent">
+              <TableHead className="h-12 text-gray-600 font-semibold">Item</TableHead>
+              <TableHead className="h-12 text-gray-600 font-semibold">Category</TableHead>
+              <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+              <TableHead className="h-12 text-gray-600 font-semibold">Queue</TableHead>
+              <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {itemsArray.map(item => (
+              <TableRow key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                <TableCell className="py-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                      <AvatarImage src={item.image || undefined} className="object-cover" />
+                      <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                        <Package className="h-5 w-5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-semibold text-[#121213]">{item.title}</div>
+                      <div className="text-xs text-gray-500">{item.internal_note || 'No description'}</div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="py-4">
+                  {item.category_details ? (
+                    <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                      {item.category_details.icon} {item.category_details.name}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-gray-400">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="py-4">
+                  {getStatusBadge(item.status, item.active_loan)}
+                </TableCell>
+                <TableCell className="py-4">
+                  {item.queue_count > 0 ? (
+                    <span className="text-sm font-medium text-purple-600">{item.queue_count} waiting</span>
+                  ) : (
+                    <span className="text-sm text-gray-400">Empty</span>
+                  )}
+                </TableCell>
+                <TableCell className="py-4 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/view/${item.id}`) : `${basePath}/view/${item.id}`}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/edit/${item.id}`) : `${basePath}/edit/${item.id}`}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => setItemToDelete({ id: item.id, title: item.title })}
+                      disabled={deletingId === item.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
@@ -178,7 +260,7 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
         isLoading={!!deletingId}
         variant="danger"
       />
-    </div>
+    </>
   );
 }
 
