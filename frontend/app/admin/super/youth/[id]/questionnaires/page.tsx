@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import IndividualHistory from '@/app/components/questionnaires/IndividualHistory';
-import { ArrowLeft, BarChart3, ChevronUp, Search, X } from 'lucide-react';
+import { ArrowLeft, BarChart3, ChevronUp, Search, X, FileText, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,49 +63,73 @@ function QuestionnairesPageContent() {
 
       {/* Analytics */}
       <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-gray-500" />
-            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+        <Card className="border-0 shadow-sm bg-gray-900">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                Analytics Dashboard
+              </h3>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronUp className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                  analyticsExpanded ? "rotate-0" : "rotate-180"
+                )} />
+                <span className="sr-only">Toggle Analytics</span>
+              </Button>
+            </CollapsibleTrigger>
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-              <ChevronUp className={cn(
-                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                analyticsExpanded ? "rotate-0" : "rotate-180"
-              )} />
-              <span className="sr-only">Toggle Analytics</span>
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        <CollapsibleContent className="space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 pt-2">
-            {/* Card 1: Total Questionnaires */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Questionnaires</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_questionnaires}</div>
-              </CardContent>
-            </Card>
+          <CollapsibleContent className="transition-all duration-500 ease-in-out">
+            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
+                {/* Card 1: Total Questionnaires */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                        }}>
+                        <FileText className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Questionnaires</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_questionnaires}</div>
+                  </div>
+                </Card>
 
-            {/* Card 2: Total Rewards Earned */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Rewards Earned</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_rewards_earned}</div>
-              </CardContent>
-            </Card>
-          </div>
-        </CollapsibleContent>
+                {/* Card 2: Total Rewards Earned */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
+                        }}>
+                        <Gift className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Rewards Earned</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_rewards_earned}</div>
+                  </div>
+                </Card>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
       </Collapsible>
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-4 space-y-4">
+        <div className="px-6 py-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             {/* Search */}
             <div className="relative md:col-span-10 lg:col-span-10">

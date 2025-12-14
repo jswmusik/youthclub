@@ -32,7 +32,7 @@ export default function EditCoursePage() {
     if (!course) return <div className="p-8 text-center text-red-500">Course not found</div>;
 
     return (
-        <div className="max-w-7xl mx-auto py-8 px-4">
+        <div className="p-8">
             <CourseEditorLayout course={course} />
         </div>
     );

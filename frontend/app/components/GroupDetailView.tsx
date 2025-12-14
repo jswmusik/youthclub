@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Edit, Copy, Building, MapPin, Globe, Users } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, Building, MapPin, Globe, Users, BarChart3, LayoutDashboard, UserCog } from 'lucide-react';
 import api from '../../lib/api';
 import Toast from './Toast';
 import ConfirmationModal from './ConfirmationModal';
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
 // Helper function to get initials from first and last name
@@ -36,11 +37,19 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
   const [members, setMembers] = useState<any[]>([]);
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'MEMBERS' | 'SETTINGS'>('DASHBOARD');
+  const [prevTab, setPrevTab] = useState<'DASHBOARD' | 'MEMBERS' | 'SETTINGS' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  
+  // Tab order for animation direction
+  const tabOrder = ['DASHBOARD', 'MEMBERS', 'SETTINGS'];
   
   // Actions
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
   const [memberToRemove, setMemberToRemove] = useState<number | null>(null);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -59,6 +68,44 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
     const queryString = params.toString();
     return queryString ? `${path}?${queryString}` : path;
   };
+
+  // Update indicator position
+  const updateIndicator = useCallback(() => {
+    const activeTabElement = tabRefs.current[activeTab];
+    if (activeTabElement) {
+      const container = activeTabElement.parentElement;
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        const tabRect = activeTabElement.getBoundingClientRect();
+        setIndicatorStyle({
+          left: tabRect.left - containerRect.left,
+          width: tabRect.width,
+        });
+      }
+    }
+  }, [activeTab]);
+
+  // Initialize indicator position on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateIndicator();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [updateIndicator]);
+
+  // Update indicator when tab changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateIndicator();
+    }, 10);
+    return () => clearTimeout(timer);
+  }, [activeTab, updateIndicator]);
+
+  // Update indicator on window resize
+  useEffect(() => {
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [updateIndicator]);
 
   useEffect(() => {
     fetchData();
@@ -85,8 +132,6 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
       setLoading(false);
     }
   };
-
-  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
 
   const handleDuplicate = async () => {
     try {
@@ -122,21 +167,37 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
     }
   };
 
+  // Track previous tab for animation direction
+  const handleTabChange = (tab: 'DASHBOARD' | 'MEMBERS' | 'SETTINGS') => {
+    setPrevTab(activeTab);
+    setActiveTab(tab);
+  };
+
+  // Determine slide direction
+  const getSlideDirection = () => {
+    if (!prevTab) return 'none';
+    const currentIndex = tabOrder.indexOf(activeTab);
+    const prevIndex = tabOrder.indexOf(prevTab);
+    return currentIndex > prevIndex ? 'right' : 'left';
+  };
+
+  const slideDirection = getSlideDirection();
+
+  const getBadgeStyle = (type: string) => {
+    switch (type) {
+      case 'OPEN': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
+      case 'APPLICATION': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
+      case 'CLOSED': return 'bg-gray-50 text-gray-700 border-gray-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="animate-pulse text-gray-400">Loading...</div>
     </div>
   );
   if (!group) return <div className="p-12 text-center text-red-500">Group not found.</div>;
-
-  const getBadgeStyle = (type: string) => {
-    switch (type) {
-      case 'OPEN': return 'bg-green-50 text-green-700 border-green-200';
-      case 'APPLICATION': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'CLOSED': return 'bg-gray-50 text-gray-700 border-gray-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -225,89 +286,191 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
       </Card>
 
       {/* TABS */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-6">
-          {['DASHBOARD', 'MEMBERS', 'SETTINGS'].map((tab) => (
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-1.5 mb-6 relative">
+        {/* Sliding Background Indicator */}
+        <div
+          className="absolute top-1.5 bottom-1.5 rounded-lg bg-gradient-to-r from-[#4D4DA4] to-[#6B6BC4] shadow-md transition-all duration-300 ease-in-out z-0"
+          style={{
+            left: `${indicatorStyle.left}px`,
+            width: `${indicatorStyle.width}px`,
+          }}
+        />
+        
+        <nav className="flex gap-2 relative z-10">
+          {[
+            { key: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
+            { key: 'MEMBERS', label: 'Members', icon: Users },
+            { key: 'SETTINGS', label: 'Settings', icon: UserCog }
+          ].map(({ key, label, icon: Icon }) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              key={key}
+              ref={(el) => { tabRefs.current[key] = el; }}
+              onClick={() => handleTabChange(key as any)}
               className={cn(
-                "pb-4 px-2 text-sm font-medium border-b-2 transition-colors",
-                activeTab === tab 
-                  ? 'border-[#4D4DA4] text-[#4D4DA4]' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                "flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors duration-200 relative z-10",
+                activeTab === key
+                  ? 'text-white'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               )}
             >
-              {tab.charAt(0) + tab.slice(1).toLowerCase()}
+              <Icon className="w-4 h-4" />
+              <span>{label}</span>
             </button>
           ))}
         </nav>
       </div>
 
-      {/* DASHBOARD TAB */}
-      {activeTab === 'DASHBOARD' && analytics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Total Members</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_members}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">New This Week</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">+{analytics.new_this_week}</div>
-            </CardContent>
-          </Card>
-          
-          {/* Gender Dist */}
-          <Card className="md:col-span-2 border-none shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-500">Gender Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4">
-                {Object.entries(analytics.gender_distribution || {}).map(([key, val]: any) => (
-                  <div key={key} className="text-center bg-gray-50 p-3 rounded-lg min-w-[80px]">
-                    <span className="block text-xl font-bold text-gray-800">{val}</span>
-                    <span className="text-xs text-gray-500 uppercase">{key || 'Unset'}</span>
+      {/* Tab Content Container */}
+      <div className="relative overflow-hidden min-h-[400px]">
+        {/* DASHBOARD TAB */}
+        <div className={cn(
+          "transition-all duration-500 ease-in-out",
+          activeTab === 'DASHBOARD'
+            ? 'opacity-100 translate-x-0 relative'
+            : slideDirection === 'right'
+              ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none'
+              : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
+        )}>
+          {activeTab === 'DASHBOARD' && analytics && (
+          <>
+            {/* Analytics */}
+            <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2 mb-6">
+              <Card className="border-0 shadow-sm bg-gray-900">
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-gray-400" />
+                    <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                      Analytics Dashboard
+                    </h3>
                   </div>
-                ))}
-                {Object.keys(analytics.gender_distribution || {}).length === 0 && (
-                  <p className="text-sm text-gray-400">No data available.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                      <svg className={cn(
+                        "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                        analyticsExpanded ? "rotate-0" : "rotate-180"
+                      )} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                      <span className="sr-only">Toggle Analytics</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent className="transition-all duration-500 ease-in-out">
+                  <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                      {/* Card 1: Total Members */}
+                      <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                        style={{
+                          boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                        }}>
+                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                          <div className="flex items-center gap-2 justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                              style={{
+                                boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                              }}>
+                              <Users className="h-5 w-5 text-white" />
+                            </div>
+                            <CardTitle className="text-sm font-medium text-white/90">Total Members</CardTitle>
+                          </div>
+                          <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_members || 0}</div>
+                        </div>
+                      </Card>
 
-          {/* Grade Dist */}
-          <Card className="col-span-1 md:col-span-4 border-none shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-500">Grade Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(analytics.grade_distribution || {}).map(([grade, count]: any) => (
-                  <Badge key={grade} variant="outline" className="bg-[#4D4DA4] text-white border-[#4D4DA4] px-3 py-1">
-                    Grade {grade}: {count}
-                  </Badge>
-                ))}
-                {Object.keys(analytics.grade_distribution || {}).length === 0 && (
-                  <p className="text-sm text-gray-400">No data available.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                      {/* Card 2: New This Week */}
+                      <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                        style={{
+                          boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                        }}>
+                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                          <div className="flex items-center gap-2 justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                              style={{
+                                boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                              }}>
+                              <Users className="h-5 w-5 text-white" />
+                            </div>
+                            <CardTitle className="text-sm font-medium text-white/90">New This Week</CardTitle>
+                          </div>
+                          <div className="text-2xl sm:text-3xl font-bold text-white">+{analytics.new_this_week || 0}</div>
+                        </div>
+                      </Card>
+
+                      {/* Card 3: Gender Distribution */}
+                      <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden md:col-span-2"
+                        style={{
+                          boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                        }}>
+                        <div className="p-3 sm:p-4">
+                          <div className="flex items-center gap-2 justify-center mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
+                              style={{
+                                boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
+                              }}>
+                              <Users className="h-5 w-5 text-white" />
+                            </div>
+                            <CardTitle className="text-sm font-medium text-white/90">Gender Distribution</CardTitle>
+                          </div>
+                          <div className="flex gap-4 justify-center">
+                            {Object.entries(analytics.gender_distribution || {}).map(([key, val]: any) => (
+                              <div key={key} className="text-center bg-white/10 backdrop-blur-sm p-3 rounded-lg min-w-[80px] border border-white/20">
+                                <span className="block text-xl font-bold text-white">{val}</span>
+                                <span className="text-xs text-white/70 uppercase">{key || 'Unset'}</span>
+                              </div>
+                            ))}
+                            {Object.keys(analytics.gender_distribution || {}).length === 0 && (
+                              <p className="text-sm text-white/50">No data available.</p>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Card 4: Grade Distribution */}
+                      <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden col-span-1 md:col-span-4"
+                        style={{
+                          boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                        }}>
+                        <div className="p-3 sm:p-4">
+                          <div className="flex items-center gap-2 justify-center mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                              style={{
+                                boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                              }}>
+                              <BarChart3 className="h-5 w-5 text-white" />
+                            </div>
+                            <CardTitle className="text-sm font-medium text-white/90">Grade Distribution</CardTitle>
+                          </div>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {Object.entries(analytics.grade_distribution || {}).map(([grade, count]: any) => (
+                              <Badge key={grade} variant="outline" className="bg-white/10 text-white border-white/30 px-3 py-1">
+                                Grade {grade}: {count}
+                              </Badge>
+                            ))}
+                            {Object.keys(analytics.grade_distribution || {}).length === 0 && (
+                              <p className="text-sm text-white/50">No data available.</p>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          </>
+          )}
         </div>
-      )}
 
-      {/* MEMBERS TAB */}
-      {activeTab === 'MEMBERS' && (
+        {/* MEMBERS TAB */}
+        <div className={cn(
+          "transition-all duration-500 ease-in-out",
+          activeTab === 'MEMBERS'
+            ? 'opacity-100 translate-x-0 relative'
+            : slideDirection === 'right'
+              ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none'
+              : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
+        )}>
+          {activeTab === 'MEMBERS' && (
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -331,17 +494,17 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
               <Table>
                 <TableHeader>
                   <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                    <TableHead className="h-12 text-gray-600 font-semibold">Member</TableHead>
-                    <TableHead className="h-12 text-gray-600 font-semibold">Email</TableHead>
-                    <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
-                    <TableHead className="h-12 text-gray-600 font-semibold">Joined</TableHead>
-                    <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Member</TableHead>
+                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Email</TableHead>
+                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Joined</TableHead>
+                    <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {members.map((m: any) => (
                     <TableRow key={m.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50">
                             <AvatarImage src={m.user_avatar ? getMediaUrl(m.user_avatar) : undefined} className="object-cover" />
@@ -359,19 +522,19 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <span className="text-sm text-gray-600">{m.user_email}</span>
                       </TableCell>
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <Badge variant="outline" className={
-                          m.status === 'APPROVED' ? 'bg-green-50 text-green-700 border-green-200' : 
-                          m.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
-                          'bg-red-50 text-red-700 border-red-200'
+                          m.status === 'APPROVED' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' : 
+                          m.status === 'PENDING' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' : 
+                          'bg-red-50 text-[#EF4444] border-[#EF4444]/30'
                         }>
                           {m.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <span className="text-sm text-gray-600">
                           {new Date(m.joined_at).toLocaleDateString('en-US', { 
                             year: 'numeric', 
@@ -380,7 +543,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                           })}
                         </span>
                       </TableCell>
-                      <TableCell className="py-4 text-right">
+                      <TableCell className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {m.status === 'PENDING' && (
                             <Button 
@@ -414,12 +577,21 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
               </Table>
             )}
           </Card>
+          </div>
+          )}
         </div>
-      )}
 
-      {/* SETTINGS TAB */}
-      {activeTab === 'SETTINGS' && (
-        <Card className="border-none shadow-sm">
+        {/* SETTINGS TAB */}
+        <div className={cn(
+          "transition-all duration-500 ease-in-out",
+          activeTab === 'SETTINGS'
+            ? 'opacity-100 translate-x-0 relative'
+            : slideDirection === 'right'
+              ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none'
+              : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
+        )}>
+          {activeTab === 'SETTINGS' && (
+        <Card className="border-none shadow-sm bg-white">
           <CardHeader>
             <CardTitle>Group Settings</CardTitle>
           </CardHeader>
@@ -484,7 +656,9 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
             </div>
           </CardContent>
         </Card>
-      )}
+          )}
+        </div>
+      </div>
 
       {/* MODALS */}
       <ConfirmationModal

@@ -50,7 +50,7 @@ export default function MessageComposer({ onSend, disabled }: MessageComposerPro
     };
 
     return (
-        <div className="p-2 sm:p-3 md:p-4 bg-white border-t border-gray-200 flex-shrink-0 min-w-0 max-w-full">
+        <div className="p-2 sm:p-3 md:p-4 bg-white border-t border-gray-200 flex-shrink-0 min-w-0 max-w-full shadow-lg md:shadow-none">
             {/* File Preview */}
             {file && (
                 <div className="flex items-center gap-2 mb-2 p-2 bg-gray-50 rounded-lg max-w-full min-w-0">

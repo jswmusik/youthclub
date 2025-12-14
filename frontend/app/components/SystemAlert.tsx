@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation'; 
+import { usePathname } from 'next/navigation';
+import { Info, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -63,14 +64,27 @@ export default function SystemAlert() {
 
   if (!isVisible || !msg) return null;
 
-  // Theme Configuration
+  // Theme Configuration with brand colors and flat icons
   const themes = {
-    INFO: { bg: 'bg-blue-600', icon: 'ℹ️', border: 'border-blue-700' },
-    IMPORTANT: { bg: 'bg-orange-500', icon: '📢', border: 'border-orange-600' },
-    WARNING: { bg: 'bg-red-600', icon: '⚠️', border: 'border-red-700' },
+    INFO: { 
+      bg: 'bg-[#0EA5E9]', 
+      icon: Info, 
+      border: 'border-[#0EA5E9]' 
+    },
+    IMPORTANT: { 
+      bg: 'bg-[#F59E0B]', 
+      icon: AlertCircle, 
+      border: 'border-[#F59E0B]' 
+    },
+    WARNING: { 
+      bg: 'bg-[#EF4444]', 
+      icon: AlertTriangle, 
+      border: 'border-[#EF4444]' 
+    },
   };
 
   const theme = themes[msg.message_type as keyof typeof themes] || themes.INFO;
+  const IconComponent = theme.icon;
 
   return (
     <div className={`${theme.bg} text-white relative z-50 shadow-md`}>
@@ -78,7 +92,7 @@ export default function SystemAlert() {
         
         {/* Message Content */}
         <div className="flex items-center gap-3 flex-1">
-          <span className="text-xl">{theme.icon}</span>
+          <IconComponent className="h-5 w-5 text-white flex-shrink-0" />
           <div className="text-sm">
             <span className="font-bold uppercase tracking-wide mr-2 opacity-90">
               {msg.title}:
@@ -91,7 +105,7 @@ export default function SystemAlert() {
                 href={msg.external_link} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="ml-3 underline hover:text-gray-200 font-bold"
+                className="ml-3 underline hover:text-white/80 font-bold"
               >
                 Read More →
               </a>
@@ -102,10 +116,10 @@ export default function SystemAlert() {
         {/* Close Button */}
         <button 
           onClick={handleDismiss}
-          className="text-white/70 hover:text-white hover:bg-black/10 rounded p-1 transition"
+          className="text-white/70 hover:text-white hover:bg-white/10 rounded p-1 transition"
           title="Dismiss message"
         >
-          ✕
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>

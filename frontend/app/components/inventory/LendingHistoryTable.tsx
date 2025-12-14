@@ -58,7 +58,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                         <p className="text-xs text-gray-500 truncate">{session.user_name}</p>
                                     </div>
                                     {session.is_guest && (
-                                        <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-xs">Guest</Badge>
+                                        <Badge className="bg-pink-50 text-[#FF5485] border-[#FF5485]/30 text-xs">Guest</Badge>
                                     )}
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -68,7 +68,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                     </div>
                                     <div>
                                         <span className="text-gray-500">Due:</span>
-                                        <span className={`ml-1 ${overdue ? 'text-red-600 font-bold' : 'text-[#121213]'}`}>
+                                        <span className={`ml-1 ${overdue ? 'text-[#EF4444] font-bold' : 'text-[#121213]'}`}>
                                             {session.due_at ? format(new Date(session.due_at), 'MMM d, HH:mm') : '-'}
                                             {overdue && ' ⚠️'}
                                         </span>
@@ -79,19 +79,25 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                     </div>
                                     <div>
                                         <span className="text-gray-500">Status:</span>
-                                        <span className={`ml-1 font-semibold ${
-                                            session.status === 'ACTIVE' 
-                                                ? (overdue ? 'text-red-600' : 'text-green-600')
-                                                : session.status === 'RETURNED_SYSTEM'
-                                                    ? 'text-red-600'
-                                                    : session.status === 'RETURNED_ADMIN'
-                                                        ? 'text-[#4D4DA4]'
-                                                        : 'text-gray-500'
-                                        }`}>
-                                            {session.status === 'ACTIVE' && (overdue ? 'Overdue' : 'Active')}
-                                            {session.status === 'RETURNED_USER' && 'Returned'}
-                                            {session.status === 'RETURNED_SYSTEM' && 'System Auto-Return'}
-                                            {session.status === 'RETURNED_ADMIN' && 'Admin Force-Return'}
+                                        <span className="ml-1">
+                                            {session.status === 'ACTIVE' && (
+                                                <Badge variant="outline" className={`text-xs ${
+                                                    overdue 
+                                                        ? 'bg-red-50 text-[#EF4444] border-[#EF4444]/30' 
+                                                        : 'bg-green-50 text-[#10B981] border-[#10B981]/30'
+                                                }`}>
+                                                    {overdue ? 'Overdue' : 'Active'}
+                                                </Badge>
+                                            )}
+                                            {session.status === 'RETURNED_USER' && (
+                                                <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Returned</Badge>
+                                            )}
+                                            {session.status === 'RETURNED_SYSTEM' && (
+                                                <Badge variant="outline" className="text-xs bg-red-50 text-[#EF4444] border-[#EF4444]/30">System Auto-Return</Badge>
+                                            )}
+                                            {session.status === 'RETURNED_ADMIN' && (
+                                                <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">Admin Force-Return</Badge>
+                                            )}
                                         </span>
                                     </div>
                                 </div>
@@ -103,15 +109,15 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                 {/* Desktop: Table */}
                 <Table className="hidden md:table">
                     <TableHeader>
-                        <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                            <TableHead className="h-12 text-gray-600 font-semibold">Item</TableHead>
-                            <TableHead className="h-12 text-gray-600 font-semibold">Borrower</TableHead>
-                            <TableHead className="h-12 text-gray-600 font-semibold">Time Out</TableHead>
-                            <TableHead className="h-12 text-gray-600 font-semibold">Due Date</TableHead>
-                            <TableHead className="h-12 text-gray-600 font-semibold">Time In</TableHead>
-                            <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+                        <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Item</TableHead>
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Borrower</TableHead>
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Time Out</TableHead>
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Due Date</TableHead>
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Time In</TableHead>
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
                             {showReturnButton && (
-                                <TableHead className="h-12 text-gray-600 font-semibold">Actions</TableHead>
+                                <TableHead className="h-12 px-6 text-gray-600 font-semibold">Actions</TableHead>
                             )}
                         </TableRow>
                     </TableHeader>
@@ -121,31 +127,31 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                             return (
                                 <TableRow 
                                     key={session.id} 
-                                    className={`border-b border-gray-50 transition-colors ${
+                                    className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${
                                         overdue 
-                                            ? 'bg-red-50/50 hover:bg-red-50' 
+                                            ? 'bg-red-50/50' 
                                             : session.is_guest 
-                                                ? 'bg-orange-50/50 hover:bg-orange-50' 
-                                                : 'hover:bg-gray-50/50'
+                                                ? 'bg-orange-50/50' 
+                                                : ''
                                     }`}
                                 >
-                                    <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                                    <TableCell className="py-4 px-6">
                                         <div className="text-sm font-semibold text-[#121213]">{session.item_title}</div>
                                     </TableCell>
-                                    <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                                    <TableCell className="py-4 px-6">
                                         <div className="flex items-center gap-2">
                                             <div className="text-sm text-[#121213]">{session.user_name}</div>
                                             {session.is_guest && (
-                                                <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-xs">Guest</Badge>
+                                                <Badge className="bg-pink-50 text-[#FF5485] border-[#FF5485]/30 text-xs">Guest</Badge>
                                             )}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                                    <TableCell className="py-4 px-6">
                                         <div className="text-sm text-gray-500">{format(new Date(session.borrowed_at), 'MMM d, HH:mm')}</div>
                                     </TableCell>
-                                    <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                                    <TableCell className="py-4 px-6">
                                         {session.due_at ? (
-                                            <div className={`text-sm font-semibold ${overdue ? 'text-red-600' : 'text-[#121213]'}`}>
+                                            <div className={`text-sm font-semibold ${overdue ? 'text-[#EF4444]' : 'text-[#121213]'}`}>
                                                 {format(new Date(session.due_at), 'MMM d, HH:mm')}
                                                 {overdue && ' ⚠️'}
                                             </div>
@@ -153,31 +159,35 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                             <div className="text-sm text-gray-400">-</div>
                                         )}
                                     </TableCell>
-                                    <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                                    <TableCell className="py-4 px-6">
                                         <div className="text-sm text-gray-500">
                                             {session.returned_at ? format(new Date(session.returned_at), 'HH:mm') : '-'}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                                    <TableCell className="py-4 px-6">
                                         {session.status === 'ACTIVE' && (
-                                            <span className={`text-sm font-semibold ${overdue ? 'text-red-600' : 'text-green-600'}`}>
+                                            <Badge variant="outline" className={`text-xs font-semibold ${
+                                                overdue 
+                                                    ? 'bg-red-50 text-[#EF4444] border-[#EF4444]/30' 
+                                                    : 'bg-green-50 text-[#10B981] border-[#10B981]/30'
+                                            }`}>
                                                 {overdue ? 'Overdue' : 'Active'}
-                                            </span>
+                                            </Badge>
                                         )}
                                         {session.status === 'RETURNED_USER' && (
-                                            <span className="text-sm text-gray-500">Returned</span>
+                                            <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Returned</Badge>
                                         )}
                                         {session.status === 'RETURNED_SYSTEM' && (
-                                            <span className="text-sm font-semibold text-red-600" title="User forgot to return, system auto-closed">
+                                            <Badge variant="outline" className="text-xs bg-red-50 text-[#EF4444] border-[#EF4444]/30" title="User forgot to return, system auto-closed">
                                                 System Auto-Return
-                                            </span>
+                                            </Badge>
                                         )}
                                         {session.status === 'RETURNED_ADMIN' && (
-                                            <span className="text-sm font-semibold text-[#4D4DA4]">Admin Force-Return</span>
+                                            <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">Admin Force-Return</Badge>
                                         )}
                                     </TableCell>
                                     {showReturnButton && (
-                                        <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                                        <TableCell className="py-4 px-6">
                                             {session.status === 'ACTIVE' && onReturnItem && (
                                                 <Button
                                                     onClick={() => onReturnItem(session.item)}

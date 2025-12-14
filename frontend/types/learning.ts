@@ -22,8 +22,11 @@ export interface Course {
     published_at?: string;
     user_progress?: UserProgressSummary | null;
     rating_avg?: number | null;
+    user_rating?: number | null;
     meta_title?: string;
     meta_description?: string;
+    is_recommended?: boolean;
+    related_courses?: Course[];
 }
 
 // For creating/updating
@@ -33,7 +36,10 @@ export interface CourseFormData {
     category?: number | null;
     visible_to_roles: string[];
     status: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED';
+    published_at?: string | null;
     cover_image?: File | string | null;
+    is_recommended?: boolean;
+    related_courses?: number[];
 }
 
 export type ContentType = 'VIDEO' | 'TEXT' | 'FILE';

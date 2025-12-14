@@ -39,7 +39,7 @@ export const messengerApi = {
 
     checkConversationExists: async (recipientId: number) => {
         // Check if a conversation already exists with this recipient
-        // Returns { exists: boolean, conversationId?: number }
+        // Returns { exists: boolean, conversationId?: number, error?: string }
         // We call startConversation without subject - if it's existing, it works; if new, it requires subject
         try {
             // Try to call startConversation with just recipient_id (no subject, no content)
@@ -64,6 +64,11 @@ export const messengerApi = {
             // If error is about subject being required (400), no conversation exists
             if (err?.response?.status === 400 && err?.response?.data?.error?.includes('Subject')) {
                 return { exists: false };
+            }
+            // If 403 Forbidden, user doesn't have permission to start conversation with this recipient
+            if (err?.response?.status === 403) {
+                const errorMessage = err?.response?.data?.error || 'You do not have permission to start a conversation with this user';
+                return { exists: false, error: errorMessage };
             }
             // Other errors - log and assume no conversation exists
             console.error('Error checking conversation:', err);

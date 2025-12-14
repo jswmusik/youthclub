@@ -101,7 +101,7 @@ export const Avatar = ({
             <img
                 src={getMediaUrl(src)}
                 alt={alt}
-                className={`${sizeClass} rounded-full object-cover border border-gray-200 flex-shrink-0`}
+                className={`${sizeClass} rounded-full object-cover border border-[#262626] flex-shrink-0`}
             />
         );
     }
@@ -110,7 +110,7 @@ export const Avatar = ({
     const colorClass = getAvatarColor(`${firstName}${lastName}`);
     
     return (
-        <div className={`${sizeClass} ${colorClass} rounded-full flex items-center justify-center text-white font-semibold border border-gray-200 flex-shrink-0`}>
+        <div className={`${sizeClass} ${colorClass} rounded-full flex items-center justify-center text-white font-semibold border border-[#262626] flex-shrink-0`}>
             {initials}
         </div>
     );
@@ -132,22 +132,61 @@ interface Comment {
     replies?: Comment[];
 }
 
-const REACTION_EMOJIS: Record<ReactionType, string> = {
-    LIKE: '👍',
-    LOVE: '❤️',
-    LAUGH: '😂',
-    WOW: '😮',
-    SAD: '😢',
-    ANGRY: '😠',
+// Flat icon components for reactions
+const ReactionIcon = ({ type, className = "w-6 h-6" }: { type: ReactionType, className?: string }) => {
+    const icons: Record<ReactionType, JSX.Element> = {
+        LIKE: (
+            <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
+            </svg>
+        ),
+        LOVE: (
+            <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+        ),
+        LAUGH: (
+            <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="8.5" cy="9.5" r="1.5" fill="currentColor"/>
+                <circle cx="15.5" cy="9.5" r="1.5" fill="currentColor"/>
+                <path d="M8 15c1.5 1 3 1.5 4 1.5s2.5-.5 4-1.5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            </svg>
+        ),
+        WOW: (
+            <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                <circle cx="8.5" cy="9.5" r="1.5" fill="currentColor"/>
+                <circle cx="15.5" cy="9.5" r="1.5" fill="currentColor"/>
+            </svg>
+        ),
+        SAD: (
+            <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="8.5" cy="9.5" r="1.5" fill="currentColor"/>
+                <circle cx="15.5" cy="9.5" r="1.5" fill="currentColor"/>
+                <path d="M8 16c1.5-1 3-1.5 4-1.5s2.5.5 4 1.5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            </svg>
+        ),
+        ANGRY: (
+            <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
+                <path d="M8 10.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S10.33 9 9.5 9 8 9.67 8 10.5zm5 0c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S15.33 9 14.5 9 13 9.67 13 10.5z"/>
+                <path d="M8 16c1.5 1 3 1.5 4 1.5s2.5-.5 4-1.5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            </svg>
+        ),
+    };
+    return icons[type];
 };
 
 const REACTION_COLORS: Record<ReactionType, string> = {
-    LIKE: 'text-blue-500',
-    LOVE: 'text-red-500',
-    LAUGH: 'text-yellow-500',
-    WOW: 'text-yellow-500',
-    SAD: 'text-blue-500',
-    ANGRY: 'text-red-500',
+    LIKE: 'text-[#6D6DD4]',
+    LOVE: 'text-[#FF5485]',
+    LAUGH: 'text-[#6D6DD4]',
+    WOW: 'text-[#FF5485]',
+    SAD: 'text-[#4D4DA4]',
+    ANGRY: 'text-[#FF5485]',
 };
 
 export default function PostCard({ post }: PostCardProps) {
@@ -429,9 +468,9 @@ export default function PostCard({ post }: PostCardProps) {
     };
 
     const getReactionDisplay = () => {
-        if (!userReaction) return { emoji: '👍', text: 'Like', color: 'text-gray-500 hover:text-blue-500' };
+        if (!userReaction) return { icon: 'LIKE', text: 'Like', color: 'text-gray-400 hover:text-[#6D6DD4]' };
         return {
-            emoji: REACTION_EMOJIS[userReaction],
+            icon: userReaction,
             text: userReaction,
             color: REACTION_COLORS[userReaction]
         };
@@ -482,12 +521,16 @@ export default function PostCard({ post }: PostCardProps) {
         : null;
 
     return (
-        <div className={`${isGroupAnnouncement ? 'bg-white' : 'bg-gray-50'} rounded-2xl shadow-sm border ${isGroupAnnouncement ? 'border-indigo-200' : 'border-gray-200'} overflow-hidden mb-6`}>
+        <div className={`${isGroupAnnouncement ? 'bg-[#050505]' : 'bg-[#050505]'} rounded-2xl shadow-lg border ${isGroupAnnouncement ? 'border-[#4D4DA4]/40' : 'border-[#262626]'} overflow-hidden mb-6`}>
             {/* Header */}
             <div className="p-4 flex items-center gap-3">
                 {showUAPlaceholder ? (
-                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border border-gray-200">
-                        <span className="text-white font-bold text-sm">UA</span>
+                    <div className="w-10 h-10 flex items-center justify-center">
+                        <img 
+                            src="/ua-logo-stylized.png" 
+                            alt="Ungdomsappen Logo" 
+                            className="w-10 h-10 object-cover rounded-full"
+                        />
                     </div>
                 ) : post.organization_avatar ? (
                     <button
@@ -502,7 +545,7 @@ export default function PostCard({ post }: PostCardProps) {
                         <img 
                             src={displayAvatar || '/default-avatar.png'} 
                             alt={displayName} 
-                            className={`w-10 h-10 rounded-full object-cover border border-gray-200 ${isClubPost ? 'hover:border-blue-400' : ''}`}
+                            className={`w-10 h-10 rounded-full object-cover border border-[#262626] ${isClubPost ? 'hover:border-[#4D4DA4]' : ''}`}
                         />
                     </button>
                 ) : post.author ? (
@@ -514,7 +557,7 @@ export default function PostCard({ post }: PostCardProps) {
                         size="lg"
                     />
                 ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center border border-gray-200">
+                    <div className="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center border border-[#262626]">
                         <span className="text-white font-bold text-sm">?</span>
                     </div>
                 )}
@@ -524,16 +567,16 @@ export default function PostCard({ post }: PostCardProps) {
                             onClick={() => router.push(`/dashboard/youth/club/${post.club}`)}
                             className="text-left hover:opacity-80 transition-opacity"
                         >
-                            <h4 className="font-bold text-gray-900 hover:text-blue-600">{displayName}</h4>
+                            <h4 className="font-bold text-gray-200 hover:text-[#6D6DD4]">{displayName}</h4>
                         </button>
                     ) : (
-                        <h4 className="font-bold text-gray-900">{displayName}</h4>
+                        <h4 className="font-bold text-gray-200">{displayName}</h4>
                     )}
-                    <p className="text-xs text-gray-500">{publishedDate}</p>
+                    <p className="text-xs text-gray-400">{publishedDate}</p>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                     {isGroupAnnouncement && (
-                        <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                        <span className="bg-[#4D4DA4]/20 text-[#6D6DD4] text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1 border border-[#4D4DA4]/30">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
@@ -541,7 +584,7 @@ export default function PostCard({ post }: PostCardProps) {
                         </span>
                     )}
                     {post.is_pinned && (
-                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold">
+                        <span className="bg-[#4D4DA4]/20 text-[#6D6DD4] text-xs px-2 py-1 rounded-full font-bold border border-[#4D4DA4]/30">
                             Pinned
                         </span>
                     )}
@@ -551,10 +594,10 @@ export default function PostCard({ post }: PostCardProps) {
             {/* Content (Text) - Hidden for group announcements since we show it in the header */}
             {!isGroupAnnouncement && (
                 <div className="px-4 pb-2">
-                    <h3 className="text-lg font-bold mb-2">{post.title}</h3>
+                    <h3 className="text-lg font-bold mb-2 text-gray-200">{post.title}</h3>
                     <div 
                         ref={contentRef}
-                        className={`text-gray-700 prose prose-sm max-w-none overflow-hidden transition-all ${
+                        className={`text-gray-100 prose prose-sm max-w-none overflow-hidden transition-all prose-headings:text-gray-100 prose-p:text-gray-100 prose-a:text-[#6D6DD4] prose-strong:text-gray-100 prose-li:text-gray-100 prose-ul:text-gray-100 prose-ol:text-gray-100 ${
                             shouldTruncate && !isContentExpanded ? 'max-h-[144px]' : ''
                         }`}
                         dangerouslySetInnerHTML={{ __html: post.content }} 
@@ -562,7 +605,7 @@ export default function PostCard({ post }: PostCardProps) {
                     {shouldTruncate && (
                         <button
                             onClick={() => setIsContentExpanded(!isContentExpanded)}
-                            className="mt-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
+                            className="mt-2 text-[#6D6DD4] hover:text-[#7D7DE4] font-medium text-sm transition-colors"
                         >
                             {isContentExpanded ? 'Show less' : 'Show more'}
                         </button>
@@ -572,18 +615,18 @@ export default function PostCard({ post }: PostCardProps) {
 
             {/* Group Announcement Header (above image) */}
             {isGroupAnnouncement && groupName && (
-                <div className="px-4 pt-4 pb-3 bg-blue-50 border-b border-blue-100">
+                <div className="px-4 pt-4 pb-3 bg-[#4D4DA4]/10 border-b border-[#4D4DA4]/20">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                            <h3 className="text-lg font-bold text-gray-900 mb-1">{groupName}</h3>
+                            <h3 className="text-lg font-bold text-gray-200 mb-1">{groupName}</h3>
                             {descriptionExcerpt && (
-                                <p className="text-sm text-gray-600 line-clamp-2">{descriptionExcerpt}</p>
+                                <p className="text-sm text-gray-400 line-clamp-2">{descriptionExcerpt}</p>
                             )}
                         </div>
                         {groupId && (
                             <button
                                 onClick={() => router.push(`/dashboard/youth/groups/${groupId}`)}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors whitespace-nowrap flex-shrink-0"
+                                className="px-4 py-2 bg-[#4D4DA4] hover:bg-[#5D5DB4] text-white font-semibold rounded-lg transition-colors whitespace-nowrap flex-shrink-0 shadow-lg shadow-[#4D4DA4]/20"
                             >
                                 View Group
                             </button>
@@ -600,7 +643,7 @@ export default function PostCard({ post }: PostCardProps) {
                         <img 
                             src={getMediaUrl(post.images[0].image) || ''} 
                             alt="Post content" 
-                            className="w-full h-auto max-h-[500px] object-cover bg-gray-50"
+                            className="w-full h-auto max-h-[500px] object-cover bg-black"
                         />
                     ) : post.images.length === 2 ? (
                         // Two images side by side
@@ -610,7 +653,7 @@ export default function PostCard({ post }: PostCardProps) {
                                     key={img.id}
                                     src={getMediaUrl(img.image) || ''}
                                     alt={`Post image ${idx + 1}`}
-                                    className="w-full h-[300px] object-cover bg-gray-50 cursor-pointer hover:opacity-90 transition-opacity"
+                                    className="w-full h-[300px] object-cover bg-black cursor-pointer hover:opacity-90 transition-opacity"
                                     onClick={() => setCurrentImageIndex(idx)}
                                 />
                             ))}
@@ -758,7 +801,7 @@ export default function PostCard({ post }: PostCardProps) {
             )}
 
             {/* Action Bar */}
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-6 relative">
+            <div className="px-4 py-3 border-t border-[#262626] flex items-center gap-6 relative">
                 {/* Reaction Button with Picker */}
                 <div 
                     className="relative" 
@@ -776,8 +819,8 @@ export default function PostCard({ post }: PostCardProps) {
                         }}
                         className={`flex items-center gap-2 transition-colors ${getReactionDisplay().color}`}
                     >
-                        <span className={`text-2xl transition-transform ${isAnimating ? 'scale-125' : 'scale-100'}`}>
-                            {getReactionDisplay().emoji}
+                        <span className={`transition-transform ${isAnimating ? 'scale-125' : 'scale-100'}`}>
+                            <ReactionIcon type={getReactionDisplay().icon as ReactionType} className="w-6 h-6" />
                         </span>
                         <span className="font-medium">{totalReactions || 0}</span>
                     </button>
@@ -785,7 +828,7 @@ export default function PostCard({ post }: PostCardProps) {
                     {/* Reaction Picker - positioned very close with no gap */}
                     {(showReactionPicker || isPickerOpen) && (
                         <div 
-                            className="absolute bottom-full left-0 bg-white rounded-full shadow-xl border border-gray-200 p-2 flex gap-1 z-50"
+                            className="absolute bottom-full left-0 bg-[#050505] rounded-full shadow-xl border border-[#262626] p-2 flex gap-1 z-50"
                             onMouseEnter={openPicker}
                             onMouseLeave={scheduleClose}
                             style={{ 
@@ -799,15 +842,15 @@ export default function PostCard({ post }: PostCardProps) {
                                 onMouseEnter={openPicker}
                             />
                             
-                            {(Object.keys(REACTION_EMOJIS) as ReactionType[]).map((reactionType) => (
+                            {(Object.keys(REACTION_COLORS) as ReactionType[]).map((reactionType) => (
                                 <button
                                     key={reactionType}
                                     onClick={() => handleReaction(reactionType)}
                                     onMouseEnter={openPicker}
-                                    className="text-2xl hover:scale-150 transition-transform p-1 cursor-pointer"
+                                    className={`hover:scale-150 transition-transform p-1 cursor-pointer ${REACTION_COLORS[reactionType]}`}
                                     title={reactionType}
                                 >
-                                    {REACTION_EMOJIS[reactionType]}
+                                    <ReactionIcon type={reactionType} className="w-6 h-6" />
                                 </button>
                             ))}
                         </div>
@@ -816,11 +859,11 @@ export default function PostCard({ post }: PostCardProps) {
 
                 {/* Reaction Breakdown Tooltip */}
                 {totalReactions > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-1 text-xs text-gray-400">
                         {Object.entries(reactionBreakdown).map(([type, count]) => (
                             count > 0 && (
                                 <span key={type} className="flex items-center gap-1">
-                                    <span>{REACTION_EMOJIS[type as ReactionType]}</span>
+                                    <ReactionIcon type={type as ReactionType} className="w-4 h-4" />
                                     <span>{count}</span>
                                 </span>
                             )
@@ -831,7 +874,7 @@ export default function PostCard({ post }: PostCardProps) {
                 {post.allow_comments ? (
                     <button 
                         onClick={toggleComments}
-                        className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors ml-auto"
+                        className="flex items-center gap-2 text-gray-400 hover:text-[#6D6DD4] transition-colors ml-auto"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -850,14 +893,14 @@ export default function PostCard({ post }: PostCardProps) {
 
             {/* Comments Section */}
             {showComments && post.allow_comments && (
-                <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+                <div className="px-4 py-3 border-t border-[#262626] bg-[#050505]">
                     {/* Moderation Notice */}
                     {post.require_moderation && (
-                        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2">
-                            <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="mb-3 p-2 bg-[#4D4DA4]/20 border border-[#4D4DA4]/30 rounded-lg flex items-start gap-2">
+                            <svg className="w-5 h-5 text-[#6D6DD4] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p className="text-sm text-blue-800">
+                            <p className="text-sm text-gray-300">
                                 Comments on this post are moderated and will be reviewed before being published.
                             </p>
                         </div>
@@ -865,11 +908,11 @@ export default function PostCard({ post }: PostCardProps) {
 
                     {/* Success Message */}
                     {commentSubmitted && post.require_moderation && (
-                        <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
-                            <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="mb-3 p-2 bg-emerald-500/20 border border-emerald-500/30 rounded-lg flex items-start gap-2">
+                            <svg className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p className="text-sm text-green-800">
+                            <p className="text-sm text-emerald-300">
                                 Your comment has been submitted and is pending approval.
                             </p>
                         </div>
@@ -891,7 +934,7 @@ export default function PostCard({ post }: PostCardProps) {
                                     value={newComment}
                                     onChange={(e) => setNewComment(e.target.value)}
                                     placeholder="Write a comment..."
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-[#262626] bg-[#050505] text-gray-200 placeholder-gray-500 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
                                     rows={2}
                                     maxLength={1000}
                                 />
@@ -899,7 +942,7 @@ export default function PostCard({ post }: PostCardProps) {
                                     <button
                                         type="submit"
                                         disabled={!newComment.trim() || submittingComment}
-                                        className="px-4 py-1.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="px-4 py-1.5 bg-[#4D4DA4] text-white rounded-lg font-medium hover:bg-[#5D5DB4] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-[#4D4DA4]/20"
                                     >
                                         {submittingComment ? 'Posting...' : 'Post'}
                                     </button>
@@ -910,9 +953,9 @@ export default function PostCard({ post }: PostCardProps) {
 
                     {/* Comments List */}
                     {loadingComments ? (
-                        <div className="text-center py-4 text-gray-500 text-sm">Loading comments...</div>
+                        <div className="text-center py-4 text-gray-400 text-sm">Loading comments...</div>
                     ) : comments.length === 0 ? (
-                        <div className="text-center py-4 text-gray-500 text-sm">No comments yet. Be the first to comment!</div>
+                        <div className="text-center py-4 text-gray-400 text-sm">No comments yet. Be the first to comment!</div>
                     ) : (
                         <div className="space-y-4 max-h-[400px] overflow-y-auto">
                             {comments.map((comment) => (
@@ -925,13 +968,13 @@ export default function PostCard({ post }: PostCardProps) {
                                         size="md"
                                     />
                                     <div className="flex-1">
-                                        <div className="bg-white rounded-lg px-3 py-2">
+                                        <div className="bg-[#050505] rounded-lg px-3 py-2 border border-[#262626]">
                                             <div className="flex items-baseline gap-2 mb-1 justify-between">
                                                 <div className="flex items-baseline gap-2">
-                                                    <span className="font-semibold text-gray-900 text-sm">
+                                                    <span className="font-semibold text-gray-200 text-sm">
                                                         {comment.author.first_name} {comment.author.last_name}
                                                     </span>
-                                                    <span className="text-xs text-gray-500">
+                                                    <span className="text-xs text-gray-400">
                                                         {new Date(comment.created_at).toLocaleDateString('en-US', {
                                                             month: 'short',
                                                             day: 'numeric',
@@ -943,7 +986,7 @@ export default function PostCard({ post }: PostCardProps) {
                                                 {user && comment.author.id === user.id && (
                                                     <button
                                                         onClick={() => handleDeleteComment(comment.id, false)}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors"
+                                                        className="text-gray-500 hover:text-[#FF5485] transition-colors"
                                                         title="Delete comment"
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -952,7 +995,7 @@ export default function PostCard({ post }: PostCardProps) {
                                                     </button>
                                                 )}
                                             </div>
-                                            <p className="text-gray-800 text-sm whitespace-pre-wrap">{comment.content}</p>
+                                            <p className="text-gray-300 text-sm whitespace-pre-wrap">{comment.content}</p>
                                         </div>
                                         {/* Replies */}
                                         {comment.replies && comment.replies.length > 0 && (
@@ -967,13 +1010,13 @@ export default function PostCard({ post }: PostCardProps) {
                                                             size="sm"
                                                         />
                                                         <div className="flex-1">
-                                                            <div className="bg-white rounded-lg px-3 py-2">
+                                                            <div className="bg-[#121212] rounded-lg px-3 py-2 border border-[#262626]">
                                                                 <div className="flex items-baseline gap-2 mb-1 justify-between">
                                                                     <div className="flex items-baseline gap-2">
-                                                                        <span className="font-semibold text-gray-900 text-xs">
+                                                                        <span className="font-semibold text-gray-200 text-xs">
                                                                             {reply.author.first_name} {reply.author.last_name}
                                                                         </span>
-                                                                        <span className="text-xs text-gray-500">
+                                                                        <span className="text-xs text-gray-400">
                                                                             {new Date(reply.created_at).toLocaleDateString('en-US', {
                                                                                 month: 'short',
                                                                                 day: 'numeric',
@@ -985,7 +1028,7 @@ export default function PostCard({ post }: PostCardProps) {
                                                                     {user && reply.author.id === user.id && (
                                                                         <button
                                                                             onClick={() => handleDeleteComment(reply.id, true)}
-                                                                            className="text-gray-400 hover:text-red-500 transition-colors"
+                                                                            className="text-gray-500 hover:text-[#FF5485] transition-colors"
                                                                             title="Delete reply"
                                                                         >
                                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -994,7 +1037,7 @@ export default function PostCard({ post }: PostCardProps) {
                                                                         </button>
                                                                     )}
                                                                 </div>
-                                                                <p className="text-gray-800 text-xs whitespace-pre-wrap">{reply.content}</p>
+                                                                <p className="text-gray-300 text-xs whitespace-pre-wrap">{reply.content}</p>
                                                             </div>
                                                         </div>
                                                     </div>

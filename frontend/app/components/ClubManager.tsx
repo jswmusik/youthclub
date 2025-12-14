@@ -171,7 +171,9 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
             <div className="flex items-center justify-between px-4 sm:px-6 py-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-400">Analytics Dashboard</h3>
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
               </div>
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
@@ -184,36 +186,44 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
               </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
                   {/* Card 1: Total Clubs */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Total Clubs</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-[#4D4DA4]/30 flex items-center justify-center shadow-md">
-                          <Building className="h-5 w-5 text-[#4D4DA4]" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <Building className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Clubs</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.total}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
+                    </div>
                   </Card>
 
                   {/* Card 2: Avg. Members */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Avg. Members</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center shadow-md">
-                          <Users className="h-5 w-5 text-blue-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
+                          }}>
+                          <Users className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Avg. Members</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.avgMembers}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.avgMembers}</div>
+                    </div>
                   </Card>
                 </div>
               </CardContent>
@@ -224,7 +234,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-2 flex flex-col sm:flex-row gap-3">
+        <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
             <Input 
@@ -269,9 +279,9 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
               <Card key={club.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0">
+                        <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
                             <AvatarImage src={getMediaUrl(club.avatar)} className="object-cover" />
-                            <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">C</AvatarFallback>
+                            <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">C</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                             <CardTitle className="text-base font-semibold text-gray-900 truncate">{club.name}</CardTitle>
@@ -318,32 +328,32 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Club Name</TableHead>
-                  {scope === 'SUPER' && <TableHead className="h-12 text-gray-600 font-semibold">Municipality</TableHead>}
-                  <TableHead className="h-12 text-gray-600 font-semibold">Contact</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club Name</TableHead>
+                  {scope === 'SUPER' && <TableHead className="h-12 px-6 text-gray-600 font-semibold">Municipality</TableHead>}
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Contact</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {clubs.map((club) => (
                   <TableRow key={club.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                            <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                                 <AvatarImage src={getMediaUrl(club.avatar)} className="object-cover" />
-                                <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">C</AvatarFallback>
+                                <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">C</AvatarFallback>
                             </Avatar>
                             <span className="font-semibold text-gray-900">{club.name}</span>
                         </div>
                     </TableCell>
-                    {scope === 'SUPER' && <TableCell className="text-gray-600">{club.municipality_name}</TableCell>}
-                    <TableCell>
+                    {scope === 'SUPER' && <TableCell className="px-6 text-gray-600">{club.municipality_name}</TableCell>}
+                    <TableCell className="px-6">
                         <div className="text-sm text-gray-600">
                             {club.email && <div>{club.email}</div>}
                             {club.phone && <div className="text-xs text-gray-400">{club.phone}</div>}
                         </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="px-6 text-right">
                         <div className="flex items-center justify-end gap-1">
                            <Link href={buildUrlWithParams(`${basePath}/${club.id}`)}>
                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"><Eye className="h-4 w-4" /></Button>

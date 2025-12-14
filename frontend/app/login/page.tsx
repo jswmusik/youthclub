@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from '../../context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -25,58 +31,84 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-500 mt-2">Sign in to Ungdomsappen</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EBEBFE] via-white to-[#EBEBFE]/50 p-4">
+      <div className="w-full max-w-md">
+        <Card className="border border-gray-100 shadow-xl bg-white/95 backdrop-blur-sm">
+          <CardHeader className="space-y-2 text-center pb-6">
+            <div className="mx-auto mb-4 mt-6 flex items-center justify-center">
+              <Image
+                src="/ua-logo-stylized.png"
+                alt="Ungdomsappen Logo"
+                width={120}
+                height={120}
+                className="object-contain"
+                priority
+              />
+            </div>
+            <CardTitle className="text-3xl font-bold tracking-tight text-[#121213]">Welcome Back</CardTitle>
+            <CardDescription className="text-gray-500 text-base">
+              Sign in to Ungdomsappen
+            </CardDescription>
+          </CardHeader>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
-            {error}
-          </div>
-        )}
+          <CardContent className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              placeholder="admin@example.com"
-            />
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 bg-gray-50 border-gray-200 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
+                  placeholder="admin@example.com"
+                />
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              placeholder="••••••••"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-11 bg-gray-50 border-gray-200 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
+                  placeholder="••••••••"
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`w-full py-3 text-white rounded-lg font-bold transition
-              ${isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
-            `}
-          >
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 bg-[#4D4DA4] hover:bg-[#FF5485] text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
 
-        <div className="text-center text-sm text-gray-500">
-          <a href="#" className="hover:text-blue-600">Forgot password?</a>
-        </div>
+            <div className="text-center pt-2">
+              <a 
+                href="#" 
+                className="text-sm text-gray-500 hover:text-[#4D4DA4] transition-colors font-medium"
+              >
+                Forgot password?
+              </a>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

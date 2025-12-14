@@ -3,7 +3,9 @@
 import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import ClubFollowersList from '@/app/components/ClubFollowersList';
+import { Button } from '@/components/ui/button';
 
 function MunicipalityClubFollowersPageContent() {
   const params = useParams();
@@ -19,18 +21,21 @@ function MunicipalityClubFollowersPageContent() {
 
   return (
     <div className="p-8 space-y-6">
+      {/* Back Link */}
       <div>
-        <Link 
-          href={`/admin/municipality/clubs/${clubId}`}
-          className="text-gray-500 hover:text-gray-900 font-medium flex items-center gap-1 mb-4"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Club Details
+        <Link href={`/admin/municipality/clubs/${clubId}`}>
+          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="h-4 w-4" /> Back to Club
+          </Button>
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Club Followers</h1>
-        <p className="text-gray-600 mt-2">View all users who follow this club</p>
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Club Followers</h1>
+          <p className="text-gray-500 mt-1">View all users who follow this club</p>
+        </div>
       </div>
       <ClubFollowersList clubId={clubId} />
     </div>

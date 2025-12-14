@@ -36,6 +36,7 @@ export default function QuickMessageModal({
     const [conversationId, setConversationId] = useState<number | null>(null);
     const [isExistingConversation, setIsExistingConversation] = useState(false);
     const [checkingConversation, setCheckingConversation] = useState(false);
+    const [permissionError, setPermissionError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     // Toast state
@@ -49,16 +50,33 @@ export default function QuickMessageModal({
     useEffect(() => {
         if (isOpen && recipientId) {
             setCheckingConversation(true);
+            setPermissionError(null);
             messengerApi.checkConversationExists(recipientId)
                 .then((result) => {
                     setIsExistingConversation(result.exists);
                     if (result.exists && result.conversationId) {
                         setConversationId(result.conversationId);
                     }
+                    // Check if there's a permission error
+                    if (result.error) {
+                        setPermissionError(result.error);
+                        setToast({
+                            message: result.error,
+                            type: 'error',
+                            isVisible: true
+                        });
+                    }
                 })
                 .catch((err) => {
                     console.error('Failed to check conversation:', err);
                     setIsExistingConversation(false);
+                    const errorMsg = err?.response?.data?.error || 'Failed to check conversation';
+                    setPermissionError(errorMsg);
+                    setToast({
+                        message: errorMsg,
+                        type: 'error',
+                        isVisible: true
+                    });
                 })
                 .finally(() => {
                     setCheckingConversation(false);
@@ -67,6 +85,7 @@ export default function QuickMessageModal({
             // Reset when modal closes
             setIsExistingConversation(false);
             setConversationId(null);
+            setPermissionError(null);
             setSubject('');
             setContent('');
             setAttachment(null);
@@ -190,6 +209,14 @@ export default function QuickMessageModal({
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4 sm:space-y-5 bg-white p-5 sm:p-6">
+                    {/* Permission Error Message */}
+                    {permissionError && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                            <p className="text-sm text-red-700 font-medium">{permissionError}</p>
+                            <p className="text-xs text-red-600 mt-1">You may not have permission to start a conversation with this user.</p>
+                        </div>
+                    )}
+                    
                     {/* Message Input */}
                     {checkingConversation ? (
                         <div className="flex items-center justify-center py-8">
@@ -309,7 +336,7 @@ export default function QuickMessageModal({
                         <Button
                             type="button"
                             onClick={handleSend}
-                            disabled={sending || checkingConversation || (!content.trim() && !attachment) || (!isExistingConversation && !subject.trim())}
+                            disabled={sending || checkingConversation || !!permissionError || (!content.trim() && !attachment) || (!isExistingConversation && !subject.trim())}
                             className="flex-1 order-1 sm:order-2 h-11 sm:h-12 text-sm sm:text-base font-semibold bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2 rounded-full transition-colors disabled:opacity-50 disabled:hover:bg-[#4D4DA4] touch-manipulation shadow-lg hover:shadow-xl"
                         >
                             {sending ? (

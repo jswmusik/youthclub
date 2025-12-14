@@ -10,7 +10,7 @@ from groups.views import GroupViewSet, GroupMembershipViewSet
 from rewards.views import RewardViewSet
 # Add this line at the top with other imports
 from posts.views import PostViewSet, PostCommentViewSet
-from learning.views import CourseViewSet, LearningCategoryViewSet, ChapterViewSet, ContentItemViewSet
+from learning.views import CourseViewSet, LearningCategoryViewSet, ChapterViewSet, ContentItemViewSet, upload_image
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -48,6 +48,9 @@ urlpatterns = [
     path('register/check-email/', CheckEmailView.as_view(), name='check-email'),
     
     path('custom-fields/public/', PublicCustomFieldListView.as_view(), name='public-custom-fields'),
+    
+    # --- LEARNING IMAGE UPLOAD ---
+    path('learning/upload-image/', upload_image, name='learning-upload-image'),
     
     # --- ROUTER ENDPOINTS ---
     path('', include(router.urls)), 

@@ -78,21 +78,21 @@ export default function ProfileHeader({ user, primaryClub }: ProfileHeaderProps)
     switch (user.verification_status) {
       case 'VERIFIED':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
             Verified Member
           </span>
         );
       case 'PENDING':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 border border-yellow-200">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
             Verification Pending
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200 cursor-pointer hover:bg-red-200 transition">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30 cursor-pointer hover:bg-red-500/30 transition">
              Unverified
           </span>
         );
@@ -100,13 +100,13 @@ export default function ProfileHeader({ user, primaryClub }: ProfileHeaderProps)
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+    <div className="bg-[#050505] rounded-xl shadow-lg overflow-hidden border border-[#262626]">
       
       {/* 1. COVER IMAGE AREA */}
       <div 
         className="relative h-48 md:h-64 bg-gray-200 w-full bg-cover bg-center group"
         style={{ 
-          backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'linear-gradient(to right, #4F46E5, #9333EA)'
+          backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'linear-gradient(to right, #4D4DA4, #FF5485)'
         }}
       >
         {/* Dark Overlay on Hover for Edit */}
@@ -116,7 +116,7 @@ export default function ProfileHeader({ user, primaryClub }: ProfileHeaderProps)
         <button 
           onClick={() => backgroundInputRef.current?.click()}
           disabled={isUploading}
-          className="absolute top-4 right-4 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full shadow-sm backdrop-blur-sm transition opacity-0 group-hover:opacity-100"
+          className="absolute top-4 right-4 bg-[#050505]/80 hover:bg-[#050505] text-gray-200 p-2 rounded-full shadow-sm backdrop-blur-sm transition opacity-0 group-hover:opacity-100 border border-[#262626]"
           title="Change Cover Photo"
         >
           {/* Camera Icon */}
@@ -139,11 +139,11 @@ export default function ProfileHeader({ user, primaryClub }: ProfileHeaderProps)
           
           {/* AVATAR */}
           <div className="relative group mr-5">
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white bg-white shadow-md overflow-hidden relative">
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-[#050505] bg-[#050505] shadow-md overflow-hidden relative">
               {user.avatar ? (
                 <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                <div className="w-full h-full bg-[#1C1C1F] flex items-center justify-center text-gray-500">
                   <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                 </div>
               )}
@@ -151,9 +151,9 @@ export default function ProfileHeader({ user, primaryClub }: ProfileHeaderProps)
               {/* Edit Avatar Overlay */}
               <div 
                 onClick={() => avatarInputRef.current?.click()}
-                className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center cursor-pointer"
+                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center cursor-pointer"
               >
-                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                 <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
               </div>
             </div>
             
@@ -169,16 +169,16 @@ export default function ProfileHeader({ user, primaryClub }: ProfileHeaderProps)
           {/* TEXT INFO */}
           <div className="flex-1 mt-4 md:mt-0 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-gray-900 truncate">
+              <h1 className="text-2xl font-bold text-gray-200 truncate">
                 {user.first_name} {user.last_name}
               </h1>
               {getVerificationBadge()}
             </div>
 
             {/* Nickname & Grade */}
-            <p className="text-gray-500 text-sm mb-3">
+            <p className="text-gray-400 text-sm mb-3">
               {user.nickname && <span className="mr-2">@{user.nickname}</span>}
-              {user.grade && <span className="px-2 border-l border-gray-300">Grade {user.grade}</span>}
+              {user.grade && <span className="px-2 border-l border-[#262626]">Grade {user.grade}</span>}
             </p>
 
             {/* MOOD STATUS */}
@@ -193,21 +193,23 @@ export default function ProfileHeader({ user, primaryClub }: ProfileHeaderProps)
                     onBlur={saveMood}
                     onKeyDown={(e) => e.key === 'Enter' && saveMood()}
                     placeholder="What's on your mind?"
-                    className="w-full px-3 py-1 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-1 text-sm border border-[#262626] bg-[#0a0a0a] text-gray-200 rounded-lg focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4] outline-none"
                    />
                  </div>
                ) : (
                  <div 
                    onClick={() => setIsEditingMood(true)}
-                   className="group flex items-center gap-2 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg cursor-pointer transition w-fit border border-transparent hover:border-gray-200"
+                   className="group flex items-center gap-2 text-sm text-gray-300 bg-[#0a0a0a] hover:bg-[#121212] px-3 py-1.5 rounded-lg cursor-pointer transition w-fit border border-[#262626] hover:border-[#4D4DA4]/40"
                  >
                    {/* Chat Bubble Icon */}
-                   <span className="text-gray-400">💬</span>
-                   <span className={!mood ? "italic text-gray-400" : "font-medium"}>
+                   <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                     <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                   </svg>
+                   <span className={!mood ? "italic text-gray-500" : "font-medium text-gray-300"}>
                      {mood || "Set a status..."}
                    </span>
                    {/* Edit Pencil (Hidden until hover) */}
-                   <svg className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                   <svg className="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                  </div>
                )}
             </div>
@@ -216,15 +218,15 @@ export default function ProfileHeader({ user, primaryClub }: ProfileHeaderProps)
           {/* ACTIONS (Desktop Right / Mobile Bottom) */}
           <div className="flex gap-3 mt-4 md:mt-0 md:ml-auto">
              {/* Check In Button (Visual Only for now) */}
-             <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition shadow-sm">
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+             <button className="flex items-center gap-2 px-4 py-2 bg-[#4D4DA4] hover:bg-[#6D6DD4] text-white rounded-lg text-sm font-medium transition shadow-sm shadow-[#4D4DA4]/30">
+               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
                Check In
              </button>
              
              {/* Edit Profile Button */}
              <button 
                onClick={() => router.push('/dashboard/youth/profile/edit')}
-               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition shadow-sm"
+               className="flex items-center gap-2 px-4 py-2 bg-[#050505] border border-[#262626] hover:bg-[#0a0a0a] text-gray-300 rounded-lg text-sm font-medium transition shadow-sm"
              >
                 Edit Profile
              </button>

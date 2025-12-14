@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, BarChart3, Users, TrendingUp } from 'lucide-react';
+import { ArrowLeft, BarChart3, Users, UserCheck, TrendingUp } from 'lucide-react';
 import { visits } from '@/lib/api';
 import Link from 'next/link';
-import { usePathname, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import VisitsTabs from '@/app/components/visits/VisitsTabs';
 
 export default function SuperClubAnalyticsPage() {
-  const pathname = usePathname();
   const params = useParams();
   const clubId = params?.id as string;
   const [stats, setStats] = useState<any>(null);
@@ -39,10 +39,8 @@ export default function SuperClubAnalyticsPage() {
     loadStats();
   }, [period]);
 
-  const isActiveTab = (href: string) => pathname === href;
-
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-4 md:space-y-6">
+    <div className="p-8 max-w-7xl mx-auto space-y-6">
       {/* Back Link */}
       <div>
         <Link href={`/admin/super/clubs/${clubId}`}>
@@ -55,134 +53,154 @@ export default function SuperClubAnalyticsPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#121213]">Visits & Attendance</h1>
-          <p className="text-sm md:text-base text-gray-500 mt-1">Analytics & Insights for this club.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Visits & Attendance</h1>
+          <p className="text-gray-500 mt-1">Analytics & Insights for this club.</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-100 overflow-x-auto">
-        <nav className="flex space-x-4 md:space-x-8 min-w-max md:min-w-0">
-          <Link 
-            href={`/admin/super/clubs/${clubId}/visits`}
-            className={`border-b-2 pb-3 md:pb-4 px-1 text-sm font-medium whitespace-nowrap -mb-px transition-colors ${
-              isActiveTab(`/admin/super/clubs/${clubId}/visits`) 
-                ? 'border-[#4D4DA4] text-[#4D4DA4]' 
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Live Attendance
-          </Link>
-          <Link 
-            href={`/admin/super/clubs/${clubId}/visits/history`}
-            className={`border-b-2 pb-3 md:pb-4 px-1 text-sm font-medium whitespace-nowrap -mb-px transition-colors ${
-              isActiveTab(`/admin/super/clubs/${clubId}/visits/history`) 
-                ? 'border-[#4D4DA4] text-[#4D4DA4]' 
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            History Log
-          </Link>
-          <button className="border-b-2 border-[#4D4DA4] pb-3 md:pb-4 px-1 text-sm font-medium text-[#4D4DA4] -mb-px whitespace-nowrap">
-            Analytics
-          </button>
-        </nav>
+      <VisitsTabs clubId={clubId} basePath="/admin/super/clubs" />
+
+      {/* Period Selector */}
+      <div className="flex justify-end">
+        <div className="flex gap-2">
+          {[7, 30, 90].map((d) => (
+            <Button
+              key={d}
+              variant={period === d ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPeriod(d)}
+              className={period === d 
+                ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }
+            >
+              {d} Days
+            </Button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4D4DA4] mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading analytics...</p>
-        </div>
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 flex justify-center text-gray-400">
+            <div className="animate-pulse">Loading analytics...</div>
+          </div>
+        </Card>
       ) : !stats ? (
-        <div className="py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-          <p className="text-gray-500">Failed to load analytics data or no data available.</p>
-        </div>
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 text-center">
+            <p className="text-gray-500">Failed to load analytics data or no data available.</p>
+          </div>
+        </Card>
       ) : (
         <>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
-              <h2 className="text-xl md:text-2xl font-bold text-[#121213]">Analytics & Insights</h2>
-              <p className="text-sm text-gray-500 mt-1">Data for the last {period} days.</p>
-            </div>
-            <div className="flex gap-2">
-              {[7, 30, 90].map((d) => (
-                <Button
-                  key={d}
-                  variant={period === d ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setPeriod(d)}
-                  className={period === d 
-                    ? 'bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }
-                >
-                  {d} Days
-                </Button>
-              ))}
-            </div>
-          </div>
+          {/* Analytics Dashboard */}
+          <Card className="border-0 shadow-sm bg-gray-900">
+            <CardHeader className="px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <CardTitle className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </CardTitle>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Data for the last {period} days</p>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {/* Card 1: Total Visits */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                        }}>
+                        <Users className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Visits</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.summary?.total_visits || 0}</div>
+                  </div>
+                </Card>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" /> Total Visits
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl md:text-4xl font-bold text-[#4D4DA4]">{stats.summary?.total_visits || 0}</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                  <Users className="h-4 w-4" /> Unique Youth
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl md:text-4xl font-bold text-[#4D4DA4]">{stats.summary?.unique_visitors || 0}</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm sm:col-span-2 lg:col-span-1">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" /> Avg. Visits / Youth
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl md:text-4xl font-bold text-[#4D4DA4]">
-                  {stats.summary?.unique_visitors 
-                    ? (stats.summary.total_visits / stats.summary.unique_visitors).toFixed(1) 
-                    : '0.0'}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                {/* Card 2: Unique Youth */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
+                        }}>
+                        <UserCheck className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Unique Youth</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.summary?.unique_visitors || 0}</div>
+                  </div>
+                </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
+                {/* Card 3: Avg Visits per Youth */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
+                        }}>
+                        <TrendingUp className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Avg. Visits / Youth</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">
+                      {stats.summary?.unique_visitors 
+                        ? (stats.summary.total_visits / stats.summary.unique_visitors).toFixed(1) 
+                        : '0.0'}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Graph: Visits Over Time */}
-            <Card className="border border-gray-100 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base md:text-lg font-semibold text-[#121213]">Visits Trend</CardTitle>
+            <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-6 bg-[#4D4DA4] rounded-full"></div>
+                  <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-[#4D4DA4]" />
+                    Visits Trend
+                  </CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
                 {stats.timeline && stats.timeline.length > 0 ? (
                   <>
-                    <div className="h-48 md:h-64 flex items-end gap-1 md:gap-2 overflow-x-auto pb-2">
+                    <div className="h-64 flex items-end gap-2">
                       {stats.timeline.map((day: any) => {
                         const max = Math.max(...stats.timeline.map((t: any) => t.count), 1);
                         const height = (day.count / max) * 100;
                         
                         return (
-                          <div key={day.date} className="flex-1 min-w-[20px] flex flex-col items-center group relative">
-                            <div className="absolute bottom-full mb-2 hidden group-hover:block bg-[#121213] text-white text-xs p-2 rounded whitespace-nowrap z-10 shadow-lg">
+                          <div key={day.date} className="flex-1 flex flex-col items-center group relative">
+                            <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs p-2 rounded whitespace-nowrap z-10 shadow-lg">
                               {new Date(day.date).toLocaleDateString()}: {day.count} {day.count === 1 ? 'visit' : 'visits'}
                             </div>
                             <div 
                               style={{ height: `${height}%` }} 
-                              className="w-full bg-[#4D4DA4] hover:bg-[#FF5485] transition-colors rounded-t-sm cursor-pointer min-h-[4px]"
+                              className="w-full bg-gradient-to-t from-[#4D4DA4] to-[#FF5485] hover:from-[#FF5485] hover:to-[#4D4DA4] transition-all rounded-t-sm cursor-pointer shadow-sm"
                               title={`${new Date(day.date).toLocaleDateString()}: ${day.count}`}
                             ></div>
                           </div>
@@ -195,7 +213,7 @@ export default function SuperClubAnalyticsPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="h-48 md:h-64 flex items-center justify-center text-gray-400">
+                  <div className="h-64 flex items-center justify-center text-gray-400">
                     No data available for this period
                   </div>
                 )}
@@ -203,9 +221,15 @@ export default function SuperClubAnalyticsPage() {
             </Card>
 
             {/* Chart: Demographics (Gender) */}
-            <Card className="border border-gray-100 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base md:text-lg font-semibold text-[#121213]">Gender Distribution</CardTitle>
+            <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
+                  <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                    <Users className="h-5 w-5 text-[#FF5485]" />
+                    Gender Distribution
+                  </CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
                 {stats.demographics && stats.demographics.length > 0 ? (
@@ -217,13 +241,13 @@ export default function SuperClubAnalyticsPage() {
                       
                       return (
                         <div key={item.user__legal_gender || 'none'}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="font-medium text-[#121213] capitalize">{genderLabel.toLowerCase()}</span>
-                            <span className="text-gray-500">{item.count} ({percent}%)</span>
+                          <div className="flex justify-between text-sm mb-2">
+                            <span className="font-semibold text-[#121213] capitalize">{genderLabel.toLowerCase()}</span>
+                            <span className="text-gray-600">{item.count} ({percent}%)</span>
                           </div>
-                          <div className="w-full bg-gray-100 rounded-full h-3">
+                          <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                             <div 
-                              className="bg-[#4D4DA4] h-3 rounded-full transition-all" 
+                              className="bg-gradient-to-r from-[#4D4DA4] to-[#FF5485] h-3 rounded-full transition-all shadow-sm" 
                               style={{ width: `${percent}%` }}
                             ></div>
                           </div>

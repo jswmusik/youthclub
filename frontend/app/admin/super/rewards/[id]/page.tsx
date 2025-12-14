@@ -9,7 +9,7 @@ function RewardDetailPageContent() {
   const id = params?.id as string;
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
+    <div className="p-8">
       <RewardDetailView 
         rewardId={id} 
         basePath="/admin/super/rewards" 

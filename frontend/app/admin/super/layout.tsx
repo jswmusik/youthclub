@@ -350,7 +350,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
                           isActive 
                             ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
-                            : "text-gray-400 hover:bg-[#4D4DA4] hover:text-white",
+                            : "text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white",
                           isCollapsed && "justify-center px-2"
                         )}
                       >
@@ -406,7 +406,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                       <PopoverTrigger asChild>
                         <button
                           className={cn(
-                            "w-full flex items-center justify-center px-2 py-2.5 rounded-lg text-gray-400 hover:bg-[#4D4DA4] hover:text-white transition-all duration-300 ease-in-out",
+                            "w-full flex items-center justify-center px-2 py-2.5 rounded-lg text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white transition-all duration-300 ease-in-out",
                             hasActiveItem && "bg-[#4D4DA4]/10"
                           )}
                         >
@@ -444,7 +444,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
                                   isActive 
                                     ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
-                                    : "text-gray-400 hover:bg-[#4D4DA4] hover:text-white"
+                                    : "text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white"
                                 )}
                               >
                                 {item.icon && (
@@ -476,7 +476,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                         "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-in-out",
                         hasActiveItem 
                           ? "text-white bg-[#4D4DA4]/10" 
-                          : "text-gray-400 hover:bg-[#4D4DA4] hover:text-white"
+                          : "text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white"
                       )}
                     >
                       {group.icon && (
@@ -509,7 +509,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                               "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
                               isActive 
                                 ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
-                                : "text-gray-400 hover:bg-[#4D4DA4] hover:text-white"
+                                : "text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white"
                             )}
                           >
                             {item.icon && (
@@ -540,7 +540,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             <Button 
               variant="ghost" 
               className={cn(
-                "w-full text-gray-400 hover:text-white hover:bg-[#4D4DA4] transition-all duration-300 ease-in-out",
+                "w-full text-gray-400 hover:text-white hover:bg-[#4D4DA4]/10 transition-all duration-300 ease-in-out",
                 isCollapsed ? "justify-center" : "justify-start gap-2"
               )}
               onClick={logout}
@@ -584,7 +584,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             {/* Toggle Button - Positioned outside sidebar bounds */}
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-gray-800 border border-gray-700 shadow-md flex items-center justify-center hover:bg-[#4D4DA4] transition-all duration-300 ease-in-out z-50 hover:scale-110"
+              className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-gray-800 border border-gray-700 shadow-md flex items-center justify-center hover:bg-[#4D4DA4]/10 transition-all duration-300 ease-in-out z-50 hover:scale-110"
               style={{ right: '-12px' }}
               aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
@@ -607,8 +607,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           }}
         >
           
-          {/* Mobile Header */}
-          <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+          {/* Mobile Header - Fixed at top */}
+          <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-100 fixed top-0 left-0 right-0 z-50 shadow-sm">
             <div className="flex items-center gap-3">
               <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                 <SheetTrigger asChild>
@@ -631,8 +631,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             )}
           </header>
 
-          {/* MAIN CONTENT */}
-          <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto overflow-x-hidden bg-gray-50">
+          {/* MAIN CONTENT - Add padding-top on mobile to account for fixed header */}
+          <main className="flex-1 pt-20 md:pt-3 px-3 sm:px-4 md:px-6 lg:px-8 pb-3 sm:pb-4 md:pb-6 lg:pb-8 overflow-y-auto overflow-x-hidden bg-gray-50">
             <div className="mx-auto max-w-7xl w-full min-w-0">
               {children}
             </div>

@@ -6,6 +6,14 @@ import api from '../../../../lib/api';
 import Toast from '../../../components/Toast';
 import { useAuth } from '../../../../context/AuthContext';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
+import { BarChart3, ChevronUp, Search, X, MessageSquare, Info, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface SystemMessage {
   id: number;
@@ -51,9 +59,11 @@ function ClubMessageBoardContent() {
   const [filteredMessages, setFilteredMessages] = useState<SystemMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Pagination state
+  const pageSize = 10;
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
     message: '',
     type: 'success',
@@ -69,7 +79,15 @@ function ClubMessageBoardContent() {
   const updateUrl = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value); else params.delete(key);
+    // Reset page to 1 when filters change (except when changing page itself)
+    if (key !== 'page') {
+      params.set('page', '1');
+    }
     router.push(`${pathname}?${params.toString()}`);
+  };
+  
+  const handlePageChange = (newPage: number) => {
+    updateUrl('page', newPage.toString());
   };
 
   // Debounced search update
@@ -99,7 +117,7 @@ function ClubMessageBoardContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Apply filters
+  // Apply filters and pagination
   useEffect(() => {
     let filtered = [...messages];
     
@@ -119,8 +137,35 @@ function ClubMessageBoardContent() {
       filtered = filtered.filter(m => m.message_type === type);
     }
     
-    setFilteredMessages(filtered);
+    // Pagination
+    const page = Number(searchParams.get('page')) || 1;
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginated = filtered.slice(startIndex, endIndex);
+    
+    setFilteredMessages(paginated);
   }, [searchParams, messages]);
+  
+  // Calculate total pages for pagination
+  const getTotalFilteredCount = () => {
+    let filtered = [...messages];
+    const search = searchParams.get('search') || '';
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter(m => 
+        m.title.toLowerCase().includes(searchLower) || 
+        m.message.toLowerCase().includes(searchLower)
+      );
+    }
+    const type = searchParams.get('type') || '';
+    if (type) {
+      filtered = filtered.filter(m => m.message_type === type);
+    }
+    return filtered.length;
+  };
+  
+  const totalFilteredCount = getTotalFilteredCount();
+  const totalPages = Math.ceil(totalFilteredCount / pageSize);
 
   // Calculate analytics from all messages (not filtered)
   const analytics = {
@@ -138,15 +183,9 @@ function ClubMessageBoardContent() {
       list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setMessages(list);
       refreshMessageCount();
-    } catch (err: any) {
-      // Handle 401 (unauthorized) gracefully - user might not be logged in or token expired
-      if (err?.response?.status === 401) {
-        setMessages([]);
-        // Don't show error toast for auth issues
-      } else {
+    } catch (err) {
       console.error(err);
       setToast({ message: 'Failed to load messages.', type: 'error', isVisible: true });
-      }
     } finally {
       setLoading(false);
     }
@@ -182,252 +221,349 @@ function ClubMessageBoardContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Message Board</h1>
-        <button
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Message Board</h1>
+          <p className="text-gray-500 mt-1.5 text-sm">Manage system messages and announcements.</p>
+        </div>
+        <Button
           onClick={fetchMessages}
-          className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+          variant="outline"
+          className="gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
         >
           Refresh
-        </button>
+        </Button>
       </div>
 
-      {/* Analytics Dashboard */}
+      {/* Analytics */}
       {!loading && (
-        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {/* Toggle Button */}
-          <button
-            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-            className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
+        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+          <Card className="border-0 shadow-sm bg-gray-900">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                  <ChevronUp className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                    analyticsExpanded ? "rotate-0" : "rotate-180"
+                  )} />
+                  <span className="sr-only">Toggle Analytics</span>
+                </Button>
+              </CollapsibleTrigger>
             </div>
-            <svg 
-              className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+            <CollapsibleContent className="transition-all duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Total Messages */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <MessageSquare className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Messages</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
+                    </div>
+                  </Card>
 
-          {/* Analytics Cards - Collapsible */}
-          <div 
-            className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-              analyticsExpanded 
-                ? 'max-h-[500px] opacity-100' 
-                : 'max-h-0 opacity-0'
-            } overflow-hidden`}
-          >
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Total Messages */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Messages</h3>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.total}</p>
-              </div>
+                  {/* Info */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                          }}>
+                          <Info className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Info</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.info}</div>
+                    </div>
+                  </Card>
 
-              {/* Card 2: Total Info */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Info</h3>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.info}</p>
-              </div>
+                  {/* Important */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#F59E0B]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.3), 0 0 20px rgba(251, 191, 36, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5), 0 0 20px rgba(251, 191, 36, 0.3)',
+                          }}>
+                          <AlertTriangle className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Important</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.important}</div>
+                    </div>
+                  </Card>
 
-              {/* Card 3: Total Important */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-orange-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Important</h3>
-                  <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
+                  {/* Warning */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#EF4444]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#F87171] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5), 0 0 20px rgba(248, 113, 113, 0.3)',
+                          }}>
+                          <AlertCircle className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Warning</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.warning}</div>
+                    </div>
+                  </Card>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.important}</p>
-              </div>
-
-              {/* Card 4: Total Warning */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-red-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Warning</h3>
-                  <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.warning}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       )}
 
-      {/* FILTERS */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-          className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span className="text-sm font-semibold text-gray-700">Filters</span>
+      {/* Filters */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <Input 
+              ref={searchInputRef}
+              placeholder="Search by title or message..." 
+              className="pl-9 bg-gray-50 border-0"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+            />
           </div>
-          <svg 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
+          <div className="w-full sm:w-[200px]">
+            <select 
+              className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+              value={searchParams.get('type') || ''} 
+              onChange={e => updateUrl('type', e.target.value)}
+            >
+              <option value="">All Types</option>
+              <option value="INFO">Info</option>
+              <option value="IMPORTANT">Important</option>
+              <option value="WARNING">Warning</option>
+            </select>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(pathname)}
+            className="w-full sm:w-auto h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Filter Fields - Collapsible */}
-        <div 
-          className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-            filtersExpanded 
-              ? 'max-h-[1000px] opacity-100' 
-              : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          <div className="p-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Search */}
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-                <input 
-                  ref={searchInputRef}
-                  type="text" 
-                  placeholder="Search by title or message..." 
-                  className="w-full border rounded p-2 text-sm bg-gray-50"
-                  value={searchInput} 
-                  onChange={e => setSearchInput(e.target.value)}
-                />
-              </div>
-
-              {/* Type */}
-              <div className="w-48">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Type</label>
-                <select 
-                  className="w-full border rounded p-2 text-sm bg-gray-50" 
-                  value={searchParams.get('type') || ''} 
-                  onChange={e => updateUrl('type', e.target.value)}
-                >
-                  <option value="">All Types</option>
-                  <option value="INFO">Info</option>
-                  <option value="IMPORTANT">Important</option>
-                  <option value="WARNING">Warning</option>
-                </select>
-              </div>
-
-              {/* Clear Filters */}
-              <button
-                onClick={() => router.push(pathname)}
-                className="px-4 py-2 text-sm text-gray-500 hover:text-red-500 font-medium"
-              >
-                Clear Filters
-              </button>
-            </div>
-          </div>
+            <X className="h-4 w-4" /> Clear
+          </Button>
         </div>
-      </div>
+      </Card>
 
+      {/* CONTENT */}
       {loading ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">Loading messages…</div>
-      ) : filteredMessages.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-          {messages.length === 0 
-            ? 'No active messages for your role right now.'
-            : 'No messages match your filters.'}
+        <div className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading...</div>
         </div>
+      ) : filteredMessages.length === 0 ? (
+        <Card className="border border-gray-100 shadow-sm">
+          <div className="py-20 text-center">
+            <p className="text-gray-500">
+              {messages.length === 0 
+                ? 'No active messages for your role right now.'
+                : 'No messages match your filters.'}
+            </p>
+          </div>
+        </Card>
       ) : (
-        <div className="space-y-4">
-          {filteredMessages.map((msg) => {
-            const styles = MESSAGE_STYLES[msg.message_type] || MESSAGE_STYLES.INFO;
-            return (
-              <div
-                key={msg.id}
-                className={`bg-white ${styles.borderTop} rounded-lg shadow-sm p-6 flex flex-col gap-4`}
-              >
-                <div className="flex flex-wrap justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${styles.badge}`}>
-                        {msg.message_type}
-                      </span>
-                      {msg.is_sticky && (
-                        <span className="text-xs uppercase tracking-wide text-red-600 font-semibold">
-                          Sticky
-                        </span>
-                      )}
+        <>
+          {/* MOBILE: Cards */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {filteredMessages.map((msg) => {
+              const styles = MESSAGE_STYLES[msg.message_type] || MESSAGE_STYLES.INFO;
+              return (
+                <Card key={msg.id} className={`overflow-hidden ${styles.borderTop} shadow-sm`}>
+                  <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className={`${styles.badge} text-xs`}>{msg.message_type}</Badge>
+                        {msg.is_sticky && (
+                          <Badge variant="outline" className="text-xs border-red-300 bg-red-50 text-red-600">
+                            Sticky
+                          </Badge>
+                        )}
+                      </div>
+                      <CardTitle className="text-base font-semibold text-gray-900 truncate">{msg.title}</CardTitle>
+                      <CardDescription className="text-xs text-gray-500 mt-1 line-clamp-2">{msg.message}</CardDescription>
                     </div>
-                    <h2 className="text-lg font-bold text-gray-900 mb-2">{msg.title}</h2>
-                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">{msg.message}</p>
-                  </div>
-                  <div className="text-right text-xs text-gray-500 whitespace-nowrap">
-                    <div className="mb-1">Created: {formatDate(msg.created_at)}</div>
-                    <div>Expires: {formatDate(msg.expires_at)}</div>
-                  </div>
-                </div>
-
-                {(msg.external_link || !msg.is_sticky) && (
-                  <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                    {msg.external_link && (
-                      <a
-                        href={msg.external_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-indigo-600 font-semibold hover:text-indigo-800 hover:underline inline-flex items-center gap-1"
-                      >
-                        View more
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-0">
+                    <div className="flex items-center justify-between text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                      <span className="text-xs uppercase font-semibold text-gray-400">Created</span>
+                      <span className="text-xs">{formatDate(msg.created_at)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                      <span className="text-xs uppercase font-semibold text-gray-400">Expires</span>
+                      <span className="text-xs">{formatDate(msg.expires_at)}</span>
+                    </div>
+                    {(msg.external_link || !msg.is_sticky) && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                        {msg.external_link && (
+                          <a
+                            href={msg.external_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1"
+                          >
+                            <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                              View more
+                            </Button>
+                          </a>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleHideClick(msg)}
+                          disabled={msg.is_sticky}
+                          className={`flex-1 justify-center gap-2 ${
+                            msg.is_sticky
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                          }`}
+                        >
+                          Hide
+                        </Button>
+                      </div>
                     )}
-                    {!msg.external_link && <div></div>}
-                    <button
-                      onClick={() => handleHideClick(msg)}
-                      disabled={msg.is_sticky}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-                        msg.is_sticky
-                          ? 'text-gray-400 bg-gray-50 cursor-not-allowed'
-                          : 'text-red-700 bg-red-50 hover:bg-red-100 hover:text-red-900'
-                      }`}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Hide
-                    </button>
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* DESKTOP: Table */}
+          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Title</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Message</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Created</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Expires</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMessages.map((msg) => {
+                  const styles = MESSAGE_STYLES[msg.message_type] || MESSAGE_STYLES.INFO;
+                  return (
+                    <TableRow key={msg.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                      <TableCell className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <Badge className={`${styles.badge} text-xs`}>{msg.message_type}</Badge>
+                          {msg.is_sticky && (
+                            <Badge variant="outline" className="text-xs border-red-300 bg-red-50 text-red-600">
+                              Sticky
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-6">
+                        <span className="font-semibold text-gray-900">{msg.title}</span>
+                      </TableCell>
+                      <TableCell className="px-6">
+                        <span className="text-gray-600 line-clamp-2">{msg.message}</span>
+                      </TableCell>
+                      <TableCell className="px-6 text-gray-600">
+                        <span className="text-sm">{formatDate(msg.created_at)}</span>
+                      </TableCell>
+                      <TableCell className="px-6 text-gray-600">
+                        <span className="text-sm">{formatDate(msg.expires_at)}</span>
+                      </TableCell>
+                      <TableCell className="px-6 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {msg.external_link && (
+                            <a
+                              href={msg.external_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </Button>
+                            </a>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleHideClick(msg)}
+                            disabled={msg.is_sticky}
+                            className={`h-8 w-8 p-0 ${
+                              msg.is_sticky
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                            }`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (() => {
+            const currentPage = Number(searchParams.get('page')) || 1;
+            return (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={currentPage === 1} 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                >
+                  Prev
+                </Button>
+                <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={currentPage >= totalPages} 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                >
+                  Next
+                </Button>
               </div>
             );
-          })}
-        </div>
+          })()}
+        </>
       )}
 
       {/* Hide Confirmation Modal */}

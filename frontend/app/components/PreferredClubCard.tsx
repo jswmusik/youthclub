@@ -116,7 +116,7 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6">
+        <div className="bg-[#050505] rounded-xl shadow-lg p-6 border border-[#262626] mb-6">
             <div className="flex items-center gap-4 mb-4">
                 <button
                     onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
@@ -126,37 +126,37 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
                         <img 
                             src={getMediaUrl(club.avatar) || ''} 
                             alt={club.name}
-                            className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                            className="w-16 h-16 rounded-full object-cover border-2 border-[#262626] hover:border-[#4D4DA4] transition-colors cursor-pointer"
                         />
                     ) : (
-                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-200 hover:border-blue-400 transition-colors cursor-pointer">
-                            <span className="text-blue-600 font-bold text-xl">
+                        <div className="w-16 h-16 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center border-2 border-[#262626] hover:border-[#4D4DA4] transition-colors cursor-pointer">
+                            <span className="text-[#6D6DD4] font-bold text-xl">
                                 {club.name.charAt(0).toUpperCase()}
                             </span>
                         </div>
                     )}
                 </button>
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 text-lg truncate">{club.name}</h3>
-                    <p className="text-sm text-gray-500">My Club</p>
+                    <h3 className="font-bold text-gray-200 text-lg truncate">{club.name}</h3>
+                    <p className="text-sm text-gray-400">My Club</p>
                 </div>
             </div>
 
             {/* Opening Hours Status */}
             <div className="mb-4">
                 {todayHours.length === 0 ? (
-                    <div className="flex items-center gap-2 text-gray-600">
-                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <div className="flex items-center gap-2 text-gray-400">
+                        <div className="w-2 h-2 rounded-full bg-gray-500"></div>
                         <span className="text-sm font-medium">Closed today</span>
                     </div>
                 ) : isOpen ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <div className="flex items-center gap-2 text-emerald-400">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                         <span className="text-sm font-semibold">Open now</span>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 text-gray-600">
-                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <div className="flex items-center gap-2 text-gray-400">
+                        <div className="w-2 h-2 rounded-full bg-gray-500"></div>
                         <span className="text-sm font-medium">Closed</span>
                     </div>
                 )}
@@ -165,7 +165,7 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
                 {todayHours.length > 0 && (
                     <div className="mt-2 space-y-1">
                         {todayHours.map((hour, index) => (
-                            <div key={hour.id || index} className="text-sm text-gray-700">
+                            <div key={hour.id || index} className="text-sm text-gray-300">
                                 {hour.title && (
                                     <span className="font-medium">{hour.title}: </span>
                                 )}
@@ -186,7 +186,7 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
             {/* View Club Button */}
             <button
                 onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
-                className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                className="w-full py-2 px-4 bg-[#FF5485] text-white rounded-lg font-medium hover:bg-[#FF6595] transition-colors text-sm shadow-lg shadow-[#FF5485]/30"
             >
                 View Club
             </button>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, Calendar, User } from 'lucide-react';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, Calendar, User, CheckCircle2 } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
@@ -273,59 +273,92 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
 
       {/* Analytics */}
       <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-gray-500" />
-            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+        <Card className="border-0 shadow-sm bg-gray-900">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                Analytics Dashboard
+              </h3>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronUp className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                  analyticsExpanded ? "rotate-0" : "rotate-180"
+                )} />
+                <span className="sr-only">Toggle Analytics</span>
+              </Button>
+            </CollapsibleTrigger>
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-              <ChevronUp className={cn(
-                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                analyticsExpanded ? "rotate-0" : "rotate-180"
-              )} />
-              <span className="sr-only">Toggle Analytics</span>
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        <CollapsibleContent className="space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            {/* Card 1: Total Articles */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Articles</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total}</div>
-              </CardContent>
-            </Card>
+          <CollapsibleContent className="transition-all duration-500 ease-in-out">
+            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                {/* Card 1: Total Articles */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                        }}>
+                        <FileText className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Articles</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
+                  </div>
+                </Card>
 
-            {/* Card 2: Published Articles */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Published</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.published}</div>
-              </CardContent>
-            </Card>
+                {/* Card 2: Published Articles */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                        }}>
+                        <CheckCircle2 className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Published</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.published}</div>
+                  </div>
+                </Card>
 
-            {/* Card 3: Draft Articles */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Draft</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.unpublished}</div>
-              </CardContent>
-            </Card>
-          </div>
-        </CollapsibleContent>
+                {/* Card 3: Draft Articles */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                        }}>
+                        <Edit className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Draft</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.unpublished}</div>
+                  </div>
+                </Card>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
       </Collapsible>
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-4 space-y-4">
+        <div className="px-6 py-4 space-y-4">
           {/* Main Filters Row */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             {/* Search - Takes more space on larger screens */}
@@ -410,11 +443,11 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
               <Card key={item.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0">
+                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
                       {item.hero_image ? (
-                        <AvatarImage src={getMediaUrl(item.hero_image) || undefined} className="object-cover rounded-lg" />
+                        <AvatarImage src={getMediaUrl(item.hero_image) || undefined} className="object-cover rounded-full" />
                       ) : null}
-                      <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
                         <FileText className="h-5 w-5" />
                       </AvatarFallback>
                     </Avatar>
@@ -433,14 +466,14 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
-                      <Badge variant="outline" className={item.is_published ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}>
+                      <Badge variant="outline" className={item.is_published ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' : 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30'}>
                         {item.is_published ? 'Published' : 'Draft'}
                       </Badge>
                     </div>
                     {item.is_hero && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-xs text-gray-500 uppercase font-semibold">Type</span>
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                        <Badge variant="outline" className="bg-[#EBEBFE] text-[#FF5485] border-[#FF5485]/30">
                           HERO
                         </Badge>
                       </div>
@@ -487,54 +520,54 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Article</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Author</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Created</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Article</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Author</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Created</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {articles.map(item => (
                   <TableRow key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                           {item.hero_image ? (
-                            <AvatarImage src={getMediaUrl(item.hero_image) || undefined} className="object-cover rounded-lg" />
+                            <AvatarImage src={getMediaUrl(item.hero_image) || undefined} className="object-cover rounded-full" />
                           ) : null}
-                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
                             <FileText className="h-5 w-5" />
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-semibold text-[#121213]">{item.title}</div>
                           {item.is_hero && (
-                            <Badge variant="outline" className="text-xs mt-1 bg-yellow-50 text-yellow-700 border-yellow-200">
+                            <Badge variant="outline" className="text-xs mt-1 bg-[#EBEBFE] text-[#FF5485] border-[#FF5485]/30">
                               HERO
                             </Badge>
                           )}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
-                      <Badge variant="outline" className={item.is_published ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}>
+                    <TableCell className="py-4 px-6">
+                      <Badge variant="outline" className={item.is_published ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' : 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30'}>
                         {item.is_published ? 'Published' : 'Draft'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <User className="h-4 w-4" />
                         {item.author_name}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
                         {new Date(item.published_at).toLocaleDateString()}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 text-right">
+                    <TableCell className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${item.id}`)}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

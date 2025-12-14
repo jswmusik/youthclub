@@ -9,7 +9,11 @@ import { fetchUnreadNotificationCount, visits } from '../../lib/api';
 import { messengerApi } from '../../lib/messenger-api'; // Import messengerApi
 import ActiveVisitModal from './visits/ActiveVisitModal';
 
-export default function NavBar() {
+interface NavBarProps {
+    onMenuToggle?: () => void;
+}
+
+export default function NavBar({ onMenuToggle }: NavBarProps) {
     const router = useRouter();
     const { user, logout } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
@@ -92,24 +96,39 @@ export default function NavBar() {
     }, [showMenu]);
 
     return (
-        <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-[#262626] shadow-lg">
             <div className="max-w-7xl mx-auto px-4">
                 <div className="flex items-center justify-between h-14">
                     {/* Left: Logo and Search */}
-                    <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            onClick={onMenuToggle}
+                            className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:bg-[#121212] hover:text-[#6D6DD4] transition-colors flex-shrink-0"
+                            title="Menu"
+                        >
+                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                            </svg>
+                        </button>
+                        
                         {/* UA Logo */}
                         <button
                             onClick={() => router.push('/dashboard/youth')}
-                            className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center hover:bg-blue-700 transition-colors"
+                            className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center hover:opacity-80 transition-opacity"
                         >
-                            <span className="text-white font-bold text-sm">UA</span>
+                            <img 
+                                src="/ua-logo-stylized.png" 
+                                alt="Ungdomsappen Logo" 
+                                className="w-8 h-8 sm:w-10 sm:h-10 object-cover rounded-full"
+                            />
                         </button>
 
-                        {/* Search Bar */}
+                        {/* Search Bar - Hidden on mobile */}
                         <form onSubmit={handleSearch} className="flex-1 max-w-md hidden md:block">
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </div>
@@ -118,14 +137,14 @@ export default function NavBar() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Search..."
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+                                    className="block w-full pl-10 pr-3 py-2 border border-[#262626] rounded-full bg-[#121212] text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4] transition-colors"
                                 />
                             </div>
                         </form>
                     </div>
 
                     {/* Center: Main Navigation Icons */}
-                    <div className="flex items-center gap-1 flex-1 justify-center">
+                    <div className="flex items-center gap-0.5 sm:gap-1 flex-1 justify-center min-w-0 pr-2 sm:pr-4">
                         <NavIcon
                             icon={
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -147,15 +166,6 @@ export default function NavBar() {
                         <NavIcon
                             icon={
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                            }
-                            label="Groups"
-                            onClick={() => router.push('/dashboard/youth/groups')}
-                        />
-                        <NavIcon
-                            icon={
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                                 </svg>
                             }
@@ -171,36 +181,48 @@ export default function NavBar() {
                             label="Borrow"
                             onClick={() => router.push('/dashboard/youth/inventory')}
                         />
-                        {/* <NavIcon
-                            icon={
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                            }
-                            label="Booking"
-                            onClick={() => router.push('/dashboard/youth/booking')}
-                        /> 
-                        */}
                     </div>
+                    
+                    {/* Divider between action buttons and checked-in indicator */}
+                    {activeVisit?.is_checked_in && (
+                        <div className="h-6 w-px bg-[#262626] mx-2 sm:mx-4"></div>
+                    )}
+                    
+                    {/* Divider between action buttons and right section (when no checked-in) */}
+                    {!activeVisit?.is_checked_in && (
+                        <div className="h-6 w-px bg-[#262626] mx-2 sm:mx-4 hidden sm:block"></div>
+                    )}
 
-                    {/* Right: Notifications, News, Messages, User */}
-                    <div className="flex items-center gap-2 flex-1 justify-end">
+                    {/* Right: Checked In Indicator, Notifications, Messages, User */}
+                    <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end">
                         {/* Active Visit Indicator - Compact Pill */}
                         {activeVisit?.is_checked_in && (
                             <>
+                                {/* Desktop: Full pill with text */}
                                 <button 
                                     onClick={() => setShowVisitModal(true)}
-                                    className="hidden md:flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 hover:shadow-sm px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-200 transition-all group mr-2"
+                                    className="hidden md:flex items-center gap-2 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 hover:text-emerald-300 hover:shadow-sm px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-500/30 transition-all group"
                                     title={`Checked in at ${activeVisit.club_name}`}
                                 >
                                     <div className="relative flex h-2 w-2">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                     </div>
-                                    {/* Truncate text using Tailwind max-width */}
                                     <span className="max-w-[100px] truncate">
                                         {activeVisit.club_name}
                                     </span>
+                                </button>
+                                
+                                {/* Mobile: Minified indicator */}
+                                <button 
+                                    onClick={() => setShowVisitModal(true)}
+                                    className="md:hidden flex items-center justify-center w-8 h-8 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-full border border-emerald-500/30 transition-all"
+                                    title={`Checked in at ${activeVisit.club_name}`}
+                                >
+                                    <div className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </div>
                                 </button>
                                 
                                 {/* The Modal */}
@@ -210,34 +232,28 @@ export default function NavBar() {
                                     visit={activeVisit}
                                     onCheckout={() => setActiveVisit(null)} // Clear state immediately
                                 />
+                                
+                                {/* Divider after checked in indicator */}
+                                <div className="h-6 w-px bg-[#262626] mx-2 sm:mx-4"></div>
                             </>
                         )}
                         <NavIcon
                             icon={
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                                </svg>
-                            }
-                            label="News"
-                            onClick={() => router.push('/dashboard/youth/news')}
-                        />
-                        <NavIcon
-                            icon={
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                 </svg>
                             }
                             label="Messages"
                             onClick={() => router.push('/dashboard/youth/messages')}
-                            badge={messageUnreadCount} // Added badge
+                            badge={messageUnreadCount}
                         />
                         
                         {/* --- NOTIFICATIONS WITH BADGE (closer to avatar) --- */}
                         <div className="flex items-center gap-1">
                             <NavIcon
                                 icon={
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                                     </svg>
                                 }
                                 label="Notifications"
@@ -247,7 +263,7 @@ export default function NavBar() {
                             {/* User Avatar */}
                             <button
                                 onClick={() => router.push('/dashboard/youth/profile')}
-                                className="flex-shrink-0"
+                                className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8"
                             >
                             {user ? (
                                 <Avatar
@@ -258,7 +274,7 @@ export default function NavBar() {
                                     size="md"
                                 />
                             ) : (
-                                <div className="w-8 h-8 rounded-full bg-gray-300"></div>
+                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#121212] border border-[#262626]"></div>
                             )}
                             </button>
                         </div>
@@ -267,23 +283,23 @@ export default function NavBar() {
                         <div className="relative" ref={menuRef}>
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
-                                className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
+                                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full text-gray-400 hover:bg-[#121212] hover:text-[#6D6DD4] transition-colors flex-shrink-0"
                                 title="More options"
                             >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
                                 </svg>
                             </button>
 
                             {/* Flyout Menu */}
                             {showMenu && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-[#121212] rounded-lg shadow-xl border border-[#262626] py-1 z-50">
                                     <button
                                         onClick={() => {
                                             router.push('/dashboard/youth/settings');
                                             setShowMenu(false);
                                         }}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#1a1a1a] hover:text-[#6D6DD4] transition-colors"
                                     >
                                         Settings
                                     </button>
@@ -292,17 +308,17 @@ export default function NavBar() {
                                             router.push('/dashboard/youth/help');
                                             setShowMenu(false);
                                         }}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#1a1a1a] hover:text-[#6D6DD4] transition-colors"
                                     >
                                         Help & Support
                                     </button>
-                                    <hr className="my-1 border-gray-200" />
+                                    <hr className="my-1 border-[#262626]" />
                                     <button
                                         onClick={() => {
                                             handleLogout();
                                             setShowMenu(false);
                                         }}
-                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                        className="w-full text-left px-4 py-2 text-sm text-[#FF5485] hover:bg-[#1a1a1a] transition-colors"
                                     >
                                         Logout
                                     </button>
@@ -329,20 +345,22 @@ function NavIcon({ icon, label, onClick, badge }: NavIconProps) {
     return (
         <button
             onClick={onClick}
-            className="relative flex items-center justify-center w-12 h-12 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors group"
+            className="relative flex items-center justify-center w-9 h-9 sm:w-12 sm:h-12 rounded-lg text-gray-400 hover:bg-[#121212] hover:text-[#6D6DD4] transition-colors group flex-shrink-0"
             title={label}
         >
-            {icon}
+            <span className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                {icon}
+            </span>
             
             {/* --- BADGE RENDERER --- */}
             {badge !== undefined && badge > 0 && (
-                <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border border-white">
+                <span className="absolute top-1 right-1 sm:top-2 sm:right-2 flex h-3.5 w-3.5 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-[#FF5485] text-[9px] sm:text-[10px] font-bold text-white border border-black">
                     {badge > 9 ? '9+' : badge}
                 </span>
             )}
 
             {/* Tooltip on hover */}
-            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-[#121212] border border-[#262626] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
                 {label}
             </span>
         </button>

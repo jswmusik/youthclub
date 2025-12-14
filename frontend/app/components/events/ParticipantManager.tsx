@@ -7,6 +7,10 @@ import { EventRegistration, RegistrationStatus } from '@/types/event';
 import Toast from '../Toast';
 import ConfirmationModal from '../ConfirmationModal';
 import { getMediaUrl } from '@/app/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface ParticipantManagerProps {
     eventId: number;
@@ -250,19 +254,19 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
 
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
-            APPROVED: 'bg-green-100 text-green-800',
-            WAITLIST: 'bg-orange-100 text-orange-800',
-            PENDING_GUARDIAN: 'bg-yellow-100 text-yellow-800',
-            PENDING_ADMIN: 'bg-blue-100 text-blue-800',
-            REJECTED: 'bg-red-100 text-red-800',
-            CANCELLED: 'bg-gray-100 text-gray-800',
-            ATTENDED: 'bg-green-100 text-green-800',
+            APPROVED: 'bg-green-50 text-[#10B981] border-[#10B981]/30',
+            WAITLIST: 'bg-orange-50 text-orange-700 border-orange-200',
+            PENDING_GUARDIAN: 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30',
+            PENDING_ADMIN: 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30',
+            REJECTED: 'bg-red-50 text-[#EF4444] border-red-200',
+            CANCELLED: 'bg-gray-50 text-gray-700 border-gray-200',
+            ATTENDED: 'bg-green-50 text-[#10B981] border-[#10B981]/30',
         };
 
         return (
-            <span className={`px-2 py-1 rounded text-xs font-bold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+            <Badge variant="outline" className={`${styles[status] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
                 {status.replace('_', ' ')}
-            </span>
+            </Badge>
         );
     };
 
@@ -299,91 +303,89 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
+                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                            <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {paginatedRegistrations.map((reg) => (
-                            <tr key={reg.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4">
+                            <TableRow key={reg.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                <TableCell className="py-4 px-6">
                                     <div className="flex items-center gap-3">
-                                        {reg.user_detail?.avatar ? (
-                                            <img 
-                                                src={getMediaUrl(reg.user_detail.avatar) || ''} 
-                                                className="w-10 h-10 rounded-full object-cover" 
-                                                alt={`${reg.user_detail.first_name} ${reg.user_detail.last_name}`}
-                                            />
-                                        ) : (
-                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
+                                        <Avatar className="h-10 w-10 rounded-full">
+                                            <AvatarImage src={getMediaUrl(reg.user_detail?.avatar) || undefined} />
+                                            <AvatarFallback className="rounded-full bg-[#EBEBFE] text-[#4D4DA4] font-bold text-sm">
                                                 {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
-                                            </div>
-                                        )}
+                                            </AvatarFallback>
+                                        </Avatar>
                                         <div>
-                                            <div className="font-bold text-gray-900">
+                                            <div className="font-semibold text-gray-900">
                                                 {reg.user_detail?.first_name} {reg.user_detail?.last_name}
                                             </div>
                                             <div className="text-xs text-gray-500">{reg.user_detail?.email}</div>
                                         </div>
                                     </div>
-                                </td>
-                                <td className="px-6 py-4">
+                                </TableCell>
+                                <TableCell className="px-6">
                                     <div className="text-sm text-gray-900">
                                         {new Date(reg.created_at).toLocaleDateString()}
                                     </div>
                                     <div className="text-xs text-gray-500">
                                         {new Date(reg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                     </div>
-                                </td>
-                                <td className="px-6 py-4">
+                                </TableCell>
+                                <TableCell className="px-6">
                                     {getStatusBadge(reg.status)}
-                                </td>
-                                <td className="px-6 py-4">
+                                </TableCell>
+                                <TableCell className="px-6 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                         {(reg.status === 'PENDING_ADMIN' || reg.status === 'WAITLIST') && (
-                                            <button 
+                                            <Button
                                                 onClick={() => handleApproveClick(reg)}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-green-700 bg-green-50 rounded-md hover:bg-green-100 hover:text-green-900 transition-colors"
+                                                size="sm"
+                                                className="h-8 px-3 text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-white"
                                             >
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                 </svg>
                                                 Approve
-                                            </button>
+                                            </Button>
                                         )}
                                         {(reg.status === 'PENDING_GUARDIAN') && (
                                             <span className="text-xs text-gray-400 italic">Waiting for parent</span>
                                         )}
                                         {reg.status !== 'REJECTED' && reg.status !== 'CANCELLED' && reg.status !== 'ATTENDED' && (
-                                            <button 
+                                            <Button
                                                 onClick={() => handleRejectClick(reg)}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 rounded-md hover:bg-red-100 hover:text-red-900 transition-colors"
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 px-3 text-xs font-semibold text-[#EF4444] bg-red-50 hover:bg-red-100 border-red-200"
                                             >
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                 </svg>
                                                 Reject
-                                            </button>
+                                            </Button>
                                         )}
                                     </div>
-                                </td>
-                            </tr>
+                                </TableCell>
+                            </TableRow>
                         ))}
                         {paginatedRegistrations.length === 0 && (
-                            <tr>
-                                <td colSpan={4} className="p-8 text-center text-gray-500">
+                            <TableRow>
+                                <TableCell colSpan={4} className="p-8 text-center text-gray-500">
                                     No participants found in this category.
-                                </td>
-                            </tr>
+                                </TableCell>
+                            </TableRow>
                         )}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
             </div>
 
             {/* Pagination Controls */}

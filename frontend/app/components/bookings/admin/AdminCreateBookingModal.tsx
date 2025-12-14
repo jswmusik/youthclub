@@ -217,20 +217,20 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
       style={{ animation: 'fadeIn 0.2s ease-out' }}
     >
       <Card 
-        className="bg-white w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-200"
+        className="bg-white w-full max-w-2xl shadow-lg overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-200 !p-0 !gap-0"
         style={{ animation: 'slideUp 0.2s ease-out' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 border-b border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3 px-4 pt-4 !m-0 border-b border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white !rounded-t-lg">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-2xl font-bold text-[#121213] mb-1">Create Booking</CardTitle>
-            <p className="text-sm text-gray-500">Book a resource for a youth member</p>
+            <CardTitle className="text-xl font-bold text-[#121213] mb-0.5">Create Booking</CardTitle>
+            <p className="text-xs text-gray-500">Book a resource for a youth member</p>
           </div>
           <Button
             variant="ghost"
@@ -243,19 +243,19 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           </Button>
         </CardHeader>
 
-        <CardContent className="p-6 overflow-y-auto flex-1 space-y-6">
+        <CardContent className="p-4 overflow-y-auto flex-1 space-y-4">
           {/* Step 1: Select User */}
           <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardContent className="p-4 space-y-3">
+            <CardContent className="p-3 space-y-2">
               <Label className="text-sm font-semibold text-[#121213]">1. Select Youth Member</Label>
               {selectedUser ? (
                 <Card className="bg-[#EBEBFE]/30 border-[#EBEBFE]">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="h-12 w-12 rounded-full border-2 border-[#EBEBFE] bg-gray-50">
+                        <Avatar className="h-10 w-10 rounded-full border-2 border-[#EBEBFE] bg-gray-50">
                           <AvatarImage src={selectedUser.avatar ? getMediaUrl(selectedUser.avatar) : undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-full font-bold text-sm bg-[#EBEBFE] text-[#4D4DA4]">
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
                             {getInitials(selectedUser.first_name, selectedUser.last_name)}
                           </AvatarFallback>
                         </Avatar>
@@ -283,7 +283,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <Input 
                     type="text" 
                     placeholder="Search by name or email..." 
-                    className="pl-9 h-12 bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl"
+                    className="pl-9 h-10 bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-lg"
                     value={userSearch}
                     onChange={(e) => handleUserSearch(e.target.value)}
                   />
@@ -311,10 +311,10 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           {/* Step 2: Select Resource (only show if not pre-selected) */}
           {!preSelectedSlot && (
             <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-3 space-y-2">
                 <Label className="text-sm font-semibold text-[#121213]">2. Select Resource</Label>
                 <select 
-                  className="flex h-12 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
+                  className="flex h-10 w-full rounded-lg border-2 border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
                   value={selectedResource?.id || ''}
                   onChange={e => {
                     const resource = resources.find(r => r.id === parseInt(e.target.value));
@@ -335,12 +335,12 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           {/* Step 2b: Show Resource Info if pre-selected */}
           {preSelectedSlot && selectedResource && (
             <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-3 space-y-2">
                 <Label className="text-sm font-semibold text-[#121213]">2. Resource</Label>
                 <Card className="bg-[#EBEBFE]/30 border-[#EBEBFE]">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3">
                     <div className="font-semibold text-[#121213]">{selectedResource.name}</div>
-                    <div className="text-xs text-gray-500 mt-1">{selectedResource.club_name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{selectedResource.club_name}</div>
                   </CardContent>
                 </Card>
               </CardContent>
@@ -350,11 +350,11 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           {/* Step 3: Select Date (only show if not pre-selected) */}
           {!preSelectedSlot && selectedResource && (
             <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-3 space-y-2">
                 <Label className="text-sm font-semibold text-[#121213]">3. Select Date</Label>
                 <Input 
                   type="date" 
-                  className="h-12 bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl"
+                  className="h-10 bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-lg"
                   value={date}
                   min={format(new Date(), 'yyyy-MM-dd')}
                   onChange={e => {
@@ -369,10 +369,10 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           {/* Step 3b: Show Date Info if pre-selected */}
           {preSelectedSlot && date && (
             <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-3 space-y-2">
                 <Label className="text-sm font-semibold text-[#121213]">3. Date</Label>
                 <Card className="bg-[#EBEBFE]/30 border-[#EBEBFE]">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3">
                     <div className="font-semibold text-[#121213]">{format(new Date(date), 'EEEE, MMMM d, yyyy')}</div>
                   </CardContent>
                 </Card>
@@ -384,14 +384,14 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           {preSelectedSlot && selectedSlot ? (
             // Show locked pre-selected slot - cannot be changed
             <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-3 space-y-2">
                 <Label className="text-sm font-semibold text-[#121213]">4. Time Slot</Label>
                 <Card className="bg-[#EBEBFE]/30 border-2 border-[#4D4DA4]">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="h-12 w-12 rounded-full bg-[#4D4DA4] flex items-center justify-center flex-shrink-0">
-                          <Clock className="h-6 w-6 text-white" />
+                        <div className="h-10 w-10 rounded-full bg-[#4D4DA4] flex items-center justify-center flex-shrink-0">
+                          <Clock className="h-5 w-5 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-[#121213] text-base">
@@ -413,22 +413,22 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           ) : !preSelectedSlot && selectedResource && date && (
             // Show slot picker only if not pre-selected
             <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-3 space-y-2">
                 <Label className="text-sm font-semibold text-[#121213]">4. Select Available Time Slot</Label>
                 {loadingSlots ? (
-                  <div className="text-center py-8 text-gray-400">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    <p className="text-sm">Loading available slots...</p>
+                  <div className="text-center py-6 text-gray-400">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                    <p className="text-xs">Loading available slots...</p>
                   </div>
                 ) : availableSlots.length === 0 ? (
                   <Card className="bg-yellow-50 border-yellow-200">
-                    <CardContent className="p-4 text-center">
-                      <p className="text-sm text-yellow-800 font-medium">No available slots for this date</p>
-                      <p className="text-xs text-yellow-600 mt-1">Please check the schedule or select a different date</p>
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-yellow-800 font-medium">No available slots for this date</p>
+                      <p className="text-xs text-yellow-600 mt-0.5">Please check the schedule or select a different date</p>
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border-2 border-gray-200 rounded-xl bg-gray-50">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto p-2 border-2 border-gray-200 rounded-lg bg-gray-50">
                     {availableSlots.map((slot, idx) => {
                       const slotStart = new Date(slot.start);
                       const slotEnd = new Date(slot.end);
@@ -464,7 +464,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           {/* Step 5: Recurring Booking Options */}
           {selectedSlot && (
             <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-4">
+              <CardContent className="p-3 space-y-3">
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -486,10 +486,10 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                 
                 {isRecurring && (
                   <Card className="bg-[#EBEBFE]/30 border-[#EBEBFE]">
-                    <CardContent className="p-4 space-y-4">
+                    <CardContent className="p-3 space-y-3">
                       <div className="space-y-2">
                         <Label className="text-sm font-semibold text-[#121213]">Recurrence Type</Label>
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <label className="flex items-center space-x-2 cursor-pointer">
                             <input
                               type="radio"
@@ -499,7 +499,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                               onChange={(e) => setRecurringType(e.target.value as 'WEEKS')}
                               className="h-4 w-4 text-[#4D4DA4] focus:ring-[#4D4DA4]"
                             />
-                            <span className="text-sm text-gray-700">For a specific number of weeks</span>
+                            <span className="text-xs text-gray-700">For a specific number of weeks</span>
                           </label>
                           <label className="flex items-center space-x-2 cursor-pointer">
                             <input
@@ -510,7 +510,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                               onChange={(e) => setRecurringType(e.target.value as 'FOREVER')}
                               className="h-4 w-4 text-[#4D4DA4] focus:ring-[#4D4DA4]"
                             />
-                            <span className="text-sm text-gray-700">Forever</span>
+                            <span className="text-xs text-gray-700">Forever</span>
                           </label>
                         </div>
                       </div>
@@ -524,7 +524,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                             max="52"
                             value={recurringWeeks}
                             onChange={(e) => setRecurringWeeks(parseInt(e.target.value) || 1)}
-                            className="h-12 bg-white border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl"
+                            className="h-10 bg-white border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-lg"
                             placeholder="e.g., 4"
                           />
                           <p className="text-xs text-gray-500">
@@ -535,7 +535,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                       
                       {recurringType === 'FOREVER' && (
                         <Card className="bg-yellow-50 border-yellow-200">
-                          <CardContent className="p-3">
+                          <CardContent className="p-2">
                             <p className="text-xs text-yellow-800 font-medium">
                               ⚠️ Bookings will be created indefinitely (up to 1 year initially). The system will respect even/odd week schedules automatically.
                             </p>
@@ -552,7 +552,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
         </CardContent>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3">
+        <div className="px-4 pt-3 pb-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-end gap-2 !rounded-b-lg !m-0">
           <Button 
             onClick={onClose}
             disabled={loading}

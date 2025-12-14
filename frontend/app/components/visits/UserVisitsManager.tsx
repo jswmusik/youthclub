@@ -12,7 +12,7 @@ import UserVisitsTable from './UserVisitsTable';
 import Link from 'next/link';
 import { ArrowLeft, BarChart3, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
@@ -170,32 +170,36 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
       {/* Analytics */}
       {stats && !loading && (
         <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-gray-500" />
-              <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+          <Card className="border-0 shadow-sm bg-gray-900">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                  <ChevronUp className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                    analyticsExpanded ? "rotate-0" : "rotate-180"
+                  )} />
+                  <span className="sr-only">Toggle Analytics</span>
+                </Button>
+              </CollapsibleTrigger>
             </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-                <ChevronUp className={cn(
-                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                  analyticsExpanded ? "rotate-0" : "rotate-180"
-                )} />
-                <span className="sr-only">Toggle Analytics</span>
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent className="space-y-2">
-            <div className="pt-2">
-              <UserVisitsAnalytics stats={stats} loading={false} />
-            </div>
-          </CollapsibleContent>
+            <CollapsibleContent className="transition-all duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+                <UserVisitsAnalytics stats={stats} loading={false} />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
         </Collapsible>
       )}
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-4 space-y-4">
+        <div className="px-6 py-4 space-y-4">
           <UserVisitsFilter 
             onFilter={handleFilter} 
             showClubFilter={canFilterClubs}

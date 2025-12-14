@@ -27,8 +27,22 @@ export default function RecommendedClubs() {
     const [isFollowing, setIsFollowing] = useState<Record<number, boolean>>({});
     const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
 
-    // Number of clubs to show at once
-    const CLUBS_PER_VIEW = 3;
+    // Number of clubs to show at once - responsive: 2 on mobile, 3 on desktop
+    const [clubsPerView, setClubsPerView] = useState(3);
+    
+    useEffect(() => {
+        const updateClubsPerView = () => {
+            if (window.innerWidth < 768) {
+                setClubsPerView(2); // Mobile: 2 clubs
+            } else {
+                setClubsPerView(3); // Desktop: 3 clubs
+            }
+        };
+        
+        updateClubsPerView();
+        window.addEventListener('resize', updateClubsPerView);
+        return () => window.removeEventListener('resize', updateClubsPerView);
+    }, []);
 
     useEffect(() => {
         loadRecommendedClubs();
@@ -115,11 +129,11 @@ export default function RecommendedClubs() {
     };
 
     const handlePrevious = () => {
-        setCurrentIndex(prev => Math.max(0, prev - CLUBS_PER_VIEW));
+        setCurrentIndex(prev => Math.max(0, prev - clubsPerView));
     };
 
     const handleNext = () => {
-        setCurrentIndex(prev => Math.min(clubs.length - CLUBS_PER_VIEW, prev + CLUBS_PER_VIEW));
+        setCurrentIndex(prev => Math.min(clubs.length - clubsPerView, prev + clubsPerView));
     };
 
     // Don't show if no clubs or loading
@@ -127,23 +141,23 @@ export default function RecommendedClubs() {
         return null;
     }
 
-    const visibleClubs = clubs.slice(currentIndex, currentIndex + CLUBS_PER_VIEW);
+    const visibleClubs = clubs.slice(currentIndex, currentIndex + clubsPerView);
     const canGoPrevious = currentIndex > 0;
-    const canGoNext = currentIndex + CLUBS_PER_VIEW < clubs.length;
+    const canGoNext = currentIndex + clubsPerView < clubs.length;
 
     return (
         <>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="bg-[#0a0a0a] rounded-2xl shadow-lg border border-[#262626] p-4 mb-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900">Recommended Clubs</h3>
+                    <h3 className="text-lg font-bold text-gray-200">Recommended Clubs</h3>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrevious}
                             disabled={!canGoPrevious}
                             className={`p-2 rounded-full transition-colors ${
                                 canGoPrevious 
-                                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
-                                    : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                    ? 'bg-[#050505] hover:bg-[#0f0f0f] text-gray-300 border border-[#262626]' 
+                                    : 'bg-[#050505] text-gray-600 cursor-not-allowed border border-[#262626]'
                             }`}
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,8 +169,8 @@ export default function RecommendedClubs() {
                             disabled={!canGoNext}
                             className={`p-2 rounded-full transition-colors ${
                                 canGoNext 
-                                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
-                                    : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                    ? 'bg-[#050505] hover:bg-[#0f0f0f] text-gray-300 border border-[#262626]' 
+                                    : 'bg-[#050505] text-gray-600 cursor-not-allowed border border-[#262626]'
                             }`}
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,15 +180,15 @@ export default function RecommendedClubs() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={`grid gap-4 ${clubsPerView === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                     {visibleClubs.map((club) => (
                         <div 
                             key={club.id} 
-                            className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                            className="border border-[#262626] rounded-lg overflow-hidden hover:border-[#4D4DA4]/40 transition-all cursor-pointer bg-[#050505]"
                             onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
                         >
                             {/* Cover Image */}
-                            <div className="relative h-32 bg-gradient-to-br from-blue-500 to-purple-600">
+                            <div className="relative h-32 bg-gradient-to-br from-[#4D4DA4] to-[#FF5485]">
                                 {club.hero_image ? (
                                     <img 
                                         src={getMediaUrl(club.hero_image)} 
@@ -197,23 +211,23 @@ export default function RecommendedClubs() {
                                         <img 
                                             src={getMediaUrl(club.avatar)} 
                                             alt={club.name}
-                                            className="w-10 h-10 rounded-full object-cover border-2 border-white -mt-6 relative z-10 bg-white"
+                                            className="w-10 h-10 rounded-full object-cover border-2 border-[#0a0a0a] -mt-6 relative z-10 bg-[#0a0a0a]"
                                         />
                                     ) : (
-                                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white -mt-6 relative z-10">
+                                        <div className="w-10 h-10 rounded-full bg-[#4D4DA4] flex items-center justify-center border-2 border-[#0a0a0a] -mt-6 relative z-10">
                                             <span className="text-white font-bold text-sm">
                                                 {club.name.charAt(0).toUpperCase()}
                                             </span>
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-gray-900 text-sm truncate">{club.name}</h4>
-                                        <p className="text-xs text-gray-500 truncate">{club.municipality_name}</p>
+                                        <h4 className="font-bold text-gray-200 text-sm truncate">{club.name}</h4>
+                                        <p className="text-xs text-gray-400 truncate">{club.municipality_name}</p>
                                     </div>
                                 </div>
 
                                 {/* Description */}
-                                <p className="text-xs text-gray-600 line-clamp-2 mb-3">
+                                <p className="text-xs text-gray-400 line-clamp-2 mb-3">
                                     {club.description}
                                 </p>
 
@@ -225,8 +239,8 @@ export default function RecommendedClubs() {
                                     }}
                                     className={`w-full py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
                                         isFollowing[club.id]
-                                            ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            ? 'bg-[#262626] text-gray-300 hover:bg-[#323235] border border-[#262626]'
+                                            : 'bg-[#4D4DA4] text-white hover:bg-[#5D5DB4] shadow-lg shadow-[#4D4DA4]/20'
                                     }`}
                                 >
                                     {isFollowing[club.id] ? 'Following' : 'Follow'}

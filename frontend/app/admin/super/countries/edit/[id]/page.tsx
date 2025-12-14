@@ -22,6 +22,10 @@ export default function Page() {
     );
   }
 
-  return <CountryForm initialData={data} redirectPath="/admin/super/countries" />;
+  return (
+    <div className="p-8">
+      <CountryForm initialData={data} redirectPath="/admin/super/countries" />
+    </div>
+  );
 }
 

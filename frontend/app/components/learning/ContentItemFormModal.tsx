@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { ContentItem, ContentItemFormData, ContentType } from '@/types/learning';
 import RichTextEditor from '@/app/components/RichTextEditor'; // Reusing your existing component
 
@@ -67,10 +69,12 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
                 <DialogHeader>
-                    <DialogTitle>{initialData ? 'Edit Lesson' : 'Add New Lesson'}</DialogTitle>
+                    <DialogTitle className="text-2xl font-bold tracking-tight text-[#121213]">
+                        {initialData ? 'Edit Lesson' : 'Add New Lesson'}
+                    </DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+                <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Title</Label>
@@ -116,6 +120,9 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                     {selectedType === 'TEXT' && (
                         <div className="space-y-2">
                             <Label>Article Content</Label>
+                            <p className="text-xs text-gray-500 mb-2">
+                                Tip: Click the image icon in the toolbar to upload images. Pasted images will be automatically uploaded.
+                            </p>
                             <div className="min-h-[300px]">
                                 <RichTextEditor 
                                     value={textContent || ''} 
@@ -141,9 +148,20 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                         </div>
                     )}
 
-                    <div className="flex justify-end pt-4">
-                        <Button type="button" variant="ghost" onClick={onClose} className="mr-2">Cancel</Button>
-                        <Button type="submit" disabled={isSubmitting}>
+                    <Separator />
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            onClick={onClose}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]"
+                        >
                             {isSubmitting ? 'Saving...' : 'Save Lesson'}
                         </Button>
                     </div>

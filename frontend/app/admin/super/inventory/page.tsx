@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { inventoryApi, Item, ClubOption, ItemCategory } from '@/lib/inventory-api';
 import ItemTable from '@/app/components/inventory/ItemTable';
-import { Package, TrendingUp, Calendar, Clock, ChevronUp, BarChart3, Search, X, Plus } from 'lucide-react';
+import { Package, TrendingUp, Calendar, Clock, ChevronUp, BarChart3, Search, X, Plus, UserPlus, History } from 'lucide-react';
 import Toast from '@/app/components/Toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -232,94 +232,137 @@ export default function SuperInventoryPage() {
 
       {/* Analytics */}
       <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-gray-500" />
-            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
-            {selectedClub && (
-              <span className="text-xs text-gray-400 ml-2">
-                ({clubs.find(c => String(c.id) === selectedClub)?.name || 'Selected Club'})
-              </span>
-            )}
-            {!selectedClub && (
-              <span className="text-xs text-gray-400 ml-2">
-                (All Clubs)
-              </span>
-            )}
+        <Card className="border-0 shadow-sm bg-gray-900">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                Analytics Dashboard
+              </h3>
+              {selectedClub && (
+                <span className="text-xs text-gray-400 ml-2">
+                  ({clubs.find(c => String(c.id) === selectedClub)?.name || 'Selected Club'})
+                </span>
+              )}
+              {!selectedClub && (
+                <span className="text-xs text-gray-400 ml-2">
+                  (All Clubs)
+                </span>
+              )}
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronUp className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                  analyticsExpanded ? "rotate-0" : "rotate-180"
+                )} />
+                <span className="sr-only">Toggle Analytics</span>
+              </Button>
+            </CollapsibleTrigger>
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-              <ChevronUp className={cn(
-                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                analyticsExpanded ? "rotate-0" : "rotate-180"
-              )} />
-              <span className="sr-only">Toggle Analytics</span>
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        <CollapsibleContent className="space-y-2">
-          {analyticsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="bg-[#EBEBFE]/30 border-none shadow-sm animate-pulse">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500 h-4 bg-gray-200 rounded w-24"></CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-8 bg-gray-200 rounded w-16"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : analytics ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-              {/* Total Items */}
-              <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">Total Items</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_items}</div>
-                </CardContent>
-              </Card>
+          <CollapsibleContent className="transition-all duration-500 ease-in-out">
+            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+              {analyticsLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Card key={i} className="bg-white/5 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-lg animate-pulse">
+                      <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                        <div className="flex items-center gap-2 justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-gray-700"></div>
+                          <div className="h-4 bg-gray-700 rounded w-24"></div>
+                        </div>
+                        <div className="h-8 bg-gray-700 rounded w-16"></div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : analytics ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Total Items */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <Package className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Items</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_items}</div>
+                    </div>
+                  </Card>
 
-              {/* Borrowings Last 7 Days */}
-              <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">Last 7 Days</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.borrowings_7d}</div>
-                </CardContent>
-              </Card>
+                  {/* Borrowings Last 7 Days */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                          }}>
+                          <Calendar className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Last 7 Days</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_7d}</div>
+                    </div>
+                  </Card>
 
-              {/* Borrowings Last 30 Days */}
-              <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">Last 30 Days</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.borrowings_30d}</div>
-                </CardContent>
-              </Card>
+                  {/* Borrowings Last 30 Days */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                          }}>
+                          <TrendingUp className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Last 30 Days</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_30d}</div>
+                    </div>
+                  </Card>
 
-              {/* All Time Borrowings */}
-              <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">All Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.borrowings_all_time}</div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : null}
-        </CollapsibleContent>
+                  {/* All Time Borrowings */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
+                          }}>
+                          <History className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">All Time</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_all_time}</div>
+                    </div>
+                  </Card>
+                </div>
+              ) : null}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
       </Collapsible>
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-4 space-y-4">
+        <div className="px-6 py-4 space-y-4">
           {/* Main Filters Row */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             {/* Search - Takes more space on larger screens */}

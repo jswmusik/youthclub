@@ -97,7 +97,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
         <>
             {/* Filters */}
             <Card className="border border-gray-100 shadow-sm bg-white">
-                <div className="p-4 space-y-4">
+                <div className="px-6 py-4 space-y-4">
                     {/* Main Filters Row */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                         {/* Search */}
@@ -130,7 +130,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
             </Card>
 
             {/* Mobile Card View */}
-            <div className="grid grid-cols-1 gap-3 md:hidden">
+            <div className="grid grid-cols-1 gap-3 md:hidden mt-6">
                     {filteredList.map((reg) => (
                         <Card 
                             key={reg.id} 
@@ -180,10 +180,10 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-xs text-muted-foreground uppercase font-semibold">Status</span>
                                         <Badge variant="outline" className={cn(
-                                            reg.status.includes('PENDING') && 'bg-yellow-50 text-yellow-700 border-yellow-200',
-                                            reg.status === 'APPROVED' && 'bg-green-50 text-green-700 border-green-200',
-                                            reg.status === 'WAITLIST' && 'bg-orange-50 text-orange-700 border-orange-200',
-                                            reg.status === 'REJECTED' && 'bg-red-50 text-red-700 border-red-200',
+                                            reg.status.includes('PENDING') && 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30',
+                                            reg.status === 'APPROVED' && 'bg-green-50 text-[#10B981] border-[#10B981]/30',
+                                            reg.status === 'WAITLIST' && 'bg-pink-50 text-[#FF5485] border-[#FF5485]/30',
+                                            reg.status === 'REJECTED' && 'bg-red-50 text-[#EF4444] border-[#EF4444]/30',
                                             'bg-gray-50 text-gray-700 border-gray-200'
                                         )}>
                                             {reg.status.replace('_', ' ')}
@@ -232,15 +232,15 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
             </div>
 
             {/* Desktop Table View */}
-            <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
+            <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden mt-6">
                     <Table>
                         <TableHeader>
                             <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                                <TableHead className="h-12 text-gray-600 font-semibold">Applicant</TableHead>
-                                <TableHead className="h-12 text-gray-600 font-semibold">Event</TableHead>
-                                <TableHead className="h-12 text-gray-600 font-semibold">Applied</TableHead>
-                                <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
-                                <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                                <TableHead className="h-12 px-6 text-gray-600 font-semibold">Applicant</TableHead>
+                                <TableHead className="h-12 px-6 text-gray-600 font-semibold">Event</TableHead>
+                                <TableHead className="h-12 px-6 text-gray-600 font-semibold">Applied</TableHead>
+                                <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                                <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -250,7 +250,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                     className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer"
                                     onClick={() => router.push(`/admin/${scope.toLowerCase()}/events/${reg.event}`)}
                                 >
-                                    <TableCell className="py-4">
+                                    <TableCell className="py-4 px-6">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                                                 <AvatarImage src={getMediaUrl(reg.user_detail?.avatar) || undefined} className="object-cover" />
@@ -266,7 +266,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="py-4">
+                                    <TableCell className="py-4 px-6">
                                         <Link 
                                             href={`/admin/${scope.toLowerCase()}/events/${reg.event}`}
                                             onClick={(e) => e.stopPropagation()}
@@ -281,24 +281,24 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                             </div>
                                         )}
                                     </TableCell>
-                                    <TableCell className="py-4">
+                                    <TableCell className="py-4 px-6">
                                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                                             <Clock className="h-3 w-3" />
                                             {new Date(reg.created_at).toLocaleDateString()}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="py-4">
+                                    <TableCell className="py-4 px-6">
                                         <Badge variant="outline" className={cn(
-                                            reg.status.includes('PENDING') && 'bg-yellow-50 text-yellow-700 border-yellow-200',
-                                            reg.status === 'APPROVED' && 'bg-green-50 text-green-700 border-green-200',
-                                            reg.status === 'WAITLIST' && 'bg-orange-50 text-orange-700 border-orange-200',
-                                            reg.status === 'REJECTED' && 'bg-red-50 text-red-700 border-red-200',
+                                            reg.status.includes('PENDING') && 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30',
+                                            reg.status === 'APPROVED' && 'bg-green-50 text-[#10B981] border-[#10B981]/30',
+                                            reg.status === 'WAITLIST' && 'bg-pink-50 text-[#FF5485] border-[#FF5485]/30',
+                                            reg.status === 'REJECTED' && 'bg-red-50 text-[#EF4444] border-[#EF4444]/30',
                                             'bg-gray-50 text-gray-700 border-gray-200'
                                         )}>
                                             {reg.status.replace('_', ' ')}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="py-4 text-right">
+                                    <TableCell className="py-4 px-6 text-right">
                                         <div 
                                             className="flex items-center justify-end gap-1"
                                             onClick={(e) => e.stopPropagation()}

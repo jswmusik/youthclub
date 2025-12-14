@@ -258,9 +258,9 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'VERIFIED': return 'bg-green-50 text-green-700 border-green-200';
-      case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'UNVERIFIED': return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'VERIFIED': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
+      case 'PENDING': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
+      case 'UNVERIFIED': return 'bg-red-50 text-[#EF4444] border-[#EF4444]/30';
       default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
@@ -323,7 +323,9 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
             <div className="flex items-center justify-between px-4 sm:px-6 py-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-400">Analytics Dashboard</h3>
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
               </div>
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
@@ -336,50 +338,62 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
               </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   {/* Card 1: Total Youth */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Total Youth</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-[#4D4DA4]/30 flex items-center justify-center shadow-md">
-                          <Users className="h-5 w-5 text-[#4D4DA4]" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <Users className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Youth</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.total_youth}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_youth}</div>
+                    </div>
                   </Card>
 
                   {/* Card 2: New Last 7 Days */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">New (7 Days)</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center shadow-md">
-                          <UserPlus className="h-5 w-5 text-blue-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
+                          }}>
+                          <UserPlus className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">New (7 Days)</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.new_last_7_days}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.new_last_7_days}</div>
+                    </div>
                   </Card>
 
                   {/* Card 3: Gender Breakdown */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Gender Breakdown</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/30 flex items-center justify-center shadow-md">
-                          <UsersRound className="h-5 w-5 text-purple-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF6B9D] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <UsersRound className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Gender Breakdown</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1.5 w-full">
                         <div className="flex justify-between text-sm">
                           <span className="text-white/70">Male:</span>
                           <span className="font-bold text-white">{analytics.gender.male}</span>
@@ -393,21 +407,25 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                           <span className="font-bold text-white">{analytics.gender.other}</span>
                         </div>
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
 
                   {/* Card 4: Verification Status */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Verification</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-green-500/30 flex items-center justify-center shadow-md">
-                          <CheckCircle2 className="h-5 w-5 text-green-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
+                          }}>
+                          <CheckCircle2 className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Verification</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1.5 w-full">
                         <div className="flex justify-between text-sm">
                           <span className="text-white/70">Verified:</span>
                           <span className="font-bold text-white">{analytics.verification.verified}</span>
@@ -417,7 +435,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                           <span className="font-bold text-white">{analytics.verification.unverified_pending}</span>
                         </div>
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
                 </div>
               </CardContent>
@@ -428,7 +446,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-4 space-y-4">
+        <div className="px-6 py-4 space-y-4">
           {/* Main Filters Row */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             {/* Search - Takes more space on larger screens */}
@@ -625,12 +643,12 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                       <span className="text-xs text-gray-500 uppercase font-semibold">Grade / Age</span>
                       <div className="flex flex-wrap gap-1 justify-end">
                         {user.grade && (
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">
                             Grade {user.grade}
                           </Badge>
                         )}
                         {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
-                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
                             {calculateAge(user.date_of_birth)} years
                           </Badge>
                         )}
@@ -671,16 +689,16 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">User</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Grade / Age</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Grade / Age</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedUsers.map(user => (
                   <TableRow key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                           <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
@@ -697,20 +715,20 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
                         {user.verification_status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex flex-wrap items-center gap-2">
                         {user.grade && (
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">
                             Grade {user.grade}
                           </Badge>
                         )}
                         {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
-                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
                             {calculateAge(user.date_of_birth)} years
                           </Badge>
                         )}
@@ -719,7 +737,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 text-right">
+                    <TableCell className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${user.id}`)}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

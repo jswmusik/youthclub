@@ -264,11 +264,11 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
         {/* Sidebar skeleton */}
         {showTimeFilter && (
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl p-4 h-64 animate-pulse shadow-sm border border-gray-100">
-              <div className="h-6 w-32 bg-gray-200 rounded mb-4"></div>
+            <div className="bg-[#050505] rounded-xl p-4 h-64 animate-pulse shadow-sm border border-[#262626]">
+              <div className="h-6 w-32 bg-[#0a0a0a] rounded mb-4"></div>
               <div className="space-y-2">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-10 bg-gray-200 rounded"></div>
+                  <div key={i} className="h-10 bg-[#0a0a0a] rounded"></div>
                 ))}
               </div>
             </div>
@@ -277,15 +277,15 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
         {/* Content skeleton */}
         <div className={showTimeFilter ? "lg:col-span-3 space-y-4" : "space-y-4"}>
           {[1, 2].map((i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 h-48 animate-pulse shadow-sm">
+            <div key={i} className="bg-[#050505] rounded-2xl p-4 h-48 animate-pulse shadow-sm border border-[#262626]">
               <div className="flex gap-3 mb-4">
-                <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                <div className="w-10 h-10 bg-[#0a0a0a] rounded-full"></div>
                 <div className="space-y-2">
-                  <div className="h-4 w-32 bg-gray-200 rounded"></div>
-                  <div className="h-3 w-20 bg-gray-200 rounded"></div>
+                  <div className="h-4 w-32 bg-[#0a0a0a] rounded"></div>
+                  <div className="h-3 w-20 bg-[#0a0a0a] rounded"></div>
                 </div>
               </div>
-              <div className="h-20 bg-gray-200 rounded mb-4"></div>
+              <div className="h-20 bg-[#0a0a0a] rounded mb-4"></div>
             </div>
           ))}
         </div>
@@ -294,7 +294,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
   }
 
   if (error) {
-    return <div className="text-center text-gray-500 py-8">{error}</div>;
+    return <div className="text-center text-gray-400 py-8">{error}</div>;
   }
 
   return (
@@ -302,8 +302,8 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
       {/* Left Sidebar - Time Filter */}
       {showTimeFilter && (
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 sticky top-[120px] z-30">
-            <h3 className="text-sm font-bold text-gray-700 uppercase mb-4">Time Period</h3>
+          <div className="bg-[#050505] rounded-xl p-5 shadow-sm border border-[#262626] sticky top-[120px] z-30">
+            <h3 className="text-sm font-bold text-gray-300 uppercase mb-4">Time Period</h3>
             <div className="space-y-2">
               {timeFilterOptions.map((option) => (
                 <button
@@ -311,8 +311,8 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                   onClick={() => setTimeFilter(option.value)}
                   className={`w-full text-left px-4 py-3 rounded-lg font-medium text-sm transition-all ${
                     timeFilter === option.value
-                      ? 'bg-blue-50 text-blue-700 border-2 border-blue-200'
-                      : 'bg-gray-50 text-gray-700 border-2 border-transparent hover:bg-gray-100 hover:border-gray-200'
+                      ? 'bg-[#4D4DA4]/20 text-[#6D6DD4] border-2 border-[#4D4DA4]/40'
+                      : 'bg-[#0a0a0a] text-gray-300 border-2 border-transparent hover:bg-[#121212] hover:border-[#262626]'
                   }`}
                 >
                   {option.label}
@@ -326,13 +326,13 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
       {/* Right Column - Timeline */}
       <div className={showTimeFilter ? "lg:col-span-3" : ""}>
         {timelineItems.length === 0 ? (
-          <div className="text-center py-10 bg-white rounded-xl shadow-sm border border-gray-100">
-            <p className="text-gray-500">No recent activity found.</p>
-            <p className="text-sm text-gray-400 mt-1">Join a club to see posts here!</p>
+          <div className="text-center py-10 bg-[#050505] rounded-xl shadow-sm border border-[#262626]">
+            <p className="text-gray-400">No recent activity found.</p>
+            <p className="text-sm text-gray-500 mt-1">Join a club to see posts here!</p>
           </div>
         ) : (
           <div className="space-y-6">
-            <h3 className="text-lg font-bold text-gray-800 px-1">Latest Activity</h3>
+            <h3 className="text-lg font-bold text-gray-200 px-1">Latest Activity</h3>
             {timelineItems.map((item) => {
               if (item.type === 'group_join') {
                 const groupPost = item.data as Post;
@@ -353,7 +353,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const groupUrl = contentMatch ? contentMatch[1] : null;
                 
                 return (
-                  <div key={`group-join-${groupPost.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500 p-6">
+                  <div key={`group-join-${groupPost.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-[#4D4DA4] p-6">
                     <div className="flex items-start gap-4">
                       {/* Group Image/Icon */}
                       <div className="flex-shrink-0">
@@ -361,13 +361,13 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                           <img 
                             src={getMediaUrl(groupImage) || ''} 
                             alt={groupName} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-[#262626]"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                          <div className="w-12 h-12 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center text-[#6D6DD4] font-bold text-lg">
                             👥
                           </div>
                         )}
@@ -376,22 +376,22 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       {/* Group Join Details */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-900">{groupName}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          <h4 className="font-semibold text-gray-200">{groupName}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30">
                             Joined
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-gray-400 mb-2">
                           {weekday}, {dateStr} at {timeStr}
                         </p>
                         {groupUrl && (
                           <button
                             onClick={() => router.push(groupUrl)}
-                            className="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1 transition-colors"
+                            className="text-sm text-[#6D6DD4] hover:text-[#FF5485] font-medium inline-flex items-center gap-1 transition-colors"
                           >
                             View Group
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M9 5l7 7-7 7" />
                             </svg>
                           </button>
                         )}
@@ -399,9 +399,9 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       
                       {/* Group Icon */}
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <div className="w-10 h-10 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-[#6D6DD4]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
                         </div>
                       </div>
@@ -439,7 +439,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                   : null;
                 
                 return (
-                  <div key={`inventory-${inventoryPost.id}`} className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${isComplete ? 'border-l-blue-500' : (isBorrow ? 'border-l-indigo-500' : 'border-l-green-500')} p-6`}>
+                  <div key={`inventory-${inventoryPost.id}`} className={`bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 ${isComplete ? 'border-l-[#4D4DA4]' : (isBorrow ? 'border-l-[#6D6DD4]' : 'border-l-emerald-500')} p-6`}>
                     <div className="flex items-start gap-4">
                       {/* Item Image/Icon */}
                       <div className="flex-shrink-0">
@@ -447,13 +447,13 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                           <img 
                             src={getMediaUrl(itemImage) || ''} 
                             alt={itemName} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-[#262626]"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className={`w-12 h-12 rounded-full ${isComplete ? 'bg-blue-100' : (isBorrow ? 'bg-indigo-100' : 'bg-green-100')} flex items-center justify-center ${isComplete ? 'text-blue-700' : (isBorrow ? 'text-indigo-700' : 'text-green-700')} font-bold text-lg`}>
+                          <div className={`w-12 h-12 rounded-full ${isComplete ? 'bg-[#4D4DA4]/20' : (isBorrow ? 'bg-[#6D6DD4]/20' : 'bg-emerald-500/20')} flex items-center justify-center ${isComplete ? 'text-[#6D6DD4]' : (isBorrow ? 'text-[#6D6DD4]' : 'text-emerald-400')} font-bold text-lg`}>
                             {isComplete ? '📦✅' : (isBorrow ? '📦' : '✅')}
                           </div>
                         )}
@@ -462,33 +462,33 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       {/* Inventory Activity Details */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-900">{itemName}</h4>
+                          <h4 className="font-semibold text-gray-200">{itemName}</h4>
                           {isComplete ? (
                             <>
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#6D6DD4]/20 text-[#6D6DD4] border border-[#6D6DD4]/30">
                                 Borrowed
                               </span>
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                                 Returned
                               </span>
                             </>
                           ) : (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isBorrow ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'}`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isBorrow ? 'bg-[#6D6DD4]/20 text-[#6D6DD4] border border-[#6D6DD4]/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
                               {isBorrow ? 'Borrowed' : 'Returned'}
                             </span>
                           )}
                         </div>
                         {isComplete && returnDateStr ? (
                           <div className="space-y-1">
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Borrowed:</span> {weekday}, {dateStr} at {timeStr}
+                            <p className="text-sm text-gray-400">
+                              <span className="font-medium text-gray-300">Borrowed:</span> {weekday}, {dateStr} at {timeStr}
                             </p>
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Returned:</span> {returnDateStr}
+                            <p className="text-sm text-gray-400">
+                              <span className="font-medium text-gray-300">Returned:</span> {returnDateStr}
                             </p>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-400">
                             {weekday}, {dateStr} at {timeStr}
                           </p>
                         )}
@@ -496,23 +496,23 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       
                       {/* Package/Check Icon */}
                       <div className="flex-shrink-0">
-                        <div className={`w-10 h-10 rounded-full ${isComplete ? 'bg-blue-50' : (isBorrow ? 'bg-indigo-50' : 'bg-green-50')} flex items-center justify-center`}>
+                        <div className={`w-10 h-10 rounded-full ${isComplete ? 'bg-[#4D4DA4]/20' : (isBorrow ? 'bg-[#6D6DD4]/20' : 'bg-emerald-500/20')} flex items-center justify-center`}>
                           {isComplete ? (
                             <div className="flex items-center gap-1">
-                              <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              <svg className="w-5 h-5 text-[#6D6DD4]" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                               </svg>
-                              <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7" />
                               </svg>
                             </div>
                           ) : isBorrow ? (
-                            <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            <svg className="w-6 h-6 text-[#6D6DD4]" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                             </svg>
                           ) : (
-                            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M5 13l4 4L19 7" />
                             </svg>
                           )}
                         </div>
@@ -531,11 +531,11 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const questionnaireTitle = questionnairePost.title.replace('Completed Questionnaire: ', '');
                 
                 return (
-                  <div key={`questionnaire-${questionnairePost.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500 p-6">
+                  <div key={`questionnaire-${questionnairePost.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-[#4D4DA4] p-6">
                     <div className="flex items-start gap-4">
                       {/* Questionnaire Icon */}
                       <div className="flex-shrink-0">
-                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                        <div className="w-12 h-12 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center text-[#6D6DD4] font-bold text-lg">
                           📋✅
                         </div>
                       </div>
@@ -543,18 +543,18 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       {/* Questionnaire Details */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-900">{questionnaireTitle}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          <h4 className="font-semibold text-gray-200">{questionnaireTitle}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30">
                             Completed
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-gray-400 mb-2">
                           {weekday}, {dateStr} at {timeStr}
                         </p>
                         {/* Show post content if available (includes description and rewards) */}
                         {questionnairePost.content && (
                           <div 
-                            className="text-sm text-gray-700 prose prose-sm max-w-none"
+                            className="text-sm text-gray-300 prose prose-sm max-w-none prose-headings:text-gray-200 prose-p:text-gray-300 prose-a:text-[#6D6DD4]"
                             dangerouslySetInnerHTML={{ __html: questionnairePost.content }}
                           />
                         )}
@@ -562,9 +562,9 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       
                       {/* Check Icon */}
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <div className="w-10 h-10 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-[#6D6DD4]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
                       </div>
@@ -583,11 +583,11 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
                 return (
-                  <div key={`booking-${booking.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-green-500 p-6">
+                  <div key={`booking-${booking.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-emerald-500 p-6">
                     <div className="flex items-start gap-4">
                       {/* Calendar Icon */}
                       <div className="flex-shrink-0">
-                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-lg">
+                        <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-lg">
                           📅
                         </div>
                       </div>
@@ -595,38 +595,38 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       {/* Booking Details */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-900">{booking.resource_name}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          <h4 className="font-semibold text-gray-200">{booking.resource_name}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                             Confirmed
                           </span>
                         </div>
                         {booking.club_name && (
-                          <p className="text-sm text-gray-600 mb-1">
+                          <p className="text-sm text-gray-400 mb-1">
                             {booking.club_name}
                           </p>
                         )}
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-gray-400 mb-2">
                           {weekday}, {dateStr}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-400">
                           {startTimeStr} - {endTimeStr}
                         </p>
                         <button
                           onClick={() => router.push('/dashboard/youth/bookings')}
-                          className="text-sm text-green-600 hover:text-green-700 font-medium inline-flex items-center gap-1 transition-colors mt-2"
+                          className="text-sm text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1 transition-colors mt-2"
                         >
                           View Booking
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 5l7 7-7 7" />
                           </svg>
                         </button>
                       </div>
                       
                       {/* Check Icon */}
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
                       </div>
@@ -641,7 +641,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const timeStr = redemptionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
                 return (
-                  <div key={`reward-${redemption.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-purple-500 p-6">
+                  <div key={`reward-${redemption.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-[#FF5485] p-6">
                     <div className="flex items-start gap-4">
                       {/* Reward Image/Icon */}
                       <div className="flex-shrink-0">
@@ -649,13 +649,13 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                           <img 
                             src={getMediaUrl(redemption.reward_image) || ''} 
                             alt={redemption.reward_name} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-[#262626]"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-lg">
+                          <div className="w-12 h-12 rounded-full bg-[#FF5485]/20 flex items-center justify-center text-[#FF5485] font-bold text-lg">
                             🎁
                           </div>
                         )}
@@ -664,13 +664,13 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       {/* Reward Details */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-900">{redemption.reward_name}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                          <h4 className="font-semibold text-gray-200">{redemption.reward_name}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#FF5485]/20 text-[#FF5485] border border-[#FF5485]/30">
                             Redeemed
                           </span>
                         </div>
                         {redemption.reward_description && (
-                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          <p className="text-sm text-gray-400 mb-2 line-clamp-2">
                             {redemption.reward_description}
                           </p>
                         )}
@@ -679,16 +679,16 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                             Sponsored by: {redemption.sponsor}
                           </p>
                         )}
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-400">
                           {weekday}, {dateStr} at {timeStr}
                         </p>
                       </div>
                       
                       {/* Gift Icon */}
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                        <div className="w-10 h-10 rounded-full bg-[#FF5485]/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-[#FF5485]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                           </svg>
                         </div>
                       </div>
@@ -703,7 +703,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const timeStr = visitDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
                 return (
-                  <div key={`visit-${visit.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-500 p-6">
+                  <div key={`visit-${visit.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-emerald-500 p-6">
                     <div className="flex items-start gap-4">
                       {/* Club Avatar */}
                       <div className="flex-shrink-0">
@@ -711,13 +711,13 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                           <img 
                             src={getMediaUrl(visit.club_avatar) || ''} 
                             alt={visit.club_name || 'Club'} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-[#262626]"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg">
+                          <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-lg">
                             {(visit.club_name || 'C')[0]}
                           </div>
                         )}
@@ -726,12 +726,12 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       {/* Visit Details */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-900">{visit.club_name || 'Club Visit'}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                          <h4 className="font-semibold text-gray-200">{visit.club_name || 'Club Visit'}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                             Check-in
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-gray-400 mb-2">
                           {weekday}, {dateStr} at {timeStr}
                         </p>
                         {visit.check_out_at && (
@@ -740,7 +740,7 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                           </p>
                         )}
                         {!visit.check_out_at && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                             Active Now
                           </span>
                         )}
@@ -748,9 +748,9 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                       
                       {/* Scanner Icon */}
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4h-4v-4H8m13-9v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2M5 3v2m0 12v2m0-6v2m14-8v2m0 6v2m-4-6h2m-6 0h2" />
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 4v1m6 11h2m-6 0h-2v4h-4v-4H8m13-9v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2M5 3v2m0 12v2m0-6v2m14-8v2m0 6v2m-4-6h2m-6 0h2" />
                           </svg>
                         </div>
                       </div>
@@ -763,13 +763,13 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
             {/* Infinite Scroll Trigger */}
             <div ref={observerTarget} className="h-10 flex items-center justify-center">
               {loadingMore && (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <div className="flex items-center gap-2 text-gray-400">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#4D4DA4]"></div>
                   <span className="text-sm">Loading more posts...</span>
                 </div>
               )}
               {!hasMore && timelineItems.length > 0 && (
-                <div className="text-center pt-4 pb-8 text-sm text-gray-400">
+                <div className="text-center pt-4 pb-8 text-sm text-gray-500">
                   End of timeline
                 </div>
               )}

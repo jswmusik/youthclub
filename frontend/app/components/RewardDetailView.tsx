@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Loader2, Edit, History } from 'lucide-react';
+import { ChevronLeft, Edit, History, BarChart3, ChevronUp, Gift, Clock, Calendar, TrendingUp } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../utils';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface RewardDetailProps {
   rewardId: string;
@@ -22,10 +24,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
   const [analytics, setAnalytics] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [nextPage, setNextPage] = useState<string | null>(null);
-  const historyEndRef = useRef<HTMLDivElement>(null);
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -51,12 +50,8 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
     }
   }, [rewardId]);
 
-  const fetchData = async (append = false) => {
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-    }
+  const fetchData = async () => {
+    setLoading(true);
     try {
       const [rewardRes, statsRes] = await Promise.all([
         api.get(`/rewards/${rewardId}/`),
@@ -65,73 +60,16 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
       setReward(rewardRes.data);
       setAnalytics(statsRes.data);
       
-      // Fetch history with pagination
-      let historyUrl: string;
-      if (append && nextPage) {
-        // Extract path from full URL if needed
-        historyUrl = nextPage.startsWith('http') ? new URL(nextPage).pathname + new URL(nextPage).search : nextPage;
-      } else {
-        historyUrl = `/rewards/${rewardId}/history/`;
-      }
-      
-      const historyRes = await api.get(historyUrl);
+      // Fetch only latest 10 claims
+      const historyRes = await api.get(`/rewards/${rewardId}/history/?page_size=10`);
       const historyData = historyRes.data.results || historyRes.data;
-      
-      if (append) {
-        setHistory(prev => [...prev, ...historyData]);
-      } else {
-        setHistory(historyData);
-      }
-      
-      // Handle pagination - check if there's a next page
-      if (historyRes.data.next) {
-        // Store the full URL or relative path
-        const nextUrl = historyRes.data.next.startsWith('http') 
-          ? new URL(historyRes.data.next).pathname + new URL(historyRes.data.next).search 
-          : historyRes.data.next;
-        setNextPage(nextUrl);
-        setHasMore(true);
-      } else {
-        setNextPage(null);
-        setHasMore(false);
-      }
+      setHistory(Array.isArray(historyData) ? historyData : []);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
-
-  const loadMore = () => {
-    if (!loadingMore && hasMore && nextPage) {
-      fetchData(true);
-    }
-  };
-
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    if (!hasMore || loadingMore) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (historyEndRef.current) {
-      observer.observe(historyEndRef.current);
-    }
-
-    return () => {
-      if (historyEndRef.current) {
-        observer.unobserve(historyEndRef.current);
-      }
-    };
-  }, [hasMore, loadingMore, nextPage]);
 
   if (loading) return <div className="p-12 text-center text-gray-500">Loading details...</div>;
   if (!reward) return <div className="p-12 text-center text-red-500">Reward not found.</div>;
@@ -193,50 +131,129 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
         </div>
       </div>
 
-      {/* 2. ANALYTICS GRID */}
-      {analytics && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Total Claims</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-[#4D4DA4]">{analytics.total_uses}</div>
-            </CardContent>
+      {/* 2. ANALYTICS DASHBOARD */}
+      {analytics && !loading && (
+        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+          <Card className="border-0 shadow-sm bg-gray-900">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                  <ChevronUp className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                    analyticsExpanded ? "rotate-0" : "rotate-180"
+                  )} />
+                  <span className="sr-only">Toggle Analytics</span>
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+            <CollapsibleContent className="transition-all duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+                  {/* Card 1: Total Claims */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <Gift className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Claims</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_uses}</div>
+                    </div>
+                  </Card>
+
+                  {/* Card 2: Last 24h */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
+                          }}>
+                          <Clock className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Last 24h</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.uses_last_24h}</div>
+                    </div>
+                  </Card>
+
+                  {/* Card 3: Last 7 Days */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
+                          }}>
+                          <TrendingUp className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Last 7 Days</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.uses_last_7d}</div>
+                    </div>
+                  </Card>
+
+                  {/* Card 4: Last 30 Days */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF6B9D] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <Calendar className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Last 30 Days</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.uses_last_30d}</div>
+                    </div>
+                  </Card>
+
+                  {/* Card 5: Days Left */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#F59E0B]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.3)',
+                          }}>
+                          <Clock className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Days Left</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.days_remaining !== null ? analytics.days_remaining : '∞'}</div>
+                    </div>
+                  </Card>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
           </Card>
-          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Last 24h</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-[#4D4DA4]">{analytics.uses_last_24h}</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Last 7 Days</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-[#4D4DA4]">{analytics.uses_last_7d}</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Last 30 Days</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-[#4D4DA4]">{analytics.uses_last_30d}</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Days Left</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-[#FF5485]">{analytics.days_remaining !== null ? analytics.days_remaining : '∞'}</div>
-            </CardContent>
-          </Card>
-        </div>
+        </Collapsible>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
@@ -267,17 +284,20 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
             </CardContent>
           </Card>
 
-          {/* Usage History Table */}
-          <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <CardHeader className="border-b border-gray-100">
+          {/* Latest Claims Table */}
+          <Card className="border-none shadow-sm bg-white overflow-hidden">
+            <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Claim History</CardTitle>
+                <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Latest Claims</CardTitle>
                 {history.length > 0 && (
-                  <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE] text-xs font-semibold">
-                    {history.length} {history.length === 1 ? 'claim' : 'claims'}
+                  <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 text-xs font-semibold">
+                    Showing {history.length} {history.length === 1 ? 'claim' : 'claims'}
                   </Badge>
                 )}
               </div>
+              <CardDescription className="text-sm text-gray-500 mt-1">
+                View the 10 most recent claims for this reward
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {history.length === 0 ? (
@@ -289,7 +309,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                   {/* Mobile: Cards */}
                   <div className="block md:hidden divide-y divide-gray-100">
                     {history.map((usage) => (
-                      <div key={usage.id} className="p-4 space-y-2">
+                      <div key={usage.id} className="p-6 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold text-[#121213] truncate">{usage.user_name}</p>
@@ -311,61 +331,41 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                   </div>
 
                   {/* Desktop: Table */}
-                  <Table className="hidden md:table">
-                    <TableHeader>
-                      <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                        <TableHead className="h-12 text-gray-600 font-semibold">User</TableHead>
-                        <TableHead className="h-12 text-gray-600 font-semibold">Email</TableHead>
-                        <TableHead className="h-12 text-right text-gray-600 font-semibold">Date Claimed</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {history.map((usage) => (
-                        <TableRow key={usage.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                          <TableCell className="py-4">
-                            <div className="font-semibold text-[#121213] text-sm">{usage.user_name}</div>
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <div className="text-sm text-gray-500">{usage.user_email}</div>
-                          </TableCell>
-                          <TableCell className="py-4 text-right">
-                            <div className="text-sm text-gray-500">
-                              {(() => {
-                                const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
-                                if (!date) return 'N/A';
-                                const dateStr = date.toLocaleDateString();
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const minutes = String(date.getMinutes()).padStart(2, '0');
-                                return `${dateStr} ${hours}:${minutes}`;
-                              })()}
-                            </div>
-                          </TableCell>
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
+                          <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
+                          <TableHead className="h-12 px-6 text-gray-600 font-semibold">Email</TableHead>
+                          <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Date Claimed</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-
-                  {/* Load More / Pagination */}
-                  {hasMore && (
-                    <div className="p-4 border-t border-gray-100">
-                      <div ref={historyEndRef} className="h-1" />
-                      <Button
-                        onClick={loadMore}
-                        disabled={loadingMore}
-                        variant="ghost"
-                        className="w-full h-11 text-sm sm:text-base font-semibold text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE]/30 disabled:opacity-50 touch-manipulation"
-                      >
-                        {loadingMore ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Loading...
-                          </>
-                        ) : (
-                          'Load More'
-                        )}
-                      </Button>
-                    </div>
-                  )}
+                      </TableHeader>
+                      <TableBody>
+                        {history.map((usage) => (
+                          <TableRow key={usage.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                            <TableCell className="py-4 px-6">
+                              <div className="font-semibold text-[#121213] text-sm">{usage.user_name}</div>
+                            </TableCell>
+                            <TableCell className="py-4 px-6">
+                              <div className="text-sm text-gray-500">{usage.user_email}</div>
+                            </TableCell>
+                            <TableCell className="py-4 px-6 text-right">
+                              <div className="text-sm text-gray-500">
+                                {(() => {
+                                  const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
+                                  if (!date) return 'N/A';
+                                  const dateStr = date.toLocaleDateString();
+                                  const hours = String(date.getHours()).padStart(2, '0');
+                                  const minutes = String(date.getMinutes()).padStart(2, '0');
+                                  return `${dateStr} ${hours}:${minutes}`;
+                                })()}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </>
               )}
             </CardContent>

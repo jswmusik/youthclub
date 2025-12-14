@@ -36,7 +36,7 @@ export default function Toast({
   if (!isVisible) return null;
 
   const bgColors = {
-    success: 'bg-green-500',
+    success: 'bg-[#10B981]',
     error: 'bg-red-500',
     info: 'bg-blue-500',
     warning: 'bg-yellow-500',

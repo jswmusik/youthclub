@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import { formatDistanceToNow, format } from 'date-fns';
 import BookingDetailModal from './BookingDetailModal';
-import { Users, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Search, X, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -195,9 +195,9 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                           e.stopPropagation();
                           setSelectedBooking(req);
                         }}
-                        className="h-8 text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE] flex-shrink-0"
+                        className="h-8 w-8 p-0 text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE] flex-shrink-0"
                       >
-                        Review
+                        <Eye className="h-4 w-4" />
                       </Button>
                     </div>
                     <div className="space-y-2 pl-13">
@@ -239,16 +239,16 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
             <Table className="hidden md:table">
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">User</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Resource</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Resource</TableHead>
                   {scope !== 'CLUB' && (
-                    <TableHead className="h-12 text-gray-600 font-semibold">Club</TableHead>
+                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club</TableHead>
                   )}
-                  <TableHead className="h-12 text-gray-600 font-semibold">Date</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Time</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Guests</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Requested</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold text-right">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Time</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Guests</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Requested</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -263,7 +263,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                       className="hover:bg-gray-50/50 cursor-pointer transition-colors"
                       onClick={() => setSelectedBooking(req)}
                     >
-                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-8 w-8 rounded-full border border-gray-200 bg-gray-50">
                             <AvatarImage src={req.user_detail?.avatar ? getMediaUrl(req.user_detail.avatar) : undefined} className="object-cover" />
@@ -281,11 +281,11 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="text-sm font-medium text-[#121213]">{req.resource_name}</div>
                       </TableCell>
                       {scope !== 'CLUB' && (
-                        <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                        <TableCell className="py-4 px-6">
                           {req.club_name ? (
                             <span className="text-sm text-[#121213]">{req.club_name}</span>
                           ) : (
@@ -293,26 +293,26 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                           )}
                         </TableCell>
                       )}
-                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="text-sm text-[#121213]">{format(startDate, 'MMM d, yyyy')}</div>
                       </TableCell>
-                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="text-sm text-[#121213]">
                           {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-1.5 text-sm text-[#121213]">
                           <Users className="w-4 h-4 text-gray-400" />
                           <span>{participantCount}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="text-xs text-gray-500">
                           {formatDistanceToNow(new Date(req.created_at))} ago
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 sm:px-6 py-3 sm:py-4 text-right">
+                      <TableCell className="py-4 px-6 text-right">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -320,9 +320,9 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                             e.stopPropagation();
                             setSelectedBooking(req);
                           }}
-                          className="h-8 text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE]"
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"
                         >
-                          Review
+                          <Eye className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>

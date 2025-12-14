@@ -76,15 +76,18 @@ export default function RecommendedGroups() {
     const showArrows = groups.length > ITEMS_PER_VIEW;
 
     return (
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 mb-6 border border-indigo-100 relative">
+        <div className="bg-[#0a0a0a] rounded-2xl shadow-lg border border-[#262626] p-6 mb-6 relative">
             
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <span>🌟</span> Groups for You
+                    <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-[#FF5485]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                        </svg>
+                        Groups for You
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1">Based on your age, interests & club</p>
+                    <p className="text-xs text-gray-400 mt-1">Based on your age, interests & club</p>
                 </div>
 
                 {/* Navigation Arrows (Only if more than 2) */}
@@ -95,12 +98,12 @@ export default function RecommendedGroups() {
                             disabled={!canGoPrevious}
                             className={`p-2 rounded-full transition-colors ${
                                 canGoPrevious 
-                                    ? 'bg-white text-indigo-600 shadow-sm hover:bg-indigo-50' 
-                                    : 'bg-transparent text-gray-300 cursor-not-allowed'
+                                    ? 'bg-[#050505] hover:bg-[#0f0f0f] text-gray-300 border border-[#262626]' 
+                                    : 'bg-[#050505] text-gray-600 cursor-not-allowed border border-[#262626]'
                             }`}
                         >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M15 19l-7-7 7-7"/>
                             </svg>
                         </button>
                         <button
@@ -108,12 +111,12 @@ export default function RecommendedGroups() {
                             disabled={!canGoNext}
                             className={`p-2 rounded-full transition-colors ${
                                 canGoNext 
-                                    ? 'bg-white text-indigo-600 shadow-sm hover:bg-indigo-50' 
-                                    : 'bg-transparent text-gray-300 cursor-not-allowed'
+                                    ? 'bg-[#050505] hover:bg-[#0f0f0f] text-gray-300 border border-[#262626]' 
+                                    : 'bg-[#050505] text-gray-600 cursor-not-allowed border border-[#262626]'
                             }`}
                         >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 5l7 7-7 7"/>
                             </svg>
                         </button>
                     </div>
@@ -121,15 +124,15 @@ export default function RecommendedGroups() {
             </div>
 
             {/* Grid Content */}
-            <div className={`grid grid-cols-1 ${groups.length > 1 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-4`}>
+            <div className="grid grid-cols-2 gap-4">
                 {visibleGroups.map((group) => (
                     <div 
                         key={group.id}
                         onClick={() => router.push(`/dashboard/youth/groups/${group.id}`)}
-                        className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden border border-gray-100 group flex flex-col h-full"
+                        className="bg-[#050505] rounded-xl hover:border-[#4D4DA4]/40 transition-all cursor-pointer overflow-hidden border border-[#262626] group flex flex-col h-full"
                     >
                         {/* Header Image Area */}
-                        <div className="h-24 bg-gray-200 relative">
+                        <div className="h-24 bg-black relative">
                             {group.background_image ? (
                                 <img 
                                     src={getMediaUrl(group.background_image) || ''} 
@@ -137,13 +140,13 @@ export default function RecommendedGroups() {
                                     className="w-full h-full object-cover"
                                 />
                             ) : (
-                                <div className="w-full h-full bg-gradient-to-r from-indigo-400 to-purple-500" />
+                                <div className="w-full h-full bg-gradient-to-r from-[#4D4DA4] to-[#FF5485]" />
                             )}
                             
                             {/* Type Badge */}
                             <div className="absolute top-2 right-2">
                                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide text-white ${
-                                    group.group_type === 'OPEN' ? 'bg-emerald-500/90' : 'bg-blue-500/90'
+                                    group.group_type === 'OPEN' ? 'bg-emerald-500/90' : 'bg-[#4D4DA4]/90'
                                 }`}>
                                     {group.group_type === 'OPEN' ? 'Join Now' : 'Apply'}
                                 </span>
@@ -157,24 +160,24 @@ export default function RecommendedGroups() {
                                 {group.avatar ? (
                                     <img 
                                         src={getMediaUrl(group.avatar) || ''} 
-                                        className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm bg-white"
+                                        className="w-12 h-12 rounded-xl object-cover border-2 border-[#0a0a0a] shadow-sm bg-[#0a0a0a]"
                                         alt=""
                                     />
                                 ) : (
-                                    <div className="w-12 h-12 rounded-xl bg-indigo-600 border-2 border-white shadow-sm flex items-center justify-center text-white font-bold text-lg">
+                                    <div className="w-12 h-12 rounded-xl bg-[#4D4DA4] border-2 border-[#0a0a0a] shadow-sm flex items-center justify-center text-white font-bold text-lg">
                                         {group.name.charAt(0)}
                                     </div>
                                 )}
                             </div>
 
-                            <h4 className="font-bold text-gray-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                            <h4 className="font-bold text-gray-200 line-clamp-1 group-hover:text-[#6D6DD4] transition-colors">
                                 {group.name}
                             </h4>
-                            <p className="text-xs text-gray-500 line-clamp-2 mt-1 mb-3 flex-1">
+                            <p className="text-xs text-gray-400 line-clamp-2 mt-1 mb-3 flex-1">
                                 {group.description || 'No description available.'}
                             </p>
 
-                            <button className="w-full py-2 bg-gray-50 hover:bg-indigo-600 hover:text-white text-gray-700 text-sm font-medium rounded-lg transition-colors">
+                            <button className="w-full py-2 bg-[#262626] hover:bg-[#4D4DA4] hover:text-white text-gray-300 text-sm font-medium rounded-lg transition-colors border border-[#262626] hover:border-[#4D4DA4]">
                                 View Group
                             </button>
                         </div>

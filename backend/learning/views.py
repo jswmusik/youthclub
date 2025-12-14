@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, status, decorators
 from rest_framework.response import Response
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Avg, Count
 from .models import (
     LearningCategory, Course, CourseChapter, ContentItem, 
     UserCourseProgress, UserItemProgress, CourseRating
@@ -40,6 +40,18 @@ class CourseViewSet(viewsets.ModelViewSet):
             with open('/Users/ungdomsappen/the-youth-app/.cursor/debug.log', 'a') as f:
                 f.write(json.dumps({'location':'views.py:get_queryset:entry','message':'get_queryset called','data':{'action':self.action,'user_role':self.request.user.role if self.request.user.is_authenticated else None,'user_authenticated':self.request.user.is_authenticated},'timestamp':int(__import__('time').time()*1000),'sessionId':'debug-session','runId':'run1','hypothesisId':'A'})+'\n')
             # #endregion
+            
+            # First, automatically publish any scheduled courses that have passed their published_at date
+            # This ensures scheduled courses are published even if the cron job hasn't run yet
+            now = timezone.now()
+            scheduled_courses = Course.objects.filter(
+                status=Course.Status.SCHEDULED,
+                published_at__isnull=False,
+                published_at__lte=now
+            )
+            if scheduled_courses.exists():
+                scheduled_courses.update(status=Course.Status.PUBLISHED)
+            
             user = self.request.user
             qs = Course.objects.all().prefetch_related('chapters__items')
 
@@ -190,6 +202,45 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
         return Response({'status': 'rated', 'score': rating.score})
 
+    @decorators.action(detail=True, methods=['get'])
+    def analytics(self, request, slug=None):
+        """Returns stats for the specific course (Super Admin only)"""
+        if request.user.role != 'SUPER_ADMIN':
+            return Response({'error': 'Unauthorized'}, status=403)
+            
+        course = self.get_object()
+        
+        # Total users who have any progress record (started or viewed)
+        total_with_progress = UserCourseProgress.objects.filter(course=course).count()
+        
+        # Users who started (IN_PROGRESS or COMPLETED)
+        total_started = UserCourseProgress.objects.filter(
+            course=course
+        ).exclude(status=UserCourseProgress.Status.NOT_STARTED).count()
+        
+        # Users who completed
+        total_completed = UserCourseProgress.objects.filter(
+            course=course, status=UserCourseProgress.Status.COMPLETED
+        ).count()
+        
+        # Users who viewed but didn't start (NOT_STARTED)
+        total_viewed = UserCourseProgress.objects.filter(
+            course=course, status=UserCourseProgress.Status.NOT_STARTED
+        ).count()
+        
+        ratings_qs = course.ratings.all()
+        total_ratings = ratings_qs.count()
+        avg_rating = ratings_qs.aggregate(Avg('score'))['score__avg'] or 0
+        
+        return Response({
+            'total_students': total_started,
+            'completions': total_completed,
+            'viewed': total_viewed,
+            'completion_rate': int((total_completed / total_started * 100)) if total_started > 0 else 0,
+            'average_rating': round(avg_rating, 1),
+            'total_ratings': total_ratings
+        })
+
 class ChapterViewSet(viewsets.ModelViewSet):
     queryset = CourseChapter.objects.all()
     serializer_class = CourseChapterSerializer
@@ -199,3 +250,58 @@ class ContentItemViewSet(viewsets.ModelViewSet):
     queryset = ContentItem.objects.all()
     serializer_class = ContentItemSerializer
     permission_classes = [IsSuperAdminOrReadOnly]
+
+
+@decorators.api_view(['POST'])
+@decorators.permission_classes([permissions.IsAuthenticated])
+def upload_image(request):
+    """
+    Upload an image for use in rich text content.
+    Returns the URL of the uploaded image.
+    """
+    if 'image' not in request.FILES:
+        return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    image_file = request.FILES['image']
+    
+    # Validate file type
+    allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
+    if image_file.content_type not in allowed_types:
+        return Response({'error': 'Invalid file type. Only images are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Validate file size (max 5MB)
+    if image_file.size > 5 * 1024 * 1024:
+        return Response({'error': 'File size exceeds 5MB limit'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Save the file using Django's FileField pattern
+    from django.core.files.storage import default_storage
+    from django.utils import timezone
+    import os
+    import uuid
+    from django.utils.text import slugify
+    
+    # Sanitize filename to avoid encoding issues
+    original_name = image_file.name
+    name, ext = os.path.splitext(original_name)
+    # Remove special characters and normalize
+    safe_name = slugify(name) or 'image'
+    # Generate unique filename
+    timestamp = int(timezone.now().timestamp())
+    unique_id = str(uuid.uuid4())[:8]
+    filename = f"courses/images/{timestamp}_{unique_id}_{safe_name}{ext}"
+    
+    # Save file - default_storage.save() returns the relative path from MEDIA_ROOT
+    file_path = default_storage.save(filename, image_file)
+    
+    # Return the URL - use MEDIA_URL which is '/media/'
+    from django.conf import settings
+    # file_path is relative to MEDIA_ROOT, so we prepend MEDIA_URL
+    # Example: file_path = "courses/images/file.png", MEDIA_URL = "/media/"
+    # Result: "/media/courses/images/file.png"
+    relative_path = file_path  # Already relative to MEDIA_ROOT
+    media_url = f"{settings.MEDIA_URL.rstrip('/')}/{relative_path}".replace('//', '/')
+    
+    return Response({
+        'url': media_url,  # Full URL path like "/media/courses/images/file.png"
+        'image': relative_path  # Relative path like "courses/images/file.png"
+    }, status=status.HTTP_201_CREATED)

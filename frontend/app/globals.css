@@ -36,6 +36,15 @@
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
 
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -76,6 +85,19 @@
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
 
+  /* --- FUNCTIONAL COLORS --- */
+  /* Green (Emerald 500) */
+  --success: 159 90% 37%; /* #10B981 (Approximation for HSL) -> Actual Tailwind Emerald 500 is 160 84% 39% */
+  --success-foreground: 0 0% 100%;
+
+  /* Orange (Amber 500) */
+  --warning: 38 92% 50%; /* #F59E0B */
+  --warning-foreground: 0 0% 100%;
+
+  /* Blue (Sky 500) */
+  --info: 199 89% 48%; /* #0EA5E9 */
+  --info-foreground: 0 0% 100%;
+
   --border: 240 6% 90%;
   --input: 240 6% 90%;
  
@@ -100,13 +122,18 @@
 }
 
 .dark {
-  /* Only if you enable Dark Mode later, we map it to your ua-dark-bg */
-  --background: 240 3% 7%;
+  /* Base Background (Keep as is) */
+  --background: 240 3% 7%;      /* #121213 */
   --foreground: 0 0% 100%;
-  --card: 240 3% 7%;
+
+  /* Level 1: Standard Cards */
+  --card: 240 4% 11.5%;         /* #1C1C1F */
   --card-foreground: 0 0% 100%;
-  --popover: 240 3% 7%;
+
+  /* Level 2: Popovers / Dropdowns / Hovers */
+  --popover: 240 4% 16%;        /* #27272B */
   --popover-foreground: 0 0% 100%;
+
   --primary: 240 36% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 240 3% 15%;
@@ -117,7 +144,17 @@
   --accent-foreground: 0 0% 100%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
+
+  /* For dark mode, we usually make them slightly lighter/softer so they glow */
+  --success: 160 84% 39%; /* Emerald 500 looks good on dark too */
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+  --info: 199 89% 48%;
+  --info-foreground: 0 0% 100%;
+
+  /* Borders: Slightly lighter than cards to define edges */
+  --border: 240 4% 20%;         /* #323235 */
   --input: 240 3.7% 15.9%;
   --ring: 343 100% 66%;
   --chart-1: 220 70% 50%;
@@ -164,6 +201,12 @@ body {
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

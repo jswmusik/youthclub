@@ -43,8 +43,8 @@ export default function YouthProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4D4DA4]"></div>
       </div>
     );
   }
@@ -52,24 +52,26 @@ export default function YouthProfilePage() {
   if (!profileData) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       <NavBar />
-      <main className="pb-20">
-        
-        {/* 1. Profile Header Container */}
-        <div className="max-w-6xl mx-auto md:pt-6 md:px-6">
-          <ProfileHeader 
-            user={profileData} 
-            primaryClub={profileData.preferred_club} 
-          />
-        </div>
+      <div className="pt-16">
+        <main className="pb-20">
+          
+          {/* 1. Profile Header Container */}
+          <div className="max-w-6xl mx-auto md:pt-6 md:px-6">
+            <ProfileHeader 
+              user={profileData} 
+              primaryClub={profileData.preferred_club} 
+            />
+          </div>
 
-        {/* 2. Tabs & Content */}
-        <div className="mt-4">
-          <ProfileContent user={profileData} />
-        </div>
+          {/* 2. Tabs & Content */}
+          <div className="mt-8">
+            <ProfileContent user={profileData} />
+          </div>
 
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

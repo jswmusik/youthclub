@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, Building } from 'lucide-react';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, Building, UserPlus, UsersRound, FolderX } from 'lucide-react';
 import api from '../../lib/api';
 import Toast from './Toast';
 import ConfirmationModal from './ConfirmationModal';
@@ -260,8 +260,8 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
 
   const getBadgeStyle = (type: string) => {
     switch (type) {
-      case 'OPEN': return 'bg-green-50 text-green-700 border-green-200';
-      case 'APPLICATION': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'OPEN': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
+      case 'APPLICATION': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
       case 'CLOSED': return 'bg-gray-50 text-gray-700 border-gray-200';
       default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
@@ -289,69 +289,111 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
 
       {/* Analytics */}
       <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-gray-500" />
-            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+        <Card className="border-0 shadow-sm bg-gray-900">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                Analytics Dashboard
+              </h3>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronUp className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                  analyticsExpanded ? "rotate-0" : "rotate-180"
+                )} />
+                <span className="sr-only">Toggle Analytics</span>
+              </Button>
+            </CollapsibleTrigger>
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-              <ChevronUp className={cn(
-                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                analyticsExpanded ? "rotate-0" : "rotate-180"
-              )} />
-              <span className="sr-only">Toggle Analytics</span>
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        <CollapsibleContent className="space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-            {/* Card 1: Total Groups */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Groups</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{stats.totalGroups || 0}</div>
-              </CardContent>
-            </Card>
+          <CollapsibleContent className="transition-all duration-500 ease-in-out">
+            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {/* Card 1: Total Groups */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                        }}>
+                        <Building className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Groups</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.totalGroups || 0}</div>
+                  </div>
+                </Card>
 
-            {/* Card 2: Total Members */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Members</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{stats.totalMembers || 0}</div>
-              </CardContent>
-            </Card>
+                {/* Card 2: Total Members */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                        }}>
+                        <Users className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Members</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.totalMembers || 0}</div>
+                  </div>
+                </Card>
 
-            {/* Card 3: Active Groups */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Active Groups</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{stats.activeGroups || 0}</div>
-              </CardContent>
-            </Card>
+                {/* Card 3: Active Groups */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                        }}>
+                        <UsersRound className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Active Groups</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.activeGroups || 0}</div>
+                  </div>
+                </Card>
 
-            {/* Card 4: Empty Groups */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Empty Groups</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{stats.emptyGroups || 0}</div>
-              </CardContent>
-            </Card>
-          </div>
-        </CollapsibleContent>
+                {/* Card 4: Empty Groups */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
+                        }}>
+                        <FolderX className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Empty Groups</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.emptyGroups || 0}</div>
+                  </div>
+                </Card>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
       </Collapsible>
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-4 space-y-4">
+        <div className="px-6 py-4 space-y-4">
           {/* Main Filters Row */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             {/* Search - Takes more space on larger screens */}
@@ -538,18 +580,18 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Group Name</TableHead>
-                  {isSuperAdmin && <TableHead className="h-12 text-gray-600 font-semibold">Municipality</TableHead>}
-                  {(isSuperAdmin || isMuniAdmin) && <TableHead className="h-12 text-gray-600 font-semibold">Club</TableHead>}
-                  <TableHead className="h-12 text-gray-600 font-semibold">Type</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Members</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Group Name</TableHead>
+                  {isSuperAdmin && <TableHead className="h-12 px-6 text-gray-600 font-semibold">Municipality</TableHead>}
+                  {(isSuperAdmin || isMuniAdmin) && <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club</TableHead>}
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Members</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {groups.map(group => (
                   <TableRow key={group.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full border border-gray-200 bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
                           <Users className="h-4 w-4 text-[#4D4DA4]" />
@@ -565,21 +607,21 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                       </div>
                     </TableCell>
                     {isSuperAdmin && (
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="text-sm text-gray-500">{group.municipality_name || '-'}</div>
                       </TableCell>
                     )}
                     {(isSuperAdmin || isMuniAdmin) && (
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="text-sm text-gray-500">{group.club_name || '-'}</div>
                       </TableCell>
                     )}
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <Badge variant="outline" className={getBadgeStyle(group.group_type)}>
                         {group.group_type}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm text-gray-900 font-medium">{group.member_count ?? 0}</span>
                         {group.pending_request_count > 0 && (
@@ -589,7 +631,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 text-right">
+                    <TableCell className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${group.id}`)}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

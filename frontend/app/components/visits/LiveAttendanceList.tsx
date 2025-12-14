@@ -121,16 +121,16 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
             <Table>
               <TableHeader className="bg-[#EBEBFE]/50">
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="text-[#4D4DA4] font-semibold">Member</TableHead>
-                  <TableHead className="text-[#4D4DA4] font-semibold">Check-in Time</TableHead>
-                  <TableHead className="text-[#4D4DA4] font-semibold">Method</TableHead>
-                  <TableHead className="text-right text-[#4D4DA4] font-semibold">Action</TableHead>
+                  <TableHead className="h-12 px-6 text-[#4D4DA4] font-semibold">Member</TableHead>
+                  <TableHead className="h-12 px-6 text-[#4D4DA4] font-semibold">Check-in Time</TableHead>
+                  <TableHead className="h-12 px-6 text-[#4D4DA4] font-semibold">Method</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-[#4D4DA4] font-semibold">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sessionsArray.map((session) => (
                   <TableRow key={session.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 rounded-lg border border-gray-200">
                           <AvatarImage src={getMediaUrl(session.user_details.avatar) || undefined} className="object-cover" />
@@ -148,10 +148,10 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 text-gray-600">
+                    <TableCell className="py-4 px-6 text-gray-600">
                       {new Date(session.check_in_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <Badge 
                         variant="outline" 
                         className={session.method === 'QR_KIOSK' 
@@ -162,7 +162,7 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
                         {session.method === 'QR_KIOSK' ? 'Self Scan' : 'Manual'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-4 text-right">
+                    <TableCell className="py-4 px-6 text-right">
                       {session.check_out_at ? (
                         <span className="text-gray-400 text-sm">
                           Checked out: {new Date(session.check_out_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}

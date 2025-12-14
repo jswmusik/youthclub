@@ -169,7 +169,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
     const canReply = !isBroadcast || isAdmin;
 
     return (
-        <div className="flex flex-col h-full bg-white md:rounded-r-xl min-h-0 max-w-full overflow-hidden">
+        <div className="flex flex-col h-full bg-white md:rounded-r-xl min-h-0 max-w-full overflow-hidden" style={{ height: '100%', maxHeight: '100%', overflow: 'hidden' }}>
             {/* Header */}
             <div className="flex-shrink-0 min-h-[56px] sm:h-16 border-b border-gray-200 flex items-center px-2 sm:px-3 md:px-4 justify-between bg-white md:rounded-tr-xl min-w-0 max-w-full">
                 <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0 flex-1">
@@ -234,8 +234,8 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 </div>
             </div>
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-gray-50 custom-scrollbar min-h-0">
+            {/* Messages Area - ensure proper scrolling on mobile, add padding-bottom for fixed composer */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:pb-3 md:pb-4 bg-gray-50 custom-scrollbar min-h-0" style={{ WebkitOverflowScrolling: 'touch', overflowY: 'auto', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
                 {/* System Notice for Broadcasts */}
                 {isBroadcast && (
                     <div className="flex justify-center mb-4 sm:mb-6">
@@ -273,9 +273,11 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 <div ref={bottomRef} />
             </div>
 
-            {/* Composer or Action Area */}
+            {/* Composer or Action Area - fixed to viewport bottom on mobile, relative on desktop */}
             {canReply ? (
-                <MessageComposer onSend={handleSend} />
+                <div className="md:relative fixed md:static bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 md:border-t-0 shadow-lg md:shadow-none" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
+                    <MessageComposer onSend={handleSend} />
+                </div>
             ) : (
                 <div className="p-4 border-t border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2">
                     <p className="text-sm text-gray-500">Replies are disabled for this conversation.</p>

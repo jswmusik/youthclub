@@ -122,14 +122,16 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
       {/* Analytics Dashboard */}
       {!loading && (
         <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-gray-100">
+          <Card className="border-0 shadow-sm bg-gray-900">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
               <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-500" />
-                <h3 className="text-sm font-semibold text-gray-500">Analytics Dashboard</h3>
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
               </div>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
+                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
                   <ChevronUp className={cn(
                     "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
                     analyticsExpanded ? "rotate-0" : "rotate-180"
@@ -138,89 +140,101 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                 </Button>
               </CollapsibleTrigger>
             </div>
-            <CollapsibleContent>
-              <CardContent className="p-4 sm:p-6">
+            <CollapsibleContent className="transition-all duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {/* Card 1: Total Responses */}
-                  <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-gray-500">Total Responses</CardTitle>
-                        <div className="w-8 h-8 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center">
-                          <FileText className="h-4 w-4 text-[#4D4DA4]" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <FileText className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Responses</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-[#4D4DA4]">{data.total_responses || 0}</div>
-                      <p className="text-xs text-gray-500 mt-1">out of {data.total_eligible || 0} members</p>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{data.total_responses || 0}</div>
+                      <p className="text-xs text-white/70">out of {data.total_eligible || 0} members</p>
+                    </div>
                   </Card>
 
-                  {/* Card 2: Gender Breakdown */}
-                  <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-gray-500">Gender Responses</CardTitle>
-                        <div className="w-8 h-8 rounded-lg bg-[#FF5485]/10 flex items-center justify-center">
-                          <Users className="h-4 w-4 text-[#FF5485]" />
+                  {/* Card 2: Gender Responses */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
+                          }}>
+                          <Users className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Gender Responses</CardTitle>
+                      </div>
+                      <div className="w-full space-y-2 mt-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Male:</span>
+                          <span className="font-bold text-white">{data.gender_breakdown?.male || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Female:</span>
+                          <span className="font-bold text-white">{data.gender_breakdown?.female || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/70">Other:</span>
+                          <span className="font-bold text-white">{data.gender_breakdown?.other || 0}</span>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Male:</span>
-                          <span className="font-bold text-[#121213]">{data.gender_breakdown?.male || 0}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Female:</span>
-                          <span className="font-bold text-[#121213]">{data.gender_breakdown?.female || 0}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Other:</span>
-                          <span className="font-bold text-[#121213]">{data.gender_breakdown?.other || 0}</span>
-                        </div>
-                      </div>
-                    </CardContent>
+                    </div>
                   </Card>
 
                   {/* Card 3: Questionnaire Info */}
-                  <Card className="bg-[#EBEBFE]/30 border-none shadow-sm sm:col-span-2 lg:col-span-1">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-gray-500">Questionnaire Info</CardTitle>
-                        <div className="w-8 h-8 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center">
-                          <Info className="h-4 w-4 text-[#4D4DA4]" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden sm:col-span-2 lg:col-span-1"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                          }}>
+                          <Info className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Questionnaire Info</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-xs">
+                      <div className="w-full space-y-2 mt-2 text-xs">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Status:</span>
+                          <span className="text-white/70">Status:</span>
                           {getStatusBadge(data.questionnaire_info?.status || 'N/A')}
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Start Date:</span>
-                          <span className="font-semibold text-[#121213]">{formatDate(data.questionnaire_info?.start_date)}</span>
+                          <span className="text-white/70">Start Date:</span>
+                          <span className="font-semibold text-white">{formatDate(data.questionnaire_info?.start_date)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Expires:</span>
-                          <span className="font-semibold text-[#121213]">{formatDate(data.questionnaire_info?.expiration_date)}</span>
+                          <span className="text-white/70">Expires:</span>
+                          <span className="font-semibold text-white">{formatDate(data.questionnaire_info?.expiration_date)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Anonymous:</span>
-                          <span className="font-semibold text-[#121213]">{data.questionnaire_info?.is_anonymous ? 'Yes' : 'No'}</span>
+                          <span className="text-white/70">Anonymous:</span>
+                          <span className="font-semibold text-white">{data.questionnaire_info?.is_anonymous ? 'Yes' : 'No'}</span>
                         </div>
                         {data.questionnaire_info?.target_audience && (
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Target:</span>
-                            <span className="font-semibold text-[#121213]">{data.questionnaire_info.target_audience}</span>
+                            <span className="text-white/70">Target:</span>
+                            <span className="font-semibold text-white">{data.questionnaire_info.target_audience}</span>
                           </div>
                         )}
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
                 </div>
               </CardContent>

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 export default function EventDashboardPage() {
@@ -167,94 +168,136 @@ export default function EventDashboardPage() {
             {/* Analytics Dashboard */}
             {!loading && (
                 <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                        <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-gray-500" />
-                            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+                    <Card className="border-0 shadow-sm bg-gray-900">
+                        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 text-gray-400" />
+                                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                                    Analytics Dashboard
+                                </h3>
+                            </div>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                                    <ChevronUp className={cn(
+                                        "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                                        analyticsExpanded ? "rotate-0" : "rotate-180"
+                                    )} />
+                                    <span className="sr-only">Toggle Analytics</span>
+                                </Button>
+                            </CollapsibleTrigger>
                         </div>
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-                                <ChevronUp className={cn(
-                                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                                )} />
-                                <span className="sr-only">Toggle Analytics</span>
-                            </Button>
-                        </CollapsibleTrigger>
-                    </div>
-                    <CollapsibleContent className="space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-                            {/* Card 1: Confirmed */}
-                            <Card className="bg-[#EBEBFE]/30 border border-transparent shadow-sm transition-all duration-200 hover:bg-[#EBEBFE]/60 hover:border-[#4D4DA4]/30 cursor-pointer">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Confirmed</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{confirmedCount}</div>
-                                    <p className="text-xs text-muted-foreground mt-1">of {event.max_seats || 'Unlimited'} seats</p>
-                                </CardContent>
-                            </Card>
-
-                            {/* Card 2: Waitlist */}
-                            <Card className="bg-[#EBEBFE]/30 border border-transparent shadow-sm transition-all duration-200 hover:bg-[#EBEBFE]/60 hover:border-[#4D4DA4]/30 cursor-pointer">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Waitlist</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{waitlistCount}</div>
-                                    <p className="text-xs text-muted-foreground mt-1">people waiting</p>
-                                </CardContent>
-                            </Card>
-
-                            {/* Card 3: Demographics */}
-                            <Card className="bg-[#EBEBFE]/30 border border-transparent shadow-sm transition-all duration-200 hover:bg-[#EBEBFE]/60 hover:border-[#4D4DA4]/30 cursor-pointer">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Demographics</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Male:</span>
-                                            <span className="font-bold text-[#4D4DA4]">{demographics.male}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Female:</span>
-                                            <span className="font-bold text-[#4D4DA4]">{demographics.female}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Other:</span>
-                                            <span className="font-bold text-[#4D4DA4]">{demographics.other}</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Card 4: Target Groups */}
-                            <Card className="bg-[#EBEBFE]/30 border border-transparent shadow-sm transition-all duration-200 hover:bg-[#EBEBFE]/60 hover:border-[#4D4DA4]/30 cursor-pointer">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Target Groups</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {event.target_groups_details && event.target_groups_details.length > 0 ? (
-                                        <div className="space-y-1">
-                                            {event.target_groups_details.slice(0, 3).map((group: any) => (
-                                                <div key={group.id} className="text-sm font-medium text-[#4D4DA4] truncate">
-                                                    {group.name}
+                        <CollapsibleContent className="transition-all duration-500 ease-in-out">
+                            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                    {/* Card 1: Confirmed */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                                                    }}>
+                                                    <CheckCircle className="h-5 w-5 text-white" />
                                                 </div>
-                                            ))}
-                                            {event.target_groups_details.length > 3 && (
-                                                <div className="text-xs text-muted-foreground">
-                                                    +{event.target_groups_details.length - 3} more
+                                                <CardTitle className="text-sm font-medium text-white/90">Confirmed</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{confirmedCount}</div>
+                                            <p className="text-xs text-white/70">of {event.max_seats || 'Unlimited'} seats</p>
+                                        </div>
+                                    </Card>
+
+                                    {/* Card 2: Waitlist */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
+                                                    }}>
+                                                    <Clock className="h-5 w-5 text-white" />
                                                 </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Waitlist</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{waitlistCount}</div>
+                                            <p className="text-xs text-white/70">people waiting</p>
+                                        </div>
+                                    </Card>
+
+                                    {/* Card 3: Demographics */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
+                                                    }}>
+                                                    <Users className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Demographics</CardTitle>
+                                            </div>
+                                            <div className="space-y-1 w-full">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-white/70">Male:</span>
+                                                    <span className="font-bold text-white">{demographics.male}</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-white/70">Female:</span>
+                                                    <span className="font-bold text-white">{demographics.female}</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-white/70">Other:</span>
+                                                    <span className="font-bold text-white">{demographics.other}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Card>
+
+                                    {/* Card 4: Target Groups */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF6B9D] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                                                    }}>
+                                                    <Target className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Target Groups</CardTitle>
+                                            </div>
+                                            {event.target_groups_details && event.target_groups_details.length > 0 ? (
+                                                <div className="space-y-1 w-full">
+                                                    {event.target_groups_details.slice(0, 3).map((group: any) => (
+                                                        <div key={group.id} className="text-sm font-medium text-white truncate">
+                                                            {group.name}
+                                                        </div>
+                                                    ))}
+                                                    {event.target_groups_details.length > 3 && (
+                                                        <div className="text-xs text-white/70">
+                                                            +{event.target_groups_details.length - 3} more
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-white/70">No target groups</p>
                                             )}
                                         </div>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">No target groups</p>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </CollapsibleContent>
+                                    </Card>
+                                </div>
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
                 </Collapsible>
             )}
 
@@ -381,32 +424,24 @@ export default function EventDashboardPage() {
 
                                     return (
                                         <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead className="bg-muted/30 border-b border-gray-200">
-                                                    <tr>
-                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                            Member
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                            Ticket Code
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                            Check-in Time
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                            Status
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="bg-white divide-y divide-gray-200">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
+                                                        <TableHead className="h-12 px-6 text-gray-600 font-semibold">Member</TableHead>
+                                                        <TableHead className="h-12 px-6 text-gray-600 font-semibold">Ticket Code</TableHead>
+                                                        <TableHead className="h-12 px-6 text-gray-600 font-semibold">Check-in Time</TableHead>
+                                                        <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
                                                     {checkedInRegistrations.map((reg: any) => {
                                                         const checkInTime = reg.ticket?.checked_in_at 
                                                             ? new Date(reg.ticket.checked_in_at)
                                                             : null;
                                                         
                                                         return (
-                                                            <tr key={reg.id} className="hover:bg-gray-50 transition-colors">
-                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                            <TableRow key={reg.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                                                <TableCell className="py-4 px-6">
                                                                     <div className="flex items-center gap-3">
                                                                         <Avatar className="h-10 w-10 rounded-full">
                                                                             <AvatarImage src={getMediaUrl(reg.user_detail?.avatar) || undefined} />
@@ -421,13 +456,13 @@ export default function EventDashboardPage() {
                                                                             <div className="text-xs text-muted-foreground">{reg.user_detail?.email}</div>
                                                                         </div>
                                                                     </div>
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                                </TableCell>
+                                                                <TableCell className="px-6">
                                                                     <Badge variant="outline" className="font-mono">
                                                                         {reg.ticket?.ticket_code || 'N/A'}
                                                                     </Badge>
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                                </TableCell>
+                                                                <TableCell className="px-6">
                                                                     {checkInTime ? (
                                                                         <div className="text-sm text-[#121213]">
                                                                             <div>{format(checkInTime, 'MMM d, yyyy')}</div>
@@ -436,18 +471,18 @@ export default function EventDashboardPage() {
                                                                     ) : (
                                                                         <span className="text-sm text-muted-foreground">N/A</span>
                                                                     )}
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <Badge className="bg-green-100 text-green-700 border-green-200">
+                                                                </TableCell>
+                                                                <TableCell className="px-6">
+                                                                    <Badge className="bg-green-50 text-[#10B981] border-[#10B981]/30">
                                                                         <CheckCircle className="w-3.5 h-3.5 mr-1" />
                                                                         Checked In
                                                                     </Badge>
-                                                                </td>
-                                                            </tr>
+                                                                </TableCell>
+                                                            </TableRow>
                                                         );
                                                     })}
-                                                </tbody>
-                                            </table>
+                                                </TableBody>
+                                            </Table>
                                         </div>
                                     );
                                 })()}

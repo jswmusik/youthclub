@@ -6,9 +6,14 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import ItemTable from '@/app/components/inventory/ItemTable';
 import { useAuth } from '@/context/AuthContext';
-import { Package, TrendingUp, Calendar, Clock, ChevronDown, BarChart3, Filter } from 'lucide-react';
+import { Package, TrendingUp, Calendar, Clock, ChevronUp, BarChart3, Search, X, Plus, History } from 'lucide-react';
 import { ItemCategory } from '@/lib/inventory-api';
 import Toast from '@/app/components/Toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface Analytics {
   total_items: number;
@@ -28,7 +33,6 @@ export default function InventoryDashboardPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
@@ -182,211 +186,224 @@ export default function InventoryDashboardPage() {
   if (!user?.assigned_club) return <div className="p-8">Loading club data...</div>;
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>
-          <p className="text-slate-500">Manage items available for borrowing.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Inventory</h1>
+          <p className="text-gray-500 mt-1">Manage items available for borrowing.</p>
         </div>
-        <div className="flex gap-2">
-            <Link 
-                href="/admin/club/inventory/history"
-            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
-            >
-                View History
-            </Link>
-            <Link 
-                href="/admin/club/inventory/borrowed"
-            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
-            >
-                Currently Borrowed
-            </Link>
-            <Link 
-                href="/admin/club/inventory/create"
-            className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 flex items-center gap-2 transition-colors"
-            >
-                <span>+</span> Add Item
-            </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/club/inventory/history">
+            <Button variant="outline" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+              View History
+            </Button>
+          </Link>
+          <Link href="/admin/club/inventory/borrowed">
+            <Button variant="outline" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+              Currently Borrowed
+            </Button>
+          </Link>
+          <Link href="/admin/club/inventory/create">
+            <Button className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+              <Plus className="h-4 w-4" /> Add Item
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* Analytics Dashboard - Collapsible */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {/* Analytics Header */}
-        <button
-          onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <BarChart3 className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-semibold text-gray-700">Analytics Dashboard</span>
+      {/* Analytics */}
+      <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
+        <Card className="border-0 shadow-sm bg-gray-900">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                Analytics Dashboard
+              </h3>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronUp className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                  analyticsExpanded ? "rotate-0" : "rotate-180"
+                )} />
+                <span className="sr-only">Toggle Analytics</span>
+              </Button>
+            </CollapsibleTrigger>
           </div>
-          <ChevronDown 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${analyticsExpanded ? 'rotate-180' : ''}`}
-          />
-        </button>
-
-        {/* Analytics Cards - Collapsible */}
-        <div 
-          className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-            analyticsExpanded 
-              ? 'max-h-[500px] opacity-100' 
-              : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          {analyticsLoading ? (
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-gray-50 p-5 rounded-lg border border-gray-200 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-24 mb-4"></div>
-                  <div className="h-10 bg-gray-200 rounded w-16"></div>
+          <CollapsibleContent className="transition-all duration-500 ease-in-out">
+            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+              {analyticsLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Card key={i} className="bg-white/5 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-lg animate-pulse">
+                      <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                        <div className="flex items-center gap-2 justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-gray-700"></div>
+                          <div className="h-4 bg-gray-700 rounded w-24"></div>
+                        </div>
+                        <div className="h-8 bg-gray-700 rounded w-16"></div>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-              ))}
+              ) : analytics ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Total Items */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <Package className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Items</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_items}</div>
+                    </div>
+                  </Card>
+
+                  {/* Borrowings Last 7 Days */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                          }}>
+                          <Calendar className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Last 7 Days</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_7d}</div>
+                    </div>
+                  </Card>
+
+                  {/* Borrowings Last 30 Days */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                          }}>
+                          <TrendingUp className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Last 30 Days</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_30d}</div>
+                    </div>
+                  </Card>
+
+                  {/* All Time Borrowings */}
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
+                          }}>
+                          <History className="h-5 w-5 text-white" />
+                        </div>
+                        <CardTitle className="text-sm font-medium text-white/90">All Time</CardTitle>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_all_time}</div>
+                    </div>
+                  </Card>
+                </div>
+              ) : null}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Filters */}
+      <Card className="border border-gray-100 shadow-sm bg-white">
+        <div className="px-6 py-4 space-y-4">
+          {/* Main Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            {/* Search - Takes more space on larger screens */}
+            <div className="relative md:col-span-4 lg:col-span-3">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search by name or tag..." 
+                className="pl-9 bg-gray-50 border-0"
+                value={search}
+                onChange={e => updateUrl('search', e.target.value)}
+              />
             </div>
-          ) : analytics ? (
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Total Items */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Items</h3>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <Package className="w-5 h-5 text-blue-600" />
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{analytics.total_items}</p>
-              </div>
-
-              {/* Borrowings Last 7 Days */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-emerald-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Last 7 Days</h3>
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-emerald-600">{analytics.borrowings_7d}</p>
-              </div>
-
-              {/* Borrowings Last 30 Days */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-purple-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Last 30 Days</h3>
-                  <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-purple-600" />
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-purple-600">{analytics.borrowings_30d}</p>
-              </div>
-
-              {/* All Time Borrowings */}
-              <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-indigo-300 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">All Time</h3>
-                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-indigo-600" />
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-indigo-600">{analytics.borrowings_all_time}</p>
-              </div>
+            
+            {/* Category Filter */}
+            <div className="md:col-span-2 lg:col-span-2">
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={selectedCategory || ''} 
+                onChange={e => updateUrl('category', e.target.value)}
+              >
+                <option value="">All Categories</option>
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon} {cat.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>No categories available</option>
+                )}
+              </select>
             </div>
-          ) : null}
+            
+            {/* Status Filter */}
+            <div className="md:col-span-2 lg:col-span-2">
+              <select 
+                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={selectedStatus} 
+                onChange={e => updateUrl('status', e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="AVAILABLE">Available</option>
+                <option value="BORROWED">Borrowed</option>
+                <option value="MAINTENANCE">Maintenance</option>
+                <option value="MISSING">Missing</option>
+                <option value="HIDDEN">Hidden</option>
+              </select>
+            </div>
+            
+            {/* Clear Button */}
+            <div className="md:col-span-2 lg:col-span-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+              >
+                <X className="h-4 w-4" /> Clear
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
+      </Card>
 
-      {/* Filters - Collapsible */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Filters Header */}
-        <button
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-          className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-semibold text-gray-700">Filters</span>
-          </div>
-          <ChevronDown 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-          />
-        </button>
-
-        {/* Filter Fields - Collapsible */}
-        <div 
-          className={`border-t border-gray-200 transition-all duration-300 ease-in-out ${
-            filtersExpanded 
-              ? 'max-h-[1000px] opacity-100' 
-              : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          <div className="p-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Search */}
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Search</label>
-        <input 
-            type="text" 
-                  placeholder="Search by name or tag..." 
-                  className="w-full border rounded p-2 text-sm bg-gray-50"
-            value={search}
-                  onChange={(e) => updateUrl('search', e.target.value)}
-                />
-              </div>
-
-              {/* Category */}
-              <div className="w-48">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
-                <select 
-                  className="w-full border rounded p-2 text-sm bg-gray-50" 
-                  value={selectedCategory || ''} 
-                  onChange={(e) => updateUrl('category', e.target.value)}
-                >
-                  <option value="">All Categories</option>
-                  {categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="" disabled>No categories available</option>
-                  )}
-                </select>
-              </div>
-
-              {/* Status */}
-              <div className="w-40">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                <select 
-                  className="w-full border rounded p-2 text-sm bg-gray-50" 
-                  value={selectedStatus} 
-                  onChange={(e) => updateUrl('status', e.target.value)}
-                >
-                  <option value="">All Statuses</option>
-                  <option value="AVAILABLE">Available</option>
-                  <option value="BORROWED">Borrowed</option>
-                  <option value="MAINTENANCE">Maintenance</option>
-                  <option value="MISSING">Missing</option>
-                  <option value="HIDDEN">Hidden</option>
-                </select>
-              </div>
-
-              {/* Clear Filters */}
-              <div className="flex items-end">
-                <button
-                  onClick={clearFilters}
-                  className="text-xs text-gray-500 hover:text-gray-700 underline"
-                >
-                  Clear Filters
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Table */}
+      {/* Content */}
       {loading ? (
-        <div className="text-center py-12 text-slate-500">Loading inventory...</div>
+        <div className="py-20 flex justify-center text-gray-400">
+          <div className="animate-pulse">Loading...</div>
+        </div>
       ) : (
         <ItemTable 
           items={items} 
@@ -397,75 +414,32 @@ export default function InventoryDashboardPage() {
         />
       )}
 
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {(() => {
         const totalPages = Math.ceil(totalCount / pageSize);
         if (totalPages <= 1) return null;
         
         return (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-            <div className="flex flex-1 justify-between sm:hidden">
-              <button 
-                disabled={currentPage === 1}
-                onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button 
-                disabled={currentPage >= totalPages}
-                onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                  {' '}(Total: {totalCount})
-                </p>
-              </div>
-              <div>
-                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                  >
-                    <span className="sr-only">Previous</span>
-                    ← Prev
-                  </button>
-                  
-                  {/* Simple Pagination Numbers */}
-                  {[...Array(totalPages)].map((_, i) => {
-                    const p = i + 1;
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => updateUrl('page', p.toString())}
-                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                          ${p === currentPage 
-                            ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    disabled={currentPage >= totalPages}
-                    onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                  >
-                    <span className="sr-only">Next</span>
-                    Next →
-                  </button>
-                </nav>
-              </div>
-            </div>
+          <div className="flex items-center justify-center gap-2 py-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={currentPage === 1} 
+              onClick={() => updateUrl('page', (currentPage - 1).toString())}
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              Prev
+            </Button>
+            <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={currentPage >= totalPages} 
+              onClick={() => updateUrl('page', (currentPage + 1).toString())}
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              Next
+            </Button>
           </div>
         );
       })()}

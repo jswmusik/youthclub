@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { messengerApi } from '../../../../lib/messenger-api';
 import QuickMessageModal from '../QuickMessageModal';
 import { User } from '../../../../types/user';
+import { User as UserIcon, ShieldCheck, UserCog } from 'lucide-react';
 
 interface UserSearchModalProps {
     isOpen: boolean;
@@ -133,26 +134,32 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                         {!userType ? (
                             <div className="space-y-3">
                                 <p className="text-sm font-semibold text-[#121213]">Select user type:</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                                     <button
                                         onClick={() => setUserType('YOUTH')}
-                                        className="p-3 sm:p-4 border-2 border-gray-200 rounded-lg hover:border-[#4D4DA4] hover:bg-[#EBEBFE]/30 active:bg-[#EBEBFE]/50 transition-all text-center touch-manipulation"
+                                        className="group p-4 sm:p-5 border-2 border-gray-200 rounded-xl hover:border-[#4D4DA4] hover:bg-[#EBEBFE] active:bg-[#EBEBFE] active:border-[#4D4DA4] transition-all text-center touch-manipulation flex flex-col items-center gap-3"
                                     >
-                                        <div className="text-xl sm:text-2xl mb-2">👤</div>
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#EBEBFE] group-hover:bg-[#4D4DA4] flex items-center justify-center transition-colors">
+                                            <UserIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[#4D4DA4] group-hover:text-white transition-colors" strokeWidth={2} />
+                                        </div>
                                         <div className="font-semibold text-[#121213] text-sm sm:text-base">Youth Member</div>
                                     </button>
                                     <button
                                         onClick={() => setUserType('GUARDIAN')}
-                                        className="p-3 sm:p-4 border-2 border-gray-200 rounded-lg hover:border-[#4D4DA4] hover:bg-[#EBEBFE]/30 active:bg-[#EBEBFE]/50 transition-all text-center touch-manipulation"
+                                        className="group p-4 sm:p-5 border-2 border-gray-200 rounded-xl hover:border-[#4D4DA4] hover:bg-[#EBEBFE] active:bg-[#EBEBFE] active:border-[#4D4DA4] transition-all text-center touch-manipulation flex flex-col items-center gap-3"
                                     >
-                                        <div className="text-xl sm:text-2xl mb-2">👨‍👩‍👧</div>
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#EBEBFE] group-hover:bg-[#4D4DA4] flex items-center justify-center transition-colors">
+                                            <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-[#4D4DA4] group-hover:text-white transition-colors" strokeWidth={2} />
+                                        </div>
                                         <div className="font-semibold text-[#121213] text-sm sm:text-base">Guardian</div>
                                     </button>
                                     <button
                                         onClick={() => setUserType('STAFF')}
-                                        className="p-3 sm:p-4 border-2 border-gray-200 rounded-lg hover:border-[#4D4DA4] hover:bg-[#EBEBFE]/30 active:bg-[#EBEBFE]/50 transition-all text-center touch-manipulation"
+                                        className="group p-4 sm:p-5 border-2 border-gray-200 rounded-xl hover:border-[#4D4DA4] hover:bg-[#EBEBFE] active:bg-[#EBEBFE] active:border-[#4D4DA4] transition-all text-center touch-manipulation flex flex-col items-center gap-3"
                                     >
-                                        <div className="text-xl sm:text-2xl mb-2">👔</div>
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#EBEBFE] group-hover:bg-[#4D4DA4] flex items-center justify-center transition-colors">
+                                            <UserCog className="w-6 h-6 sm:w-7 sm:h-7 text-[#4D4DA4] group-hover:text-white transition-colors" strokeWidth={2} />
+                                        </div>
                                         <div className="font-semibold text-[#121213] text-sm sm:text-base">Staff Member</div>
                                     </button>
                                 </div>

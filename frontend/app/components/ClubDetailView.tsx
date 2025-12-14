@@ -18,6 +18,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 interface ClubDetailProps {
   clubId: string;
   basePath: string;
+  editPath?: string | null;
+  followersPath?: string | null;
+  visitsPath?: string | null;
+  backLabel?: string;
 }
 
 const WEEKDAYS = [
@@ -25,7 +29,14 @@ const WEEKDAYS = [
     { id: 4, name: 'Thursday' }, { id: 5, name: 'Friday' }, { id: 6, name: 'Saturday' }, { id: 7, name: 'Sunday' },
 ];
 
-export default function ClubDetailView({ clubId, basePath }: ClubDetailProps) {
+export default function ClubDetailView({ 
+  clubId, 
+  basePath, 
+  editPath,
+  followersPath,
+  visitsPath,
+  backLabel = 'Back to List'
+}: ClubDetailProps) {
   const searchParams = useSearchParams();
   const [club, setClub] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +56,26 @@ export default function ClubDetailView({ clubId, basePath }: ClubDetailProps) {
     return queryString ? `${path}?${queryString}` : path;
   };
 
+  // Use custom paths if provided, otherwise use default pattern
+  // If path is explicitly null, hide the button; if undefined, use default
+  const getEditPath = () => {
+    if (editPath === null) return null;
+    return editPath !== undefined ? editPath : buildUrlWithParams(`${basePath}/edit/${clubId}`);
+  };
+  const getFollowersPath = () => {
+    if (followersPath === null) return null;
+    return followersPath !== undefined ? followersPath : `${basePath}/${clubId}/followers`;
+  };
+  const getVisitsPath = () => {
+    if (visitsPath === null) return null;
+    return visitsPath !== undefined ? visitsPath : `${basePath}/${clubId}/visits`;
+  };
+  
+  // Determine which buttons to show (show if path is not explicitly null)
+  const showVisits = visitsPath !== null;
+  const showFollowers = followersPath !== null;
+  const showEdit = editPath !== null;
+
   if (loading) {
     return (
       <div className="py-20 text-center text-gray-400 animate-pulse">Loading details...</div>
@@ -63,25 +94,31 @@ export default function ClubDetailView({ clubId, basePath }: ClubDetailProps) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <Link href={buildUrlWithParams(basePath)}>
           <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="h-4 w-4" /> Back to List
+            <ArrowLeft className="h-4 w-4" /> {backLabel}
           </Button>
         </Link>
         <div className="flex flex-wrap gap-2">
-          <Link href={`${basePath}/${club.id}/visits`}>
-            <Button variant="outline" size="sm" className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-              <LogIn className="h-4 w-4" /> View Visitors
-            </Button>
-          </Link>
-          <Link href={`${basePath}/${club.id}/followers`}>
-            <Button variant="outline" size="sm" className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-              <Users className="h-4 w-4" /> View Followers
-            </Button>
-          </Link>
-          <Link href={buildUrlWithParams(`${basePath}/edit/${club.id}`)}>
-            <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white shadow-sm">
-              <Edit className="h-4 w-4" /> Edit
-            </Button>
-          </Link>
+          {showVisits && (
+            <Link href={getVisitsPath()}>
+              <Button variant="outline" size="sm" className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <LogIn className="h-4 w-4" /> View Visitors
+              </Button>
+            </Link>
+          )}
+          {showFollowers && (
+            <Link href={getFollowersPath()}>
+              <Button variant="outline" size="sm" className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <Users className="h-4 w-4" /> View Followers
+              </Button>
+            </Link>
+          )}
+          {showEdit && (
+            <Link href={getEditPath()}>
+              <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white shadow-sm">
+                <Edit className="h-4 w-4" /> Edit
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -120,27 +157,36 @@ export default function ClubDetailView({ clubId, basePath }: ClubDetailProps) {
         {/* Main Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Description */}
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold text-gray-900">About</CardTitle>
+          <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
+                About
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm leading-relaxed text-gray-600 whitespace-pre-wrap bg-gray-50/50 p-4 rounded-lg border border-gray-100">
+              <div className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap bg-white/60 p-5 rounded-xl border border-[#EBEBFE]">
                 {club.description || <span className="italic text-gray-400">No description provided.</span>}
               </div>
             </CardContent>
           </Card>
 
           {/* Opening Hours */}
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader className="flex flex-row items-center gap-2">
-              <Clock className="h-5 w-5 text-[#4D4DA4]" />
-              <CardTitle className="text-xl font-semibold text-gray-900">Opening Hours</CardTitle>
+          <Card className="border-2 border-[#4D4DA4]/30 bg-gradient-to-br from-[#EBEBFE]/40 via-white to-[#EBEBFE]/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#4D4DA4]/10 to-[#FF5485]/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+            <CardHeader className="flex flex-row items-center gap-3 pb-4 relative z-10">
+              <div className="p-2.5 rounded-xl bg-[#4D4DA4]">
+                <Clock className="h-5 w-5 text-white" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900">Opening Hours</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 relative z-10">
               {club.regular_hours && club.regular_hours.length > 0 ? (
                 club.regular_hours.map((h: any, i: number) => {
                   const day = WEEKDAYS.find(d => d.id === h.weekday)?.name;
+                  const today = new Date();
+                  const todayWeekday = today.getDay() === 0 ? 7 : today.getDay();
+                  const isToday = h.weekday === todayWeekday;
                   
                   // Build restriction labels
                   const restrictions = [];
@@ -157,26 +203,46 @@ export default function ClubDetailView({ clubId, basePath }: ClubDetailProps) {
                   }
                   
                   return (
-                    <div key={i} className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0 space-y-2">
+                    <div 
+                      key={i} 
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                        isToday 
+                          ? 'bg-gradient-to-r from-[#4D4DA4]/10 to-[#FF5485]/10 border-[#4D4DA4]/50' 
+                          : 'bg-white/70 border-[#EBEBFE] hover:border-[#4D4DA4]/30 hover:bg-white'
+                      }`}
+                    >
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm text-gray-900">{day}</span>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`font-bold text-sm ${isToday ? 'text-[#4D4DA4]' : 'text-gray-900'}`}>
+                              {day}
+                            </span>
+                            {isToday && (
+                              <Badge className="bg-[#4D4DA4] text-white border-0 text-[10px] px-2 py-0.5 font-semibold">
+                                Today
+                              </Badge>
+                            )}
                             {h.week_cycle !== 'ALL' && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-[#4D4DA4]/30 text-[#4D4DA4] bg-[#EBEBFE]/50">
                                 {h.week_cycle === 'ODD' ? 'Odd Weeks' : h.week_cycle === 'EVEN' ? 'Even Weeks' : h.week_cycle}
                               </Badge>
                             )}
                           </div>
                           {h.title && (
-                            <p className="text-sm font-medium text-gray-800 mb-1">{h.title}</p>
+                            <p className="text-sm font-semibold text-gray-800 mb-2">{h.title}</p>
                           )}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm text-gray-700 font-mono">{h.open_time.slice(0,5)} - {h.close_time.slice(0,5)}</span>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className={`px-3 py-1.5 rounded-lg font-mono text-sm font-bold ${
+                              isToday 
+                                ? 'bg-[#4D4DA4] text-white' 
+                                : 'bg-[#EBEBFE] text-[#4D4DA4]'
+                            }`}>
+                              {h.open_time.slice(0,5)} - {h.close_time.slice(0,5)}
+                            </div>
                             {restrictions.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
+                              <div className="flex flex-wrap gap-1.5">
                                 {restrictions.map((restriction, idx) => (
-                                  <Badge key={idx} variant="outline" className="text-[10px] px-1.5 py-0 bg-yellow-50 text-yellow-700 border-yellow-200">
+                                  <Badge key={idx} variant="outline" className="text-[10px] px-2 py-0.5 bg-yellow-50 text-yellow-700 border-yellow-300 font-medium">
                                     {restriction}
                                   </Badge>
                                 ))}
@@ -186,36 +252,42 @@ export default function ClubDetailView({ clubId, basePath }: ClubDetailProps) {
                         </div>
                       </div>
                       {h.description && (
-                        <p className="text-xs text-gray-600 italic pl-0">{h.description}</p>
+                        <p className="text-xs text-gray-600 italic mt-2 pt-2 border-t border-gray-200">{h.description}</p>
                       )}
                     </div>
                   );
                 })
               ) : (
-                <p className="text-sm text-gray-500 italic">No opening hours defined.</p>
+                <p className="text-sm text-gray-500 italic text-center py-4">No opening hours defined.</p>
               )}
             </CardContent>
           </Card>
 
           {/* Legal */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="border border-gray-100 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-900">Terms & Conditions</CardTitle>
+            <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-[#4D4DA4]" />
+                  Terms & Conditions
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-32 overflow-y-auto text-xs text-gray-600 bg-gray-50/50 p-3 rounded border border-gray-100">
-                  {club.terms_and_conditions || 'None'}
+                <div className="h-32 overflow-y-auto text-xs text-gray-700 bg-white/60 p-4 rounded-xl border border-[#EBEBFE]">
+                  {club.terms_and_conditions || <span className="italic text-gray-400">None</span>}
                 </div>
               </CardContent>
             </Card>
-            <Card className="border border-gray-100 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-900">Club Policies</CardTitle>
+            <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-[#4D4DA4]" />
+                  Club Policies
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-32 overflow-y-auto text-xs text-gray-600 bg-gray-50/50 p-3 rounded border border-gray-100">
-                  {club.club_policies || 'None'}
+                <div className="h-32 overflow-y-auto text-xs text-gray-700 bg-white/60 p-4 rounded-xl border border-[#EBEBFE]">
+                  {club.club_policies || <span className="italic text-gray-400">None</span>}
                 </div>
               </CardContent>
             </Card>
@@ -225,33 +297,36 @@ export default function ClubDetailView({ clubId, basePath }: ClubDetailProps) {
         {/* Sidebar Column */}
         <div className="space-y-6">
           {/* Contact Info */}
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold text-gray-900">Contact</CardTitle>
+          <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
+                Contact
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {club.email && (
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-8 w-8 rounded-full bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
+                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/60 border border-[#EBEBFE] hover:border-[#4D4DA4]/30 transition-colors">
+                  <div className="h-10 w-10 rounded-xl bg-[#4D4DA4] flex items-center justify-center text-white flex-shrink-0">
                     <Mail className="h-4 w-4" />
                   </div>
-                  <span className="truncate text-gray-700">{club.email}</span>
+                  <span className="truncate text-gray-700 font-medium">{club.email}</span>
                 </div>
               )}
               {club.phone && (
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-8 w-8 rounded-full bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
+                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/60 border border-[#EBEBFE] hover:border-[#4D4DA4]/30 transition-colors">
+                  <div className="h-10 w-10 rounded-xl bg-[#4D4DA4] flex items-center justify-center text-white flex-shrink-0">
                     <Phone className="h-4 w-4" />
                   </div>
-                  <span className="text-gray-700">{club.phone}</span>
+                  <span className="text-gray-700 font-medium">{club.phone}</span>
                 </div>
               )}
               {club.address && (
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-8 w-8 rounded-full bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
+                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/60 border border-[#EBEBFE] hover:border-[#4D4DA4]/30 transition-colors">
+                  <div className="h-10 w-10 rounded-xl bg-[#4D4DA4] flex items-center justify-center text-white flex-shrink-0">
                     <MapPin className="h-4 w-4" />
                   </div>
-                  <span className="text-gray-700">{club.address}</span>
+                  <span className="text-gray-700 font-medium">{club.address}</span>
                 </div>
               )}
             </CardContent>
@@ -259,9 +334,12 @@ export default function ClubDetailView({ clubId, basePath }: ClubDetailProps) {
 
           {/* Map Card */}
           {(club.latitude && club.longitude && !isNaN(parseFloat(club.latitude)) && !isNaN(parseFloat(club.longitude))) && (
-            <Card className="border border-gray-100 shadow-sm overflow-hidden">
+            <Card className="border-2 border-gray-100 overflow-hidden bg-gradient-to-br from-white to-[#EBEBFE]/20">
               <CardHeader className="pb-3">
-                <CardTitle className="text-xl font-semibold text-gray-900">Location</CardTitle>
+                <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
+                  Location
+                </CardTitle>
               </CardHeader>
               <div className="h-64 bg-gray-100 relative w-full">
                 {(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) ? (

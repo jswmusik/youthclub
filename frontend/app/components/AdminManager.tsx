@@ -194,9 +194,9 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case 'SUPER_ADMIN': return 'bg-red-50 text-red-700 border-red-200';
-      case 'MUNICIPALITY_ADMIN': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'CLUB_ADMIN': return 'bg-green-50 text-green-700 border-green-200';
+      case 'SUPER_ADMIN': return 'bg-red-50 text-[#EF4444] border-red-200';
+      case 'MUNICIPALITY_ADMIN': return 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30';
+      case 'CLUB_ADMIN': return 'bg-blue-50 text-[#0EA5E9] border-blue-200';
       default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
@@ -245,7 +245,9 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
             <div className="flex items-center justify-between px-4 sm:px-6 py-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-400">Analytics Dashboard</h3>
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
               </div>
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
@@ -258,74 +260,90 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
               </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
                 <div className={`grid grid-cols-1 sm:grid-cols-2 ${
                   scope === 'SUPER' ? 'lg:grid-cols-4' : 
                   scope === 'MUNICIPALITY' ? 'lg:grid-cols-3' : 
                   'lg:grid-cols-2'
                 } gap-3 sm:gap-4`}>
                   {/* Card 1: Total Admins */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Total Admins</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-[#4D4DA4]/30 flex items-center justify-center shadow-md">
-                          <Users className="h-5 w-5 text-[#4D4DA4]" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <Users className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Admins</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.total_admins}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_admins}</div>
+                    </div>
                   </Card>
 
                   {/* Card 2: Super Admins - Only show for SUPER scope */}
                   {scope === 'SUPER' && (
-                    <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm font-medium text-white/90">Super Admins</CardTitle>
-                          <div className="w-10 h-10 rounded-xl bg-red-500/30 flex items-center justify-center shadow-md">
-                            <ShieldCheck className="h-5 w-5 text-red-400" />
+                    <Card className="bg-white/5 backdrop-blur-sm border border-[#EF4444]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                      style={{
+                        boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2)',
+                      }}>
+                      <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                        <div className="flex items-center gap-2 justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#DC2626] flex items-center justify-center shadow-lg"
+                            style={{
+                              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.3)',
+                            }}>
+                            <ShieldCheck className="h-5 w-5 text-white" />
                           </div>
+                          <CardTitle className="text-sm font-medium text-white/90">Super Admins</CardTitle>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-white">{analytics.super_admins}</div>
-                      </CardContent>
+                        <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.super_admins}</div>
+                      </div>
                     </Card>
                   )}
 
                   {/* Card 3: Municipality Admins - Hide for CLUB scope */}
                   {scope !== 'CLUB' && (
-                    <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm font-medium text-white/90">Municipality Admins</CardTitle>
-                          <div className="w-10 h-10 rounded-xl bg-purple-500/30 flex items-center justify-center shadow-md">
-                            <Building className="h-5 w-5 text-purple-400" />
+                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                      style={{
+                        boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
+                      }}>
+                      <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                        <div className="flex items-center gap-2 justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                            style={{
+                              boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
+                            }}>
+                            <Building className="h-5 w-5 text-white" />
                           </div>
+                          <CardTitle className="text-sm font-medium text-white/90">Municipality Admins</CardTitle>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-white">{analytics.municipality_admins}</div>
-                      </CardContent>
+                        <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.municipality_admins}</div>
+                      </div>
                     </Card>
                   )}
 
                   {/* Card 4: Club Admins */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Club Admins</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-green-500/30 flex items-center justify-center shadow-md">
-                          <Building2 className="h-5 w-5 text-green-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
+                          }}>
+                          <Building2 className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Club Admins</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.club_admins}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.club_admins}</div>
+                    </div>
                   </Card>
                 </div>
               </CardContent>
@@ -336,7 +354,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-2 flex flex-col sm:flex-row gap-3">
+        <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
             <Input 
@@ -514,10 +532,10 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">User</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Role</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Assignment</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Role</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Assignment</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -548,7 +566,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
 
                   return (
                     <TableRow key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                             <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
@@ -562,13 +580,13 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <Badge variant="outline" className={getRoleBadge(user.role)}>
                           {user.role.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-4 text-gray-600">{assignment}</TableCell>
-                      <TableCell className="py-4 text-right">
+                      <TableCell className="py-4 px-6 text-gray-600">{assignment}</TableCell>
+                      <TableCell className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Link href={buildUrlWithParams(`${basePath}/${user.id}`)}>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

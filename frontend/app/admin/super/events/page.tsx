@@ -434,60 +434,93 @@ export default function SuperEventsPage() {
             {/* Analytics */}
             {!loading && (
                 <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                        <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-gray-500" />
-                            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+                    <Card className="border-0 shadow-sm bg-gray-900">
+                        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 text-gray-400" />
+                                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                                    Analytics Dashboard
+                                </h3>
+                            </div>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                                    <ChevronUp className={cn(
+                                        "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                                        analyticsExpanded ? "rotate-0" : "rotate-180"
+                                    )} />
+                                    <span className="sr-only">Toggle Analytics</span>
+                                </Button>
+                            </CollapsibleTrigger>
                         </div>
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-                                <ChevronUp className={cn(
-                                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                                )} />
-                                <span className="sr-only">Toggle Analytics</span>
-                            </Button>
-                        </CollapsibleTrigger>
-                    </div>
-                    <CollapsibleContent className="space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                            {/* Card 1: Total Events */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Total Events</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_events}</div>
-                                </CardContent>
-                            </Card>
+                        <CollapsibleContent className="transition-all duration-500 ease-in-out">
+                            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                                    {/* Card 1: Total Events */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                                                    }}>
+                                                    <Calendar className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Total Events</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_events}</div>
+                                        </div>
+                                    </Card>
 
-                            {/* Card 2: Upcoming Events */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Upcoming Events</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.upcoming_events}</div>
-                                </CardContent>
-                            </Card>
+                                    {/* Card 2: Upcoming Events */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                                                    }}>
+                                                    <Clock className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Upcoming Events</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.upcoming_events}</div>
+                                        </div>
+                                    </Card>
 
-                            {/* Card 3: Total Members Who Attended */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Members Attended</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_attended}</div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </CollapsibleContent>
+                                    {/* Card 3: Total Members Who Attended */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                                                    }}>
+                                                    <Users className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Members Attended</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_attended}</div>
+                                        </div>
+                                    </Card>
+                                </div>
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
                 </Collapsible>
             )}
 
             {/* Filters */}
             <Card className="border border-gray-100 shadow-sm bg-white">
-                <div className="p-4 space-y-4">
+                <div className="px-6 py-4 space-y-4">
                     {/* Main Filters Row */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                         {/* Search - Takes more space on larger screens */}
@@ -568,8 +601,8 @@ export default function SuperEventsPage() {
                             <Card key={event.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
                                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-[#EBEBFE] flex-shrink-0">
-                                            <AvatarFallback className="rounded-lg font-bold text-sm text-[#4D4DA4] bg-[#EBEBFE]">
+                                        <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-[#EBEBFE] flex-shrink-0">
+                                            <AvatarFallback className="rounded-full font-bold text-sm text-[#4D4DA4] bg-[#EBEBFE]">
                                                 <Calendar className="h-5 w-5" />
                                             </AvatarFallback>
                                         </Avatar>
@@ -597,13 +630,13 @@ export default function SuperEventsPage() {
                                             {event.is_recurring || event.parent_event ? (
                                                 <div className="flex flex-wrap gap-1 justify-end">
                                                     {event.is_recurring && (
-                                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                                                        <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 text-xs">
                                                             <Repeat className="h-3 w-3 mr-1" />
                                                             {event.recurrence_pattern || 'Recurring'}
                                                         </Badge>
                                                     )}
                                                     {event.parent_event && (
-                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                                        <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs">
                                                             Instance
                                                         </Badge>
                                                     )}
@@ -615,10 +648,10 @@ export default function SuperEventsPage() {
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
                                             <Badge variant="outline" className={`text-xs ${
-                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                event.status === 'DRAFT' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                                event.status === 'SCHEDULED' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                event.status === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' :
+                                                event.status === 'DRAFT' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' :
+                                                event.status === 'SCHEDULED' ? 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30' :
+                                                event.status === 'CANCELLED' ? 'bg-red-50 text-[#EF4444] border-[#EF4444]/30' :
                                                 'bg-gray-50 text-gray-700 border-gray-200'
                                             }`}>
                                                 {event.status}
@@ -676,47 +709,47 @@ export default function SuperEventsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Event</TableHead>
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Date</TableHead>
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Recurring</TableHead>
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Registrations</TableHead>
-                                    <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Event</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Recurring</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Registrations</TableHead>
+                                    <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {paginatedEvents.map(event => (
                                     <TableRow key={event.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             <div className="flex items-center gap-3">
-                                                <Avatar className="h-9 w-9 rounded-lg bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
-                                                    <AvatarFallback className="rounded-lg font-bold text-sm text-[#4D4DA4] bg-[#EBEBFE]">
+                                                <Avatar className="h-9 w-9 rounded-full bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
+                                                    <AvatarFallback className="rounded-full font-bold text-sm text-[#4D4DA4] bg-[#EBEBFE]">
                                                         <Calendar className="h-5 w-5" />
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <div className="font-semibold text-[#121213]">{event.title}</div>
+                                                    <div className="font-semibold text-[#121213] truncate max-w-xs">{event.title}</div>
                                                     <div className="text-xs text-gray-500 truncate max-w-xs">{event.location_name}</div>
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             <div className="text-sm text-gray-600">{new Date(event.start_date).toLocaleDateString()}</div>
                                             <div className="text-xs text-gray-500">
                                                 {new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             {event.is_recurring || event.parent_event ? (
                                                 <div className="flex flex-wrap gap-1">
                                                     {event.is_recurring && (
-                                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                                                        <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 text-xs">
                                                             <Repeat className="h-3 w-3 mr-1" />
                                                             {event.recurrence_pattern || 'Recurring'}
                                                         </Badge>
                                                     )}
                                                     {event.parent_event && (
-                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                                        <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs">
                                                             Instance
                                                         </Badge>
                                                     )}
@@ -725,18 +758,18 @@ export default function SuperEventsPage() {
                                                 <span className="text-sm text-gray-400">-</span>
                                             )}
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             <Badge variant="outline" className={`text-xs ${
-                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                event.status === 'DRAFT' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                                event.status === 'SCHEDULED' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                event.status === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' :
+                                                event.status === 'DRAFT' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' :
+                                                event.status === 'SCHEDULED' ? 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30' :
+                                                event.status === 'CANCELLED' ? 'bg-red-50 text-[#EF4444] border-[#EF4444]/30' :
                                                 'bg-gray-50 text-gray-700 border-gray-200'
                                             }`}>
                                                 {event.status}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             {event.allow_registration ? (
                                                 <div className="flex items-center gap-1">
                                                     <span className="text-sm font-medium text-gray-600">{event.confirmed_participants_count}</span>
@@ -752,7 +785,7 @@ export default function SuperEventsPage() {
                                                 <span className="text-sm text-gray-400">-</span>
                                             )}
                                         </TableCell>
-                                        <TableCell className="py-4 text-right">
+                                        <TableCell className="py-4 px-6 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <Link href={buildUrlWithParams(`/admin/super/events/edit/${event.id}`)}>
                                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

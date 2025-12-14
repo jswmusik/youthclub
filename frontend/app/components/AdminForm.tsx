@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
@@ -34,6 +34,10 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
 
   // Refs for files
   const avatarRef = useRef<HTMLInputElement>(null);
+  
+  // Refs for role buttons (for slide animation)
+  const roleButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   // Dropdowns
   const [municipalities, setMunicipalities] = useState<Option[]>([]);
@@ -72,6 +76,22 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
     role: initialData?.role || getDefaultRole()
   });
 
+  // Update indicator position for slide animation
+  const updateIndicator = useCallback(() => {
+    const activeButton = roleButtonRefs.current[formData.role];
+    if (activeButton) {
+      const container = activeButton.parentElement;
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        const buttonRect = activeButton.getBoundingClientRect();
+        setIndicatorStyle({
+          left: buttonRect.left - containerRect.left,
+          width: buttonRect.width,
+        });
+      }
+    }
+  }, [formData.role]);
+
   useEffect(() => {
     fetchDropdowns();
     // Ensure role is always CLUB_ADMIN for CLUB scope
@@ -79,6 +99,28 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
       setFormData(prev => prev.role !== 'CLUB_ADMIN' ? {...prev, role: 'CLUB_ADMIN'} : prev);
     }
   }, [scope, initialData]);
+
+  // Initialize and update indicator position
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateIndicator();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [updateIndicator]);
+
+  // Update indicator when role changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateIndicator();
+    }, 10);
+    return () => clearTimeout(timer);
+  }, [formData.role, updateIndicator]);
+
+  // Update indicator on window resize
+  useEffect(() => {
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [updateIndicator]);
 
   const fetchDropdowns = async () => {
     try {
@@ -228,18 +270,35 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
             {allowedRoles.length > 1 && (
               <div className="space-y-2">
                 <Label>Role <span className="text-red-500">*</span></Label>
-                <div className="flex flex-wrap gap-2">
-                  {allowedRoles.map(role => (
-                    <Button
-                      key={role}
-                      type="button"
-                      variant={formData.role === role ? "default" : "outline"}
-                      onClick={() => setFormData({...formData, role})}
-                      className={formData.role === role ? "bg-[#4D4DA4] hover:bg-[#FF5485] text-white" : ""}
-                    >
-                      {role.replace(/_/g, ' ')}
-                    </Button>
-                  ))}
+                <div className="relative bg-white border border-gray-200 rounded-xl shadow-sm p-1.5">
+                  {/* Sliding Background Indicator */}
+                  <div
+                    className="absolute top-1.5 bottom-1.5 rounded-lg bg-[#4D4DA4] shadow-md transition-all duration-300 ease-in-out z-0"
+                    style={{
+                      left: `${indicatorStyle.left}px`,
+                      width: `${indicatorStyle.width}px`,
+                    }}
+                  />
+                  <div className="flex flex-wrap gap-2 relative z-10">
+                    {allowedRoles.map(role => (
+                      <button
+                        key={role}
+                        ref={(el) => { roleButtonRefs.current[role] = el; }}
+                        type="button"
+                        onClick={() => setFormData({...formData, role})}
+                        className={`
+                          px-6 py-2.5 rounded-lg font-medium text-sm transition-colors duration-200 relative z-10
+                          ${formData.role === role 
+                            ? 'text-white' 
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                          }
+                          border-0 bg-transparent flex items-center justify-center text-center
+                        `}
+                      >
+                        {role.replace(/_/g, ' ')}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

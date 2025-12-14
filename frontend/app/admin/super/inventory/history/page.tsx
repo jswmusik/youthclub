@@ -6,10 +6,9 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import LendingHistoryTable from '@/app/components/inventory/LendingHistoryTable';
-import { BarChart3, ChevronUp, Package, Users, CheckCircle, Clock, Filter, Search, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart3, ChevronUp, Package, CheckCircle, Clock, Search, X, Calendar, ChevronLeft, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
@@ -35,7 +34,6 @@ export default function SuperInventoryHistoryPage() {
     const [analyticsLoading, setAnalyticsLoading] = useState(true);
     const [analytics, setAnalytics] = useState<HistoryAnalytics | null>(null);
     const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-    const [filtersExpanded, setFiltersExpanded] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
     
     // Get filter values from URL
@@ -172,193 +170,204 @@ export default function SuperInventoryHistoryPage() {
 
             {/* Analytics */}
             <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4 text-gray-500" />
-                        <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+                <Card className="border-0 shadow-sm bg-gray-900">
+                    <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+                        <div className="flex items-center gap-2">
+                            <BarChart3 className="h-4 w-4 text-gray-400" />
+                            <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                                Analytics Dashboard
+                            </h3>
+                        </div>
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                                <ChevronUp className={cn(
+                                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                                    analyticsExpanded ? "rotate-0" : "rotate-180"
+                                )} />
+                                <span className="sr-only">Toggle Analytics</span>
+                            </Button>
+                        </CollapsibleTrigger>
                     </div>
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-                            <ChevronUp className={cn(
-                                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                analyticsExpanded ? "rotate-0" : "rotate-180"
-                            )} />
-                            <span className="sr-only">Toggle Analytics</span>
-                        </Button>
-                    </CollapsibleTrigger>
-                </div>
-                <CollapsibleContent className="space-y-2">
-                    {analyticsLoading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-                            {[1, 2, 3, 4].map((i) => (
-                                <Card key={i} className="bg-[#EBEBFE]/30 border-none shadow-sm animate-pulse">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-medium text-gray-500 h-4 bg-gray-200 rounded w-24"></CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="h-8 bg-gray-200 rounded w-16"></div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    ) : analytics ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-                            {/* Total Borrowed */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Total Borrowed</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total_borrowed}</div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Demographics */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Demographics</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Male:</span>
-                                            <span className="font-bold text-[#4D4DA4]">{analytics.borrowed_male}</span>
+                    <CollapsibleContent className="transition-all duration-500 ease-in-out">
+                        <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+                            {analyticsLoading ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <Card key={i} className="bg-white/5 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-lg animate-pulse">
+                                            <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                                <div className="flex items-center gap-2 justify-center">
+                                                    <div className="w-10 h-10 rounded-xl bg-gray-700"></div>
+                                                    <div className="h-4 bg-gray-700 rounded w-24"></div>
+                                                </div>
+                                                <div className="h-8 bg-gray-700 rounded w-16"></div>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ) : analytics ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                    {/* Total Borrowed */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                                                    }}>
+                                                    <Package className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Total Borrowed</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_borrowed}</div>
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Female:</span>
-                                            <span className="font-bold text-[#4D4DA4]">{analytics.borrowed_female}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Other:</span>
-                                            <span className="font-bold text-[#4D4DA4]">{analytics.borrowed_other}</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </Card>
 
-                            {/* Returned */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Returned</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-green-600">{analytics.returned}</div>
-                                </CardContent>
-                            </Card>
+                                    {/* Demographics */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
+                                                    }}>
+                                                    <UsersRound className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Demographics</CardTitle>
+                                            </div>
+                                            <div className="w-full space-y-1.5 mt-2">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-white/70">Male:</span>
+                                                    <span className="font-bold text-white">{analytics.borrowed_male}</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-white/70">Female:</span>
+                                                    <span className="font-bold text-white">{analytics.borrowed_female}</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-white/70">Other:</span>
+                                                    <span className="font-bold text-white">{analytics.borrowed_other}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Card>
 
-                            {/* Active */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Active</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.active}</div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    ) : null}
-                </CollapsibleContent>
+                                    {/* Returned */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                                                    }}>
+                                                    <CheckCircle className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Returned</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.returned}</div>
+                                        </div>
+                                    </Card>
+
+                                    {/* Active */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                                                    }}>
+                                                    <Clock className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Active</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.active}</div>
+                                        </div>
+                                    </Card>
+                                </div>
+                            ) : null}
+                        </CardContent>
+                    </CollapsibleContent>
+                </Card>
             </Collapsible>
 
             {/* Filters */}
             <Card className="border border-gray-100 shadow-sm bg-white">
-                <div className="p-4 space-y-4">
-                    {/* Main Filters Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                        {/* Search - Takes more space on larger screens */}
-                        <div className="relative md:col-span-4 lg:col-span-3">
-                            <Label htmlFor="search-history" className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Search</Label>
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                                <Input
-                                    id="search-history"
-                                    placeholder="Search by item or borrower..."
-                                    className="pl-9 bg-gray-50 border-0"
-                                    value={search}
-                                    onChange={e => updateUrl('search', e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        
-                        {/* Club Filter */}
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <Label htmlFor="club-filter" className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Club</Label>
-                            <select
-                                id="club-filter"
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                                value={selectedClubId}
-                                onChange={e => updateUrl('club', e.target.value)}
-                            >
-                                <option value="">All Clubs</option>
-                                {clubs.map((club) => (
-                                    <option key={club.id} value={club.id}>
-                                        {club.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Item Filter */}
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <Label htmlFor="item-filter" className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Item</Label>
-                            <select
-                                id="item-filter"
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                                value={selectedItemId || ''}
-                                onChange={e => updateUrl('item', e.target.value)}
-                            >
-                                <option value="">All Items</option>
-                                {items.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                        {item.title}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Start Date */}
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <Label htmlFor="start-date" className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Start Date</Label>
-                            <div className="relative">
-                                <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                                <Input
-                                    id="start-date"
-                                    type="date"
-                                    className="pl-9 bg-gray-50 border-0"
-                                    value={startDate}
-                                    onChange={e => updateUrl('start_date', e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* End Date */}
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <Label htmlFor="end-date" className="text-xs font-semibold text-gray-500 uppercase mb-1 block">End Date</Label>
-                            <div className="relative">
-                                <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                                <Input
-                                    id="end-date"
-                                    type="date"
-                                    className="pl-9 bg-gray-50 border-0"
-                                    value={endDate}
-                                    onChange={e => updateUrl('end_date', e.target.value)}
-                                    min={startDate || undefined}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Clear Button */}
-                        <div className="md:col-span-2 lg:col-span-1 flex items-end">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={clearFilters}
-                                className="w-full h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-                            >
-                                <X className="h-4 w-4" /> Clear
-                            </Button>
-                        </div>
+                <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                        <Input 
+                            placeholder="Search by item or borrower..." 
+                            className="pl-9 bg-gray-50 border-0"
+                            value={search}
+                            onChange={e => updateUrl('search', e.target.value)}
+                        />
                     </div>
+                    <div className="w-full sm:w-[200px]">
+                        <select 
+                            className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                            value={selectedClubId}
+                            onChange={e => updateUrl('club', e.target.value)}
+                        >
+                            <option value="">All Clubs</option>
+                            {clubs.map((club) => (
+                                <option key={club.id} value={club.id}>
+                                    {club.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="w-full sm:w-[200px]">
+                        <select 
+                            className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                            value={selectedItemId || ''}
+                            onChange={e => updateUrl('item', e.target.value)}
+                        >
+                            <option value="">All Items</option>
+                            {items.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="relative w-full sm:w-[180px]">
+                        <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                        <Input
+                            type="date"
+                            className="pl-9 bg-gray-50 border-0"
+                            value={startDate}
+                            onChange={e => updateUrl('start_date', e.target.value)}
+                        />
+                    </div>
+                    <div className="relative w-full sm:w-[180px]">
+                        <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                        <Input
+                            type="date"
+                            className="pl-9 bg-gray-50 border-0"
+                            value={endDate}
+                            onChange={e => updateUrl('end_date', e.target.value)}
+                            min={startDate || undefined}
+                        />
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="w-full sm:w-auto h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+                    >
+                        <X className="h-4 w-4" /> Clear
+                    </Button>
                 </div>
             </Card>
 

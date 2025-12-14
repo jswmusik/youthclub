@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react';
 import { visits, users } from '@/lib/api';
 import Toast from '@/app/components/Toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
+import { Search, UserPlus, X, CheckCircle2 } from 'lucide-react';
+import { getMediaUrl } from '@/app/utils';
 
 interface Props {
   isOpen: boolean;
@@ -20,6 +27,13 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
     type: 'success',
     isVisible: false,
   });
+
+  // Helper function to get user initials
+  const getInitials = (first?: string | null, last?: string | null) => {
+    const firstInitial = first?.charAt(0)?.toUpperCase() || '';
+    const lastInitial = last?.charAt(0)?.toUpperCase() || '';
+    return firstInitial + lastInitial || 'U';
+  };
 
   // Debounce Search
   useEffect(() => {
@@ -63,91 +77,129 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
     }
   };
 
-  if (!isOpen) return null;
-
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800">Manual Check-in</h2>
-            <p className="text-sm text-gray-500">Search for a member by name or email.</p>
-          </div>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-lg border-2 border-gray-100 bg-white shadow-xl">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-6 bg-[#4D4DA4] rounded-full"></div>
+              <DialogTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-[#4D4DA4]" />
+                Manual Check-in
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-500 mt-1">
+              Search for a member by name or email to check them in.
+            </DialogDescription>
+          </DialogHeader>
 
-          <div className="p-6 space-y-4">
+          <div className="space-y-4 py-4">
             {/* Search Input */}
             {!selectedUser ? (
               <div className="relative">
-                <input 
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input 
                   type="text" 
-                  className="w-full p-3 border rounded-lg pl-10 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  placeholder="Type name (e.g. 'Alice')"
+                  className="pl-10 bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  placeholder="Type name or email (e.g. 'Alice')"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   autoFocus
                 />
-                <span className="absolute left-3 top-3.5 text-gray-400">🔍</span>
                 
                 {/* Dropdown Results */}
                 {results.length > 0 && (
-                  <div className="absolute w-full bg-white border rounded-lg mt-1 shadow-xl max-h-60 overflow-y-auto z-10">
+                  <div className="absolute w-full bg-white border border-gray-200 rounded-lg mt-2 shadow-lg max-h-60 overflow-y-auto z-10">
                     {results.map(user => (
                       <button
                         key={user.id}
                         onClick={() => { setSelectedUser(user); setResults([]); }}
-                        className="w-full text-left p-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-50 last:border-0"
+                        className="w-full text-left p-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-50 last:border-0 transition-colors"
                       >
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">
-                          {(user.first_name?.[0] || 'U')}
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900">{user.first_name} {user.last_name}</div>
-                          <div className="text-xs text-gray-500">{user.email}</div>
+                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200">
+                          <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                            {getInitials(user.first_name, user.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-[#121213] truncate">{user.first_name} {user.last_name}</div>
+                          <div className="text-xs text-gray-500 truncate">{user.email}</div>
                         </div>
                       </button>
                     ))}
                   </div>
                 )}
                 {query.length > 2 && results.length === 0 && (
-                  <div className="absolute w-full bg-white border rounded-lg mt-1 p-3 text-sm text-gray-500 text-center">
+                  <div className="absolute w-full bg-white border border-gray-200 rounded-lg mt-2 p-3 text-sm text-gray-500 text-center shadow-lg">
                     No members found.
                   </div>
                 )}
               </div>
             ) : (
               // Selected User View
-              <div className="flex items-center justify-between bg-emerald-50 p-4 rounded-lg border border-emerald-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-200 rounded-full flex items-center justify-center text-emerald-800 font-bold">
-                    {selectedUser.first_name?.[0] || 'U'}
+              <Card className="border-2 border-[#4D4DA4]/20 bg-gradient-to-br from-[#EBEBFE]/30 to-white shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12 rounded-lg border-2 border-[#4D4DA4]/30">
+                        <AvatarImage src={getMediaUrl(selectedUser.avatar) || undefined} className="object-cover" />
+                        <AvatarFallback className="rounded-lg font-bold text-sm bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] text-white">
+                          {getInitials(selectedUser.first_name, selectedUser.last_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-bold text-[#121213]">{selectedUser.first_name} {selectedUser.last_name}</div>
+                        <div className="text-xs text-gray-500">{selectedUser.email}</div>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-[#10B981] font-medium">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Ready to check in
+                        </div>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setSelectedUser(null); setQuery(''); }}
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div>
-                    <div className="font-bold text-gray-900">{selectedUser.first_name} {selectedUser.last_name}</div>
-                    <div className="text-xs text-emerald-700">Ready to check in</div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => { setSelectedUser(null); setQuery(''); }}
-                  className="text-gray-400 hover:text-gray-600 text-sm"
-                >
-                  Change
-                </button>
-              </div>
+                </CardContent>
+              </Card>
             )}
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-              <button 
-                onClick={handleSubmit}
-                disabled={!selectedUser || loading}
-                className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-medium"
-              >
-                {loading ? 'Checking in...' : 'Confirm Check-in'}
-              </button>
-            </div>
           </div>
-        </div>
-      </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={onClose}
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmit}
+              disabled={!selectedUser || loading}
+              className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full px-6 transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Checking in...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Confirm Check-in
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Toast Notification */}
       <Toast

@@ -146,7 +146,7 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
 
       {/* Filter */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <CardContent className="p-3 sm:p-4">
+        <CardContent className="px-6 py-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -174,35 +174,35 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Interest</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Icon</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Interest</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Icon</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {interests.map(item => (
                   <TableRow key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         {item.avatar ? (
-                          <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                          <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                             <AvatarImage src={getMediaUrl(item.avatar) || ''} alt={item.name} />
-                            <AvatarFallback className="bg-gray-100 text-gray-400 rounded-lg">
+                            <AvatarFallback className="bg-gray-100 text-gray-400 rounded-full">
                               {item.name?.charAt(0)?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
                         ) : (
-                          <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs border border-gray-200">
+                          <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs border border-gray-200">
                             {item.icon || '?'}
                           </div>
                         )}
                         <span className="font-semibold text-[#121213]">{item.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <span className="text-2xl">{item.icon || '—'}</span>
                     </TableCell>
-                    <TableCell className="py-4 text-right">
+                    <TableCell className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${item.id}`)}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
@@ -228,7 +228,7 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
                 ))}
                 {interests.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="p-8 text-center text-gray-500">
+                    <TableCell colSpan={3} className="py-8 px-6 text-center text-gray-500">
                       No interests found.
                     </TableCell>
                   </TableRow>
@@ -245,14 +245,14 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       {item.avatar ? (
-                        <Avatar className="h-10 w-10 rounded-lg flex-shrink-0">
+                        <Avatar className="h-10 w-10 rounded-full flex-shrink-0">
                           <AvatarImage src={getMediaUrl(item.avatar) || ''} alt={item.name} />
-                          <AvatarFallback className="bg-gray-100 text-gray-400 rounded-lg">
+                          <AvatarFallback className="bg-gray-100 text-gray-400 rounded-full">
                             {item.name?.charAt(0)?.toUpperCase() || '?'}
                           </AvatarFallback>
                         </Avatar>
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-sm border border-gray-200 flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-sm border border-gray-200 flex-shrink-0">
                           {item.icon || '?'}
                         </div>
                       )}

@@ -96,23 +96,32 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
         <CardContent className="p-6 grid gap-8">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-1">
-              <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
-                <CreditCard className="h-4 w-4 text-[#FF5485]" /> Currency
+            <div className="p-5 rounded-xl border-2 border-[#4D4DA4]/30 bg-gradient-to-br from-[#EBEBFE]/50 to-white hover:border-[#4D4DA4]/50 transition-all duration-300 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#4D4DA4]">
+                <div className="p-1.5 rounded-lg bg-[#4D4DA4]/10">
+                  <CreditCard className="h-4 w-4 text-[#4D4DA4]" />
+                </div>
+                Currency
               </div>
-              <p className="text-lg font-bold text-gray-900">{country.currency_code || '-'}</p>
+              <p className="text-xl font-bold text-gray-900">{country.currency_code || '-'}</p>
             </div>
-            <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-1">
-              <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
-                <Globe className="h-4 w-4 text-[#FF5485]" /> Language
+            <div className="p-5 rounded-xl border-2 border-[#4D4DA4]/30 bg-gradient-to-br from-[#EBEBFE]/50 to-white hover:border-[#4D4DA4]/50 transition-all duration-300 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#4D4DA4]">
+                <div className="p-1.5 rounded-lg bg-[#4D4DA4]/10">
+                  <Globe className="h-4 w-4 text-[#4D4DA4]" />
+                </div>
+                Language
               </div>
-              <p className="text-lg font-bold text-gray-900">{country.default_language || '-'}</p>
+              <p className="text-xl font-bold text-gray-900">{country.default_language || '-'}</p>
             </div>
-            <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-1">
-              <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
-                <Clock className="h-4 w-4 text-[#FF5485]" /> Timezone
+            <div className="p-5 rounded-xl border-2 border-[#4D4DA4]/30 bg-gradient-to-br from-[#EBEBFE]/50 to-white hover:border-[#4D4DA4]/50 transition-all duration-300 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#4D4DA4]">
+                <div className="p-1.5 rounded-lg bg-[#4D4DA4]/10">
+                  <Clock className="h-4 w-4 text-[#4D4DA4]" />
+                </div>
+                Timezone
               </div>
-              <p className="text-lg font-bold text-gray-900">{country.timezone || 'UTC'}</p>
+              <p className="text-xl font-bold text-gray-900">{country.timezone || 'UTC'}</p>
             </div>
           </div>
 

@@ -5,6 +5,13 @@ import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import { useAuth } from '../../../../context/AuthContext';
+import { User, Mail, Phone, Globe, UserCircle, Lock, ShieldCheck, Clock, Camera } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 interface ProfileForm {
   first_name: string;
@@ -154,156 +161,257 @@ function SuperProfileContent() {
   const latestLoginTimestamp = loginHistory.length > 0 ? loginHistory[0].timestamp : lastLogin;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-sm text-red-500 uppercase font-semibold">Super Admin</p>
-        <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-        <p className="text-gray-600 mt-1">Update your personal information and review your recent login activity.</p>
+    <div className="p-8 space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Badge className="bg-red-50 text-[#EF4444] border-red-200 px-3 py-1 text-xs font-semibold uppercase">
+            Super Admin
+          </Badge>
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-[#121213]">My Profile</h1>
+        <p className="text-gray-500 mt-1">Update your personal information and review your recent login activity.</p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 bg-white rounded-2xl shadow p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Profile Details</h2>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">First Name</label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg p-2"
-                  value={profile.first_name}
-                  onChange={(e) => handleChange('first_name', e.target.value)}
-                  required
-                />
+        {/* Main Profile Form */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* Profile Details Card */}
+          <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
+                <CardTitle className="text-xl font-bold text-[#121213]">Profile Details</CardTitle>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Last Name</label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg p-2"
-                  value={profile.last_name}
-                  onChange={(e) => handleChange('last_name', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  className="w-full border rounded-lg p-2"
-                  value={profile.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg p-2"
-                  value={profile.phone_number}
-                  onChange={(e) => handleChange('phone_number', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Preferred Language</label>
-                <select
-                  className="w-full border rounded-lg p-2"
-                  value={profile.preferred_language}
-                  onChange={(e) => handleChange('preferred_language', e.target.value)}
-                >
-                  <option value="sv">Swedish</option>
-                  <option value="en">English</option>
-                  <option value="fi">Finnish</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Nickname</label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg p-2"
-                  value={profile.nickname}
-                  onChange={(e) => handleChange('nickname', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">New Password</label>
-                <input
-                  type="password"
-                  className="w-full border rounded-lg p-2"
-                  placeholder="Leave blank to keep current"
-                  value={profile.password}
-                  onChange={(e) => handleChange('password', e.target.value)}
-                />
-              </div>
-            </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Avatar Section */}
+                <div className="flex items-center gap-6 pb-6 border-b border-gray-100">
+                  <div className="relative">
+                    <Avatar className="h-24 w-24 border-4 border-white shadow-lg">
+                      <AvatarImage src={avatarPreview || undefined} alt="Profile" />
+                      <AvatarFallback className="bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] text-white text-2xl font-bold">
+                        {profile.first_name?.[0] || profile.email?.[0] || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-[#4D4DA4] text-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-[#FF5485] transition-colors">
+                      <Camera className="h-4 w-4" />
+                      <input
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#121213]">
+                      {profile.first_name} {profile.last_name}
+                    </h3>
+                    <p className="text-sm text-gray-500">{profile.email}</p>
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-3">
-              <input
-                id="hide_contact"
-                type="checkbox"
-                className="h-4 w-4 text-red-600"
-                checked={profile.hide_contact_info}
-                onChange={(e) => handleChange('hide_contact_info', e.target.checked)}
-              />
-              <label htmlFor="hide_contact" className="text-sm text-gray-700">
-                Hide my contact info from public listings
-              </label>
-            </div>
+                {/* Form Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <User className="h-4 w-4 text-[#4D4DA4]" />
+                      First Name
+                    </Label>
+                    <Input
+                      id="first_name"
+                      type="text"
+                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                      value={profile.first_name}
+                      onChange={(e) => handleChange('first_name', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <User className="h-4 w-4 text-[#4D4DA4]" />
+                      Last Name
+                    </Label>
+                    <Input
+                      id="last_name"
+                      type="text"
+                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                      value={profile.last_name}
+                      onChange={(e) => handleChange('last_name', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-[#4D4DA4]" />
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                      value={profile.email}
+                      onChange={(e) => handleChange('email', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone_number" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-[#4D4DA4]" />
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="phone_number"
+                      type="text"
+                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                      value={profile.phone_number}
+                      onChange={(e) => handleChange('phone_number', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="preferred_language" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-[#4D4DA4]" />
+                      Preferred Language
+                    </Label>
+                    <select
+                      id="preferred_language"
+                      className="flex h-10 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                      value={profile.preferred_language}
+                      onChange={(e) => handleChange('preferred_language', e.target.value)}
+                    >
+                      <option value="sv">Swedish</option>
+                      <option value="en">English</option>
+                      <option value="fi">Finnish</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nickname" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <UserCircle className="h-4 w-4 text-[#4D4DA4]" />
+                      Nickname
+                    </Label>
+                    <Input
+                      id="nickname"
+                      type="text"
+                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                      value={profile.nickname}
+                      onChange={(e) => handleChange('nickname', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-[#4D4DA4]" />
+                      New Password
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                      placeholder="Leave blank to keep current password"
+                      value={profile.password}
+                      onChange={(e) => handleChange('password', e.target.value)}
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Avatar</label>
-              <input type="file" accept="image/*" onChange={handleAvatarChange} />
-              {avatarPreview && (
-                <img src={avatarPreview} alt="Avatar preview" className="w-20 h-20 rounded-full object-cover mt-3" />
-              )}
-            </div>
+                {/* Privacy Checkbox */}
+                <div className="flex items-center gap-3 p-4 bg-[#EBEBFE]/30 rounded-xl border border-[#4D4DA4]/20">
+                  <input
+                    id="hide_contact"
+                    type="checkbox"
+                    className="h-4 w-4 text-[#4D4DA4] border-gray-300 rounded focus:ring-[#4D4DA4]"
+                    checked={profile.hide_contact_info}
+                    onChange={(e) => handleChange('hide_contact_info', e.target.checked)}
+                  />
+                  <label htmlFor="hide_contact" className="text-sm text-gray-700 cursor-pointer">
+                    Hide my contact info from public listings
+                  </label>
+                </div>
 
-            <div className="flex justify-end gap-4 pt-4 border-t">
-              <button
-                type="submit"
-                className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </form>
+                {/* Submit Button */}
+                <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
+                  <Button
+                    type="submit"
+                    className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white px-8 py-2 rounded-full transition-colors disabled:opacity-50"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
 
+        {/* Sidebar */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Account Summary</h3>
-            <div className="space-y-3 text-sm text-gray-700">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Role</span>
-                <span className="font-semibold">{formatRole(user.role)}</span>
+          {/* Account Summary Card */}
+          <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-6 bg-[#4D4DA4] rounded-full"></div>
+                <CardTitle className="text-lg font-bold text-[#121213] flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-[#4D4DA4]" />
+                  Account Summary
+                </CardTitle>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Last Login</span>
-                <span className="font-semibold">
-                  {formatDateTime(latestLoginTimestamp)}
-                </span>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-[#EBEBFE]/30 rounded-lg">
+                  <span className="text-sm text-gray-600">Role</span>
+                  <Badge className="bg-red-50 text-[#EF4444] border-red-200">
+                    {formatRole(user.role)}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-[#EBEBFE]/30 rounded-lg">
+                  <span className="text-sm text-gray-600 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-[#4D4DA4]" />
+                    Last Login
+                  </span>
+                  <span className="text-sm font-semibold text-[#121213]">
+                    {formatDateTime(latestLoginTimestamp)}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-2xl shadow p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Logins</h3>
-            {loginHistory.length === 0 ? (
-              <p className="text-sm text-gray-500">No login history recorded yet.</p>
-            ) : (
-              <ul className="space-y-3 text-sm">
-                {loginHistory.map((entry) => (
-                  <li key={entry.id} className="border-b pb-2 last:border-b-0">
-                    <span className="font-semibold text-gray-900">
-                      {formatDateTime(entry.timestamp)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {/* Recent Logins Card */}
+          <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-6 bg-[#0EA5E9] rounded-full"></div>
+                <CardTitle className="text-lg font-bold text-[#121213] flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-[#0EA5E9]" />
+                  Recent Logins
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loginHistory.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No login history recorded yet.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {loginHistory.slice(0, 5).map((entry) => (
+                    <li key={entry.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="w-2 h-2 rounded-full bg-[#0EA5E9]"></div>
+                      <div className="flex-1">
+                        <span className="text-sm font-semibold text-[#121213] block">
+                          {formatDateTime(entry.timestamp)}
+                        </span>
+                        {entry.ip_address && (
+                          <span className="text-xs text-gray-500">{entry.ip_address}</span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import LiveAttendanceList from '@/app/components/visits/LiveAttendanceList';
+import VisitsTabs from '@/app/components/visits/VisitsTabs';
 import { Button } from '@/components/ui/button';
 
 export default function SuperClubVisitsPage() {
@@ -36,25 +37,7 @@ export default function SuperClubVisitsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-100">
-        <nav className="flex space-x-8">
-          <button className="border-b-2 border-[#4D4DA4] pb-4 px-1 text-sm font-medium text-[#4D4DA4] -mb-px">
-            Live Attendance
-          </button>
-          <Link 
-            href={`/admin/super/clubs/${clubId}/visits/history`}
-            className="border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 -mb-px transition-colors"
-          >
-            History Log
-          </Link>
-          <Link 
-            href={`/admin/super/clubs/${clubId}/visits/analytics`}
-            className="border-b-2 border-transparent pb-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 -mb-px transition-colors"
-          >
-            Analytics
-          </Link>
-        </nav>
-      </div>
+      <VisitsTabs clubId={clubId} basePath="/admin/super/clubs" />
 
       {/* Main Content Area */}
       <LiveAttendanceList 

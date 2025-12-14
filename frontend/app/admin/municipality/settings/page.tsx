@@ -5,6 +5,12 @@ import api from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
+import { Building2, Code, FileText, Mail, Phone, Globe, Facebook, Instagram, Settings, Camera, Image as ImageIcon, CheckCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 export default function MyMunicipalityPage() {
   const { user, loading } = useAuth();
@@ -165,169 +171,324 @@ export default function MyMunicipalityPage() {
     }
   };
 
-  if (loading || isLoading) return <div className="p-10 text-center">Loading...</div>;
-  if (!muniData) return <div className="p-10 text-center">No Municipality Assigned. Contact Super Admin.</div>;
+  if (loading || isLoading) return <div className="p-8 text-center text-gray-500">Loading...</div>;
+  if (!muniData) return <div className="p-8 text-center text-gray-500">No Municipality Assigned. Contact Super Admin.</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 shadow-lg">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div>
-            <p className="text-sm uppercase tracking-widest text-white/70 font-semibold">Municipality Admin</p>
-            <h1 className="text-3xl font-bold mt-1">My Municipality Settings</h1>
-            <p className="text-white/80 mt-2 max-w-2xl">
-              Keep your municipality profile up to date. Changes are instantly reflected in the Youth App.
-            </p>
-          </div>
-          <div className="flex gap-4">
-            <div className="bg-white/15 rounded-xl px-6 py-4 text-center">
-              <p className="text-xs uppercase tracking-widest text-white/70">Municipality</p>
-              <p className="text-xl font-bold">{formData.name || '—'}</p>
-            </div>
-            <div className="bg-white/15 rounded-xl px-6 py-4 text-center">
-              <p className="text-xs uppercase tracking-widest text-white/70">Code</p>
-              <p className="text-xl font-bold">{formData.municipality_code || '—'}</p>
-            </div>
-          </div>
+    <div className="p-8 space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Badge className="bg-purple-50 text-purple-600 border-purple-200 px-3 py-1 text-xs font-semibold uppercase">
+            Municipality Admin
+          </Badge>
         </div>
+        <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Municipality Settings</h1>
+        <p className="text-gray-500 mt-1">Keep your municipality profile up to date. Changes are instantly reflected in the Youth App.</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-        <form className="space-y-10" onSubmit={handleSubmit}>
-          
-          {/* IMAGES SECTION */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-[#4D4DA4]/10 rounded-lg">
+                <Building2 className="h-6 w-6 text-[#4D4DA4]" />
+              </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Branding</h3>
-                <p className="text-sm text-slate-500">Update your municipality logo and hero banner.</p>
+                <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Municipality</p>
+                <p className="text-xl font-bold text-[#121213]">{formData.name || '—'}</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-[#4D4DA4]/10 rounded-lg">
+                <Code className="h-6 w-6 text-[#4D4DA4]" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Code</p>
+                <p className="text-xl font-bold text-[#121213]">{formData.municipality_code || '—'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Branding Section */}
+        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
+              <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-[#4D4DA4]" />
+                Branding
+              </CardTitle>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Update your municipality logo and hero banner.</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-slate-50 p-4 rounded-xl border border-dashed border-slate-200">
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-3">Logo / Avatar</label>
-                <div className="flex items-center gap-4">
-                  {avatarPreview ? (
-                    <img src={avatarPreview} className="w-20 h-20 object-contain bg-white rounded-xl shadow" alt="Avatar" />
-                  ) : (
-                    <div className="w-20 h-20 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm">No Img</div>
-                  )}
-                  <input type="file" accept="image/*" className="text-sm" onChange={e => handleFileChange(e, 'avatar')} />
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Camera className="h-4 w-4 text-[#4D4DA4]" />
+                  Logo / Avatar
+                </Label>
+                <div className="relative">
+                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-[#4D4DA4] transition-colors">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} className="w-24 h-24 object-contain bg-white rounded-xl shadow-lg" alt="Avatar" />
+                    ) : (
+                      <div className="w-24 h-24 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
+                        <Camera className="h-8 w-8" />
+                      </div>
+                    )}
+                    <label className="cursor-pointer">
+                      <span className="text-sm text-[#4D4DA4] font-semibold hover:text-[#FF5485] transition-colors">
+                        {avatarPreview ? 'Change Logo' : 'Upload Logo'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => handleFileChange(e, 'avatar')}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-dashed border-slate-200">
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-3">Hero Banner</label>
-                <div className="space-y-3">
-                  {heroPreview ? (
-                    <img src={heroPreview} className="w-full h-32 object-cover rounded-xl shadow" alt="Hero" />
-                  ) : (
-                    <div className="w-full h-32 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm">No Hero Image</div>
-                  )}
-                  <input type="file" accept="image/*" className="text-sm" onChange={e => handleFileChange(e, 'hero')} />
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-[#4D4DA4]" />
+                  Hero Banner
+                </Label>
+                <div className="relative">
+                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-[#4D4DA4] transition-colors">
+                    {heroPreview ? (
+                      <img src={heroPreview} className="w-full h-40 object-cover rounded-xl shadow-lg" alt="Hero" />
+                    ) : (
+                      <div className="w-full h-40 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
+                        <ImageIcon className="h-8 w-8" />
+                      </div>
+                    )}
+                    <label className="cursor-pointer">
+                      <span className="text-sm text-[#4D4DA4] font-semibold hover:text-[#FF5485] transition-colors">
+                        {heroPreview ? 'Change Banner' : 'Upload Banner'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => handleFileChange(e, 'hero')}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
-          </section>
+          </CardContent>
+        </Card>
 
-          {/* BASIC INFO */}
-          <section className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Basic Details</h3>
-              <p className="text-sm text-slate-500">General information visible across the app.</p>
+        {/* Basic Details Section */}
+        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-6 bg-[#4D4DA4] rounded-full"></div>
+              <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-[#4D4DA4]" />
+                Basic Details
+              </CardTitle>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-slate-700">Municipality Name</label>
-                <input type="text" className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                  value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-slate-700">Municipality Code</label>
-                <input type="text" className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                  value={formData.municipality_code} onChange={e => setFormData({...formData, municipality_code: e.target.value})} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">Description</label>
-              <textarea rows={3} className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-            </div>
-          </section>
-
-          {/* CONTACT & SOCIALS */}
-          <section className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Contact & Socials</h3>
-              <p className="text-sm text-slate-500">How users can reach your municipality.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-slate-700">Email</label>
-                <input type="email" className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                  value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-slate-700">Phone</label>
-                <input type="text" className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                  value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-slate-700">Website</label>
-                <input type="url" className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                  value={formData.website_link} onChange={e => setFormData({...formData, website_link: e.target.value})} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-slate-700">Facebook URL</label>
-                <input type="text" className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                  value={formData.facebook} onChange={e => setFormData({...formData, facebook: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-slate-700">Instagram URL</label>
-                <input type="text" className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                  value={formData.instagram} onChange={e => setFormData({...formData, instagram: e.target.value})} />
-              </div>
-            </div>
-          </section>
-
-          {/* SETTINGS */}
-          <section className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Settings</h3>
-              <p className="text-sm text-slate-500">Control member registration and policies.</p>
-            </div>
-            <div className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50">
-                <input 
-                  type="checkbox" 
-                  id="selfReg"
-                  className="w-5 h-5 text-blue-600"
-                  checked={formData.allow_self_registration}
-                  onChange={e => setFormData({...formData, allow_self_registration: e.target.checked})}
+            <p className="text-sm text-gray-500 mt-1">General information visible across the app.</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-[#4D4DA4]" />
+                  Municipality Name
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  value={formData.name}
+                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  required
                 />
-                <label htmlFor="selfReg" className="font-medium text-slate-900 cursor-pointer">
-                  Allow youth/guardians to self-register for verification
-                </label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="municipality_code" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Code className="h-4 w-4 text-[#4D4DA4]" />
+                  Municipality Code
+                </Label>
+                <Input
+                  id="municipality_code"
+                  type="text"
+                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  value={formData.municipality_code}
+                  onChange={e => setFormData({...formData, municipality_code: e.target.value})}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">Terms & Conditions</label>
-              <textarea rows={4} className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500" 
-                value={formData.terms_and_conditions} onChange={e => setFormData({...formData, terms_and_conditions: e.target.value})} />
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#4D4DA4]" />
+                Description
+              </Label>
+              <textarea
+                id="description"
+                rows={3}
+                className="flex w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={formData.description}
+                onChange={e => setFormData({...formData, description: e.target.value})}
+              />
             </div>
-          </section>
+          </CardContent>
+        </Card>
 
-          <div className="flex justify-end border-t border-slate-100 pt-6">
-            <button 
-              type="submit"
-              disabled={isSaving}
-              className="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold shadow hover:bg-blue-700 transition disabled:opacity-50"
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Contact & Socials Section */}
+        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-6 bg-[#0EA5E9] rounded-full"></div>
+              <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                <Mail className="h-5 w-5 text-[#0EA5E9]" />
+                Contact & Socials
+              </CardTitle>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">How users can reach your municipality.</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-[#4D4DA4]" />
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-[#4D4DA4]" />
+                  Phone
+                </Label>
+                <Input
+                  id="phone"
+                  type="text"
+                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  value={formData.phone}
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="website_link" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-[#4D4DA4]" />
+                  Website
+                </Label>
+                <Input
+                  id="website_link"
+                  type="url"
+                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  value={formData.website_link}
+                  onChange={e => setFormData({...formData, website_link: e.target.value})}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="facebook" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Facebook className="h-4 w-4 text-[#4D4DA4]" />
+                  Facebook URL
+                </Label>
+                <Input
+                  id="facebook"
+                  type="text"
+                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  value={formData.facebook}
+                  onChange={e => setFormData({...formData, facebook: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="instagram" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Instagram className="h-4 w-4 text-[#4D4DA4]" />
+                  Instagram URL
+                </Label>
+                <Input
+                  id="instagram"
+                  type="text"
+                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  value={formData.instagram}
+                  onChange={e => setFormData({...formData, instagram: e.target.value})}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Settings Section */}
+        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-6 bg-[#10B981] rounded-full"></div>
+              <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
+                <Settings className="h-5 w-5 text-[#10B981]" />
+                Settings
+              </CardTitle>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Control member registration and policies.</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-3 p-4 bg-[#EBEBFE]/30 rounded-xl border border-[#4D4DA4]/20">
+              <input
+                id="selfReg"
+                type="checkbox"
+                className="h-4 w-4 text-[#4D4DA4] border-gray-300 rounded focus:ring-[#4D4DA4]"
+                checked={formData.allow_self_registration}
+                onChange={e => setFormData({...formData, allow_self_registration: e.target.checked})}
+              />
+              <label htmlFor="selfReg" className="text-sm text-gray-700 cursor-pointer flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-[#4D4DA4]" />
+                Allow youth/guardians to self-register for verification
+              </label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="terms_and_conditions" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#4D4DA4]" />
+                Terms & Conditions
+              </Label>
+              <textarea
+                id="terms_and_conditions"
+                rows={4}
+                className="flex w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                value={formData.terms_and_conditions}
+                onChange={e => setFormData({...formData, terms_and_conditions: e.target.value})}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Submit Button */}
+        <div className="flex justify-end pt-4 border-t border-gray-100">
+          <Button
+            type="submit"
+            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white px-8 py-2 rounded-full transition-colors disabled:opacity-50"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+      </form>
 
       <Toast
         message={toast.message}

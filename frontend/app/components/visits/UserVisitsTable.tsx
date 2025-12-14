@@ -65,12 +65,12 @@ export default function UserVisitsTable({
         <Table>
           <TableHeader>
             <TableRow className="border-b border-gray-100 hover:bg-transparent">
-              <TableHead className="h-12 text-gray-600 font-semibold">Club</TableHead>
-              <TableHead className="h-12 text-gray-600 font-semibold">Date</TableHead>
-              <TableHead className="h-12 text-gray-600 font-semibold">Check In</TableHead>
-              <TableHead className="h-12 text-gray-600 font-semibold">Check Out</TableHead>
-              <TableHead className="h-12 text-gray-600 font-semibold">Duration</TableHead>
-              <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Check In</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Check Out</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Duration</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,12 +84,12 @@ export default function UserVisitsTable({
                   key={visit.id} 
                   className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${isGuestVisit ? 'bg-orange-50/50 hover:bg-orange-50' : ''}`}
                 >
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 px-6">
                     <div className="flex items-center gap-3">
                       {visit.club_avatar && (
-                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                           <AvatarImage src={getMediaUrl(visit.club_avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
                             {visit.club_name?.charAt(0)?.toUpperCase() || 'C'}
                           </AvatarFallback>
                         </Avatar>
@@ -99,32 +99,32 @@ export default function UserVisitsTable({
                           {visit.club_name}
                         </div>
                         {isGuestVisit && (
-                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200 mt-1">
+                          <Badge variant="outline" className="text-xs bg-pink-50 text-[#FF5485] border-[#FF5485]/30 mt-1">
                             Guest Visit
                           </Badge>
                         )}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 px-6">
                     <div className="font-semibold text-[#121213]">{formatDate(visit.check_in_at)}</div>
                   </TableCell>
-                  <TableCell className="py-4 text-gray-600">
+                  <TableCell className="py-4 px-6 text-gray-600">
                     {formatTime(visit.check_in_at)}
                   </TableCell>
-                  <TableCell className="py-4 text-gray-600">
+                  <TableCell className="py-4 px-6 text-gray-600">
                     {visit.check_out_at ? formatTime(visit.check_out_at) : '-'}
                   </TableCell>
-                  <TableCell className="py-4 text-gray-600">
+                  <TableCell className="py-4 px-6 text-gray-600">
                     {calculateDuration(visit.check_in_at, visit.check_out_at)}
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 px-6">
                     {visit.check_out_at ? (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-800 border-gray-200">
+                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
                         Completed
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Badge variant="outline" className="bg-green-50 text-[#10B981] border-[#10B981]/30">
                         Active
                       </Badge>
                     )}
@@ -134,7 +134,7 @@ export default function UserVisitsTable({
             })}
             {visits.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="p-8 text-center text-gray-500">
+                <TableCell colSpan={6} className="py-8 px-6 text-center text-gray-500">
                   No visits found for this period.
                 </TableCell>
               </TableRow>
@@ -155,9 +155,9 @@ export default function UserVisitsTable({
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       {visit.club_avatar && (
-                        <Avatar className="h-8 w-8 rounded-lg border border-gray-200 bg-gray-50">
+                        <Avatar className="h-8 w-8 rounded-full border border-gray-200 bg-gray-50">
                           <AvatarImage src={getMediaUrl(visit.club_avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
                             {visit.club_name?.charAt(0)?.toUpperCase() || 'C'}
                           </AvatarFallback>
                         </Avatar>
@@ -167,7 +167,7 @@ export default function UserVisitsTable({
                           {visit.club_name}
                         </div>
                         {isGuestVisit && (
-                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200 mt-1">
+                          <Badge variant="outline" className="text-xs bg-pink-50 text-[#FF5485] border-[#FF5485]/30 mt-1">
                             Guest Visit
                           </Badge>
                         )}
@@ -177,11 +177,11 @@ export default function UserVisitsTable({
                   </div>
                   <div>
                     {visit.check_out_at ? (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-800 border-gray-200">
+                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
                         Completed
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Badge variant="outline" className="bg-green-50 text-[#10B981] border-[#10B981]/30">
                         Active
                       </Badge>
                     )}

@@ -155,7 +155,9 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
             <div className="flex items-center justify-between px-4 sm:px-6 py-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-400">Analytics Dashboard</h3>
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
               </div>
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
@@ -168,36 +170,44 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
               </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
                   {/* Card 1: Total Municipalities */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Total Municipalities</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-[#4D4DA4]/30 flex items-center justify-center shadow-md">
-                          <MapPin className="h-5 w-5 text-[#4D4DA4]" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <MapPin className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Municipalities</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.total}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
+                    </div>
                   </Card>
 
                   {/* Card 2: Open for Registration */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Open for Registration</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-green-500/30 flex items-center justify-center shadow-md">
-                          <Globe className="h-5 w-5 text-green-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
+                          }}>
+                          <Globe className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Open for Registration</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.active}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.active}</div>
+                    </div>
                   </Card>
                 </div>
               </CardContent>
@@ -208,7 +218,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-2 flex flex-col sm:flex-row gap-3">
+        <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
             <Input 
@@ -251,9 +261,9 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
               <Card key={item.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0">
+                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
                       <AvatarImage src={getMediaUrl(item.avatar)} className="object-cover" />
-                      <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">M</AvatarFallback>
+                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">M</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base font-semibold text-gray-900 truncate">{item.name}</CardTitle>
@@ -264,7 +274,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
                 <CardContent className="space-y-3 pt-0">
                   <div className="flex items-center justify-between text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
                     <span className="text-xs uppercase font-semibold text-gray-400">Status</span>
-                    <Badge variant="outline" className={`font-normal ${item.allow_self_registration ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
+                    <Badge variant="outline" className={`font-normal ${item.allow_self_registration ? "border-[#10B981]/30 bg-green-50 text-[#10B981]" : "border-[#EF4444]/30 bg-red-50 text-[#EF4444]"}`}>
                       {item.allow_self_registration ? 'Open' : 'Restricted'}
                     </Badge>
                   </div>
@@ -302,36 +312,36 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
           <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Municipality</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Country</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Code</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Registration</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Municipality</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Country</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Code</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Registration</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {municipalities.map((item) => (
                   <TableRow key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                           <AvatarImage src={getMediaUrl(item.avatar)} className="object-cover" />
-                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">M</AvatarFallback>
+                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">M</AvatarFallback>
                         </Avatar>
                         <span className="font-semibold text-gray-900">{item.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-600">{item.country_name}</TableCell>
-                    <TableCell>
+                    <TableCell className="px-6 text-gray-600">{item.country_name}</TableCell>
+                    <TableCell className="px-6">
                       <span className="font-mono text-xs text-gray-500">{item.municipality_code || '-'}</span>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`font-normal ${item.allow_self_registration ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
+                    <TableCell className="px-6">
+                      <Badge variant="outline" className={`font-normal ${item.allow_self_registration ? "border-[#10B981]/30 bg-green-50 text-[#10B981]" : "border-[#EF4444]/30 bg-red-50 text-[#EF4444]"}`}>
                         {item.allow_self_registration ? 'Open' : 'Restricted'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="px-6 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${item.id}`)}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

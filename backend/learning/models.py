@@ -48,6 +48,11 @@ class Course(models.Model):
     # Access Control (JSON List of Roles, e.g. ["MUNICIPALITY_ADMIN", "CLUB_ADMIN"])
     visible_to_roles = models.JSONField(default=list, help_text="List of user roles allowed to view this course")
     
+    # --- NEW FIELDS ---
+    is_recommended = models.BooleanField(default=False, help_text="Show in Recommended section by default")
+    related_courses = models.ManyToManyField('self', blank=True, symmetrical=False, help_text="Suggested next courses")
+    # ------------------
+    
     # Status
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     published_at = models.DateTimeField(blank=True, null=True)

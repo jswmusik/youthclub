@@ -248,39 +248,54 @@ export default function TagManager({ basePath }: TagManagerProps) {
 
       {/* Analytics */}
       <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-gray-500" />
-            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+        <Card className="border-0 shadow-sm bg-gray-900">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                Analytics Dashboard
+              </h3>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronUp className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                  analyticsExpanded ? "rotate-0" : "rotate-180"
+                )} />
+                <span className="sr-only">Toggle Analytics</span>
+              </Button>
+            </CollapsibleTrigger>
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-              <ChevronUp className={cn(
-                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                analyticsExpanded ? "rotate-0" : "rotate-180"
-              )} />
-              <span className="sr-only">Toggle Analytics</span>
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        <CollapsibleContent className="space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 pt-2">
-            {/* Card: Total Tags */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Tags</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total}</div>
-              </CardContent>
-            </Card>
-          </div>
-        </CollapsibleContent>
+          <CollapsibleContent className="transition-all duration-500 ease-in-out">
+            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+              <div className="grid grid-cols-1 sm:grid-cols-1 gap-3 sm:gap-4">
+                {/* Card: Total Tags */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                        }}>
+                        <Tag className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Tags</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
+                  </div>
+                </Card>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
       </Collapsible>
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-4 space-y-4">
+        <div className="px-6 py-4 space-y-4">
           {/* Main Filters Row */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             {/* Search - Takes more space on larger screens */}
@@ -328,7 +343,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
               <Card key={tag.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
                       <Tag className="h-5 w-5 text-[#4D4DA4]" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -370,26 +385,26 @@ export default function TagManager({ basePath }: TagManagerProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Tag</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Slug</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Tag</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Slug</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedTags.map(tag => (
                   <TableRow key={tag.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
+                        <div className="h-9 w-9 rounded-full bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
                           <Tag className="h-5 w-5 text-[#4D4DA4]" />
                         </div>
                         <div className="font-semibold text-[#121213]">{tag.name}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <code className="text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded font-mono">{tag.slug}</code>
                     </TableCell>
-                    <TableCell className="py-4 text-right">
+                    <TableCell className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/edit/${tag.id}`)}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

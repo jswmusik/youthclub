@@ -7,11 +7,11 @@ interface StatusBadgeProps {
 export default function StatusBadge({ status }: StatusBadgeProps) {
     switch (status) {
         case 'PUBLISHED':
-            return <Badge className="bg-emerald-600 hover:bg-emerald-700">Published</Badge>;
+            return <Badge variant="outline" className="bg-green-50 text-[#10B981] border-[#10B981]/30">Published</Badge>;
         case 'DRAFT':
-            return <Badge variant="secondary" className="bg-gray-200 text-gray-700 hover:bg-gray-300">Draft</Badge>;
+            return <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">Draft</Badge>;
         case 'SCHEDULED':
-            return <Badge className="bg-blue-600 hover:bg-blue-700">Scheduled</Badge>;
+            return <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">Scheduled</Badge>;
         default:
             return <Badge variant="outline">{status}</Badge>;
     }

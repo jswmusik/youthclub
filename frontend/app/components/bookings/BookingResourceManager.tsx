@@ -6,7 +6,7 @@ import Link from 'next/link';
 import api from '../../../lib/api';
 import { getMediaUrl } from '../../utils';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
-import { Calendar, Clock, Edit, Trash2, Plus, Search, BarChart3, ChevronUp, Package, CheckCircle, XCircle, X } from 'lucide-react';
+import { Calendar, Clock, Edit, Trash2, Plus, Search, BarChart3, ChevronUp, Package, CheckCircle, XCircle, X, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -208,54 +208,87 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
 
       {/* Analytics */}
       <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-gray-500" />
-            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+        <Card className="border-0 shadow-sm bg-gray-900">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                Analytics Dashboard
+              </h3>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                <ChevronUp className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                  analyticsExpanded ? "rotate-0" : "rotate-180"
+                )} />
+                <span className="sr-only">Toggle Analytics</span>
+              </Button>
+            </CollapsibleTrigger>
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-              <ChevronUp className={cn(
-                "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                analyticsExpanded ? "rotate-0" : "rotate-180"
-              )} />
-              <span className="sr-only">Toggle Analytics</span>
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        <CollapsibleContent className="space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            {/* Card 1: Total Resources */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Resources</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#4D4DA4]">{analytics.total}</div>
-              </CardContent>
-            </Card>
+          <CollapsibleContent className="transition-all duration-500 ease-in-out">
+            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                {/* Card 1: Total Resources */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                        }}>
+                        <Building className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Resources</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
+                  </div>
+                </Card>
 
-            {/* Card 2: Total Active */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Active</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{analytics.active}</div>
-              </CardContent>
-            </Card>
+                {/* Card 2: Total Active */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                        }}>
+                        <CheckCircle className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Active</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.active}</div>
+                  </div>
+                </Card>
 
-            {/* Card 3: Total Inactive */}
-            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Inactive</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">{analytics.inactive}</div>
-              </CardContent>
-            </Card>
-          </div>
-        </CollapsibleContent>
+                {/* Card 3: Total Inactive */}
+                <Card className="bg-white/5 backdrop-blur-sm border border-[#EF4444]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2)',
+                  }}>
+                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#F87171] flex items-center justify-center shadow-lg"
+                        style={{
+                          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5), 0 0 20px rgba(248, 113, 113, 0.3)',
+                        }}>
+                        <XCircle className="h-5 w-5 text-white" />
+                      </div>
+                      <CardTitle className="text-sm font-medium text-white/90">Total Inactive</CardTitle>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.inactive}</div>
+                  </div>
+                </Card>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
       </Collapsible>
 
       {/* Filters */}
@@ -277,7 +310,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
         </div>
         <CollapsibleContent className="space-y-2">
           <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardContent className="p-4">
+            <CardContent className="px-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                 {/* Search */}
                 <div className="relative md:col-span-4 lg:col-span-3">
@@ -356,14 +389,14 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Resource</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Type</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Resource</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
                   {scope !== 'CLUB' && (
-                    <TableHead className="h-12 text-gray-600 font-semibold">Club</TableHead>
+                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club</TableHead>
                   )}
-                  <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Description</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Description</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -371,16 +404,16 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                   const imageUrl = res.image ? getMediaUrl(res.image) : null;
                   return (
                     <TableRow key={res.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           {imageUrl ? (
                             <img 
                               src={imageUrl} 
                               alt={res.name}
-                              className="w-12 h-12 rounded-lg object-cover border border-gray-200"
+                              className="w-12 h-12 rounded-full object-cover border border-gray-200"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-lg bg-[#EBEBFE]/30 flex items-center justify-center border border-gray-200">
+                            <div className="w-12 h-12 rounded-full bg-[#EBEBFE]/30 flex items-center justify-center border border-gray-200">
                               <Package className="h-6 w-6 text-[#4D4DA4]" />
                             </div>
                           )}
@@ -392,24 +425,23 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="py-4">
-                        <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE]">
+                      <TableCell className="py-4 px-6">
+                        <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
                           {res.resource_type}
                         </Badge>
                       </TableCell>
                       {scope !== 'CLUB' && (
-                        <TableCell className="py-4">
+                        <TableCell className="py-4 px-6">
                           <span className="text-sm text-gray-700">{res.club_name || '-'}</span>
                         </TableCell>
                       )}
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <Badge 
                           variant="outline" 
                           className={cn(
-                            "border",
                             res.is_active 
-                              ? "bg-green-50 text-green-700 border-green-200" 
-                              : "bg-red-50 text-red-700 border-red-200"
+                              ? "bg-green-50 text-[#10B981] border-[#10B981]/30" 
+                              : "bg-red-50 text-[#EF4444] border-[#EF4444]/30"
                           )}
                         >
                           {res.is_active ? (
@@ -425,12 +457,12 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                           )}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-4">
+                      <TableCell className="py-4 px-6">
                         <p className="text-sm text-gray-600 line-clamp-2 max-w-md">
                           {res.description || <span className="text-gray-400 italic">No description</span>}
                         </p>
                       </TableCell>
-                      <TableCell className="py-4 text-right">
+                      <TableCell className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Link href={`${basePath}/${res.id}/schedule`}>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

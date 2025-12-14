@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import (
     LearningCategory, Course, CourseChapter, ContentItem, 
     UserCourseProgress, UserItemProgress, CourseRating
@@ -45,14 +46,32 @@ class CourseListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     user_progress = serializers.SerializerMethodField()
     rating_avg = serializers.SerializerMethodField()
+    user_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
         fields = [
             'id', 'title', 'slug', 'description', 'cover_image',
             'category', 'category_name', 'visible_to_roles', 
-            'status', 'published_at', 'user_progress', 'rating_avg'
+            'status', 'published_at', 'user_progress', 'rating_avg', 'user_rating',
+            'is_recommended'
         ]
+
+    def validate(self, data):
+        """Validate that published_at is set when status is SCHEDULED"""
+        status = data.get('status', self.instance.status if self.instance else None)
+        published_at = data.get('published_at', self.instance.published_at if self.instance else None)
+        
+        if status == Course.Status.SCHEDULED:
+            if not published_at:
+                raise serializers.ValidationError({
+                    'published_at': 'Publication date and time is required when status is SCHEDULED.'
+                })
+        elif status != Course.Status.SCHEDULED:
+            # Clear published_at if status is not SCHEDULED
+            data['published_at'] = None
+        
+        return data
 
     def get_user_progress(self, obj):
         user = self.context['request'].user
@@ -74,12 +93,24 @@ class CourseListSerializer(serializers.ModelSerializer):
             return sum(r.score for r in ratings) / ratings.count()
         return None
 
+    def get_user_rating(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            try:
+                rating = obj.ratings.get(user=user)
+                return rating.score
+            except CourseRating.DoesNotExist:
+                return None
+        return None
+
 class CourseDetailSerializer(CourseListSerializer):
     """Full serializer including chapters and items"""
     chapters = CourseChapterSerializer(many=True, read_only=True)
+    # Return simple list of related courses
+    related_courses = CourseListSerializer(many=True, read_only=True)
 
     class Meta(CourseListSerializer.Meta):
-        fields = CourseListSerializer.Meta.fields + ['chapters', 'meta_title', 'meta_description']
+        fields = CourseListSerializer.Meta.fields + ['chapters', 'meta_title', 'meta_description', 'related_courses']
 
 class UserCourseProgressSerializer(serializers.ModelSerializer):
     class Meta:

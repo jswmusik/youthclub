@@ -174,8 +174,8 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'VERIFIED': return 'bg-green-50 text-green-700 border-green-200';
-      case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 'VERIFIED': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
+      case 'PENDING': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
       case 'UNVERIFIED': return 'bg-gray-50 text-gray-700 border-gray-200';
       default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
@@ -274,13 +274,13 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
                   {user.verification_status}
                 </Badge>
                 {user.phone_number && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">
                     <Phone className="h-3 w-3 mr-1" />
                     {user.phone_number}
                   </Badge>
                 )}
                 {user.legal_gender && (
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                  <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
                     <User className="h-3 w-3 mr-1" />
                     {user.legal_gender}
                   </Badge>
@@ -438,24 +438,24 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
                               <span className="break-all">{y.email}</span>
                             </p>
                             <div className="flex flex-wrap gap-2 mb-2">
-                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                              <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 text-xs">
                                 {relationshipType.toLowerCase()}
                               </Badge>
                               {isPrimary && (
-                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
+                                <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs">
                                   Primary
                                 </Badge>
                               )}
                               <Badge variant="outline" className={`text-xs ${
-                                status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' :
-                                status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200' :
-                                'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                status === 'ACTIVE' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' :
+                                status === 'REJECTED' ? 'bg-red-50 text-[#EF4444] border-red-200' :
+                                'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30'
                               }`}>
                                 {status}
                               </Badge>
                             </div>
                             {y.grade && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                              <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs">
                                 <User className="h-3 w-3 mr-1" />
                                 Grade {y.grade}
                               </Badge>
@@ -573,7 +573,7 @@ function RelationshipActions({ relationshipId, currentStatus, onUpdate }: { rela
               onClick={handleVerify}
               disabled={loading}
               size="sm"
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs"
+              className="flex-1 bg-[#10B981] hover:bg-[#059669] text-white text-xs"
             >
               {loading ? 'Processing...' : 'Verify'}
             </Button>
@@ -582,7 +582,7 @@ function RelationshipActions({ relationshipId, currentStatus, onUpdate }: { rela
               disabled={loading}
               size="sm"
               variant="destructive"
-              className="flex-1 text-xs"
+              className="flex-1 bg-[#EF4444] hover:bg-[#DC2626] text-white text-xs"
             >
               {loading ? 'Processing...' : 'Reject'}
             </Button>
@@ -594,7 +594,7 @@ function RelationshipActions({ relationshipId, currentStatus, onUpdate }: { rela
             disabled={loading}
             size="sm"
             variant="outline"
-            className="flex-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-300 text-xs"
+            className="flex-1 bg-blue-50 hover:bg-blue-100 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs"
           >
             {loading ? 'Processing...' : 'Reset to Pending'}
           </Button>
@@ -605,7 +605,7 @@ function RelationshipActions({ relationshipId, currentStatus, onUpdate }: { rela
               onClick={handleVerify}
               disabled={loading}
               size="sm"
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs"
+              className="flex-1 bg-[#10B981] hover:bg-[#059669] text-white text-xs"
             >
               {loading ? 'Processing...' : 'Approve'}
             </Button>

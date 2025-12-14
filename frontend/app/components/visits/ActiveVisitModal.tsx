@@ -54,28 +54,30 @@ export default function ActiveVisitModal({ isOpen, onClose, visit, onCheckout }:
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <div className="bg-[#050505] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-[#262626]">
           
           {/* Header */}
-          <div className="bg-emerald-600 p-6 text-center text-white">
-            <div className="mx-auto w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3 backdrop-blur-md">
-              <span className="text-2xl">📍</span>
+          <div className="bg-emerald-500/20 border-b border-emerald-500/30 p-6 text-center">
+            <div className="mx-auto w-12 h-12 bg-emerald-500/30 rounded-full flex items-center justify-center mb-3 backdrop-blur-md border border-emerald-500/40">
+              <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
             </div>
-            <h2 className="text-xl font-bold">Currently Checked In</h2>
-            <p className="text-emerald-100 text-sm mt-1">{visit.club_name}</p>
+            <h2 className="text-xl font-bold text-gray-200">Currently Checked In</h2>
+            <p className="text-emerald-400 text-sm mt-1">{visit.club_name}</p>
           </div>
 
           {/* Content */}
           <div className="p-6 space-y-6">
-            <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="flex justify-between items-center bg-[#0a0a0a] p-4 rounded-xl border border-[#262626]">
               <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Arrived</p>
-                <p className="text-lg font-bold text-gray-800">{timeString}</p>
+                <p className="text-xs text-gray-400 uppercase font-semibold">Arrived</p>
+                <p className="text-lg font-bold text-gray-200">{timeString}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-500 uppercase font-semibold">Duration</p>
-                <p className="text-lg font-bold text-emerald-600">
+                <p className="text-xs text-gray-400 uppercase font-semibold">Duration</p>
+                <p className="text-lg font-bold text-emerald-400">
                   {hours > 0 ? `${hours}h ` : ''}{minutes}m
                 </p>
               </div>
@@ -85,21 +87,23 @@ export default function ActiveVisitModal({ isOpen, onClose, visit, onCheckout }:
               <button 
                 onClick={handleCheckOut}
                 disabled={loading}
-                className="w-full py-3.5 bg-red-50 text-red-600 font-bold rounded-xl border-2 border-red-100 hover:bg-red-100 hover:border-red-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 bg-[#FF5485] text-white font-bold rounded-xl border-2 border-[#FF5485] hover:bg-[#FF6595] hover:border-[#FF6595] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[#FF5485]/30"
               >
                 {loading ? (
                   <span>Checking out...</span>
                 ) : (
                   <>
-                    <span>Log Out / Leave</span>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    <span>Check out!</span>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
                   </>
                 )}
               </button>
               
               <button 
                 onClick={onClose}
-                className="w-full py-3 text-gray-400 hover:text-gray-600 text-sm font-medium"
+                className="w-full py-3 text-gray-400 hover:text-gray-300 text-sm font-medium transition-colors"
               >
                 Close / Stay Checked In
               </button>

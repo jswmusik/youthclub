@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, Globe, Building, Users } from 'lucide-react';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, Globe, Building, Users, UserPlus, TrendingUp } from 'lucide-react';
 import api from '../../../../lib/api';
 import { Post } from '../../../../types/post';
 import ConfirmationModal from '../../../components/ConfirmationModal';
@@ -289,7 +289,7 @@ export default function SuperAdminPostsPage() {
     const getScopeBadge = (post: any) => {
         if (post.is_global) {
             return (
-                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
                     <Globe className="h-3 w-3 mr-1" />
                     Global
                 </Badge>
@@ -301,7 +301,7 @@ export default function SuperAdminPostsPage() {
             const count = post.target_municipalities_details.length;
             const name = post.target_municipalities_details[0].name;
             return (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
                     <Building className="h-3 w-3 mr-1" />
                     {count > 1 ? `${count} Municipalities` : name}
                 </Badge>
@@ -313,7 +313,7 @@ export default function SuperAdminPostsPage() {
             const count = post.target_clubs_details.length;
             const name = post.target_clubs_details[0].name;
             return (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
                     <Users className="h-3 w-3 mr-1" />
                     {count > 1 ? `${count} Clubs` : name}
                 </Badge>
@@ -370,70 +370,112 @@ export default function SuperAdminPostsPage() {
             {/* Analytics */}
             {stats && (
                 <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                        <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-gray-500" />
-                            <h3 className="text-sm font-semibold text-gray-500">Analytics</h3>
+                    <Card className="border-0 shadow-sm bg-gray-900">
+                        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 text-gray-400" />
+                                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                                    Analytics Dashboard
+                                </h3>
+                            </div>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
+                                    <ChevronUp className={cn(
+                                        "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
+                                        analyticsExpanded ? "rotate-0" : "rotate-180"
+                                    )} />
+                                    <span className="sr-only">Toggle Analytics</span>
+                                </Button>
+                            </CollapsibleTrigger>
                         </div>
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="w-9 p-0 h-8">
-                                <ChevronUp className={cn(
-                                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                                )} />
-                                <span className="sr-only">Toggle Analytics</span>
-                            </Button>
-                        </CollapsibleTrigger>
-                    </div>
-                    <CollapsibleContent className="space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-                            {/* Card 1: Total Posts */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Total Posts</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{stats.total_posts}</div>
-                                </CardContent>
-                            </Card>
+                        <CollapsibleContent className="transition-all duration-500 ease-in-out">
+                            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                    {/* Card 1: Total Posts */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                                                    }}>
+                                                    <FileText className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Total Posts</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{stats.total_posts}</div>
+                                        </div>
+                                    </Card>
 
-                            {/* Card 2: New Last 7 Days */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">New (7 Days)</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{stats.created_last_7_days}</div>
-                                </CardContent>
-                            </Card>
+                                    {/* Card 2: New Last 7 Days */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
+                                                    }}>
+                                                    <UserPlus className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">New (7 Days)</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{stats.created_last_7_days}</div>
+                                        </div>
+                                    </Card>
 
-                            {/* Card 3: New Last 30 Days */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">New (30 Days)</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{stats.created_last_30_days}</div>
-                                </CardContent>
-                            </Card>
+                                    {/* Card 3: New Last 30 Days */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
+                                                    }}>
+                                                    <UserPlus className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">New (30 Days)</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{stats.created_last_30_days}</div>
+                                        </div>
+                                    </Card>
 
-                            {/* Card 4: Average Views */}
-                            <Card className="bg-[#EBEBFE]/30 border-none shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-500">Avg Views</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-[#4D4DA4]">{stats.average_views}</div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </CollapsibleContent>
+                                    {/* Card 4: Average Views */}
+                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                                        style={{
+                                            boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                                        }}>
+                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
+                                                    style={{
+                                                        boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
+                                                    }}>
+                                                    <TrendingUp className="h-5 w-5 text-white" />
+                                                </div>
+                                                <CardTitle className="text-sm font-medium text-white/90">Avg Views</CardTitle>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-bold text-white">{stats.average_views}</div>
+                                        </div>
+                                    </Card>
+                                </div>
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
                 </Collapsible>
             )}
 
             {/* Filters */}
             <Card className="border border-gray-100 shadow-sm bg-white">
-                <div className="p-4 space-y-4">
+                <div className="px-6 py-4 space-y-4">
                     {/* Main Filters Row */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                         {/* Search - Takes more space on larger screens */}
@@ -528,7 +570,7 @@ export default function SuperAdminPostsPage() {
                             <Card key={post.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
                                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
+                                        <div className="h-10 w-10 rounded-full bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
                                             <FileText className="h-5 w-5 text-[#4D4DA4]" />
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -550,15 +592,21 @@ export default function SuperAdminPostsPage() {
                                         </div>
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-xs text-gray-500 uppercase font-semibold">Type</span>
-                                            <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                                            <Badge variant="outline" className={`text-xs ${
+                                                post.post_type === 'TEXT' ? 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30' :
+                                                post.post_type === 'IMAGE' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' :
+                                                post.post_type === 'VIDEO' ? 'bg-pink-50 text-[#FF5485] border-[#FF5485]/30' :
+                                                'bg-gray-50 text-gray-700 border-gray-200'
+                                            }`}>
                                                 {post.post_type}
                                             </Badge>
                                         </div>
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
                                             <Badge variant="outline" className={`text-xs ${
-                                                post.status === 'PUBLISHED' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                post.status === 'DRAFT' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                post.status === 'PUBLISHED' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' :
+                                                post.status === 'DRAFT' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' :
+                                                post.status === 'SCHEDULED' ? 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30' :
                                                 'bg-gray-50 text-gray-700 border-gray-200'
                                             }`}>
                                                 {post.status}
@@ -603,20 +651,20 @@ export default function SuperAdminPostsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Post</TableHead>
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Scope</TableHead>
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Type</TableHead>
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
-                                    <TableHead className="h-12 text-gray-600 font-semibold">Views</TableHead>
-                                    <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Post</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Scope</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Views</TableHead>
+                                    <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {posts.map(post => (
                                     <TableRow key={post.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-9 w-9 rounded-lg bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
+                                                <div className="h-9 w-9 rounded-full bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
                                                     <FileText className="h-5 w-5 text-[#4D4DA4]" />
                                                 </div>
                                                 <div>
@@ -630,27 +678,33 @@ export default function SuperAdminPostsPage() {
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             {getScopeBadge(post)}
                                         </TableCell>
-                                        <TableCell className="py-4">
-                                            <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                                        <TableCell className="py-4 px-6">
+                                            <Badge variant="outline" className={`text-xs ${
+                                                post.post_type === 'TEXT' ? 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30' :
+                                                post.post_type === 'IMAGE' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' :
+                                                post.post_type === 'VIDEO' ? 'bg-pink-50 text-[#FF5485] border-[#FF5485]/30' :
+                                                'bg-gray-50 text-gray-700 border-gray-200'
+                                            }`}>
                                                 {post.post_type}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             <Badge variant="outline" className={`text-xs ${
-                                                post.status === 'PUBLISHED' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                post.status === 'DRAFT' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                post.status === 'PUBLISHED' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' :
+                                                post.status === 'DRAFT' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' :
+                                                post.status === 'SCHEDULED' ? 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30' :
                                                 'bg-gray-50 text-gray-700 border-gray-200'
                                             }`}>
                                                 {post.status}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-4 px-6">
                                             <span className="text-sm text-gray-600">{post.view_count}</span>
                                         </TableCell>
-                                        <TableCell className="py-4 text-right">
+                                        <TableCell className="py-4 px-6 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <Link href={buildUrlWithParams(`/admin/super/posts/${post.id}`)}>
                                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

@@ -40,9 +40,9 @@ export default function ConfirmationModal({
   // Variant styles with brand colors
   const variantStyles = {
     danger: {
-      iconBg: 'bg-red-100',
-      iconColor: 'text-red-600',
-      confirmBg: 'bg-red-600 hover:bg-red-700',
+      iconBg: 'bg-[#EBEBFE]',
+      iconColor: 'text-[#EF4444]',
+      confirmBg: 'bg-[#EF4444] hover:bg-[#EF4444]/90 text-white',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -50,9 +50,9 @@ export default function ConfirmationModal({
       ),
     },
     warning: {
-      iconBg: 'bg-yellow-100',
-      iconColor: 'text-yellow-600',
-      confirmBg: 'bg-yellow-600 hover:bg-yellow-700',
+      iconBg: 'bg-[#EBEBFE]',
+      iconColor: 'text-[#EF4444]',
+      confirmBg: 'bg-[#EF4444] hover:bg-[#EF4444]/90 text-white',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -61,8 +61,8 @@ export default function ConfirmationModal({
     },
     info: {
       iconBg: 'bg-[#EBEBFE]',
-      iconColor: 'text-[#4D4DA4]',
-      confirmBg: 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white',
+      iconColor: 'text-[#EF4444]',
+      confirmBg: 'bg-[#EF4444] hover:bg-[#EF4444]/90 text-white',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -70,9 +70,9 @@ export default function ConfirmationModal({
       ),
     },
     success: {
-      iconBg: 'bg-green-100',
-      iconColor: 'text-green-600',
-      confirmBg: 'bg-green-600 hover:bg-green-700',
+      iconBg: 'bg-[#EBEBFE]',
+      iconColor: 'text-[#EF4444]',
+      confirmBg: 'bg-[#EF4444] hover:bg-[#EF4444]/90 text-white',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -121,7 +121,7 @@ export default function ConfirmationModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-full font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 text-gray-700 bg-[#EBEBFE] rounded-full font-semibold hover:bg-[#EBEBFE]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-[#EBEBFE]"
           >
             {cancelButtonText}
           </button>

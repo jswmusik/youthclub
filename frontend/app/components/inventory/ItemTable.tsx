@@ -56,11 +56,11 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
   const getStatusBadge = (status: string, activeLoan: any) => {
     switch(status) {
         case 'AVAILABLE':
-            return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Available</Badge>;
+            return <Badge variant="outline" className="text-xs bg-green-50 text-[#10B981] border-[#10B981]/30">Available</Badge>;
         case 'BORROWED':
             return (
                 <div className="flex flex-col items-start gap-1">
-                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">Borrowed</Badge>
+                    <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">Borrowed</Badge>
                     {activeLoan && (
                         <span className="text-xs text-gray-500">
                             by {activeLoan.user_name} 
@@ -70,9 +70,11 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
                 </div>
             );
         case 'MAINTENANCE':
-            return <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Broken</Badge>;
+            return <Badge variant="outline" className="text-xs bg-red-50 text-[#EF4444] border-[#EF4444]/30">Broken</Badge>;
         case 'MISSING':
             return <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Missing</Badge>;
+        case 'HIDDEN':
+            return <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Hidden</Badge>;
         default:
             return <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">{status}</Badge>;
     }
@@ -96,9 +98,9 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
           <Card key={item.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0">
+                <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
                   <AvatarImage src={item.image || undefined} className="object-cover" />
-                  <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                  <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
                     <Package className="h-5 w-5" />
                   </AvatarFallback>
                 </Avatar>
@@ -117,7 +119,7 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-xs text-gray-500 uppercase font-semibold">Category</span>
                   {item.category_details ? (
-                    <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                    <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
                       {item.category_details.icon} {item.category_details.name}
                     </Badge>
                   ) : (
@@ -172,21 +174,21 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
         <Table>
           <TableHeader>
             <TableRow className="border-b border-gray-100 hover:bg-transparent">
-              <TableHead className="h-12 text-gray-600 font-semibold">Item</TableHead>
-              <TableHead className="h-12 text-gray-600 font-semibold">Category</TableHead>
-              <TableHead className="h-12 text-gray-600 font-semibold">Status</TableHead>
-              <TableHead className="h-12 text-gray-600 font-semibold">Queue</TableHead>
-              <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Item</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Category</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Queue</TableHead>
+              <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {itemsArray.map(item => (
               <TableRow key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                <TableCell className="py-4">
+                <TableCell className="py-4 px-6">
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
+                    <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
                       <AvatarImage src={item.image || undefined} className="object-cover" />
-                      <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
                         <Package className="h-5 w-5" />
                       </AvatarFallback>
                     </Avatar>
@@ -196,26 +198,26 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="py-4">
+                <TableCell className="py-4 px-6">
                   {item.category_details ? (
-                    <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                    <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
                       {item.category_details.icon} {item.category_details.name}
                     </Badge>
                   ) : (
                     <span className="text-sm text-gray-400">-</span>
                   )}
                 </TableCell>
-                <TableCell className="py-4">
+                <TableCell className="py-4 px-6">
                   {getStatusBadge(item.status, item.active_loan)}
                 </TableCell>
-                <TableCell className="py-4">
+                <TableCell className="py-4 px-6">
                   {item.queue_count > 0 ? (
                     <span className="text-sm font-medium text-purple-600">{item.queue_count} waiting</span>
                   ) : (
                     <span className="text-sm text-gray-400">Empty</span>
                   )}
                 </TableCell>
-                <TableCell className="py-4 text-right">
+                <TableCell className="py-4 px-6 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/view/${item.id}`) : `${basePath}/view/${item.id}`}>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">

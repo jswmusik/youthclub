@@ -243,11 +243,30 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
 
   const getBadgeStyle = (type: string) => {
     switch(type) {
-        case 'INFO': return 'bg-blue-100 text-blue-800 border-blue-200';
-        case 'IMPORTANT': return 'bg-orange-100 text-orange-800 border-orange-200';
-        case 'WARNING': return 'bg-red-100 text-red-800 border-red-200';
-        default: return 'bg-gray-100 text-gray-800 border-gray-200';
+        case 'INFO': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
+        case 'IMPORTANT': return 'bg-orange-50 text-[#F59E0B] border-[#F59E0B]/30';
+        case 'WARNING': return 'bg-red-50 text-[#EF4444] border-[#EF4444]/30';
+        default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
+  };
+
+  const getRoleLabel = (role: string) => {
+    const roleMap: Record<string, string> = {
+      'SUPER_ADMIN': 'Super Admin',
+      'MUNICIPALITY_ADMIN': 'Municipality Admin',
+      'CLUB_ADMIN': 'Club Admin',
+      'YOUTH_MEMBER': 'Youth Member',
+      'GUARDIAN': 'Guardian',
+      'ALL': 'All Users'
+    };
+    return roleMap[role] || role;
+  };
+
+  const formatTargetRoles = (roles: string[]) => {
+    if (roles.includes("ALL")) {
+      return "All Users";
+    }
+    return roles.map(role => getRoleLabel(role)).join(", ");
   };
 
   // Pagination logic
@@ -280,7 +299,9 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
             <div className="flex items-center justify-between px-4 sm:px-6 py-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-400">Analytics Dashboard</h3>
+                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
+                  Analytics Dashboard
+                </h3>
               </div>
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
@@ -293,66 +314,82 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
               </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
+              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   {/* Card 1: Total Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Total Messages</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-[#4D4DA4]/30 flex items-center justify-center shadow-md">
-                          <MessageSquare className="h-5 w-5 text-[#4D4DA4]" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
+                          }}>
+                          <MessageSquare className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Total Messages</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.total}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
+                    </div>
                   </Card>
 
                   {/* Card 2: Information Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Information</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center shadow-md">
-                          <Info className="h-5 w-5 text-blue-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
+                          }}>
+                          <Info className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Information</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.info}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.info}</div>
+                    </div>
                   </Card>
 
                   {/* Card 3: Important Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Important</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/30 flex items-center justify-center shadow-md">
-                          <AlertCircle className="h-5 w-5 text-orange-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#F59E0B]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#F97316] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.3)',
+                          }}>
+                          <AlertCircle className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Important</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.important}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.important}</div>
+                    </div>
                   </Card>
 
                   {/* Card 4: Warning Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-white/90">Warning</CardTitle>
-                        <div className="w-10 h-10 rounded-xl bg-red-500/30 flex items-center justify-center shadow-md">
-                          <AlertTriangle className="h-5 w-5 text-red-400" />
+                  <Card className="bg-white/5 backdrop-blur-sm border border-[#EF4444]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
+                    style={{
+                      boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2)',
+                    }}>
+                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#DC2626] flex items-center justify-center shadow-lg"
+                          style={{
+                            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.3)',
+                          }}>
+                          <AlertTriangle className="h-5 w-5 text-white" />
                         </div>
+                        <CardTitle className="text-sm font-medium text-white/90">Warning</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-white">{analytics.warning}</div>
-                    </CardContent>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.warning}</div>
+                    </div>
                   </Card>
                 </div>
               </CardContent>
@@ -363,7 +400,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
 
       {/* Filters */}
       <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+        <div className="px-6 py-4 space-y-4">
           {/* Main Filters Row */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 items-end">
             {/* Search - Takes more space on larger screens */}
@@ -458,7 +495,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-xs text-gray-500 uppercase font-semibold">Audience</span>
-                      <span className="text-xs text-gray-700">{msg.target_roles.includes("ALL") ? "All Users" : msg.target_roles.join(", ")}</span>
+                      <span className="text-xs text-gray-700">{formatTargetRoles(msg.target_roles)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-xs text-gray-500 uppercase font-semibold">Expires</span>
@@ -496,17 +533,17 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Type</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Content</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Audience</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Expires</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Content</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Audience</TableHead>
+                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Expires</TableHead>
+                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedMessages.map(msg => (
                   <TableRow key={msg.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className={cn("text-xs font-semibold", getBadgeStyle(msg.message_type))}>
                           {msg.message_type}
@@ -518,14 +555,14 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       <div className="font-semibold text-[#121213]">{msg.title}</div>
                       <div className="text-sm text-gray-500 max-w-md truncate">{msg.message}</div>
                     </TableCell>
-                    <TableCell className="py-4 text-sm text-gray-600">
-                      {msg.target_roles.includes("ALL") ? "All Users" : msg.target_roles.join(", ")}
+                    <TableCell className="py-4 px-6 text-sm text-gray-600">
+                      {formatTargetRoles(msg.target_roles)}
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 px-6">
                       {(() => {
                         const expiresAt = new Date(msg.expires_at);
                         const now = new Date();
@@ -537,7 +574,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="py-4 text-right">
+                    <TableCell className="py-4 px-6 text-right">
                       <Button 
                         variant="ghost" 
                         size="sm" 
