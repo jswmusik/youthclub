@@ -1,13 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { X, Plus, Trash2, FileQuestion, ListChecks, Type, Star, CheckCircle } from 'lucide-react';
 
 interface QuestionModalProps {
   isVisible: boolean;
@@ -24,14 +18,14 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
     options: [],
     order: 0
   });
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // Load initial data when modal opens
   useEffect(() => {
     if (isVisible) {
       if (initialData) {
-        setQ(JSON.parse(JSON.stringify(initialData))); // Deep copy
+        setQ(JSON.parse(JSON.stringify(initialData)));
       } else {
-        // Reset for new question
         setQ({
           text: '',
           question_type: 'FREE_TEXT',
@@ -75,140 +69,215 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
     onSave(q);
   };
 
+  const inputClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const textareaClasses = (field: string) => `
+    w-full px-4 py-3 rounded-xl resize-none min-h-[80px]
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl appearance-none cursor-pointer
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)]
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
+
+  const questionTypes = [
+    { value: 'FREE_TEXT', label: 'Free Text', icon: Type, description: 'Open-ended text response' },
+    { value: 'RATING', label: 'Star Rating', icon: Star, description: 'Rate from 1 to 5 stars' },
+    { value: 'SINGLE_CHOICE', label: 'Single Choice', icon: CheckCircle, description: 'Select one option' },
+    { value: 'MULTI_CHOICE', label: 'Multiple Choice', icon: ListChecks, description: 'Select multiple options' },
+  ];
+
+  const isValid = q.text.trim() && !(['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && (!q.options || q.options.length === 0));
+
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-50"
       onClick={handleBackdropClick}
-      style={{ animation: 'fadeIn 0.2s ease-out' }}
     >
-      <Card 
-        className="bg-white w-full max-w-2xl shadow-2xl border border-gray-100 rounded-2xl overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-200"
-        style={{ animation: 'slideUp 0.2s ease-out' }}
+      <div 
+        className="bg-[var(--dark-800)] w-full max-w-full sm:max-w-2xl sm:mx-4 rounded-t-2xl sm:rounded-2xl border-t sm:border border-[var(--dark-600)] shadow-2xl flex flex-col max-h-[90vh] sm:max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile drag handle */}
+        <div className="flex justify-center pt-3 pb-2 sm:hidden">
+          <div className="w-12 h-1 bg-[var(--dark-500)] rounded-full"></div>
+        </div>
+
         {/* Header */}
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 border-b border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-2xl font-bold text-[#121213] mb-1">
-              {initialData ? 'Edit Question' : 'Add Question'}
-            </CardTitle>
-            <p className="text-sm text-gray-500">Configure your question settings and options</p>
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
+                <FileQuestion className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">
+                  {initialData ? 'Edit Question' : 'Add Question'}
+                </h2>
+                <p className="text-sm text-[var(--brand-light)]/50">Configure your question settings</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all flex-shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </CardHeader>
+        </div>
 
         {/* Content */}
-        <CardContent className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
           
-          {/* Question Type */}
-          <div className="space-y-2">
-            <Label>Question Type</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              value={q.question_type}
-              onChange={(e) => setQ({ ...q, question_type: e.target.value })}
-            >
-              <option value="FREE_TEXT">Free Text</option>
-              <option value="RATING">Star Rating (1-5)</option>
-              <option value="SINGLE_CHOICE">Single Choice</option>
-              <option value="MULTI_CHOICE">Multiple Choice</option>
-            </select>
+          {/* Question Type Selector */}
+          <div>
+            <label className={labelClasses}>Question Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              {questionTypes.map((type) => {
+                const Icon = type.icon;
+                const isSelected = q.question_type === type.value;
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setQ({ ...q, question_type: type.value })}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${
+                      isSelected
+                        ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)] text-[var(--brand-light)]'
+                        : 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:border-[var(--brand-primary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon className={`w-4 h-4 ${isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]/50'}`} />
+                      <span className="font-medium text-sm">{type.label}</span>
+                    </div>
+                    <p className="text-xs text-[var(--brand-light)]/40">{type.description}</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Question Text */}
-          <div className="space-y-2">
-            <Label>Question Text <span className="text-red-500">*</span></Label>
-            <Input
+          <div>
+            <label className={labelClasses}>Question Text <span className="text-[var(--brand-red)]">*</span></label>
+            <input
               type="text"
               required
               value={q.text}
               onChange={(e) => setQ({ ...q, text: e.target.value })}
               placeholder="e.g. How satisfied are you with..."
+              className={inputClasses('text')}
+              onFocus={() => setFocusedField('text')}
+              onBlur={() => setFocusedField(null)}
             />
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
-            <Label>Description (Optional)</Label>
+          <div>
+            <label className={labelClasses}>Description (Optional)</label>
             <textarea
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               value={q.description || ''}
               onChange={(e) => setQ({ ...q, description: e.target.value })}
               placeholder="Helper text for the user..."
+              className={textareaClasses('description')}
+              onFocus={() => setFocusedField('description')}
+              onBlur={() => setFocusedField(null)}
             />
           </div>
 
           {/* Options Builder (Only for Choice types) */}
           {['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && (
-            <Card className="bg-[#EBEBFE]/30 border border-[#4D4DA4]/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-[#4D4DA4]">Answer Options</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+            <div className="bg-[var(--brand-purple)]/10 rounded-xl p-4 border border-[var(--brand-purple)]/30">
+              <div className="flex items-center gap-2 mb-4">
+                <ListChecks className="w-4 h-4 text-[var(--brand-purple)]" />
+                <span className="font-semibold text-sm text-[var(--brand-light)]">Answer Options</span>
+              </div>
+              
+              <div className="space-y-3">
                 {q.options?.map((opt: any, idx: number) => (
                   <div key={idx} className="flex gap-2 items-center">
-                    <Input
+                    <input
                       type="text"
-                      className="flex-1"
+                      className={`flex-1 h-10 px-3 rounded-lg bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none focus:border-[var(--brand-primary)] transition-colors`}
                       value={opt.text}
                       onChange={(e) => handleOptionChange(idx, e.target.value)}
                       placeholder={`Option ${idx + 1}`}
                     />
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="icon"
                       onClick={() => removeOption(idx)}
-                      className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="w-10 h-10 flex items-center justify-center rounded-lg text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
-                <Button
+                
+                <button
                   type="button"
-                  variant="outline"
                   onClick={addOption}
-                  className="w-full border-dashed border-[#4D4DA4]/30 text-[#4D4DA4] hover:bg-[#EBEBFE] hover:border-[#4D4DA4] gap-2"
+                  className="w-full py-3 rounded-xl border-2 border-dashed border-[var(--brand-purple)]/50 text-[var(--brand-purple)] font-medium hover:bg-[var(--brand-purple)]/10 hover:border-[var(--brand-purple)] transition-all flex items-center justify-center gap-2"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="w-4 h-4" />
                   Add Option
-                </Button>
+                </button>
+                
                 {(!q.options || q.options.length === 0) && (
-                  <p className="text-xs text-gray-500 text-center py-2">
+                  <p className="text-xs text-[var(--brand-light)]/40 text-center py-2">
                     Add at least one option to continue
                   </p>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
-
-        </CardContent>
+        </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
-          <Button 
-            variant="ghost" 
+        <div className="px-4 sm:px-6 py-4 border-t border-[var(--dark-600)] flex flex-col sm:flex-row justify-end gap-3 bg-[var(--dark-700)]/30">
+          <button 
             onClick={onClose}
+            className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all"
           >
             Cancel
-          </Button>
-          <Button 
+          </button>
+          <button 
             onClick={handleSave}
-            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2"
-            disabled={!q.text.trim() || (['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && (!q.options || q.options.length === 0))}
+            disabled={!isValid}
+            className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Save Question
-          </Button>
+          </button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

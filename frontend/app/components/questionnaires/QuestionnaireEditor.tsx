@@ -1,21 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Eye, Plus, ChevronUp, ChevronDown, Edit, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { 
+  ArrowLeft, Save, Plus, ChevronUp, ChevronDown, Edit, Trash2, 
+  CheckCircle2, Clock, ClipboardList, Settings, Users, Gift, 
+  FileQuestion, Lightbulb, Send, Eye, EyeOff
+} from 'lucide-react';
 import { questionnaireApi, Questionnaire } from '../../../lib/questionnaire-api';
 import QuestionnaireSettings from './QuestionnaireSettings';
 import QuestionModal from './QuestionModal';
 import Toast from '../Toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 
 interface Props {
-  initialId?: string; // If present, we are editing
+  initialId?: string;
   basePath: string;
   scope: 'SUPER' | 'MUNICIPALITY' | 'CLUB';
 }
@@ -23,8 +23,12 @@ interface Props {
 export default function QuestionnaireEditor({ initialId, basePath, scope }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const progressPlaceholderRef = useRef<HTMLDivElement>(null);
+  
   const [activeTab, setActiveTab] = useState<'SETTINGS' | 'QUESTIONS'>('SETTINGS');
   const [loading, setLoading] = useState(false);
+  const [isProgressFixed, setIsProgressFixed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   
   // Form State
   const [formData, setFormData] = useState<Partial<Questionnaire>>({
@@ -41,13 +45,18 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
+  // Track component mount for portal
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
   // Load Data if Edit Mode
   useEffect(() => {
     if (initialId) {
       setLoading(true);
       questionnaireApi.get(initialId)
         .then(res => {
-            // Ensure questions have IDs for logic mapping
             setFormData(res.data);
         })
         .catch(err => {
@@ -58,11 +67,39 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
     }
   }, [initialId]);
 
+  // Calculate completion percentage
+  const calculateCompletion = useCallback(() => {
+    const requiredFields = [formData.title, formData.expiration_date];
+    const filled = requiredFields.filter(f => f && f.toString().trim()).length;
+    return Math.round((filled / requiredFields.length) * 100);
+  }, [formData]);
+
+  const completionPercent = calculateCompletion();
+
+  // Scroll tracking for fixed progress bar
+  const checkScroll = useCallback(() => {
+    if (!progressPlaceholderRef.current) return;
+    const rect = progressPlaceholderRef.current.getBoundingClientRect();
+    const mainElement = document.querySelector('main');
+    const headerHeight = mainElement ? 0 : 64;
+    setIsProgressFixed(rect.top < headerHeight);
+  }, []);
+
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (mainElement) mainElement.addEventListener('scroll', checkScroll);
+    window.addEventListener('scroll', checkScroll);
+    checkScroll();
+    return () => {
+      if (mainElement) mainElement.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('scroll', checkScroll);
+    };
+  }, [checkScroll]);
+
   const handlePublish = async () => {
     if (!initialId) return;
     setLoading(true);
     try {
-      // Include scheduled_publish_date if it's set, so backend can handle scheduling logic
       const updateData: any = { status: 'PUBLISHED' };
       if (formData.scheduled_publish_date) {
         updateData.scheduled_publish_date = formData.scheduled_publish_date;
@@ -71,7 +108,6 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
       await questionnaireApi.update(initialId, updateData);
       setFormData({ ...formData, status: 'PUBLISHED' });
       
-      // Show appropriate message based on scheduling
       const scheduledDate = formData.scheduled_publish_date ? new Date(formData.scheduled_publish_date) : null;
       const isScheduled = scheduledDate && scheduledDate > new Date();
       
@@ -83,9 +119,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         isVisible: true 
       });
       
-      // Redirect to questionnaire list page after a short delay to show the toast
       setTimeout(() => {
-        // Preserve page parameter if it exists
         const pageParam = searchParams.get('page');
         const redirectUrl = pageParam ? `${basePath}?page=${pageParam}` : basePath;
         router.push(redirectUrl);
@@ -124,7 +158,6 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
   const handleSave = async () => {
     setLoading(true);
     try {
-        // Validate required fields
         if (!formData.title) {
             setToast({ message: 'Title is required', type: 'error', isVisible: true });
             setLoading(false);
@@ -136,16 +169,13 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
             return;
         }
 
-        // Prepare data to send
         const dataToSend: any = { ...formData };
         
-        // Remove fields that are set automatically by the backend
         delete dataToSend.admin_level;
         delete dataToSend.created_by;
         delete dataToSend.created_at;
         delete dataToSend.updated_at;
         
-        // Ensure rewards is always an array of numbers
         if (dataToSend.rewards) {
             dataToSend.rewards = Array.isArray(dataToSend.rewards) 
                 ? dataToSend.rewards.map((r: any) => typeof r === 'string' ? parseInt(r) : r).filter((r: any) => !isNaN(r))
@@ -154,10 +184,8 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
             dataToSend.rewards = [];
         }
         
-        // Remove start_date - it's auto-set by backend when publishing
         delete dataToSend.start_date;
         
-        // Clean up questions: remove image, parent_question, trigger_option fields
         if (dataToSend.questions) {
             dataToSend.questions = dataToSend.questions.map((q: any) => {
                 const cleanQ: any = {
@@ -179,7 +207,6 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
             });
         }
         
-        // Convert scheduled_publish_date to ISO format if it's a string from datetime-local input
         if (dataToSend.scheduled_publish_date && dataToSend.scheduled_publish_date !== '' && dataToSend.scheduled_publish_date !== 'null') {
             if (typeof dataToSend.scheduled_publish_date === 'string') {
                 if (!dataToSend.scheduled_publish_date.includes('Z') && !dataToSend.scheduled_publish_date.includes('+')) {
@@ -192,7 +219,6 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
             dataToSend.scheduled_publish_date = null;
         }
         
-        // Convert expiration_date to ISO format
         if (dataToSend.expiration_date) {
             if (typeof dataToSend.expiration_date === 'string') {
                 const hasTimezone = dataToSend.expiration_date.endsWith('Z') || 
@@ -220,30 +246,21 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         } else {
             const res = await questionnaireApi.create(dataToSend);
             setToast({ message: 'Created successfully', type: 'success', isVisible: true });
-            // Preserve page parameter if it exists
             const pageParam = searchParams.get('page');
             const redirectUrl = pageParam ? `${basePath}/edit/${res.data.id}?page=${pageParam}` : `${basePath}/edit/${res.data.id}`;
             router.push(redirectUrl);
         }
         } catch (err: any) {
             console.error('Save error:', err);
-            console.error('Error response:', err.response?.data);
-            console.error('Error status:', err.response?.status);
-            console.error('Error headers:', err.response?.headers);
-            console.error('Form data being sent:', formData);
             
-            // Show more detailed error message
             let errorMessage = 'Failed to save. Check all required fields.';
             
             if (err.response?.data) {
                 const errorData = err.response.data;
                 
-                // Handle different error formats
                 if (typeof errorData === 'string') {
                     errorMessage = errorData;
                 } else if (typeof errorData === 'object') {
-                    // DRF validation errors are usually in this format:
-                    // { "field_name": ["error message"] }
                     const errorFields = Object.keys(errorData);
                     if (errorFields.length > 0) {
                         const messages = errorFields.map(field => {
@@ -258,8 +275,6 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
                     }
                 }
             }
-            
-            console.error('Parsed error message:', errorMessage);
             
             setToast({ 
                 message: errorMessage.length > 150 
@@ -277,10 +292,8 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
     const newQuestions = [...(formData.questions || [])];
     
     if (editingQuestionIndex !== null) {
-        // Update existing
         newQuestions[editingQuestionIndex] = question;
     } else {
-        // Add new
         newQuestions.push({ ...question, order: newQuestions.length + 1 });
     }
     
@@ -292,7 +305,6 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
   const deleteQuestion = (index: number) => {
     const newQuestions = [...(formData.questions || [])];
     newQuestions.splice(index, 1);
-    // Re-index orders
     const reindexed = newQuestions.map((q, i) => ({ ...q, order: i + 1 }));
     setFormData({ ...formData, questions: reindexed });
   };
@@ -308,250 +320,341 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
     setFormData({ ...formData, questions: reindexed });
   };
 
+  const getQuestionTypeLabel = (type: string) => {
+    const types: Record<string, string> = {
+      'SINGLE_CHOICE': 'Single Choice',
+      'MULTI_CHOICE': 'Multiple Choice',
+      'TEXT': 'Text Answer',
+      'RATING': 'Rating Scale',
+      'YES_NO': 'Yes / No'
+    };
+    return types[type] || type;
+  };
+
   if (loading && initialId && !formData.title) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-pulse text-gray-400">Loading...</div>
+    <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
+      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+        <ClipboardList className="w-6 h-6 text-white" />
+      </div>
+      <div className="text-[var(--brand-light)]/60 animate-pulse">Loading questionnaire...</div>
     </div>
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-20">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Link href={basePath}>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-4xl sm:mx-auto sm:px-6">
+        
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+          <Link 
+            href={basePath}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground break-words">
-              {initialId ? 'Edit Questionnaire' : 'Create New Questionnaire'}
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+              {initialId ? 'Edit Questionnaire' : 'Create Questionnaire'}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <p className="text-[var(--brand-light)]/50 text-sm mt-1 flex items-center gap-2">
               {formData.status === 'PUBLISHED' ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                  Live
-                </span>
+                <>
+                  <span className="w-2 h-2 bg-[var(--brand-green)] rounded-full animate-pulse"></span>
+                  <span className="text-[var(--brand-green)]">Live</span>
+                </>
               ) : (
-                'Draft Mode'
+                <>
+                  <span className="w-2 h-2 bg-[var(--brand-yellow)] rounded-full"></span>
+                  <span>Draft Mode</span>
+                </>
               )}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:flex-shrink-0">
-          <Button 
+
+        {/* Progress Indicator */}
+        <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
+          <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+              <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+            </div>
+            <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPercent}%` }} />
+            </div>
+            {completionPercent === 100 && (
+              <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm font-medium">Ready to save!</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Fixed Progress */}
+        {isMounted && createPortal(
+          <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
+            <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+              </div>
+              <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPercent}%` }} />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Tab Navigation */}
+        <div className="mb-6 sm:mb-8 px-4 sm:px-0">
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-1.5 flex gap-1">
+            <button
+              onClick={() => setActiveTab('SETTINGS')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === 'SETTINGS' 
+                  ? 'bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white shadow-lg' 
+                  : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Settings & Targeting</span>
+              <span className="sm:hidden">Settings</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('QUESTIONS')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === 'QUESTIONS' 
+                  ? 'bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white shadow-lg' 
+                  : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]'
+              }`}
+            >
+              <FileQuestion className="w-4 h-4" />
+              <span>Questions</span>
+              {formData.questions && formData.questions.length > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === 'QUESTIONS' 
+                    ? 'bg-white/20 text-white' 
+                    : 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]'
+                }`}>
+                  {formData.questions.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        {activeTab === 'SETTINGS' ? (
+          <QuestionnaireSettings data={formData} onChange={setFormData} scope={scope} />
+        ) : (
+          <div className="space-y-6">
+            {/* Empty State */}
+            {(!formData.questions || formData.questions.length === 0) && (
+              <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                <div className="p-12 sm:p-20 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                    <FileQuestion className="w-8 h-8 text-[var(--brand-light)]/30" />
+                  </div>
+                  <p className="text-[var(--brand-light)]/50 mb-6">No questions added yet.</p>
+                  <button 
+                    onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add First Question
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Questions List */}
+            {formData.questions && formData.questions.length > 0 && (
+              <div className="space-y-4">
+                {formData.questions.map((q: any, idx: number) => (
+                  <div key={idx} className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden hover:border-[var(--brand-primary)]/30 transition-all">
+                    <div className="p-4 sm:p-6">
+                      <div className="flex gap-3 sm:gap-4 items-start">
+                        {/* Order Controls */}
+                        <div className="flex flex-col gap-1 pt-1 flex-shrink-0">
+                          <button
+                            onClick={() => moveQuestion(idx, 'up')}
+                            disabled={idx === 0}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--brand-light)]/40 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)] transition-all disabled:opacity-0 disabled:pointer-events-none"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <span className="font-bold text-white text-sm">{idx + 1}</span>
+                          </div>
+                          <button
+                            onClick={() => moveQuestion(idx, 'down')}
+                            disabled={idx === (formData.questions?.length || 0) - 1}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--brand-light)]/40 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)] transition-all disabled:opacity-0 disabled:pointer-events-none"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                        
+                        {/* Question Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+                            <h3 className="font-semibold text-[var(--brand-light)] text-base sm:text-lg break-words">{q.text}</h3>
+                            <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                              <button
+                                onClick={() => { setEditingQuestionIndex(idx); setShowModal(true); }}
+                                className="px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)] transition-all flex items-center gap-1.5"
+                              >
+                                <Edit className="w-4 h-4" />
+                                <span className="hidden sm:inline">Edit</span>
+                              </button>
+                              <button
+                                onClick={() => deleteQuestion(idx)}
+                                className="px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all flex items-center gap-1.5"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="hidden sm:inline">Delete</span>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2 flex-wrap mb-3">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
+                              {getQuestionTypeLabel(q.question_type)}
+                            </span>
+                            {q.parent_question && (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+                                ↳ Depends on Q{q.parent_question}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Preview Options */}
+                          {['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && q.options && q.options.length > 0 && (
+                            <div className="mt-3 pl-4 border-l-2 border-[var(--brand-purple)]/30 space-y-2">
+                              {q.options.map((opt: any, i: number) => (
+                                <div key={i} className="text-sm text-[var(--brand-light)]/60 flex items-center gap-2 break-words">
+                                  <span className="w-2 h-2 rounded-full bg-[var(--brand-purple)] flex-shrink-0"></span>
+                                  <span>{opt.text}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add Question Button */}
+            {formData.questions && formData.questions.length > 0 && (
+              <button 
+                onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
+                className="w-full py-5 sm:py-6 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-2 border-dashed border-[var(--dark-500)] text-[var(--brand-light)]/50 font-medium hover:border-[var(--brand-primary)]/50 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)]/50 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Add Another Question
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Quick Tips Card */}
+        <div className="mt-6 sm:mt-8 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 flex items-center justify-center border border-[var(--brand-primary)]/30">
+                <Lightbulb className="w-5 h-5 text-[var(--brand-primary)]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">Best practices for questionnaires</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6">
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-[var(--brand-light)]/70">Keep questions clear and concise for better response rates</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-[var(--brand-light)]/70">Set an appropriate expiration date to encourage timely responses</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-[var(--brand-light)]/70">Use rewards to incentivize participation</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-[var(--brand-light)]/70">Enable anonymous responses for sensitive topics</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Form Actions */}
+        <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 py-8">
+          <button
             type="button"
-            variant="ghost" 
             onClick={() => {
               const pageParam = searchParams.get('page');
               const redirectUrl = pageParam ? `${basePath}?page=${pageParam}` : basePath;
               router.push(redirectUrl);
             }}
-            className="flex-1 sm:flex-none"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all"
           >
             Cancel
-          </Button>
-          <Button 
+          </button>
+          
+          <button
             onClick={handleSave}
             disabled={loading}
-            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2 flex-1 sm:flex-none"
+            className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            <Save className="h-4 w-4" />
-            <span className="hidden sm:inline">{loading ? 'Saving...' : 'Save Changes'}</span>
-            <span className="sm:hidden">{loading ? 'Saving...' : 'Save'}</span>
-          </Button>
+            <Save className="w-4 h-4" />
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+          
           {formData.status === 'DRAFT' && initialId && (
-            <Button 
+            <button 
               onClick={handlePublish}
               disabled={loading}
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50 gap-2 flex-1 sm:flex-none"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-[var(--brand-green)] text-[var(--dark-900)] hover:bg-[var(--brand-green)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="hidden sm:inline">{loading ? 'Publishing...' : 'Publish'}</span>
-              <span className="sm:hidden">{loading ? '...' : 'Publish'}</span>
-            </Button>
+              <Send className="w-4 h-4" />
+              {loading ? 'Publishing...' : 'Publish'}
+            </button>
           )}
+          
           {formData.status === 'PUBLISHED' && initialId && (
-            <Button 
+            <button 
               onClick={handleUnpublish}
               disabled={loading}
-              variant="outline"
-              className="border-yellow-600 text-yellow-600 hover:bg-yellow-50 gap-2 flex-1 sm:flex-none"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-[var(--brand-yellow)] text-[var(--dark-900)] hover:bg-[var(--brand-yellow)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">{loading ? 'Unpublishing...' : 'Unpublish'}</span>
-              <span className="sm:hidden">{loading ? '...' : 'Unpublish'}</span>
-            </Button>
+              <EyeOff className="w-4 h-4" />
+              {loading ? 'Unpublishing...' : 'Unpublish'}
+            </button>
           )}
         </div>
+
+        {/* Modal */}
+        <QuestionModal 
+          isVisible={showModal} 
+          onClose={() => setShowModal(false)}
+          onSave={handleQuestionSave}
+          initialData={editingQuestionIndex !== null ? formData.questions?.[editingQuestionIndex] : null}
+          allQuestions={formData.questions || []}
+        />
+        
+        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
       </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-        <button
-          onClick={() => setActiveTab('SETTINGS')}
-          className={cn(
-            "px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0",
-            activeTab === 'SETTINGS' 
-              ? 'text-[#4D4DA4]' 
-              : 'text-gray-500 hover:text-gray-700'
-          )}
-        >
-          Settings & Targeting
-          {activeTab === 'SETTINGS' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4D4DA4]" />
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('QUESTIONS')}
-          className={cn(
-            "px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0",
-            activeTab === 'QUESTIONS' 
-              ? 'text-[#4D4DA4]' 
-              : 'text-gray-500 hover:text-gray-700'
-          )}
-        >
-          Questions ({formData.questions?.length || 0})
-          {activeTab === 'QUESTIONS' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4D4DA4]" />
-          )}
-        </button>
-      </div>
-
-      {/* Content */}
-      {activeTab === 'SETTINGS' ? (
-        <QuestionnaireSettings data={formData} onChange={setFormData} scope={scope} />
-      ) : (
-        <div className="space-y-4 sm:space-y-6">
-          {/* Empty State */}
-          {(!formData.questions || formData.questions.length === 0) && (
-            <Card className="border border-gray-100 shadow-sm">
-              <CardContent className="py-12 sm:py-20 text-center">
-                <p className="text-gray-500 mb-4">No questions added yet.</p>
-                <Button 
-                  onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
-                  className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add First Question
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Questions List */}
-          <div className="space-y-3 sm:space-y-4">
-            {formData.questions?.map((q: any, idx: number) => (
-              <Card key={idx} className="border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex gap-3 sm:gap-4 items-start">
-                    {/* Order Controls */}
-                    <div className="flex flex-col gap-1 pt-1 flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-gray-400 hover:text-[#4D4DA4] disabled:opacity-0"
-                        onClick={() => moveQuestion(idx, 'up')}
-                        disabled={idx === 0}
-                      >
-                        <ChevronUp className="h-4 w-4" />
-                      </Button>
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#EBEBFE] flex items-center justify-center">
-                        <span className="font-bold text-[#4D4DA4] text-xs sm:text-sm">{idx + 1}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-gray-400 hover:text-[#4D4DA4] disabled:opacity-0"
-                        onClick={() => moveQuestion(idx, 'down')}
-                        disabled={idx === (formData.questions?.length || 0) - 1}
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    {/* Question Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-                        <h3 className="font-semibold text-[#121213] text-base sm:text-lg break-words">{q.text}</h3>
-                        <div className="flex gap-1 sm:gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setEditingQuestionIndex(idx); setShowModal(true); }}
-                            className="text-gray-600 hover:text-[#4D4DA4] hover:bg-[#EBEBFE] h-8 px-2 sm:px-3"
-                          >
-                            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteQuestion(idx)}
-                            className="text-gray-600 hover:text-red-600 hover:bg-red-50 h-8 px-2 sm:px-3"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Delete</span>
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2 flex-wrap mb-3">
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                          {q.question_type.replace('_', ' ')}
-                        </Badge>
-                        {q.parent_question && (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs">
-                            ↳ Logic: Dependent on Q{q.parent_question}
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      {/* Preview Options */}
-                      {['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && q.options && q.options.length > 0 && (
-                        <div className="mt-3 pl-3 sm:pl-4 border-l-2 border-[#EBEBFE] space-y-2">
-                          {q.options.map((opt: any, i: number) => (
-                            <div key={i} className="text-xs sm:text-sm text-gray-700 flex items-center gap-2 break-words">
-                              <span className="w-2 h-2 rounded-full bg-[#4D4DA4] flex-shrink-0"></span>
-                              <span>{opt.text}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Add Button */}
-          {formData.questions && formData.questions.length > 0 && (
-            <Button 
-              onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
-              variant="outline"
-              className="w-full py-4 sm:py-6 border-2 border-dashed border-gray-300 text-gray-500 hover:border-[#4D4DA4] hover:text-[#4D4DA4] hover:bg-[#EBEBFE]/30 transition-colors gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Next Question
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Modal */}
-      <QuestionModal 
-        isVisible={showModal} 
-        onClose={() => setShowModal(false)}
-        onSave={handleQuestionSave}
-        initialData={editingQuestionIndex !== null ? formData.questions?.[editingQuestionIndex] : null}
-        allQuestions={formData.questions || []}
-      />
-      
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
     </div>
   );
 }

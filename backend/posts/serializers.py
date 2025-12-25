@@ -1,9 +1,10 @@
 from rest_framework import serializers
 from django.db.models import Max, Count, Exists, OuterRef
-from .models import Post, PostImage, PostComment, PostReaction
+from .models import Post, PostImage, PostComment, PostReaction, PostTemplate
 from users.serializers import CustomUserSerializer # To show author details
 from organization.serializers import MunicipalitySerializer, ClubSerializer # Import these for display
-from organization.models import Municipality, Club
+from organization.models import Municipality, Club, Interest
+from groups.models import Group
 import json
 
 class PostImageSerializer(serializers.ModelSerializer):
@@ -283,3 +284,220 @@ class PostSerializer(serializers.ModelSerializer):
                 PostImage.objects.create(post=instance, image=image, order=current_max_order + 1 + index)
         
         return instance
+
+
+class PostTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for PostTemplate model."""
+    
+    # Read-only computed fields
+    created_by_name = serializers.SerializerMethodField()
+    target_summary = serializers.SerializerMethodField()
+    settings_summary = serializers.SerializerMethodField()
+    icon_emoji = serializers.SerializerMethodField()
+    
+    # Read-only details for the UI
+    target_municipalities_details = MunicipalitySerializer(source='target_municipalities', many=True, read_only=True)
+    target_clubs_details = ClubSerializer(source='target_clubs', many=True, read_only=True)
+    target_groups_details = serializers.SerializerMethodField()
+    target_interests_details = serializers.SerializerMethodField()
+    
+    # Write-only fields for ManyToMany
+    target_municipalities = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=Municipality.objects.all(), required=False
+    )
+    target_clubs = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=Club.objects.all(), required=False
+    )
+    target_groups = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=Group.objects.all(), required=False
+    )
+    target_interests = serializers.PrimaryKeyRelatedField(
+        many=True, read_only=False, queryset=Interest.objects.all(), required=False
+    )
+    
+    class Meta:
+        model = PostTemplate
+        fields = '__all__'
+        read_only_fields = [
+            'created_by', 'municipality', 'club', 'role_scope', 'usage_count', 'created_at', 'updated_at',
+            'created_by_name', 'target_summary', 'settings_summary', 'icon_emoji',
+            'target_municipalities_details', 'target_clubs_details', 
+            'target_groups_details', 'target_interests_details'
+        ]
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return f"{obj.created_by.first_name} {obj.created_by.last_name}"
+        return "Unknown"
+    
+    def get_target_summary(self, obj):
+        return obj.get_target_summary()
+    
+    def get_settings_summary(self, obj):
+        return obj.get_settings_summary()
+    
+    def get_icon_emoji(self, obj):
+        """Return the emoji for the icon."""
+        icon_emojis = {
+            'MEGAPHONE': '📢',
+            'CALENDAR': '📅',
+            'STAR': '⭐',
+            'BELL': '🔔',
+            'PARTY': '🎉',
+            'INFO': 'ℹ️',
+            'WARNING': '⚠️',
+            'HEART': '❤️',
+            'TROPHY': '🏆',
+            'ROCKET': '🚀',
+        }
+        return icon_emojis.get(obj.icon, '📢')
+    
+    def get_target_groups_details(self, obj):
+        groups = obj.target_groups.all()
+        return [{'id': g.id, 'name': g.name} for g in groups]
+    
+    def get_target_interests_details(self, obj):
+        interests = obj.target_interests.all()
+        return [{'id': i.id, 'name': i.name} for i in interests]
+    
+    def validate(self, data):
+        """Handle JSON fields from FormData."""
+        # Handle boolean strings from FormData
+        boolean_fields = [
+            'is_global', 'allow_comments', 'require_moderation', 'allow_replies', 
+            'send_push_notification', 'is_pinned_default', 'is_active'
+        ]
+        for field in boolean_fields:
+            if field in data and isinstance(data[field], str):
+                data[field] = data[field].lower() == 'true'
+        
+        # Parse JSON strings
+        if 'target_genders' in data:
+            if isinstance(data['target_genders'], str):
+                try:
+                    data['target_genders'] = json.loads(data['target_genders'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"target_genders": "Invalid JSON format."})
+        
+        if 'target_grades' in data:
+            if isinstance(data['target_grades'], str):
+                try:
+                    data['target_grades'] = json.loads(data['target_grades'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"target_grades": "Invalid JSON format."})
+        
+        if 'target_custom_fields' in data:
+            if isinstance(data['target_custom_fields'], str):
+                try:
+                    data['target_custom_fields'] = json.loads(data['target_custom_fields'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"target_custom_fields": "Invalid JSON format."})
+        
+        return data
+    
+    def create(self, validated_data):
+        # Extract ManyToMany fields
+        target_groups = validated_data.pop('target_groups', [])
+        target_interests = validated_data.pop('target_interests', [])
+        t_munis = validated_data.pop('target_municipalities', [])
+        t_clubs = validated_data.pop('target_clubs', [])
+        
+        # Ensure they're lists
+        if not isinstance(target_groups, list):
+            target_groups = [target_groups] if target_groups else []
+        if not isinstance(target_interests, list):
+            target_interests = [target_interests] if target_interests else []
+        if not isinstance(t_munis, list):
+            t_munis = [t_munis] if t_munis else []
+        if not isinstance(t_clubs, list):
+            t_clubs = [t_clubs] if t_clubs else []
+        
+        # Create the template
+        template = PostTemplate.objects.create(**validated_data)
+        
+        # Set ManyToMany relationships
+        template.target_groups.set(target_groups)
+        template.target_interests.set(target_interests)
+        template.target_municipalities.set(t_munis)
+        template.target_clubs.set(t_clubs)
+        
+        return template
+    
+    def update(self, instance, validated_data):
+        # Extract ManyToMany fields
+        target_groups = validated_data.pop('target_groups', None)
+        target_interests = validated_data.pop('target_interests', None)
+        t_munis = validated_data.pop('target_municipalities', None)
+        t_clubs = validated_data.pop('target_clubs', None)
+        
+        # Ensure they're lists if provided
+        if target_groups is not None and not isinstance(target_groups, list):
+            target_groups = [target_groups] if target_groups else []
+        if target_interests is not None and not isinstance(target_interests, list):
+            target_interests = [target_interests] if target_interests else []
+        if t_munis is not None and not isinstance(t_munis, list):
+            t_munis = [t_munis] if t_munis else []
+        if t_clubs is not None and not isinstance(t_clubs, list):
+            t_clubs = [t_clubs] if t_clubs else []
+        
+        # Update standard fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update ManyToMany relationships if provided
+        if target_groups is not None:
+            instance.target_groups.set(target_groups)
+        if target_interests is not None:
+            instance.target_interests.set(target_interests)
+        if t_munis is not None:
+            instance.target_municipalities.set(t_munis)
+        if t_clubs is not None:
+            instance.target_clubs.set(t_clubs)
+        
+        return instance
+
+
+class PostTemplateListSerializer(serializers.ModelSerializer):
+    """Simplified serializer for template list views."""
+    
+    target_summary = serializers.SerializerMethodField()
+    settings_summary = serializers.SerializerMethodField()
+    icon_emoji = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PostTemplate
+        fields = [
+            'id', 'name', 'description', 'icon', 'icon_emoji', 'role_scope',
+            'default_post_type', 'is_global', 'is_pinned_default', 
+            'send_push_notification', 'usage_count', 'is_active',
+            'target_summary', 'settings_summary', 'created_by_name',
+            'created_at', 'updated_at'
+        ]
+    
+    def get_target_summary(self, obj):
+        return obj.get_target_summary()
+    
+    def get_settings_summary(self, obj):
+        return obj.get_settings_summary()
+    
+    def get_icon_emoji(self, obj):
+        icon_emojis = {
+            'MEGAPHONE': '📢',
+            'CALENDAR': '📅',
+            'STAR': '⭐',
+            'BELL': '🔔',
+            'PARTY': '🎉',
+            'INFO': 'ℹ️',
+            'WARNING': '⚠️',
+            'HEART': '❤️',
+            'TROPHY': '🏆',
+            'ROCKET': '🚀',
+        }
+        return icon_emojis.get(obj.icon, '📢')
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return f"{obj.created_by.first_name} {obj.created_by.last_name}"
+        return "Unknown"

@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, X, Search } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { 
+  ArrowLeft, Upload, X, Search, User, Mail, Phone, 
+  CheckCircle2, Lightbulb, Save, Users, Shield, Lock
+} from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
@@ -11,12 +15,6 @@ import CustomFieldsForm from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
 import { fetchGuardianRelationships, verifyGuardianRelationship, rejectGuardianRelationship, resetGuardianRelationship } from '../../lib/api';
 import ConfirmationModal from './ConfirmationModal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 
 interface YouthOption { id: number; first_name: string; last_name: string; email: string; grade?: number; }
 
@@ -28,9 +26,16 @@ interface GuardianFormProps {
 
 export default function GuardianForm({ initialData, redirectPath, scope }: GuardianFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user: currentUser } = useAuth();
+  const progressPlaceholderRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLInputElement>(null);
+
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isProgressFixed, setIsProgressFixed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Dropdown Data
   const [youthList, setYouthList] = useState<YouthOption[]>([]);
@@ -39,9 +44,6 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
   // Search States
   const [youthSearchTerm, setYouthSearchTerm] = useState('');
   const [showYouthDropdown, setShowYouthDropdown] = useState(false);
-
-  // Refs for files
-  const avatarRef = useRef<HTMLInputElement>(null);
 
   // Files
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -56,8 +58,6 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
     phone_number: initialData?.phone_number || '',
     legal_gender: initialData?.legal_gender || 'MALE',
     verification_status: initialData?.verification_status || 'UNVERIFIED',
-    // In Django serializer, 'youth_members' can be a list of IDs or objects with relationship details
-    // Normalize to just IDs for form state
     youth_members: initialData?.youth_members 
       ? initialData.youth_members.map((item: any) => typeof item === 'object' && item !== null ? item.id : item).filter((id: any) => id != null)
       : [], 
@@ -66,39 +66,46 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
   // Custom Fields State
   const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
 
+  // Track component mount for portal
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
+
   useEffect(() => {
     fetchDropdowns();
     if (initialData) {
-        // Load custom field values
-        api.get(`/users/${initialData.id}/`).then(res => {
-            const values: Record<number, any> = {};
-            (res.data.custom_field_values || []).forEach((cfv: any) => {
-                values[cfv.field] = cfv.value;
-            });
-            setCustomFieldValues(values);
-        }).catch(console.error);
-        
-        // Load relationships for this guardian
-        if (initialData.id) {
-            fetchGuardianRelationships({ guardian_id: initialData.id })
-                .then(res => {
-                    const relData = res.data.results || res.data || [];
-                    // Deduplicate by relationship ID to avoid showing the same relationship multiple times
-                    const uniqueRelationships = Array.isArray(relData) 
-                        ? relData.filter((rel: any, index: number, self: any[]) => 
-                            index === self.findIndex((r: any) => r.id === rel.id)
-                          )
-                        : [];
-                    setRelationships(uniqueRelationships);
-                })
-                .catch(err => console.error('Error fetching relationships:', err));
-        }
+      api.get(`/users/${initialData.id}/`).then(res => {
+        const values: Record<number, any> = {};
+        (res.data.custom_field_values || []).forEach((cfv: any) => {
+          values[cfv.field] = cfv.value;
+        });
+        setCustomFieldValues(values);
+      }).catch(console.error);
+      
+      if (initialData.id) {
+        fetchGuardianRelationships({ guardian_id: initialData.id })
+          .then(res => {
+            const relData = res.data.results || res.data || [];
+            const uniqueRelationships = Array.isArray(relData) 
+              ? relData.filter((rel: any, index: number, self: any[]) => 
+                  index === self.findIndex((r: any) => r.id === rel.id)
+                )
+              : [];
+            setRelationships(uniqueRelationships);
+          })
+          .catch(err => console.error('Error fetching relationships:', err));
+      }
     }
   }, [initialData]);
 
   const fetchDropdowns = async () => {
     try {
-      // Allows selecting youth available to this admin
       const res = await api.get('/users/list_youth/');
       setYouthList(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
@@ -106,24 +113,57 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
     }
   };
 
-  // --- Handlers ---
+  // Calculate completion percentage
+  const calculateCompletion = useCallback(() => {
+    const requiredFields = [
+      formData.first_name,
+      formData.last_name,
+      formData.email,
+      ...(initialData ? [] : [formData.password]),
+    ];
+    const filled = requiredFields.filter(f => f && f.toString().trim()).length;
+    return Math.round((filled / requiredFields.length) * 100);
+  }, [formData, initialData]);
 
+  const completionPercent = calculateCompletion();
+
+  // Progress scroll tracking
+  const checkScroll = useCallback(() => {
+    if (!progressPlaceholderRef.current) return;
+    const rect = progressPlaceholderRef.current.getBoundingClientRect();
+    const mainElement = document.querySelector('main');
+    const headerHeight = mainElement ? 0 : 64;
+    setIsProgressFixed(rect.top < headerHeight);
+  }, []);
+
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.addEventListener('scroll', checkScroll);
+    }
+    window.addEventListener('scroll', checkScroll);
+    checkScroll();
+    
+    return () => {
+      if (mainElement) {
+        mainElement.removeEventListener('scroll', checkScroll);
+      }
+      window.removeEventListener('scroll', checkScroll);
+    };
+  }, [checkScroll]);
+
+  // Handlers
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setAvatarPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    if (e.target.files?.[0]) {
+      setAvatarFile(e.target.files[0]);
+      setAvatarPreview(URL.createObjectURL(e.target.files[0]));
     }
   };
 
-  const handleRemoveImage = (type: 'avatar') => {
-    if (type === 'avatar') {
-      setAvatarFile(null);
-      setAvatarPreview(null);
-      if (avatarRef.current) avatarRef.current.value = '';
-    }
+  const handleRemoveImage = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    if (avatarRef.current) avatarRef.current.value = '';
   };
 
   // Youth Link Logic
@@ -144,12 +184,10 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
     }));
   };
 
-  // Get selected youth details
   const getSelectedYouth = () => {
     return formData.youth_members.map((id: number) => youthList.find(y => y.id === id)).filter(Boolean) as YouthOption[];
   };
 
-  // Filter youth based on search term (matches page.tsx logic)
   const filteredYouth = youthList.filter(y => {
     const searchLower = youthSearchTerm.toLowerCase();
     const fullName = `${y.first_name} ${y.last_name}`.toLowerCase();
@@ -164,19 +202,14 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
 
     try {
       const data = new FormData();
-      
-      // Fields that should NOT be sent for guardians
       const guardianExcludedFields = ['grade', 'preferred_club', 'interests', 'assigned_club', 'assigned_municipality'];
       
-      // Basic Fields - only send fields that are defined and not empty (except password)
       Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'password' && !value) return; // Skip empty password on update
-        if (key === 'youth_members') return; // Handle separately
-        if (guardianExcludedFields.includes(key)) return; // Skip guardian-inapplicable fields
+        if (key === 'password' && !value) return;
+        if (key === 'youth_members') return;
+        if (guardianExcludedFields.includes(key)) return;
         
-        // Handle empty strings - convert to null for optional fields, or skip
         if (value === null || value === undefined || value === '') {
-          // For optional fields like phone_number, send empty string (backend will handle it)
           if (key === 'phone_number') {
             data.append(key, '');
           }
@@ -186,10 +219,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
         data.append(key, value.toString());
       });
 
-      // Arrays - only append if there are youth members
       if (formData.youth_members && formData.youth_members.length > 0) {
         formData.youth_members.forEach((item: any) => {
-          // Handle both object format {id: number} and plain number
           const id = typeof item === 'object' && item !== null ? item.id : item;
           if (id && !isNaN(Number(id))) {
             data.append('youth_members', id.toString());
@@ -205,62 +236,15 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
       let userId: number;
 
       if (initialData) {
-        try {
-          // Debug: Log what we're sending
-          console.log('FormData being sent:');
-          for (const [key, value] of data.entries()) {
-            console.log(`${key}:`, value);
-          }
-          
-          await api.patch(`/users/${initialData.id}/`, data, config);
-          userId = initialData.id;
-          setToast({ message: 'Guardian updated!', type: 'success', isVisible: true });
-        } catch (patchErr: any) {
-          console.error('Update error:', patchErr);
-          console.error('Error response:', patchErr.response?.data);
-          console.error('Error status:', patchErr.response?.status);
-          console.error('Error headers:', patchErr.response?.headers);
-          
-          // Try to extract error message from various possible locations
-          let errorMsg = 'Failed to update guardian';
-          if (patchErr.response?.data) {
-            if (patchErr.response.data.detail) {
-              errorMsg = patchErr.response.data.detail;
-            } else if (patchErr.response.data.error) {
-              errorMsg = patchErr.response.data.error;
-            } else if (typeof patchErr.response.data === 'string') {
-              errorMsg = patchErr.response.data;
-            } else if (typeof patchErr.response.data === 'object') {
-              // Try to extract first error message from validation errors
-              const errorKeys = Object.keys(patchErr.response.data);
-              if (errorKeys.length > 0) {
-                const firstError = patchErr.response.data[errorKeys[0]];
-                if (Array.isArray(firstError)) {
-                  errorMsg = `${errorKeys[0]}: ${firstError[0]}`;
-                } else if (typeof firstError === 'string') {
-                  errorMsg = `${errorKeys[0]}: ${firstError}`;
-                } else {
-                  errorMsg = JSON.stringify(patchErr.response.data);
-                }
-              } else {
-                errorMsg = JSON.stringify(patchErr.response.data);
-              }
-            }
-          } else if (patchErr.message) {
-            errorMsg = patchErr.message;
-          }
-          
-          setToast({ message: errorMsg, type: 'error', isVisible: true });
-          setLoading(false);
-          return;
-        }
+        await api.patch(`/users/${initialData.id}/`, data, config);
+        userId = initialData.id;
+        setToast({ message: 'Guardian updated!', type: 'success', isVisible: true });
       } else {
         const res = await api.post('/users/', data, config);
         userId = res.data.id;
         setToast({ message: 'Guardian created!', type: 'success', isVisible: true });
       }
 
-      // Save Custom Fields
       if (Object.keys(customFieldValues).length > 0) {
         try {
           await api.post('/custom-fields/save_values_for_user/', {
@@ -273,156 +257,361 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
       }
 
       setTimeout(() => router.push(redirectPath), 1000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setToast({ message: 'Operation failed. Please try again.', type: 'error', isVisible: true });
+      let errorMsg = 'Operation failed. Please try again.';
+      if (err.response?.data) {
+        if (err.response.data.detail) {
+          errorMsg = err.response.data.detail;
+        } else if (typeof err.response.data === 'object') {
+          const errorKeys = Object.keys(err.response.data);
+          if (errorKeys.length > 0) {
+            const firstError = err.response.data[errorKeys[0]];
+            if (Array.isArray(firstError)) {
+              errorMsg = `${errorKeys[0]}: ${firstError[0]}`;
+            }
+          }
+        }
+      }
+      setToast({ message: errorMsg, type: 'error', isVisible: true });
       setLoading(false);
     }
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={redirectPath}>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {initialData ? 'Edit Guardian' : 'Create New Guardian'}
-          </h1>
-          <p className="text-sm text-muted-foreground">Manage guardian details and information.</p>
-        </div>
-      </div>
+  // Styling
+  const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
+  
+  const inputClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+  const selectClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl appearance-none cursor-pointer
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)]
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 1rem center',
+    backgroundSize: '1rem'
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
         
-        {/* 1. Profile Visuals */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Profile Visuals</CardTitle>
-            <CardDescription>Upload profile avatar image.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <Label>Avatar</Label>
-              <div className="flex gap-4 items-center">
-                <div className="relative group h-20 w-20 rounded-full border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => avatarRef.current?.click()}>
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+          <Link 
+            href={buildUrlWithParams(redirectPath)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+              {initialData ? 'Edit Guardian' : 'Create New Guardian'}
+            </h1>
+            <p className="text-[var(--brand-light)]/50 text-sm mt-1">
+              {initialData ? 'Update guardian information' : 'Configure profile and linked youth members'}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress Indicator */}
+        <div 
+          ref={progressPlaceholderRef}
+          className="mb-6 sm:mb-8"
+          style={{ minHeight: isProgressFixed ? 72 : 'auto' }}
+        >
+          <div 
+            className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}
+            role="region"
+            aria-label="Form completion progress"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+            </div>
+            <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${completionPercent}%` }}
+              />
+            </div>
+            {completionPercent === 100 && (
+              <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm font-medium">All required fields completed!</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Fixed Progress Indicator - rendered via portal */}
+        {isMounted && createPortal(
+          <div 
+            className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}
+            role="region"
+            aria-label="Form completion progress"
+            aria-hidden={!isProgressFixed}
+          >
+            <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+              </div>
+              <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+              {completionPercent === 100 && (
+                <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-sm font-medium">All required fields completed!</span>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Main Form */}
+        <form onSubmit={handleSubmit}>
+          
+          {/* Profile Visuals Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Profile Visuals</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Upload profile avatar image</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <label className={labelClasses}>Avatar</label>
+              <div className="flex items-start gap-4">
+                <div 
+                  className="relative group w-20 h-20 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                  onClick={() => avatarRef.current?.click()}
+                >
                   {avatarPreview ? (
                     <>
-                      <img src={avatarPreview} className="h-full w-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Upload className="h-5 w-5 text-white" />
                       </div>
                     </>
                   ) : (
                     <div className="text-center p-2">
-                      <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                      <span className="text-[10px] text-muted-foreground">Click to upload</span>
+                      <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
+                      <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
                     </div>
                   )}
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex gap-2">
-                    <Button type="button" variant="secondary" size="sm" onClick={() => avatarRef.current?.click()}>Choose File</Button>
+                    <button 
+                      type="button" 
+                      onClick={() => avatarRef.current?.click()}
+                      className="px-4 py-2 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)] text-sm font-medium hover:bg-[var(--dark-500)] transition-colors"
+                    >
+                      Choose File
+                    </button>
                     {avatarPreview && (
-                      <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleRemoveImage('avatar')}>
-                        <X className="h-4 w-4 mr-1" /> Remove
-                      </Button>
+                      <button 
+                        type="button" 
+                        onClick={handleRemoveImage}
+                        className="px-4 py-2 rounded-lg bg-[var(--brand-red)]/10 text-[var(--brand-red)] text-sm font-medium hover:bg-[var(--brand-red)]/20 transition-colors flex items-center gap-1"
+                      >
+                        <X className="w-4 h-4" /> Remove
+                      </button>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">Recommended: Square image, 400x400px</p>
+                  <p className="text-xs text-[var(--brand-light)]/40">Recommended: Square image, 400x400px</p>
                 </div>
                 <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 2. Identity */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Identity</CardTitle>
-            <CardDescription>Enter basic personal information.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>First Name <span className="text-red-500">*</span></Label>
-                <Input required value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Last Name <span className="text-red-500">*</span></Label>
-                <Input required value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email <span className="text-red-500">*</span></Label>
-                <Input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>{initialData ? 'New Password (Optional)' : 'Password'} {!initialData && <span className="text-red-500">*</span>}</Label>
-                <Input type="password" required={!initialData} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input type="tel" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Legal Gender</Label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value={formData.legal_gender} 
-                  onChange={e => setFormData({...formData, legal_gender: e.target.value})}
-                >
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
+          {/* Identity Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Identity</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Enter basic personal information</p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* 3. Verification Status */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Verification Status</CardTitle>
-            <CardDescription>Set the verification status for this guardian.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6">
-            <div className="flex flex-wrap gap-4">
-              {['UNVERIFIED', 'PENDING', 'VERIFIED'].map(status => (
-                <label key={status} className="flex items-center space-x-2 cursor-pointer">
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClasses}>First Name <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
-                    type="radio" 
-                    name="verification_status"
-                    value={status}
-                    checked={formData.verification_status === status}
-                    onChange={e => setFormData({...formData, verification_status: e.target.value})}
-                    className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                    type="text"
+                    required
+                    value={formData.first_name}
+                    onChange={e => setFormData({...formData, first_name: e.target.value})}
+                    onFocus={() => setFocusedField('first_name')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('first_name')}
+                    placeholder="Enter first name"
                   />
-                  <span className="text-sm font-medium">{status}</span>
-                </label>
-              ))}
+                </div>
+                <div>
+                  <label className={labelClasses}>Last Name <span className="text-[var(--brand-red)]">*</span></label>
+                  <input 
+                    type="text"
+                    required
+                    value={formData.last_name}
+                    onChange={e => setFormData({...formData, last_name: e.target.value})}
+                    onFocus={() => setFocusedField('last_name')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('last_name')}
+                    placeholder="Enter last name"
+                  />
+                </div>
+                <div>
+                  <label className={labelClasses}>Email <span className="text-[var(--brand-red)]">*</span></label>
+                  <input 
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('email')}
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div>
+                  <label className={labelClasses}>
+                    {initialData ? 'New Password (Optional)' : 'Password'} 
+                    {!initialData && <span className="text-[var(--brand-red)]">*</span>}
+                  </label>
+                  <input 
+                    type="password"
+                    required={!initialData}
+                    value={formData.password}
+                    onChange={e => setFormData({...formData, password: e.target.value})}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('password')}
+                    placeholder={initialData ? 'Leave blank to keep current' : 'Enter password'}
+                  />
+                </div>
+                <div>
+                  <label className={labelClasses}>Phone Number</label>
+                  <input 
+                    type="tel"
+                    value={formData.phone_number}
+                    onChange={e => setFormData({...formData, phone_number: e.target.value})}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('phone')}
+                    placeholder="+1 234 567 8900"
+                  />
+                </div>
+                <div>
+                  <label className={labelClasses}>Legal Gender</label>
+                  <select 
+                    value={formData.legal_gender}
+                    onChange={e => setFormData({...formData, legal_gender: e.target.value})}
+                    onFocus={() => setFocusedField('gender')}
+                    onBlur={() => setFocusedField(null)}
+                    className={selectClasses('gender')}
+                    style={selectArrowStyle}
+                  >
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 4. Existing Relationships (Edit Mode Only) */}
-        {initialData && relationships.length > 0 && (
-          <Card className="border-none shadow-sm">
-            <CardHeader>
-              <CardTitle>Existing Relationships</CardTitle>
-              <CardDescription>Manage relationships with youth members.</CardDescription>
-            </CardHeader>
-            <Separator />
-            <CardContent className="pt-6">
-              <div className="space-y-3">
+          {/* Verification Status Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Verification Status</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Set the verification status for this guardian</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { value: 'UNVERIFIED', label: 'Unverified', color: 'var(--brand-red)' },
+                  { value: 'PENDING', label: 'Pending', color: 'var(--brand-peach)' },
+                  { value: 'VERIFIED', label: 'Verified', color: 'var(--brand-green)' }
+                ].map(status => (
+                  <button
+                    key={status.value}
+                    type="button"
+                    onClick={() => setFormData({...formData, verification_status: status.value})}
+                    className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
+                      formData.verification_status === status.value
+                        ? 'text-[var(--dark-900)]'
+                        : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] border-2 border-[var(--dark-500)]'
+                    }`}
+                    style={formData.verification_status === status.value ? { backgroundColor: status.color } : {}}
+                  >
+                    {formData.verification_status === status.value && <CheckCircle2 className="w-4 h-4" />}
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Existing Relationships Card (Edit Mode Only) */}
+          {initialData && relationships.length > 0 && (
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+              <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Existing Relationships</h2>
+                    <p className="text-sm text-[var(--brand-light)]/50">Manage relationships with youth members</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-3">
                 {relationships
                   .filter((rel: any) => {
                     const relGuardianId = rel.guardian || (typeof rel.guardian === 'object' ? rel.guardian?.id : null);
@@ -431,40 +620,19 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   .map((rel: any) => {
                     const youthId = rel.youth || rel.youth_id;
                     const youth = youthList.find((y: any) => y.id === youthId);
-                    if (!youth) {
-                      return (
-                        <RelationshipCard
-                          key={rel.id}
-                          relationship={rel}
-                          youth={{
-                            id: youthId,
-                            first_name: rel.youth_first_name || 'Unknown',
-                            last_name: rel.youth_last_name || '',
-                            email: rel.youth_email || '',
-                            grade: rel.youth_grade || undefined,
-                          }}
-                          onUpdate={() => {
-                            fetchGuardianRelationships({ guardian_id: initialData.id })
-                              .then(res => {
-                                const relData = res.data.results || res.data || [];
-                                const uniqueRelationships = Array.isArray(relData) 
-                                  ? relData.filter((r: any, index: number, self: any[]) => 
-                                      index === self.findIndex((rel: any) => rel.id === r.id)
-                                    )
-                                  : [];
-                                setRelationships(uniqueRelationships);
-                              })
-                              .catch(err => console.error('Error refreshing relationships:', err));
-                          }}
-                        />
-                      );
-                    }
+                    const youthData = youth || {
+                      id: youthId,
+                      first_name: rel.youth_first_name || 'Unknown',
+                      last_name: rel.youth_last_name || '',
+                      email: rel.youth_email || '',
+                      grade: rel.youth_grade || undefined,
+                    };
                     
                     return (
                       <RelationshipCard
                         key={rel.id}
                         relationship={rel}
-                        youth={youth}
+                        youth={youthData}
                         onUpdate={() => {
                           fetchGuardianRelationships({ guardian_id: initialData.id })
                             .then(res => {
@@ -482,122 +650,191 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     );
                   })}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          )}
 
-        {/* 5. Assign Youth Members */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Assign Youth Members</CardTitle>
-            <CardDescription>Link this guardian to youth members.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            {/* Selected Youth Display */}
-            {formData.youth_members.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-3 bg-[#EBEBFE]/30 rounded-lg border border-[#4D4DA4]/20">
-                {getSelectedYouth().map(y => (
-                  <Badge key={y.id} variant="outline" className="bg-[#4D4DA4] text-white border-[#4D4DA4] px-3 py-1">
-                    {y.first_name} {y.last_name} {y.grade && `(Gr ${y.grade})`}
-                    <button
-                      type="button"
-                      onClick={() => removeYouth(y.id)}
-                      className="ml-2 hover:bg-[#4D4DA4]/80 rounded-full p-0.5 transition-colors"
-                      aria-label={`Remove ${y.first_name} ${y.last_name}`}
+          {/* Assign Youth Members Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-primary)] flex items-center justify-center">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Assign Youth Members</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Link this guardian to youth members</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Selected Youth Display */}
+              {formData.youth_members.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-4 bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)]">
+                  {getSelectedYouth().map(y => (
+                    <span 
+                      key={y.id} 
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-white text-sm font-medium"
                     >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
+                      {y.first_name} {y.last_name} {y.grade && `(Gr ${y.grade})`}
+                      <button
+                        type="button"
+                        onClick={() => removeYouth(y.id)}
+                        className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                        aria-label={`Remove ${y.first_name} ${y.last_name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
 
-            {/* Searchable Dropdown */}
-            <div className="relative">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search youth members by name or email..."
-                  value={youthSearchTerm}
-                  onChange={(e) => {
-                    setYouthSearchTerm(e.target.value);
-                    setShowYouthDropdown(true);
-                  }}
-                  onFocus={() => setShowYouthDropdown(true)}
-                  className="pl-9"
-                />
-              </div>
+              {/* Searchable Dropdown */}
+              <div className="relative z-30">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
+                  <input
+                    type="text"
+                    placeholder="Search youth members by name or email..."
+                    value={youthSearchTerm}
+                    onChange={(e) => {
+                      setYouthSearchTerm(e.target.value);
+                      setShowYouthDropdown(true);
+                    }}
+                    onFocus={() => setShowYouthDropdown(true)}
+                    className="w-full h-11 pl-11 pr-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)]"
+                  />
+                </div>
 
-              {/* Dropdown List */}
-              {showYouthDropdown && (
+                {/* Dropdown List */}
+                {showYouthDropdown && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowYouthDropdown(false)}
+                    />
+                    <div className="absolute z-50 w-full mt-2 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+                      {filteredYouth.length > 0 ? (
+                        filteredYouth.map(y => (
+                          <button
+                            key={y.id}
+                            type="button"
+                            onClick={() => toggleYouth(y.id)}
+                            className="w-full text-left px-4 py-3 hover:bg-[var(--dark-600)] transition-colors border-b border-[var(--dark-600)] last:border-b-0"
+                          >
+                            <div className="font-medium text-[var(--brand-light)]">{y.first_name} {y.last_name}</div>
+                            <div className="text-xs text-[var(--brand-light)]/50">{y.email} {y.grade && `• Grade ${y.grade}`}</div>
+                          </button>
+                        ))
+                      ) : youthSearchTerm ? (
+                        <div className="px-4 py-4 text-sm text-[var(--brand-light)]/50 text-center">
+                          No youth members found matching "{youthSearchTerm}"
+                        </div>
+                      ) : (
+                        <div className="px-4 py-4 text-sm text-[var(--brand-light)]/50 text-center">
+                          {formData.youth_members.length === 0 
+                            ? 'No youth members found. Create a youth member first.'
+                            : 'All youth members are already selected.'}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Fields Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-third)] flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Custom Fields</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Additional custom field values for this guardian</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <CustomFieldsForm
+                targetRole="GUARDIAN"
+                context="USER_PROFILE"
+                values={customFieldValues}
+                onChange={(fieldId, value) => setCustomFieldValues(prev => ({ ...prev, [fieldId]: value }))}
+                userId={initialData ? initialData.id : null}
+                userMunicipalityId={scope === 'MUNICIPALITY' && currentUser?.assigned_municipality ? (typeof currentUser.assigned_municipality === 'object' ? currentUser.assigned_municipality.id : currentUser.assigned_municipality) : null}
+                userClubId={scope === 'CLUB' && currentUser?.assigned_club ? (typeof currentUser.assigned_club === 'object' ? currentUser.assigned_club.id : currentUser.assigned_club) : null}
+              />
+            </div>
+          </div>
+
+          {/* Quick Tips Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                  <Lightbulb className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Helpful information for managing guardians</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <ul className="space-y-3 text-sm text-[var(--brand-light)]/70">
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-[var(--brand-third)] mt-0.5 flex-shrink-0" />
+                  <span>Guardians can be linked to multiple youth members</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-[var(--brand-third)] mt-0.5 flex-shrink-0" />
+                  <span>Verified guardians have full access to their linked youth's information</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-[var(--brand-third)] mt-0.5 flex-shrink-0" />
+                  <span>Phone numbers help with emergency contact situations</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 pb-8">
+            <button 
+              type="button"
+              onClick={() => router.push(redirectPath)}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
+            >
+              {loading ? (
                 <>
-                  <div 
-                    className="fixed inset-0 z-10" 
-                    onClick={() => setShowYouthDropdown(false)}
-                  ></div>
-                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {filteredYouth.length > 0 ? (
-                      filteredYouth.map(y => (
-                        <button
-                          key={y.id}
-                          type="button"
-                          onClick={() => toggleYouth(y.id)}
-                          className="w-full text-left px-4 py-2.5 hover:bg-[#EBEBFE]/50 transition-colors border-b border-gray-100 last:border-b-0"
-                        >
-                          <div className="font-medium text-gray-900">{y.first_name} {y.last_name}</div>
-                          <div className="text-xs text-gray-500">{y.email} {y.grade && `• Grade ${y.grade}`}</div>
-                        </button>
-                      ))
-                    ) : youthSearchTerm ? (
-                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                        No youth members found matching "{youthSearchTerm}"
-                      </div>
-                    ) : (
-                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                        {formData.youth_members.length === 0 
-                          ? 'No youth members found. Create a youth member first.'
-                          : 'All youth members are already selected.'}
-                      </div>
-                    )}
-                  </div>
+                  <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  {initialData ? 'Update Guardian' : 'Create Guardian'}
                 </>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </button>
+          </div>
+        </form>
 
-        {/* 6. Custom Fields */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Custom Fields</CardTitle>
-            <CardDescription>Additional custom field values for this guardian.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6">
-            <CustomFieldsForm
-              targetRole="GUARDIAN"
-              context="USER_PROFILE"
-              values={customFieldValues}
-              onChange={(fieldId, value) => setCustomFieldValues(prev => ({ ...prev, [fieldId]: value }))}
-              userId={initialData ? initialData.id : null}
-              userMunicipalityId={scope === 'MUNICIPALITY' && currentUser?.assigned_municipality ? (typeof currentUser.assigned_municipality === 'object' ? currentUser.assigned_municipality.id : currentUser.assigned_municipality) : null}
-              userClubId={scope === 'CLUB' && currentUser?.assigned_club ? (typeof currentUser.assigned_club === 'object' ? currentUser.assigned_club.id : currentUser.assigned_club) : null}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pb-10">
-          <Button type="button" variant="ghost" onClick={() => router.push(redirectPath)}>Cancel</Button>
-          <Button type="submit" disabled={loading} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]">
-            {loading ? 'Saving...' : initialData ? 'Update Guardian' : 'Create Guardian'}
-          </Button>
-        </div>
-      </form>
-
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      </div>
     </div>
   );
 }
@@ -682,95 +919,89 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
     }
   };
 
+  const getStatusColor = (s: string) => {
+    switch (s) {
+      case 'ACTIVE': return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
+      case 'REJECTED': return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+      default: return 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border-[var(--brand-peach)]/30';
+    }
+  };
+
   return (
     <>
-      <Card className="border border-gray-200 shadow-sm">
-        <CardContent className="pt-6">
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex-1">
-              <p className="font-semibold text-[#121213] mb-1">{youth.first_name} {youth.last_name}</p>
-              <p className="text-sm text-gray-600 mb-3">{youth.email} {youth.grade && `• Grade ${youth.grade}`}</p>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="bg-[#EBEBFE]/30 text-[#4D4DA4] border-[#4D4DA4]/20">
-                  {relationshipType.toLowerCase()}
-                </Badge>
-                {isPrimary && (
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                    Primary
-                  </Badge>
-                )}
-                <Badge variant="outline" className={
-                  status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' :
-                  status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200' :
-                  'bg-yellow-50 text-yellow-700 border-yellow-200'
-                }>
-                  {status}
-                </Badge>
-              </div>
+      <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)]">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <p className="font-semibold text-[var(--brand-light)] mb-1">{youth.first_name} {youth.last_name}</p>
+            <p className="text-sm text-[var(--brand-light)]/50 mb-3">{youth.email} {youth.grade && `• Grade ${youth.grade}`}</p>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
+                {relationshipType.toLowerCase()}
+              </span>
+              {isPrimary && (
+                <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+                  Primary
+                </span>
+              )}
+              <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(status)}`}>
+                {status}
+              </span>
             </div>
           </div>
-          <Separator className="my-4" />
-          <div className="flex gap-2">
-            {status === 'PENDING' && (
-              <>
-                <Button
-                  type="button"
-                  onClick={handleVerify}
-                  disabled={loading}
-                  size="sm"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {loading ? 'Processing...' : 'Verify'}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleReject}
-                  disabled={loading}
-                  size="sm"
-                  variant="destructive"
-                  className="flex-1"
-                >
-                  {loading ? 'Processing...' : 'Reject'}
-                </Button>
-              </>
-            )}
-            {status === 'ACTIVE' && (
-              <Button
+        </div>
+        <div className="flex gap-2 pt-4 border-t border-[var(--dark-500)]">
+          {status === 'PENDING' && (
+            <>
+              <button
+                type="button"
+                onClick={handleVerify}
+                disabled={loading}
+                className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-green)] text-[var(--dark-900)] font-semibold text-sm hover:bg-[var(--brand-green)]/90 transition-all disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : 'Verify'}
+              </button>
+              <button
+                type="button"
+                onClick={handleReject}
+                disabled={loading}
+                className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-red)] text-white font-semibold text-sm hover:bg-[var(--brand-red)]/90 transition-all disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : 'Reject'}
+              </button>
+            </>
+          )}
+          {status === 'ACTIVE' && (
+            <button
+              type="button"
+              onClick={handleResetClick}
+              disabled={loading}
+              className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-peach)] text-[var(--dark-900)] font-semibold text-sm hover:bg-[var(--brand-peach)]/90 transition-all disabled:opacity-50"
+            >
+              {loading ? 'Processing...' : 'Reset to Pending'}
+            </button>
+          )}
+          {status === 'REJECTED' && (
+            <>
+              <button
+                type="button"
+                onClick={handleVerify}
+                disabled={loading}
+                className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-green)] text-[var(--dark-900)] font-semibold text-sm hover:bg-[var(--brand-green)]/90 transition-all disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : 'Approve'}
+              </button>
+              <button
                 type="button"
                 onClick={handleResetClick}
                 disabled={loading}
-                size="sm"
-                className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white"
+                className="flex-1 px-4 py-2 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)] font-semibold text-sm hover:bg-[var(--dark-500)] transition-all disabled:opacity-50"
               >
-                {loading ? 'Processing...' : 'Reset to Pending'}
-              </Button>
-            )}
-            {status === 'REJECTED' && (
-              <>
-                <Button
-                  type="button"
-                  onClick={handleVerify}
-                  disabled={loading}
-                  size="sm"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {loading ? 'Processing...' : 'Approve'}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleResetClick}
-                  disabled={loading}
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                >
-                  {loading ? 'Processing...' : 'Reset'}
-                </Button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                {loading ? 'Processing...' : 'Reset'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
       <ConfirmationModal
         isVisible={showResetModal}
         onClose={() => setShowResetModal(false)}

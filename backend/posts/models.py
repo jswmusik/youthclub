@@ -101,6 +101,16 @@ class Post(models.Model):
     # --- Metrics ---
     view_count = models.IntegerField(default=0)
     
+    # Template reference (optional - tracks which template was used to create this post)
+    created_from_template = models.ForeignKey(
+        'PostTemplate', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='posts_created',
+        help_text="The template used to create this post (if any)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -163,3 +173,150 @@ class PostReaction(models.Model):
 
     def __str__(self):
         return f"{self.user} {self.get_reaction_type_display()} {self.post}"
+
+
+class PostTemplate(models.Model):
+    """
+    Reusable templates for quick post creation.
+    Stores all targeting and settings configurations.
+    """
+    class RoleScope(models.TextChoices):
+        SUPER = 'SUPER', 'Super Admin'
+        MUNICIPALITY = 'MUNICIPALITY', 'Municipality Admin'
+        CLUB = 'CLUB', 'Club Admin'
+
+    class TemplateIcon(models.TextChoices):
+        MEGAPHONE = 'MEGAPHONE', '📢 Announcement'
+        CALENDAR = 'CALENDAR', '📅 Event'
+        STAR = 'STAR', '⭐ Featured'
+        BELL = 'BELL', '🔔 Reminder'
+        PARTY = 'PARTY', '🎉 Celebration'
+        INFO = 'INFO', 'ℹ️ Information'
+        WARNING = 'WARNING', '⚠️ Important'
+        HEART = 'HEART', '❤️ Community'
+        TROPHY = 'TROPHY', '🏆 Achievement'
+        ROCKET = 'ROCKET', '🚀 Update'
+
+    # Basic Info
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, help_text="Brief summary of what this template is for")
+    icon = models.CharField(max_length=20, choices=TemplateIcon.choices, default=TemplateIcon.MEGAPHONE)
+    
+    # Creator & Scope
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='post_templates')
+    role_scope = models.CharField(max_length=20, choices=RoleScope.choices)
+    
+    # Ownership context (for municipality/club admins)
+    municipality = models.ForeignKey(Municipality, on_delete=models.CASCADE, null=True, blank=True, related_name='post_templates')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, null=True, blank=True, related_name='post_templates')
+    
+    # Distribution (pre-configured)
+    is_global = models.BooleanField(default=False, help_text="Visible to everyone (Super Admin only)")
+    target_municipalities = models.ManyToManyField(Municipality, blank=True, related_name='template_targets')
+    target_clubs = models.ManyToManyField(Club, blank=True, related_name='template_targets')
+    
+    # Default Media Type
+    default_post_type = models.CharField(max_length=20, choices=Post.PostType.choices, default=Post.PostType.TEXT)
+    
+    # Targeting (pre-configured)
+    target_member_type = models.CharField(max_length=20, choices=Post.TargetMemberType.choices, default=Post.TargetMemberType.BOTH)
+    target_groups = models.ManyToManyField(Group, blank=True, related_name='post_templates')
+    target_min_age = models.IntegerField(null=True, blank=True)
+    target_max_age = models.IntegerField(null=True, blank=True)
+    target_grades = models.JSONField(default=list, blank=True)
+    target_genders = models.JSONField(default=list, blank=True)
+    target_interests = models.ManyToManyField(Interest, blank=True, related_name='post_templates')
+    target_custom_fields = models.JSONField(default=dict, blank=True)
+    
+    # Settings (pre-configured)
+    allow_comments = models.BooleanField(default=True)
+    require_moderation = models.BooleanField(default=False)
+    allow_replies = models.BooleanField(default=True)
+    limit_comments_per_user = models.IntegerField(default=0)
+    send_push_notification = models.BooleanField(default=False)
+    default_push_title = models.CharField(max_length=200, blank=True)
+    default_push_message = models.CharField(max_length=500, blank=True, help_text="Default push notification body text")
+    
+    # Pinned default
+    is_pinned_default = models.BooleanField(default=False)
+    
+    # Metadata
+    usage_count = models.IntegerField(default=0, help_text="Number of posts created using this template")
+    is_active = models.BooleanField(default=True, help_text="Inactive templates are hidden from selection")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-usage_count', '-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_role_scope_display()})"
+    
+    def get_target_summary(self):
+        """Generate a human-readable summary of the targeting configuration."""
+        parts = []
+        
+        # Distribution
+        if self.is_global:
+            parts.append("Global (all users)")
+        elif self.target_municipalities.exists():
+            count = self.target_municipalities.count()
+            parts.append(f"{count} municipalit{'ies' if count > 1 else 'y'}")
+        elif self.target_clubs.exists():
+            count = self.target_clubs.count()
+            parts.append(f"{count} club{'s' if count > 1 else ''}")
+        
+        # Member type
+        if self.target_member_type == 'YOUTH':
+            parts.append("Youth only")
+        elif self.target_member_type == 'GUARDIAN':
+            parts.append("Guardians only")
+        
+        # Age range
+        if self.target_min_age or self.target_max_age:
+            if self.target_min_age and self.target_max_age:
+                parts.append(f"Ages {self.target_min_age}-{self.target_max_age}")
+            elif self.target_min_age:
+                parts.append(f"Ages {self.target_min_age}+")
+            else:
+                parts.append(f"Ages up to {self.target_max_age}")
+        
+        # Grades
+        if self.target_grades:
+            grades = self.target_grades
+            if len(grades) > 3:
+                parts.append(f"Grades {min(grades)}-{max(grades)}")
+            else:
+                parts.append(f"Grade{'s' if len(grades) > 1 else ''} {', '.join(map(str, grades))}")
+        
+        # Groups
+        if self.target_groups.exists():
+            count = self.target_groups.count()
+            parts.append(f"{count} group{'s' if count > 1 else ''}")
+        
+        return ", ".join(parts) if parts else "All members"
+    
+    def get_settings_summary(self):
+        """Generate a human-readable summary of the settings configuration."""
+        parts = []
+        
+        if self.allow_comments:
+            parts.append("Comments on")
+            if self.require_moderation:
+                parts.append("moderated")
+        else:
+            parts.append("Comments off")
+        
+        if self.send_push_notification:
+            parts.append("Push enabled")
+        
+        if self.is_pinned_default:
+            parts.append("Pinned")
+        
+        return ", ".join(parts) if parts else "Default settings"
+    
+    def increment_usage(self):
+        """Increment the usage counter when a post is created from this template."""
+        self.usage_count += 1
+        self.save(update_fields=['usage_count'])

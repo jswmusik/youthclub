@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Clock, Plus, Trash2, ArrowLeft, Save, Calendar, Users, GraduationCap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import api from '../../../../lib/api';
 import Toast from '../../../components/Toast';
@@ -40,6 +42,17 @@ interface OpeningHour {
   min_value: string;
   max_value: string;
 }
+
+const inputClasses = "w-full px-4 py-3 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 focus:outline-none focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition-all";
+
+const selectClasses = "w-full px-4 py-3 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] focus:outline-none focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition-all appearance-none cursor-pointer";
+
+const selectArrowStyle = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 0.75rem center',
+  backgroundSize: '1.25rem',
+};
 
 export default function OpeningHoursPage() {
   const { user, loading: authLoading } = useAuth();
@@ -218,84 +231,134 @@ export default function OpeningHoursPage() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="p-10 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-500">Loading opening hours...</p>
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Clock className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-[var(--brand-light)]/60 animate-pulse">Loading opening hours...</p>
+        </div>
       </div>
     );
   }
 
   if (!clubId) {
     return (
-      <div className="p-10 text-center">
-        <p className="text-gray-500">No club assigned. Please contact your administrator.</p>
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--brand-red)]/20 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-[var(--brand-red)]" />
+          </div>
+          <p className="text-[var(--brand-light)]">No club assigned. Please contact your administrator.</p>
+        </div>
       </div>
     );
   }
 
+  // Get today's weekday (1=Monday, 7=Sunday)
+  const today = new Date();
+  const todayWeekday = today.getDay() === 0 ? 7 : today.getDay();
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-8 shadow-lg">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div>
-            <p className="text-sm uppercase tracking-widest text-white/70 font-semibold">Club Admin</p>
-            <h1 className="text-3xl font-bold mt-1">Manage Opening Hours</h1>
-            <p className="text-white/80 mt-2 max-w-2xl">
-              Set your club's weekly schedule, including time restrictions and age/grade limits for specific sessions.
-            </p>
+    <div className="space-y-0 sm:space-y-6">
+      {/* Navigation Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
+        <Link 
+          href="/admin/club/details"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to Club Details
+        </Link>
+      </div>
+
+      {/* Hero Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        {/* Header Banner */}
+        <div className="relative h-24 sm:h-32 bg-gradient-to-br from-[var(--brand-primary)]/30 via-[var(--dark-700)] to-[var(--brand-purple)]/20">
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
+            <div className="absolute bottom-4 left-4 w-24 h-24 rounded-full bg-[var(--brand-purple)]/20 blur-2xl" />
+          </div>
+        </div>
+        
+        {/* Title Section */}
+        <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-10 sm:-mt-12">
+          <div className="flex items-end gap-4 sm:gap-6">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
+              <Clock className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+            </div>
+            <div className="flex-1 space-y-1 pb-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Opening Hours</h1>
+              <p className="text-sm text-[var(--brand-light)]/50">Manage your club's weekly schedule and session restrictions</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Builder */}
-          <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
-            <h3 className="text-lg font-semibold text-slate-900">Add New Opening Hour</h3>
-            
-            <div className="flex flex-wrap gap-3">
+      {/* Add New Hour Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+          <div className="flex items-center gap-2">
+            <Plus className="w-5 h-5 text-[var(--brand-third)]" />
+            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Add New Opening Hour</h2>
+          </div>
+        </div>
+        <div className="p-4 sm:p-6 space-y-4">
+          {/* Row 1: Day, Cycle, Times */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Day</label>
               <select
-                className="border border-slate-300 p-2 rounded-lg text-sm w-36 bg-white"
+                className={selectClasses}
+                style={selectArrowStyle}
                 value={newHour.weekday}
                 onChange={(e) => setNewHour({ ...newHour, weekday: parseInt(e.target.value) })}
               >
                 {WEEKDAYS.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
+                  <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
-              
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Week Cycle</label>
               <select
-                className="border border-slate-300 p-2 rounded-lg text-sm w-36 bg-white"
+                className={selectClasses}
+                style={selectArrowStyle}
                 value={newHour.week_cycle}
                 onChange={(e) => setNewHour({ ...newHour, week_cycle: e.target.value })}
               >
                 {CYCLES.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Open Time</label>
               <input
                 type="time"
-                className="border border-slate-300 p-2 rounded-lg text-sm bg-white"
+                className={inputClasses}
                 value={newHour.open_time}
                 onChange={(e) => setNewHour({ ...newHour, open_time: e.target.value })}
               />
-              <span className="self-center text-slate-600 font-medium">-</span>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Close Time</label>
               <input
                 type="time"
-                className="border border-slate-300 p-2 rounded-lg text-sm bg-white"
+                className={inputClasses}
                 value={newHour.close_time}
                 onChange={(e) => setNewHour({ ...newHour, close_time: e.target.value })}
               />
             </div>
+          </div>
 
-            <div className="flex flex-wrap gap-3 items-center">
+          {/* Row 2: Restrictions */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Restriction</label>
               <select
-                className="border border-slate-300 p-2 rounded-lg text-sm w-40 bg-white"
+                className={selectClasses}
+                style={selectArrowStyle}
                 value={newHour.restriction_mode}
                 onChange={(e) => setNewHour({ ...newHour, restriction_mode: e.target.value })}
               >
@@ -303,142 +366,198 @@ export default function OpeningHoursPage() {
                 <option value="AGE">Age Range</option>
                 <option value="GRADE">Grade Range</option>
               </select>
-              
-              {newHour.restriction_mode !== 'NONE' && (
-                <div className="flex items-center gap-2">
+            </div>
+            {newHour.restriction_mode !== 'NONE' && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Min {newHour.restriction_mode === 'AGE' ? 'Age' : 'Grade'}</label>
                   <input
                     type="number"
                     placeholder="From"
-                    className="border border-slate-300 p-2 rounded-lg text-sm w-20 bg-white"
+                    className={inputClasses}
                     value={newHour.min_value}
                     onChange={(e) => setNewHour({ ...newHour, min_value: e.target.value })}
                   />
-                  <span className="text-slate-500">-</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Max {newHour.restriction_mode === 'AGE' ? 'Age' : 'Grade'}</label>
                   <input
                     type="number"
                     placeholder="To"
-                    className="border border-slate-300 p-2 rounded-lg text-sm w-20 bg-white"
+                    className={inputClasses}
                     value={newHour.max_value}
                     onChange={(e) => setNewHour({ ...newHour, max_value: e.target.value })}
                   />
-                  <span className="text-xs text-slate-500 font-bold uppercase ml-1">
-                    {newHour.restriction_mode}
-                  </span>
                 </div>
-              )}
-              
+              </>
+            )}
+            <div className={newHour.restriction_mode === 'NONE' ? 'col-span-2 sm:col-span-1' : ''}>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Gender</label>
               <select
-                className="border border-slate-300 p-2 rounded-lg text-sm w-40 bg-white"
+                className={selectClasses}
+                style={selectArrowStyle}
                 value={newHour.gender_restriction}
                 onChange={(e) => setNewHour({ ...newHour, gender_restriction: e.target.value })}
               >
                 {GENDER_RESTRICTIONS.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
+                  <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
               </select>
-              
+            </div>
+          </div>
+
+          {/* Row 3: Title and Add Button */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Title (Optional)</label>
               <input
                 type="text"
-                placeholder="Title (Optional, e.g., 'Teen Night')"
-                className="border border-slate-300 p-2 rounded-lg text-sm flex-1 bg-white"
+                placeholder="e.g., 'Teen Night', 'Open Session'"
+                className={inputClasses}
                 value={newHour.title}
                 onChange={(e) => setNewHour({ ...newHour, title: e.target.value })}
               />
-              
+            </div>
+            <div className="flex items-end">
               <button
                 type="button"
                 onClick={addHour}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[var(--brand-third)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-third)]/90 transition-all shadow-lg shadow-[var(--brand-third)]/20"
               >
-                + Add Hour
+                <Plus className="w-5 h-5" />
+                Add Hour
               </button>
             </div>
-            
-            {hourError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-red-600 text-sm font-medium">{hourError}</p>
-              </div>
-            )}
           </div>
 
-          {/* List */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-slate-900">Current Opening Hours</h3>
-            {openingHours.length === 0 ? (
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 text-center">
-                <p className="text-slate-500 italic">No opening hours added yet. Add your first opening hour above.</p>
+          {/* Error Message */}
+          {hourError && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30">
+              <AlertCircle className="w-5 h-5 text-[var(--brand-red)] flex-shrink-0" />
+              <p className="text-sm text-[var(--brand-red)]">{hourError}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Current Opening Hours Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-[var(--brand-purple)]" />
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Current Schedule</h2>
+            </div>
+            <span className="text-sm text-[var(--brand-light)]/50">{openingHours.length} hour{openingHours.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+        <div className="p-4 sm:p-6">
+          {openingHours.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-[var(--brand-light)]/30" />
               </div>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {openingHours.map((hour, idx) => {
-                  const dayName = WEEKDAYS.find((d) => d.id === hour.weekday)?.name;
-                  const cycleName = CYCLES.find((c) => c.id === hour.week_cycle)?.name;
-                  const genderName = GENDER_RESTRICTIONS.find((g) => g.id === hour.gender_restriction)?.name || 'All Genders';
-                  
-                  return (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center bg-white border border-slate-200 p-4 rounded-lg shadow-sm hover:bg-slate-50 transition"
-                    >
-                      <div className="flex items-center gap-4">
-                        <span className="font-bold text-slate-900 w-28">{dayName}</span>
-                        <span className="text-xs text-slate-500 uppercase bg-slate-100 px-2 py-1 rounded w-24 text-center">
-                          {cycleName}
-                        </span>
-                        <span className="text-slate-700 font-medium">
-                          {hour.open_time} - {hour.close_time}
-                        </span>
+              <p className="text-[var(--brand-light)]/50 mb-2">No opening hours added yet</p>
+              <p className="text-sm text-[var(--brand-light)]/30">Add your first opening hour using the form above</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {openingHours.map((hour, idx) => {
+                const dayName = WEEKDAYS.find((d) => d.id === hour.weekday)?.name;
+                const cycleName = CYCLES.find((c) => c.id === hour.week_cycle)?.name;
+                const genderName = GENDER_RESTRICTIONS.find((g) => g.id === hour.gender_restriction)?.name || 'All Genders';
+                const isToday = hour.weekday === todayWeekday;
+                
+                return (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-xl border transition-all ${
+                      isToday 
+                        ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/40' 
+                        : 'bg-[var(--dark-700)]/50 border-[var(--dark-500)] hover:border-[var(--dark-400)]'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className={`font-bold text-sm ${isToday ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'}`}>
+                            {dayName}
+                          </span>
+                          {isToday && (
+                            <span className="bg-[var(--brand-primary)] text-[var(--dark-900)] text-[10px] px-2 py-0.5 rounded-full font-bold">
+                              Today
+                            </span>
+                          )}
+                          {hour.week_cycle !== 'ALL' && (
+                            <span className="bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30 text-[10px] px-2 py-0.5 rounded-full">
+                              {cycleName}
+                            </span>
+                          )}
+                        </div>
                         {hour.title && (
-                          <span className="text-slate-600 italic text-sm">"{hour.title}"</span>
+                          <p className="text-sm font-medium text-[var(--brand-light)]/80 mb-2">{hour.title}</p>
                         )}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <div className={`px-3 py-1.5 rounded-lg font-mono text-sm font-bold ${
+                            isToday 
+                              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                              : 'bg-[var(--dark-600)] text-[var(--brand-third)]'
+                          }`}>
+                            {hour.open_time} - {hour.close_time}
+                          </div>
+                          {hour.restriction_mode !== 'NONE' && (
+                            <span className="inline-flex items-center gap-1 bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30 text-[10px] px-2 py-0.5 rounded-full">
+                              {hour.restriction_mode === 'AGE' ? (
+                                <Users className="w-3 h-3" />
+                              ) : (
+                                <GraduationCap className="w-3 h-3" />
+                              )}
+                              {hour.restriction_mode === 'AGE' ? 'Age' : 'Grade'} {hour.min_value}-{hour.max_value}
+                            </span>
+                          )}
+                          {hour.gender_restriction !== 'ALL' && (
+                            <span className="bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30 text-[10px] px-2 py-0.5 rounded-full">
+                              {genderName}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      
-                      <div className="flex gap-2 items-center">
-                        {hour.restriction_mode !== 'NONE' && (
-                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">
-                            {hour.restriction_mode === 'AGE' ? 'Age' : 'Grade'} {hour.min_value}-{hour.max_value}
-                          </span>
-                        )}
-                        {hour.gender_restriction !== 'ALL' && (
-                          <span className="bg-pink-100 text-pink-800 px-2 py-1 rounded text-xs font-bold">
-                            {genderName}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeHour(idx)}
-                          className="text-red-600 hover:text-red-800 font-bold text-xl px-2 hover:bg-red-50 rounded transition"
-                          title="Remove"
-                        >
-                          ×
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeHour(idx)}
+                        className="w-10 h-10 rounded-xl bg-[var(--brand-red)]/10 hover:bg-[var(--brand-red)]/20 flex items-center justify-center text-[var(--brand-red)] transition-all self-start sm:self-center"
+                        title="Remove"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
-          <div className="flex justify-end gap-4 border-t border-slate-200 pt-6">
-            <button
-              type="button"
-              onClick={() => router.push('/admin/club/details')}
-              className="px-6 py-3 text-slate-600 font-semibold hover:bg-slate-100 rounded-lg transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold shadow hover:bg-blue-700 transition disabled:opacity-50"
-            >
-              {isSaving ? 'Saving...' : 'Save Opening Hours'}
-            </button>
-          </div>
-        </form>
+      {/* Action Buttons */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => router.push('/admin/club/details')}
+            className="px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--dark-400)] transition-all font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSaving}
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all shadow-lg shadow-[var(--brand-primary)]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save className="w-5 h-5" />
+            {isSaving ? 'Saving...' : 'Save Opening Hours'}
+          </button>
+        </div>
       </div>
 
       <Toast
@@ -446,8 +565,8 @@ export default function OpeningHoursPage() {
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={() => setToast({ ...toast, isVisible: false })}
+        darkMode={true}
       />
     </div>
   );
 }
-

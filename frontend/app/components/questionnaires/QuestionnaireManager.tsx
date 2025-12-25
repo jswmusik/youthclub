@@ -1,23 +1,205 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, CheckCircle2, Clock, Calendar, PlayCircle } from 'lucide-react';
+import { 
+  Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, 
+  CheckCircle2, Clock, Calendar, PlayCircle, ChevronLeft, ClipboardList
+} from 'lucide-react';
 import { questionnaireApi } from '../../../lib/questionnaire-api';
 import api from '../../../lib/api';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import Toast from '../Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+}
+
+function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleEditClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+        >
+          <Edit className="w-5 h-5" />
+          <span className="text-xs font-medium">Edit</span>
+        </button>
+        <button
+          onClick={handleDeleteClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function QuestionnaireCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-56" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuestionnaireTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-1">
+          <Skeleton className="w-8 h-8 rounded-lg" />
+          <Skeleton className="w-8 h-8 rounded-lg" />
+          <Skeleton className="w-8 h-8 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 interface QuestionnaireManagerProps {
-  basePath: string; // e.g., '/admin/club/questionnaires'
+  basePath: string;
   scope: 'SUPER' | 'MUNICIPALITY' | 'CLUB';
 }
 
@@ -28,6 +210,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
   
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   const [analytics, setAnalytics] = useState({
@@ -38,7 +221,6 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
   const [municipalities, setMunicipalities] = useState<any[]>([]);
   const [clubs, setClubs] = useState<any[]>([]);
   
-  // Delete state
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
   
@@ -49,11 +231,18 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     } else {
       params.delete(key);
     }
-    // Reset to page 1 when filters change
     if (key !== 'page') {
       params.set('page', '1');
     }
     router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const buildUrlWithParams = (path: string) => {
+    const page = searchParams.get('page');
+    if (page && page !== '1') {
+      return `${path}?page=${page}`;
+    }
+    return path;
   };
 
   const fetchAnalytics = async () => {
@@ -78,20 +267,18 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
 
   const fetchClubs = async () => {
     try {
-      // Fetch all clubs with pagination
       let allClubs: any[] = [];
-      let nextUrl: string | null = null;
       let page = 1;
+      let hasMore = true;
       
-      do {
+      while (hasMore && page <= 100) {
         const res = await api.get(`/clubs/?page=${page}&page_size=100`);
         const data = res.data;
         const pageClubs = Array.isArray(data) ? data : data.results || [];
         allClubs = [...allClubs, ...pageClubs];
-        nextUrl = data.next || null;
+        hasMore = !!data.next;
         page++;
-        if (page > 100) break; // Safety limit
-      } while (nextUrl);
+      }
       
       setClubs(allClubs);
     } catch (err) {
@@ -100,7 +287,6 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     }
   };
 
-  // Fetch municipalities and clubs once on mount for SUPER admins
   useEffect(() => {
     if (scope === 'SUPER') {
       fetchMunicipalities();
@@ -115,10 +301,11 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
 
   const fetchData = async () => {
     setLoading(true);
+    const startTime = Date.now();
+    
     try {
       const params = new URLSearchParams(searchParams.toString());
       if (!params.has('page')) params.set('page', '1');
-      // Set page size for pagination
       if (!params.has('page_size')) params.set('page_size', '10');
       
       const res = await questionnaireApi.list(params);
@@ -128,23 +315,24 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
       console.error(err);
       setToast({ message: 'Error fetching questionnaires', type: 'error', isVisible: true });
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = MIN_LOADING_TIME - elapsed;
+      
+      if (remaining > 0) {
+        setTimeout(() => {
+          setLoading(false);
+          setShowSkeleton(false);
+        }, remaining);
+      } else {
+        setLoading(false);
+        setShowSkeleton(false);
+      }
     }
   };
   
-  // Pagination logic
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = 10;
   const totalPages = Math.ceil(totalCount / pageSize);
-  
-  // Helper to preserve current page when navigating
-  const getLinkWithPage = (path: string) => {
-    const currentPageParam = searchParams.get('page');
-    if (currentPageParam) {
-      return `${path}?page=${currentPageParam}`;
-    }
-    return path;
-  };
 
   const handleDelete = async () => {
     if (!itemToDelete) return;
@@ -176,30 +364,27 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     }
   };
 
-  const getStatusBadge = (status: string, scheduledPublishDate?: string | null, expirationDate?: string | null) => {
-    // Check if expired
+  const getStatusBadgeClasses = (status: string, scheduledPublishDate?: string | null, expirationDate?: string | null) => {
     if (expirationDate) {
       const expDate = new Date(expirationDate);
       if (expDate < new Date()) {
-        return 'bg-red-50 text-[#EF4444] border-[#EF4444]/30';
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
       }
     }
     
-    // If it's DRAFT but has a scheduled publish date, show as SCHEDULED
     if (status === 'DRAFT' && scheduledPublishDate) {
-      return 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30';
+      return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
     }
     
     switch (status) {
-      case 'PUBLISHED': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
-      case 'DRAFT': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
-      case 'ARCHIVED': return 'bg-red-50 text-[#EF4444] border-[#EF4444]/30';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'PUBLISHED': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'DRAFT': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'ARCHIVED': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]';
     }
   };
   
   const getStatusDisplay = (status: string, scheduledPublishDate?: string | null, expirationDate?: string | null) => {
-    // Check if expired - show as ARCHIVED
     if (expirationDate) {
       const expDate = new Date(expirationDate);
       if (expDate < new Date()) {
@@ -207,434 +392,363 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
       }
     }
     
-    // If it's DRAFT but has a scheduled publish date, show as SCHEDULED
     if (status === 'DRAFT' && scheduledPublishDate) {
       return 'SCHEDULED';
     }
     return status;
   };
 
-
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#121213]">Manage Questionnaires</h1>
-          <p className="text-sm sm:text-base text-gray-500 mt-1">Create and manage questionnaires for your organization.</p>
-        </div>
-        <Link href={`${basePath}/create`} className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
-            <Plus className="h-4 w-4" /> Create New
-          </Button>
-        </Link>
-      </div>
-
-      {/* Analytics */}
-      <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <Card className="border-0 shadow-sm bg-gray-900">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                Analytics Dashboard
-              </h3>
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <ClipboardList className="w-6 h-6 text-white" />
             </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                <ChevronUp className={cn(
-                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                  analyticsExpanded ? "rotate-0" : "rotate-180"
-                )} />
-                <span className="sr-only">Toggle Analytics</span>
-              </Button>
-            </CollapsibleTrigger>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Questionnaires</h1>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Manage questionnaires for your organization</p>
+            </div>
           </div>
-          <CollapsibleContent className="transition-all duration-500 ease-in-out">
-            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {/* Card 1: Total Created */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                        }}>
-                        <FileText className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Total Created</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_created}</div>
-                  </div>
-                </Card>
+          <Link href={`${basePath}/create`}>
+            <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+              <Plus className="w-5 h-5" />
+              Create New
+            </button>
+          </Link>
+        </div>
 
-                {/* Card 2: Completed */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                        }}>
-                        <CheckCircle2 className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Completed</CardTitle>
+        {/* Analytics Dashboard */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-700)] overflow-hidden -mx-4 sm:mx-0">
+          <button
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full px-4 sm:px-6 py-4 flex items-center justify-between hover:bg-[var(--dark-700)]/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-[var(--brand-primary)]" />
+              <span className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</span>
+            </div>
+            <ChevronUp className={`w-4 h-4 text-[var(--brand-light)]/60 transition-transform ${analyticsExpanded ? '' : 'rotate-180'}`} />
+          </button>
+          
+          {analyticsExpanded && (
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-primary)]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-[var(--brand-primary)]" />
                     </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_completed}</div>
-                  </div>
-                </Card>
-
-                {/* Card 3: Started */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                        }}>
-                        <PlayCircle className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Started</CardTitle>
+                    <div>
+                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">Total Created</p>
+                      <p className="text-2xl font-bold text-[var(--brand-light)]">{analytics.total_created}</p>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_started}</div>
                   </div>
-                </Card>
+                </div>
+                
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-green-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">Completed</p>
+                      <p className="text-2xl font-bold text-[var(--brand-light)]">{analytics.total_completed}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-blue-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                      <PlayCircle className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">Started</p>
+                      <p className="text-2xl font-bold text-[var(--brand-light)]">{analytics.total_started}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+            </div>
+          )}
+        </div>
 
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          {/* Main Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 items-end">
-            {/* Search - Takes more space on larger screens */}
-            <div className="relative md:col-span-4 lg:col-span-3">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search by title..." 
-                className="pl-9 bg-gray-50 border-0"
-                value={searchParams.get('search') || ''} 
+        {/* Filters */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-700)] p-4 sm:p-6 -mx-4 sm:mx-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Search */}
+            <div className="relative lg:col-span-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
+              <input
+                type="text"
+                placeholder="Search questionnaires..."
+                value={searchParams.get('search') || ''}
                 onChange={e => updateUrl('search', e.target.value)}
+                className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] placeholder:text-[var(--brand-light)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition-all"
               />
             </div>
             
             {/* Status Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
-              <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('status') || ''} 
-                onChange={e => updateUrl('status', e.target.value)}
-              >
-                <option value="">All Statuses</option>
-                <option value="DRAFT">Draft</option>
-                <option value="PUBLISHED">Published</option>
-                <option value="ARCHIVED">Archived</option>
-              </select>
-            </div>
+            <select
+              value={searchParams.get('status') || ''}
+              onChange={e => updateUrl('status', e.target.value)}
+              className="h-10 px-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition-all"
+            >
+              <option value="">All Statuses</option>
+              <option value="DRAFT">Draft</option>
+              <option value="PUBLISHED">Published</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
             
             {/* Municipality Filter - Only for SUPER scope */}
             {scope === 'SUPER' && (
-              <div className="md:col-span-2 lg:col-span-2">
-                <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                  value={searchParams.get('municipality') || ''} 
-                  onChange={e => {
-                    const params = new URLSearchParams(searchParams.toString());
-                    const municipalityValue = e.target.value;
-                    
-                    // Update municipality
-                    if (municipalityValue) {
-                      params.set('municipality', municipalityValue);
-                    } else {
-                      params.delete('municipality');
-                    }
-                    
-                    // Clear club selection when municipality changes
-                    params.delete('club');
-                    
-                    // Reset to page 1
-                    params.set('page', '1');
-                    
-                    router.replace(`${pathname}?${params.toString()}`);
-                  }}
-                >
-                  <option value="">All Municipalities</option>
-                  {municipalities.map(m => (
-                    <option key={m.id} value={m.id.toString()}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            
-            {/* Club Filter - Only for SUPER scope */}
-            {scope === 'SUPER' && (
-              <div className={cn("md:col-span-2", scope === 'SUPER' && municipalities.length > 0 ? "lg:col-span-2" : "lg:col-span-3")}>
-                <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                  value={searchParams.get('club') || ''} 
-                  onChange={e => updateUrl('club', e.target.value)}
-                >
-                  <option value="">All Clubs</option>
-                  {(() => {
-                    const selectedMunicipalityId = searchParams.get('municipality');
-                    let filteredClubs = clubs;
-                    
-                    // Filter clubs by selected municipality
-                    if (selectedMunicipalityId) {
-                      filteredClubs = clubs.filter((c: any) => 
-                        c.municipality?.toString() === selectedMunicipalityId || 
-                        c.municipality_id?.toString() === selectedMunicipalityId
-                      );
-                    }
-                    
-                    return filteredClubs.map(c => (
-                      <option key={c.id} value={c.id.toString()}>{c.name}</option>
-                    ));
-                  })()}
-                </select>
-              </div>
+              <select
+                value={searchParams.get('municipality') || ''}
+                onChange={e => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (e.target.value) {
+                    params.set('municipality', e.target.value);
+                  } else {
+                    params.delete('municipality');
+                  }
+                  params.delete('club');
+                  params.set('page', '1');
+                  router.replace(`${pathname}?${params.toString()}`);
+                }}
+                className="h-10 px-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition-all"
+              >
+                <option value="">All Municipalities</option>
+                {municipalities.map(m => (
+                  <option key={m.id} value={m.id.toString()}>{m.name}</option>
+                ))}
+              </select>
             )}
             
             {/* Clear Button */}
-            <div className="md:col-span-2 lg:col-span-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(pathname)}
-                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-              >
-                <X className="h-4 w-4" /> Clear
-              </Button>
+            <button
+              onClick={() => router.push(pathname)}
+              className="h-10 px-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all flex items-center justify-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex items-center justify-between text-sm px-4 sm:px-0">
+          <span className="text-[var(--brand-light)]/60">
+            Showing <span className="font-semibold text-[var(--brand-light)]">{items.length}</span> of{' '}
+            <span className="font-semibold text-[var(--brand-light)]">{totalCount}</span> questionnaires
+          </span>
+        </div>
+
+        {/* Content */}
+        {showSkeleton ? (
+          <>
+            {/* Mobile Skeletons */}
+            <div className="flex flex-col gap-3 md:hidden">
+              {[...Array(5)].map((_, i) => (
+                <QuestionnaireCardSkeleton key={i} />
+              ))}
             </div>
+            
+            {/* Desktop Skeleton */}
+            <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[var(--dark-600)]">
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Responses</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...Array(5)].map((_, i) => (
+                    <QuestionnaireTableRowSkeleton key={i} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : items.length === 0 ? (
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-700)] p-12 sm:p-20 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+              <ClipboardList className="w-8 h-8 text-[var(--brand-light)]/40" />
+            </div>
+            <p className="text-[var(--brand-light)]/60 text-lg">No questionnaires found</p>
+            <p className="text-[var(--brand-light)]/40 text-sm mt-1">Try adjusting your filters or create a new questionnaire</p>
           </div>
-        </div>
-      </Card>
-
-      {/* Content */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
-      ) : items.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">No questionnaires found.</p>
-          </div>
-        </Card>
-      ) : (
-        <>
-          {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {items.map((q) => (
-              <Card key={q.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3 px-4 pt-4">
-                  <div className="flex-1 min-w-0">
-                    <Link 
-                      href={`${basePath}/${q.id}/analytics${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}
-                      className="block"
-                    >
-                      <CardTitle className="text-base font-semibold text-[#121213] break-words hover:text-[#4D4DA4] transition-colors">
-                        {q.title}
-                      </CardTitle>
-                    </Link>
-                    {q.description && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 break-words">{q.description}</p>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0 px-4 pb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
-                      <Badge variant="outline" className={getStatusBadge(q.status, q.scheduled_publish_date, q.expiration_date)}>
-                        {getStatusDisplay(q.status, q.scheduled_publish_date, q.expiration_date)}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Expires</span>
-                      <span className="text-gray-900 font-medium">
-                        {q.expiration_date ? new Date(q.expiration_date).toLocaleDateString() : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Responses</span>
-                      <span className="text-gray-900 font-medium">
-                        {q.response_count || 0} completed
-                      </span>
-                    </div>
-                  </div>
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                    <Link href={`${basePath}/${q.id}/analytics${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`} className="flex-1">
-                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
-                    </Link>
-                    <Link href={`${basePath}/edit/${q.id}${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`} className="flex-1">
-                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setItemToDelete(q)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Title</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Expires</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Responses</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((q) => (
-                  <TableRow key={q.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4 px-6">
-                      <div>
-                        <Link 
-                          href={`${basePath}/${q.id}/analytics${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}
-                          className="font-semibold text-[#121213] hover:text-[#4D4DA4] transition-colors"
-                        >
-                          {q.title}
-                        </Link>
+        ) : (
+          <>
+            {/* MOBILE: Swipeable Cards */}
+            <div className="flex flex-col gap-3 md:hidden">
+              {items.map((q) => (
+                <SwipeableCard
+                  key={q.id}
+                  onClick={() => router.push(buildUrlWithParams(`${basePath}/${q.id}/analytics`))}
+                  onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${q.id}`))}
+                  onDelete={() => setItemToDelete(q)}
+                >
+                  <div className="p-4 border-y border-[var(--dark-600)]">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-5 h-5 text-[var(--brand-primary)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-[var(--brand-light)] truncate">{q.title}</h3>
                         {q.description && (
-                          <div className="text-xs text-gray-500 mt-1 truncate max-w-md">
-                            {q.description}
-                          </div>
+                          <p className="text-sm text-[var(--brand-light)]/60 truncate mt-0.5">{q.description}</p>
                         )}
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClasses(q.status, q.scheduled_publish_date, q.expiration_date)}`}>
+                            {getStatusDisplay(q.status, q.scheduled_publish_date, q.expiration_date)}
+                          </span>
+                          <span className="text-xs text-[var(--brand-light)]/50">
+                            {q.expiration_date ? new Date(q.expiration_date).toLocaleDateString() : 'No expiry'}
+                          </span>
+                          <span className="text-xs text-[var(--brand-light)]/50">
+                            {q.response_count || 0} responses
+                          </span>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <Badge variant="outline" className={getStatusBadge(q.status, q.scheduled_publish_date, q.expiration_date)}>
-                        {getStatusDisplay(q.status, q.scheduled_publish_date, q.expiration_date)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <div className="text-sm text-gray-900">
-                        {q.expiration_date ? new Date(q.expiration_date).toLocaleDateString() : 'N/A'}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <span className="text-sm text-gray-900">
-                        <span className="font-semibold">{q.response_count || 0}</span>{' '}
-                        <span className="text-gray-500">completed</span>
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link href={`${basePath}/${q.id}/analytics${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        {q.status === 'DRAFT' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => handleTogglePublish(q)}
-                            title="Publish questionnaire"
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {q.status === 'PUBLISHED' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-                            onClick={() => handleTogglePublish(q)}
-                            title="Unpublish questionnaire"
-                          >
-                            <Clock className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Link href={`${basePath}/edit/${q.id}${searchParams.get('page') ? `?page=${searchParams.get('page')}` : ''}`}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setItemToDelete(q)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={currentPage === 1} 
-                onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              >
-                Prev
-              </Button>
-              <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={currentPage >= totalPages} 
-                onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              >
-                Next
-              </Button>
+                    </div>
+                  </div>
+                </SwipeableCard>
+              ))}
             </div>
-          )}
-        </>
-      )}
+
+            {/* DESKTOP: Table */}
+            <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[var(--dark-600)]">
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Responses</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((q) => (
+                    <tr 
+                      key={q.id} 
+                      className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/50 transition-colors cursor-pointer"
+                      onClick={() => router.push(buildUrlWithParams(`${basePath}/${q.id}/analytics`))}
+                    >
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="font-semibold text-[var(--brand-light)] hover:text-[var(--brand-primary)] transition-colors">
+                            {q.title}
+                          </p>
+                          {q.description && (
+                            <p className="text-xs text-[var(--brand-light)]/50 mt-1 truncate max-w-md">
+                              {q.description}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusBadgeClasses(q.status, q.scheduled_publish_date, q.expiration_date)}`}>
+                          {getStatusDisplay(q.status, q.scheduled_publish_date, q.expiration_date)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-[var(--brand-light)]/70">
+                          {q.expiration_date ? new Date(q.expiration_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-[var(--brand-light)]">
+                          <span className="font-semibold">{q.response_count || 0}</span>{' '}
+                          <span className="text-[var(--brand-light)]/50">completed</span>
+                        </span>
+                      </td>
+                      <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Link href={buildUrlWithParams(`${basePath}/${q.id}/analytics`)}>
+                            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </Link>
+                          {q.status === 'PUBLISHED' ? (
+                            <button 
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-green-400 hover:bg-green-500/20 transition-all"
+                              onClick={() => handleTogglePublish(q)}
+                              title="Published - Click to unpublish"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          ) : q.status === 'DRAFT' && (
+                            <button 
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-yellow-400 hover:bg-yellow-500/20 transition-all"
+                              onClick={() => handleTogglePublish(q)}
+                              title="Not published - Click to publish"
+                            >
+                              <Clock className="w-4 h-4" />
+                            </button>
+                          )}
+                          <Link href={buildUrlWithParams(`${basePath}/edit/${q.id}`)}>
+                            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          </Link>
+                          <button 
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--brand-light)]/60 hover:text-red-400 hover:bg-red-500/20 transition-all"
+                            onClick={() => setItemToDelete(q)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 py-4">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => updateUrl('page', (currentPage - 1).toString())}
+                  className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--dark-600)] transition-all"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-[var(--brand-light)]/60">
+                  Page <span className="font-semibold text-[var(--brand-light)]">{currentPage}</span> of{' '}
+                  <span className="font-semibold text-[var(--brand-light)]">{totalPages}</span>
+                </span>
+                <button
+                  disabled={currentPage >= totalPages}
+                  onClick={() => updateUrl('page', (currentPage + 1).toString())}
+                  className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--dark-600)] transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <DeleteConfirmationModal 
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
         itemName={itemToDelete?.title}
+        darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
     </div>
   );
 }

@@ -3,19 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Edit, History, BarChart3, ChevronUp, Gift, Clock, Calendar, TrendingUp } from 'lucide-react';
+import { 
+  ArrowLeft, Edit, History, Gift, Clock, Calendar, TrendingUp, 
+  Users, Target, Zap, ChevronUp, ChevronDown, User, Mail,
+  ExternalLink, Sparkles, Building2, CheckCircle2
+} from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../utils';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
 
 interface RewardDetailProps {
   rewardId: string;
-  basePath: string; // e.g. "/admin/super/rewards"
+  basePath: string;
 }
 
 export default function RewardDetailView({ rewardId, basePath }: RewardDetailProps) {
@@ -60,7 +58,6 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
       setReward(rewardRes.data);
       setAnalytics(statsRes.data);
       
-      // Fetch only latest 10 claims
       const historyRes = await api.get(`/rewards/${rewardId}/history/?page_size=10`);
       const historyData = historyRes.data.results || historyRes.data;
       setHistory(Array.isArray(historyData) ? historyData : []);
@@ -71,394 +68,462 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
     }
   };
 
-  if (loading) return <div className="p-12 text-center text-gray-500">Loading details...</div>;
-  if (!reward) return <div className="p-12 text-center text-red-500">Reward not found.</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[var(--brand-light)]/60">Loading reward details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!reward) {
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <Gift className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
+          <p className="text-[var(--brand-light)] font-semibold">Reward not found</p>
+          <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
+            Return to list
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const getTriggerInfo = (trigger: string) => {
+    const triggers: Record<string, { icon: string; label: string }> = {
+      'BIRTHDAY': { icon: '🎂', label: 'On Birthday' },
+      'WELCOME': { icon: '👋', label: 'On Signup' },
+      'VERIFIED': { icon: '✅', label: 'On Verification' },
+      'MOST_ACTIVE': { icon: '🔥', label: 'Most Active' },
+    };
+    return triggers[trigger] || { icon: '⚡', label: trigger };
+  };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      
-      {/* Header with Back Button and Edit Button */}
-      <div className="flex items-center justify-between">
-        <Link href={buildUrlWithParams(basePath)}>
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-            <ChevronLeft className="h-4 w-4" />
-            Back to List
-          </Button>
+    <div className="space-y-0 sm:space-y-6">
+      {/* Navigation Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
+        <Link 
+          href={buildUrlWithParams(basePath)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to List
         </Link>
-        
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <Link href={buildUrlWithParams(`${basePath}/${reward.id}/history`)}>
-            <Button variant="outline" size="sm" className="gap-2 text-gray-700 hover:text-[#4D4DA4] hover:border-[#4D4DA4]">
-              <History className="h-4 w-4" />
-              Claim History
-            </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link 
+            href={buildUrlWithParams(`${basePath}/${reward.id}/history`)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+          >
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">Claim History</span>
           </Link>
-          <Link href={buildUrlWithParams(`${basePath}/edit/${reward.id}`)}>
-            <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white">
-              <Edit className="h-4 w-4" />
-              Edit Reward
-            </Button>
+          <Link 
+            href={buildUrlWithParams(`${basePath}/edit/${reward.id}`)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
+          >
+            <Edit className="h-4 w-4" /> Edit
           </Link>
         </div>
       </div>
 
-      {/* 1. REWARD INFO */}
-      <div className="flex items-start gap-4 sm:gap-6">
-        {/* Image */}
-        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#EBEBFE]/30 rounded-xl overflow-hidden border-2 border-[#EBEBFE] flex-shrink-0">
-          {reward.image ? (
-            <img src={getMediaUrl(reward.image) || ''} className="w-full h-full object-cover" alt="Reward" />
-          ) : (
-            <div className="flex items-center justify-center h-full text-2xl">🎁</div>
-          )}
-        </div>
-        
-        {/* Title & Status */}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#121213] break-words">{reward.name}</h1>
-            {reward.is_active ? (
-              <Badge className="bg-green-50 text-green-700 border-green-200 text-xs font-semibold">Active</Badge>
-            ) : (
-              <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200 text-xs font-semibold">Inactive</Badge>
-            )}
+      {/* Hero Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        {/* Header Banner */}
+        <div className="relative h-32 sm:h-40 bg-gradient-to-br from-[var(--brand-purple)]/30 via-[var(--dark-700)] to-[var(--brand-primary)]/20">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
+            <div className="absolute bottom-4 left-4 w-24 h-24 rounded-full bg-[var(--brand-purple)]/20 blur-2xl" />
           </div>
           
-          <p className="text-sm text-gray-500">
-            Owned by: <span className="font-semibold text-[#121213]">{reward.municipality_name || reward.club_name || 'Super Admin'}</span>
-          </p>
+          {/* Status Badge - Top Right */}
+          <div className={`absolute top-4 right-4 px-4 py-2 rounded-xl backdrop-blur-sm border flex items-center gap-2 ${
+            reward.is_active 
+              ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30'
+              : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]'
+          }`}>
+            {reward.is_active && <CheckCircle2 className="w-4 h-4" />}
+            <span className="text-sm font-semibold">{reward.is_active ? 'Active' : 'Inactive'}</span>
+          </div>
+
+          {/* Owner Badge - Top Left */}
+          <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-sm bg-[var(--dark-800)]/80 border border-[var(--dark-500)]">
+            <span className="text-sm text-[var(--brand-light)] flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-[var(--brand-primary)]" />
+              {reward.municipality_name || reward.club_name || 'Super Admin'}
+            </span>
+          </div>
+        </div>
+        
+        {/* Avatar & Title Section */}
+        <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-12 sm:-mt-14">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
+            {/* Image */}
+            <div className="relative z-20 w-20 h-20 sm:w-28 sm:h-28 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
+              {reward.image ? (
+                <img 
+                  src={getMediaUrl(reward.image) || ''} 
+                  alt={reward.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                  <Gift className="w-10 h-10 text-white" />
+                </div>
+              )}
+            </div>
+
+            {/* Title & Info */}
+            <div className="flex-1 space-y-2 pt-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                {reward.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-3">
+                {reward.sponsor_name && (
+                  <div className="flex items-center gap-2 text-[var(--brand-light)]/50 text-sm">
+                    <Sparkles className="h-4 w-4 text-[var(--brand-peach)]" />
+                    <span>Sponsored by <span className="text-[var(--brand-light)]">{reward.sponsor_name}</span></span>
+                  </div>
+                )}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]">
+                  <Users className="w-3 h-3" /> {reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}
+                </span>
+                {reward.expiration_date && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
+                    <Calendar className="w-3 h-3" /> Expires {new Date(reward.expiration_date).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 2. ANALYTICS DASHBOARD */}
-      {analytics && !loading && (
-        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border-0 shadow-sm bg-gray-900">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                  Analytics Dashboard
-                </h3>
+      {/* Analytics Dashboard */}
+      {analytics && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <button
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                  )} />
-                  <span className="sr-only">Toggle Analytics</span>
-                </Button>
-              </CollapsibleTrigger>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Analytics Dashboard</h2>
             </div>
-            <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-                  {/* Card 1: Total Claims */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <Gift className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Total Claims</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_uses}</div>
+            {analyticsExpanded ? (
+              <ChevronUp className="w-5 h-5 text-[var(--brand-light)]/50" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-[var(--brand-light)]/50" />
+            )}
+          </button>
+          
+          {analyticsExpanded && (
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                {/* Total Claims */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-primary)]/30 hover:border-[var(--brand-primary)]/50 transition-all">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                      <Gift className="w-4 h-4 text-white" />
                     </div>
-                  </Card>
-
-                  {/* Card 2: Last 24h */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
-                          }}>
-                          <Clock className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Last 24h</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.uses_last_24h}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 3: Last 7 Days */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
-                          }}>
-                          <TrendingUp className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Last 7 Days</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.uses_last_7d}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 4: Last 30 Days */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF6B9D] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <Calendar className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Last 30 Days</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.uses_last_30d}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 5: Days Left */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#F59E0B]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.3)',
-                          }}>
-                          <Clock className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Days Left</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.days_remaining !== null ? analytics.days_remaining : '∞'}</div>
-                    </div>
-                  </Card>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Total Claims</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_uses}</div>
                 </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+
+                {/* Last 24h */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-blue)]/30 hover:border-[var(--brand-blue)]/50 transition-all">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Last 24h</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.uses_last_24h}</div>
+                </div>
+
+                {/* Last 7 Days */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-green)]/30 hover:border-[var(--brand-green)]/50 transition-all">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-[var(--dark-900)]" />
+                    </div>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Last 7 Days</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.uses_last_7d}</div>
+                </div>
+
+                {/* Last 30 Days */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-peach)]/30 hover:border-[var(--brand-peach)]/50 transition-all">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Last 30 Days</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.uses_last_30d}</div>
+                </div>
+
+                {/* Days Left */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-third)]/30 hover:border-[var(--brand-third)]/50 transition-all col-span-2 sm:col-span-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-[var(--dark-900)]" />
+                    </div>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Days Left</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                    {analytics.days_remaining !== null ? analytics.days_remaining : '∞'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6">
         
-        {/* 3. LEFT COL: INFO & CONFIG */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-          {/* Description */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">About</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm sm:text-base text-[#121213] whitespace-pre-wrap">{reward.description}</p>
+        {/* Main Column */}
+        <div className="lg:col-span-2 space-y-0 sm:space-y-6">
+          
+          {/* About Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">About</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm sm:text-base text-[var(--brand-light)]/80 whitespace-pre-wrap leading-relaxed">
+                {reward.description}
+              </p>
               
               {(reward.sponsor_name || reward.sponsor_link) && (
-                <div className="pt-4 border-t border-gray-100">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Sponsor</p>
-                  <p className="text-sm sm:text-base font-medium text-[#121213]">
-                    {reward.sponsor_name || 'Anonymous'} 
-                    {reward.sponsor_link && (
-                      <a href={reward.sponsor_link} target="_blank" rel="noopener noreferrer" className="ml-2 text-[#4D4DA4] hover:text-[#FF5485] hover:underline transition-colors">
-                        (Visit Website)
-                      </a>
-                    )}
-                  </p>
+                <div className="pt-4 border-t border-[var(--dark-600)]">
+                  <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Sponsor</div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-[var(--brand-light)]">
+                        {reward.sponsor_name || 'Anonymous'}
+                      </span>
+                      {reward.sponsor_link && (
+                        <a 
+                          href={reward.sponsor_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/30 transition-all"
+                        >
+                          <ExternalLink className="w-3 h-3" /> Visit Website
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Latest Claims Table */}
-          <Card className="border-none shadow-sm bg-white overflow-hidden">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Latest Claims</CardTitle>
-                {history.length > 0 && (
-                  <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 text-xs font-semibold">
-                    Showing {history.length} {history.length === 1 ? 'claim' : 'claims'}
-                  </Badge>
-                )}
-              </div>
-              <CardDescription className="text-sm text-gray-500 mt-1">
-                View the 10 most recent claims for this reward
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
+          {/* Latest Claims Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Latest Claims</h2>
+              {history.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]">
+                  {history.length} {history.length === 1 ? 'claim' : 'claims'}
+                </span>
+              )}
+            </div>
+            <div className="p-0">
               {history.length === 0 ? (
-                <div className="p-8 sm:p-12 text-center text-gray-500">
-                  <p className="text-sm sm:text-base">No one has claimed this reward yet.</p>
+                <div className="p-8 sm:p-12 text-center">
+                  <Gift className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-3" />
+                  <p className="text-sm text-[var(--brand-light)]/50">No one has claimed this reward yet.</p>
                 </div>
               ) : (
-                <>
-                  {/* Mobile: Cards */}
-                  <div className="block md:hidden divide-y divide-gray-100">
-                    {history.map((usage) => (
-                      <div key={usage.id} className="p-6 space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-[#121213] truncate">{usage.user_name}</p>
-                            <p className="text-xs text-gray-500 truncate">{usage.user_email}</p>
+                <div className="divide-y divide-[var(--dark-600)]">
+                  {history.map((usage) => (
+                    <div key={usage.id} className="p-4 sm:p-5 hover:bg-[var(--dark-700)]/30 transition-colors">
+                      <div className="flex items-center gap-4">
+                        {/* Avatar */}
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        
+                        {/* User Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-[var(--brand-light)] truncate">
+                            {usage.user_name}
                           </div>
-                          <div className="text-xs text-gray-500 flex-shrink-0 text-right">
+                          <div className="flex items-center gap-1.5 text-xs text-[var(--brand-light)]/50 truncate">
+                            <Mail className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{usage.user_email}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Date */}
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-xs text-[var(--brand-light)]/50">
                             {(() => {
                               const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
                               if (!date) return 'N/A';
-                              const dateStr = date.toLocaleDateString();
+                              return date.toLocaleDateString();
+                            })()}
+                          </div>
+                          <div className="text-xs text-[var(--brand-light)]/30">
+                            {(() => {
+                              const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
+                              if (!date) return '';
                               const hours = String(date.getHours()).padStart(2, '0');
                               const minutes = String(date.getMinutes()).padStart(2, '0');
-                              return `${dateStr} ${hours}:${minutes}`;
+                              return `${hours}:${minutes}`;
                             })()}
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Desktop: Table */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
-                          <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
-                          <TableHead className="h-12 px-6 text-gray-600 font-semibold">Email</TableHead>
-                          <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Date Claimed</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {history.map((usage) => (
-                          <TableRow key={usage.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                            <TableCell className="py-4 px-6">
-                              <div className="font-semibold text-[#121213] text-sm">{usage.user_name}</div>
-                            </TableCell>
-                            <TableCell className="py-4 px-6">
-                              <div className="text-sm text-gray-500">{usage.user_email}</div>
-                            </TableCell>
-                            <TableCell className="py-4 px-6 text-right">
-                              <div className="text-sm text-gray-500">
-                                {(() => {
-                                  const date = usage.redeemed_at ? new Date(usage.redeemed_at) : (usage.created_at ? new Date(usage.created_at) : null);
-                                  if (!date) return 'N/A';
-                                  const dateStr = date.toLocaleDateString();
-                                  const hours = String(date.getHours()).padStart(2, '0');
-                                  const minutes = String(date.getMinutes()).padStart(2, '0');
-                                  return `${dateStr} ${hours}:${minutes}`;
-                                })()}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 4. RIGHT COL: RULES */}
-        <div className="space-y-4 sm:space-y-6">
-          
-          {/* Target Rules */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Targeting Rules</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Target Audience</span>
-                <span className="text-sm sm:text-base font-medium text-[#121213]">{reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}</span>
-              </div>
-              
-              <div>
-                <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Age Range</span>
-                <span className="text-sm sm:text-base text-[#121213]">{reward.min_age || 0} - {reward.max_age || 'Any'} years</span>
-              </div>
-
-              {reward.target_grades && reward.target_grades.length > 0 && (
-                <div>
-                  <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Grades</span>
-                  <span className="text-sm sm:text-base text-[#121213]">{reward.target_grades.join(', ')}</span>
-                </div>
-              )}
-
-              {reward.target_genders && reward.target_genders.length > 0 && (
-                <div>
-                  <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Genders</span>
-                  <span className="text-sm sm:text-base text-[#121213] capitalize">{reward.target_genders.join(', ').toLowerCase()}</span>
-                </div>
-              )}
-
-              {reward.target_groups_details && reward.target_groups_details.length > 0 && (
-                <div>
-                  <span className="block text-xs font-semibold text-gray-500 uppercase mb-2">Specific Groups</span>
-                  <div className="flex flex-wrap gap-2">
-                    {reward.target_groups_details.map((g: any) => (
-                      <Badge key={g.id} variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE] text-xs font-semibold">
-                        {g.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active Triggers */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Active Triggers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {reward.active_triggers && reward.active_triggers.length > 0 ? (
-                <div className="space-y-2">
-                  {reward.active_triggers.map((t: string) => (
-                    <div key={t} className="flex items-center gap-2 bg-green-50 text-green-800 px-3 py-2 rounded-lg border border-green-200">
-                      <span>⚡</span>
-                      <span className="font-semibold text-sm">{t}</span>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500">No automatic triggers set. Manual claim only.</p>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        </div>
 
-          {/* Limits */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Availability</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Expires On</span>
-                <span className={`text-sm sm:text-base ${reward.expiration_date ? 'text-[#121213]' : 'text-gray-400'}`}>
+        {/* Sidebar Column */}
+        <div className="space-y-0 sm:space-y-6">
+          
+          {/* Targeting Rules Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <Target className="h-5 w-5 text-[var(--brand-peach)]" />
+                Targeting Rules
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Target Audience */}
+              <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Target Audience</div>
+                <div className="text-sm text-[var(--brand-light)] font-medium">
+                  {reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}
+                </div>
+              </div>
+              
+              {/* Age Range */}
+              <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Age Range</div>
+                <div className="text-sm text-[var(--brand-light)] font-medium">
+                  {reward.min_age || 0} - {reward.max_age || 'Any'} years
+                </div>
+              </div>
+
+              {/* Grades */}
+              {reward.target_grades && reward.target_grades.length > 0 && (
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Grades</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {reward.target_grades.map((g: number) => (
+                      <span key={g} className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] flex items-center justify-center text-sm font-bold">
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Genders */}
+              {reward.target_genders && reward.target_genders.length > 0 && (
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Genders</div>
+                  <div className="flex flex-wrap gap-2">
+                    {reward.target_genders.map((g: string) => (
+                      <span key={g} className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] capitalize">
+                        {g.toLowerCase()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Target Groups */}
+              {reward.target_groups_details && reward.target_groups_details.length > 0 && (
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Specific Groups</div>
+                  <div className="flex flex-wrap gap-2">
+                    {reward.target_groups_details.map((g: any) => (
+                      <span key={g.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
+                        <Users className="w-3 h-3" />
+                        {g.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Active Triggers Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <Zap className="h-5 w-5 text-[var(--brand-third)]" />
+                Active Triggers
+              </h2>
+            </div>
+            <div className="p-6">
+              {reward.active_triggers && reward.active_triggers.length > 0 ? (
+                <div className="space-y-2">
+                  {reward.active_triggers.map((t: string) => {
+                    const triggerInfo = getTriggerInfo(t);
+                    return (
+                      <div key={t} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--brand-green)]/10 border border-[var(--brand-green)]/30">
+                        <span className="text-xl">{triggerInfo.icon}</span>
+                        <span className="font-semibold text-sm text-[var(--brand-green)]">{triggerInfo.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-[var(--brand-light)]/40">
+                  <Zap className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm italic">No automatic triggers set</p>
+                  <p className="text-xs mt-1">Manual claim only</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Availability Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-[var(--brand-blue)]" />
+                Availability
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Expiration */}
+              <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Expires On</div>
+                <div className={`text-sm font-medium ${reward.expiration_date ? 'text-[var(--brand-light)]' : 'text-[var(--brand-light)]/40 italic'}`}>
                   {reward.expiration_date ? new Date(reward.expiration_date).toLocaleDateString() : 'No Expiration'}
-                </span>
+                </div>
               </div>
-              <div>
-                <span className="block text-xs font-semibold text-gray-500 uppercase mb-1">Usage Limit</span>
-                <span className="text-sm sm:text-base text-[#121213]">{reward.usage_limit ? `${reward.usage_limit} total claims` : 'Unlimited'}</span>
+
+              {/* Usage Limit */}
+              <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Usage Limit</div>
+                <div className="text-sm text-[var(--brand-light)] font-medium">
+                  {reward.usage_limit ? `${reward.usage_limit} total claims` : 'Unlimited'}
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
         </div>
       </div>

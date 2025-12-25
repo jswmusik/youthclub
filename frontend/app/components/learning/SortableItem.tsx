@@ -3,8 +3,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ContentItem } from '@/types/learning';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { GripVertical, Edit2, Trash2, FileText, Video, Download, Clock } from 'lucide-react';
 
 interface SortableItemProps {
@@ -30,49 +28,67 @@ export default function SortableItem({ item, index, onEdit, onDelete }: Sortable
         opacity: isDragging ? 0.5 : 1,
     };
 
+    const typeConfig = {
+        VIDEO: { 
+            icon: Video, 
+            bg: 'bg-[var(--brand-blue)]/20', 
+            text: 'text-[var(--brand-blue)]',
+            badge: 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30'
+        },
+        TEXT: { 
+            icon: FileText, 
+            bg: 'bg-[var(--brand-purple)]/20', 
+            text: 'text-[var(--brand-purple)]',
+            badge: 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border-[var(--brand-purple)]/30'
+        },
+        FILE: { 
+            icon: Download, 
+            bg: 'bg-[var(--brand-green)]/20', 
+            text: 'text-[var(--brand-green)]',
+            badge: 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30'
+        },
+    };
+
+    const config = typeConfig[item.type] || typeConfig.TEXT;
+    const Icon = config.icon;
+
     return (
         <div ref={setNodeRef} style={style}>
-            <Card 
-                className={`border border-gray-200 shadow-sm bg-white hover:shadow-md transition-shadow ${
-                    isDragging ? 'ring-2 ring-[#4D4DA4]' : ''
+            <div 
+                className={`bg-[var(--dark-700)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-500)] hover:border-[var(--dark-400)] transition-all ${
+                    isDragging ? 'ring-2 ring-[var(--brand-primary)]' : ''
                 }`}
             >
-                <CardContent className="p-5">
-                    <div className="flex items-start gap-4">
+                <div className="p-4 sm:p-5">
+                    <div className="flex items-start gap-3 sm:gap-4">
                         {/* Drag Handle */}
                         <div 
                             className="flex flex-col items-center gap-1 pt-1 cursor-grab active:cursor-grabbing"
                             {...attributes}
                             {...listeners}
                         >
-                            <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors" />
-                            <span className="text-xs font-medium text-gray-400">{index + 1}</span>
+                            <GripVertical className="w-5 h-5 text-[var(--brand-light)]/30 hover:text-[var(--brand-light)]/60 transition-colors" />
+                            <span className="text-xs font-medium text-[var(--brand-light)]/30">{index + 1}</span>
                         </div>
                         
                         {/* Type Icon */}
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            item.type === 'VIDEO' ? 'bg-blue-100 text-blue-700' :
-                            item.type === 'TEXT' ? 'bg-purple-100 text-purple-700' :
-                            'bg-green-100 text-green-700'
-                        }`}>
-                            {item.type === 'VIDEO' && <Video className="w-6 h-6" />}
-                            {item.type === 'TEXT' && <FileText className="w-6 h-6" />}
-                            {item.type === 'FILE' && <Download className="w-6 h-6" />}
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${config.bg}`}>
+                            <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${config.text}`} />
                         </div>
                         
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1">
-                                    <h4 className="text-base font-semibold text-[#121213] mb-1">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-base font-semibold text-[var(--brand-light)] mb-1 truncate">
                                         {item.title}
                                     </h4>
-                                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                                        <span className="flex items-center gap-1">
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <span className="flex items-center gap-1 text-sm text-[var(--brand-light)]/50">
                                             <Clock className="w-4 h-4" />
                                             {item.estimated_duration} min
                                         </span>
-                                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${config.badge}`}>
                                             {item.type}
                                         </span>
                                     </div>
@@ -80,31 +96,26 @@ export default function SortableItem({ item, index, onEdit, onDelete }: Sortable
                                 
                                 {/* Actions */}
                                 <div className="flex gap-2 flex-shrink-0">
-                                    <Button 
-                                        variant="ghost" 
-                                        size="sm" 
+                                    <button 
                                         onClick={onEdit}
-                                        className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                        className="px-3 py-1.5 rounded-lg text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10 transition-all text-sm font-medium flex items-center gap-1.5"
                                     >
-                                        <Edit2 className="w-4 h-4 mr-1.5" /> 
+                                        <Edit2 className="w-4 h-4" /> 
                                         <span className="hidden sm:inline">Edit</span>
-                                    </Button>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="sm" 
+                                    </button>
+                                    <button 
                                         onClick={onDelete}
-                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        className="px-3 py-1.5 rounded-lg text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all text-sm font-medium flex items-center gap-1.5"
                                     >
-                                        <Trash2 className="w-4 h-4 mr-1.5" /> 
+                                        <Trash2 className="w-4 h-4" /> 
                                         <span className="hidden sm:inline">Delete</span>
-                                    </Button>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }
-

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Info } from 'lucide-react';
 import api from '../../lib/api';
 
 interface CustomField {
@@ -94,28 +95,40 @@ export default function CustomFieldsDisplay({
   };
 
   if (loading) {
-    return null;
+    return (
+      <div className="text-center py-6">
+        <div className="w-8 h-8 border-2 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto" />
+      </div>
+    );
   }
 
   if (fields.length === 0) {
-    return null;
+    return (
+      <div className="text-center py-6 text-[var(--brand-light)]/40">
+        <Info className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p className="text-sm italic">No additional information available</p>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Additional Information</h2>
-      <div className="grid grid-cols-2 gap-4">
-        {fields.map((field) => (
-          <div key={field.id}>
-            <p className="text-sm text-gray-500 font-bold uppercase mb-1">{field.name}</p>
-            <p className="text-gray-900 font-medium">{formatValue(field, field.value)}</p>
-            {field.help_text && (
-              <p className="text-xs text-gray-400 mt-0.5">{field.help_text}</p>
-            )}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {fields.map((field) => (
+        <div 
+          key={field.id} 
+          className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]"
+        >
+          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">
+            {field.name}
           </div>
-        ))}
-      </div>
+          <div className="text-sm text-[var(--brand-light)] font-medium">
+            {formatValue(field, field.value)}
+          </div>
+          {field.help_text && (
+            <p className="text-xs text-[var(--brand-light)]/30 mt-1">{field.help_text}</p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
-

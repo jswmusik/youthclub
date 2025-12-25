@@ -28,18 +28,18 @@ function EditPageContent() {
     return queryString ? `/admin/municipality/admins?${queryString}` : '/admin/municipality/admins';
   };
 
-  if (!data) return <div className="p-8">Loading...</div>;
+  if (!data) return <div className="p-8 text-center text-gray-400">Loading...</div>;
 
   return (
-    <div className="p-8">
-        <AdminForm initialData={data} redirectPath={buildRedirectPath()} scope="MUNICIPALITY" />
+    <div>
+      <AdminForm initialData={data} redirectPath={buildRedirectPath()} scope="MUNICIPALITY" />
     </div>
   );
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-8">Loading...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading...</div>}>
       <EditPageContent />
     </Suspense>
   );

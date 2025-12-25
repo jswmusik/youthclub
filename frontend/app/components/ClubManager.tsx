@@ -1,30 +1,241 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  MoreHorizontal, Plus, Search, MapPin, Phone, Mail, 
-  Trash2, Edit, Eye, BarChart3, Filter, ChevronUp, ChevronDown,
-  Building, Users
+  Plus, Search, Phone, Mail, 
+  Trash2, Edit, Eye, BarChart3, ChevronUp,
+  Building2, Users, MapPin, ChevronLeft
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-
-// UI Components
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // Modals
 import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+}
+
+function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleEditClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+        >
+          <Edit className="w-5 h-5" />
+          <span className="text-xs font-medium">Edit</span>
+        </button>
+        <button
+          onClick={handleDeleteClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function ClubCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-24" />
+          <div className="mt-2 space-y-1">
+            <Skeleton className="h-3 w-40" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClubTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-lg flex-shrink-0" />
+          <Skeleton className="h-5 w-32" />
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-28" /></td>
+      <td className="px-6 py-4">
+        <div className="space-y-1">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-1">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function ClubsPageSkeleton({ showMunicipality }: { showMunicipality: boolean }) {
+  return (
+    <>
+      {/* Mobile Cards Skeleton */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {[...Array(4)].map((_, i) => (
+          <ClubCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club Name</th>
+              {showMunicipality && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Municipality</th>}
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Contact</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(5)].map((_, i) => (
+              <ClubTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 interface ClubManagerProps {
   basePath: string;
@@ -40,6 +251,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
   const [municipalities, setMunicipalities] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
   // Analytics State
@@ -74,7 +286,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
         router.replace(`${pathname}?${params.toString()}`);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, municipalityFilter, router, pathname]); // Intentionally omitting searchParams
+  }, [searchInput, municipalityFilter, router, pathname]);
 
   // Fetch Data on URL Change
   useEffect(() => {
@@ -82,7 +294,6 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
   }, [searchParams]);
 
   const fetchAllAnalyticsData = async () => {
-    // Simplified fetching for demo - in production consider dedicated analytics endpoints
     try {
       const clubRes = await api.get('/clubs/?page_size=100');
       setAllClubsForAnalytics(clubRes.data.results || []);
@@ -92,8 +303,11 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
     } catch (e) { console.error(e); }
   };
 
-  const fetchClubs = async () => {
+  const fetchClubs = useCallback(async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+    
     try {
       const params = new URLSearchParams(searchParams.toString());
       if (!params.has('page_size')) params.set('page_size', '10');
@@ -107,14 +321,22 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
         setTotalCount(res.data.count || 0);
       }
     } catch (err) { console.error(err); } 
-    finally { setLoading(false); }
-  };
+    finally {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
+    }
+  }, [searchParams]);
 
   const handleDelete = async () => {
     if (!itemToDelete) return;
     try {
       await api.delete(`/clubs/${itemToDelete.id}/`);
-      setToast({ message: 'Club deleted.', type: 'success', isVisible: true });
+      setToast({ message: 'Club deleted successfully.', type: 'success', isVisible: true });
       fetchClubs();
       fetchAllAnalyticsData();
     } catch (err) {
@@ -134,7 +356,6 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
     total: allClubsForAnalytics.length,
     avgMembers: (() => {
         if (!allClubsForAnalytics.length) return 0;
-        // Mock calculation based on loaded users
         const assignedCount = allUsersForAnalytics.filter((u:any) => u.preferred_club).length;
         return (assignedCount / allClubsForAnalytics.length).toFixed(1);
     })()
@@ -152,105 +373,102 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Youth Clubs</h1>
-          <p className="text-gray-500 mt-1">Manage youth centers and activity hubs.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Clubs</h1>
+          </div>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Youth centers and activity hubs for your platform.</p>
         </div>
         <Link href={`${basePath}/create`}>
-          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+          <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> Add Club
-          </Button>
+          </button>
         </Link>
       </div>
 
-      {/* Analytics */}
-      {!loading && (
-        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border-0 shadow-sm bg-gray-900">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                  Analytics Dashboard
-                </h3>
+      {/* Analytics Dashboard */}
+      {!showSkeleton && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          {/* Header */}
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                  )} />
-                  <span className="sr-only">Toggle Analytics</span>
-                </Button>
-              </CollapsibleTrigger>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
             </div>
-            <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
-                  {/* Card 1: Total Clubs */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <Building className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Total Clubs</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 2: Avg. Members */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
-                          }}>
-                          <Users className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Avg. Members</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.avgMembers}</div>
-                    </div>
-                  </Card>
+            <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+          </button>
+          
+          {/* Content */}
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Total Clubs */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-[var(--brand-light)]/70">Total Clubs</span>
                 </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+                <div className="text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
+              </div>
+
+              {/* Avg. Members */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-[var(--brand-light)]/70">Avg. Members</span>
+                </div>
+                <div className="text-3xl font-bold text-[var(--brand-blue)]">{analytics.avgMembers}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-            <Input 
+      {/* Search & Filters */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex items-center gap-3 flex-1">
+            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+            <input 
+              type="text"
               placeholder="Search clubs..." 
-              className="pl-9 bg-gray-50 border-0"
+              className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
             />
+            {searchInput && (
+              <button 
+                onClick={() => setSearchInput('')}
+                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+              >
+                ×
+              </button>
+            )}
           </div>
           {scope === 'SUPER' && (
             <div className="w-full sm:w-[200px]">
-              {/* Native select for simplicity, can upgrade to shadcn Select later */}
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
                 value={municipalityFilter}
                 onChange={e => setMunicipalityFilter(e.target.value)}
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 0.75rem center',
+                  backgroundSize: '1rem'
+                }}
               >
                 <option value="">All Municipalities</option>
                 {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -258,140 +476,201 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
             </div>
           )}
         </div>
-      </Card>
+      </div>
+
+      {/* Stats Bar */}
+      {!showSkeleton && clubs.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{clubs.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'club' : 'clubs'}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
+      {showSkeleton ? (
+        <ClubsPageSkeleton showMunicipality={scope === 'SUPER'} />
       ) : clubs.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">No clubs found.</p>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-        </Card>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No clubs found</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm mb-6">
+            {searchInput || municipalityFilter ? 'Try adjusting your search or filter.' : 'Get started by adding your first club.'}
+          </p>
+          {!searchInput && !municipalityFilter && (
+            <Link href={`${basePath}/create`}>
+              <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
+                <Plus className="h-4 w-4" /> Add Club
+              </button>
+            </Link>
+          )}
+        </div>
       ) : (
         <>
-          {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {clubs.map((club) => (
-              <Card key={club.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
-                            <AvatarImage src={getMediaUrl(club.avatar)} className="object-cover" />
-                            <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">C</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                            <CardTitle className="text-base font-semibold text-gray-900 truncate">{club.name}</CardTitle>
-                            {scope === 'SUPER' && <CardDescription className="text-xs text-gray-500">{club.municipality_name}</CardDescription>}
+          {/* Mobile Cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {clubs.map((club, index) => (
+              <SwipeableCard
+                key={club.id}
+                onClick={() => router.push(buildUrlWithParams(`${basePath}/${club.id}`))}
+                onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${club.id}`))}
+                onDelete={() => setItemToDelete(club)}
+              >
+                <div className="border-y border-[var(--dark-600)] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {club.avatar ? (
+                        <img src={getMediaUrl(club.avatar)} alt={club.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-[var(--brand-primary)]">C</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">{club.name}</h3>
+                      {scope === 'SUPER' && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <MapPin className="w-3 h-3 text-[var(--brand-light)]/40" />
+                          <p className="text-xs text-[var(--brand-light)]/50 truncate">{club.municipality_name}</p>
                         </div>
-                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                    <div className="grid grid-cols-2 gap-2 text-gray-600">
-                        {club.email && <div className="flex items-center gap-2"><Mail className="h-3 w-3" /><span className="truncate text-xs">{club.email}</span></div>}
-                        {club.phone && <div className="flex items-center gap-2"><Phone className="h-3 w-3" /><span className="truncate text-xs">{club.phone}</span></div>}
+                      )}
+                      <div className="mt-2 flex flex-col gap-1">
+                        {club.email && (
+                          <div className="flex items-center gap-2 text-[var(--brand-light)]/60">
+                            <Mail className="h-3 w-3 text-[var(--brand-blue)]" />
+                            <span className="truncate text-xs">{club.email}</span>
+                          </div>
+                        )}
+                        {club.phone && (
+                          <div className="flex items-center gap-2 text-[var(--brand-light)]/60">
+                            <Phone className="h-3 w-3 text-[var(--brand-third)]" />
+                            <span className="truncate text-xs">{club.phone}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                      <Link href={buildUrlWithParams(`${basePath}/${club.id}`)} className="flex-1">
-                        <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Button>
-                      </Link>
-                      <Link href={buildUrlWithParams(`${basePath}/edit/${club.id}`)} className="flex-1">
-                        <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                          <Edit className="h-4 w-4" />
-                          Edit
-                        </Button>
-                      </Link>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => setItemToDelete(club)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
-                </CardContent>
-              </Card>
+                  </div>
+                </div>
+              </SwipeableCard>
             ))}
           </div>
 
-          {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club Name</TableHead>
-                  {scope === 'SUPER' && <TableHead className="h-12 px-6 text-gray-600 font-semibold">Municipality</TableHead>}
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Contact</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clubs.map((club) => (
-                  <TableRow key={club.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
-                                <AvatarImage src={getMediaUrl(club.avatar)} className="object-cover" />
-                                <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">C</AvatarFallback>
-                            </Avatar>
-                            <span className="font-semibold text-gray-900">{club.name}</span>
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club Name</th>
+                  {scope === 'SUPER' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Municipality</th>}
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Contact</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clubs.map((club, index) => (
+                  <tr 
+                    key={club.id} 
+                    className={`${index !== clubs.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors`}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center overflow-hidden">
+                          {club.avatar ? (
+                            <img src={getMediaUrl(club.avatar)} alt={club.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-[var(--brand-primary)]">C</span>
+                          )}
                         </div>
-                    </TableCell>
-                    {scope === 'SUPER' && <TableCell className="px-6 text-gray-600">{club.municipality_name}</TableCell>}
-                    <TableCell className="px-6">
-                        <div className="text-sm text-gray-600">
-                            {club.email && <div>{club.email}</div>}
-                            {club.phone && <div className="text-xs text-gray-400">{club.phone}</div>}
-                        </div>
-                    </TableCell>
-                    <TableCell className="px-6 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                           <Link href={buildUrlWithParams(`${basePath}/${club.id}`)}>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"><Eye className="h-4 w-4" /></Button>
-                           </Link>
-                           <Link href={buildUrlWithParams(`${basePath}/edit/${club.id}`)}>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"><Edit className="h-4 w-4" /></Button>
-                           </Link>
-                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50" onClick={() => setItemToDelete(club)}>
-                                <Trash2 className="h-4 w-4" />
-                           </Button>
-                        </div>
-                    </TableCell>
-                  </TableRow>
+                        <span className="font-semibold text-[var(--brand-light)]">{club.name}</span>
+                      </div>
+                    </td>
+                    {scope === 'SUPER' && (
+                      <td className="px-6 py-4 text-[var(--brand-light)]/60">{club.municipality_name}</td>
+                    )}
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        {club.email && (
+                          <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/70">
+                            <Mail className="h-3.5 w-3.5 text-[var(--brand-blue)]" />
+                            <span className="truncate">{club.email}</span>
+                          </div>
+                        )}
+                        {club.phone && (
+                          <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/50">
+                            <Phone className="h-3 w-3 text-[var(--brand-third)]" />
+                            <span>{club.phone}</span>
+                          </div>
+                        )}
+                        {!club.email && !club.phone && (
+                          <span className="text-sm text-[var(--brand-light)]/30 italic">No contact</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={buildUrlWithParams(`${basePath}/${club.id}`)}>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </Link>
+                        <Link href={buildUrlWithParams(`${basePath}/edit/${club.id}`)}>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </Link>
+                        <button 
+                          onClick={() => setItemToDelete(club)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </Card>
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4">
-                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>Prev</Button>
-                <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-                <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => handlePageChange(currentPage + 1)}>Next</Button>
+            <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+              <button 
+                disabled={currentPage === 1} 
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <div className="text-sm text-[var(--brand-light)]/50">
+                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+              </div>
+              <button 
+                disabled={currentPage >= totalPages} 
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
             </div>
           )}
         </>
       )}
 
+      {/* Modals */}
       <ConfirmationModal 
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
         title="Delete Club"
         message={`Are you sure you want to delete "${itemToDelete?.name}"? This will permanently delete the club and its data.`}
+        confirmButtonText="Delete"
+        cancelButtonText="Cancel"
         variant="danger"
+        darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
     </div>
   );
 }

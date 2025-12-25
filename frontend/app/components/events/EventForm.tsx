@@ -2,22 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Upload, X, FileText, Search } from 'lucide-react';
+import { ArrowLeft, Upload, X, FileText, Search, Calendar, MapPin, Users, Clock, Settings, Image, Repeat, ChevronUp, Globe, Building, Save, Lightbulb, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { Event, EventStatus, TargetAudience } from '@/types/event';
 import { useAuth } from '@/context/AuthContext';
 import { getMediaUrl } from '@/app/utils';
-import RichTextEditor from '@/app/components/RichTextEditor';
+import DarkRichTextEditor from '@/app/components/DarkRichTextEditor';
 import Toast from '@/app/components/Toast';
 
 // Shadcn
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+// Using custom dark-themed components instead of shadcn
 
 interface EventFormProps {
     initialData?: any; // Using any to accommodate nested images/docs
@@ -1273,72 +1268,98 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
     const queryString = params.toString();
     const redirectPath = queryString ? `${basePath}?${queryString}` : basePath;
 
+    // Helper classes for consistent styling
+    const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
+    const inputClasses = "w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20";
+    const selectClasses = "w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 appearance-none cursor-pointer";
+    const textareaClasses = "w-full px-4 py-3 rounded-xl resize-none bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20";
+    const checkboxClasses = "w-5 h-5 rounded bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)] focus:ring-offset-0 cursor-pointer";
+
+    const selectArrowStyle = {
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 0.75rem center',
+        backgroundSize: '1rem'
+    };
+
     return (
         <>
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+        <div className="sm:max-w-4xl sm:mx-auto sm:px-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href={redirectPath}>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
+            <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+                <Link 
+                    href={redirectPath}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+                >
+                    <ArrowLeft className="w-5 h-5" />
                 </Link>
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                <div className="flex-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
                         {initialData ? 'Edit Event' : 'Create New Event'}
                     </h1>
-                    <p className="text-sm text-muted-foreground">Configure event details, targeting, and registration rules.</p>
+                    <p className="text-[var(--brand-light)]/50 text-sm mt-1">Configure event details, targeting, and registration rules.</p>
                 </div>
             </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Section 1: Basic & Media */}
-            <Card className="border-none shadow-sm">
-                <CardHeader>
-                    <CardTitle>Media & Presentation</CardTitle>
-                    <CardDescription>Upload cover image and gallery images for the event.</CardDescription>
-                </CardHeader>
-                <Separator />
-                <CardContent className="pt-6">
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
+                            <Image className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Media & Presentation</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Upload cover image and gallery images for the event.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6">
                 
                 {/* Cover Image */}
                 <div className="space-y-2">
-                    <Label>Cover Image (Main)</Label>
-                    <div className="flex gap-4 items-center">
-                        <div className="relative group h-20 w-32 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => {
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.accept = 'image/*';
-                            input.onchange = (e: any) => {
-                                if(e.target.files?.[0]) {
-                                    const file = e.target.files[0];
-                                    if (coverPreview && coverPreview.startsWith('blob:')) {
-                                        URL.revokeObjectURL(coverPreview);
+                    <label className={labelClasses}>Cover Image (Main)</label>
+                    <div className="flex flex-col sm:flex-row gap-4 items-start">
+                        <div 
+                            className="relative group w-full sm:w-64 h-40 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                            onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*';
+                                input.onchange = (e: any) => {
+                                    if(e.target.files?.[0]) {
+                                        const file = e.target.files[0];
+                                        if (coverPreview && coverPreview.startsWith('blob:')) {
+                                            URL.revokeObjectURL(coverPreview);
+                                        }
+                                        setCoverFile(file);
+                                        setCoverPreview(URL.createObjectURL(file));
                                     }
-                                    setCoverFile(file);
-                                    setCoverPreview(URL.createObjectURL(file));
-                                }
-                            };
-                            input.click();
-                        }}>
+                                };
+                                input.click();
+                            }}
+                        >
                             {coverPreview ? (
                                 <>
-                                    <img src={coverPreview} className="h-full w-full object-cover" alt="Cover" />
-                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Upload className="h-5 w-5 text-white" />
+                                    <img src={coverPreview} className="w-full h-full object-cover" alt="Cover" />
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Upload className="h-6 w-6 text-white" />
                                     </div>
                                 </>
                             ) : (
-                                <div className="text-center p-2">
-                                    <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                                    <span className="text-[10px] text-muted-foreground">Click to upload</span>
+                                <div className="text-center p-4">
+                                    <Image className="h-8 w-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
+                                    <span className="text-sm text-[var(--brand-light)]/40">Click to upload</span>
+                                    <p className="text-xs text-[var(--brand-light)]/30 mt-1">1200 × 400px</p>
                                 </div>
                             )}
                         </div>
-                        <div className="flex-1 space-y-2">
+                        <div className="flex-1 space-y-3">
                             <div className="flex gap-2">
-                                <Button type="button" variant="secondary" size="sm" onClick={() => {
+                                <button type="button" onClick={() => {
                                     const input = document.createElement('input');
                                     input.type = 'file';
                                     input.accept = 'image/*';
@@ -1353,31 +1374,38 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         }
                                     };
                                     input.click();
-                                }}>Choose File</Button>
+                                }} className="px-4 py-2.5 bg-[var(--dark-600)] text-[var(--brand-light)] text-sm font-medium rounded-xl hover:bg-[var(--dark-500)] transition-all">
+                                    Choose File
+                                </button>
                                 {coverPreview && (
-                                    <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => {
+                                    <button type="button" onClick={() => {
                                         if (coverPreview && coverPreview.startsWith('blob:')) {
                                             URL.revokeObjectURL(coverPreview);
                                         }
                                         setCoverFile(null);
                                         setCoverPreview(null);
-                                    }}>
-                                        <X className="h-4 w-4 mr-1" /> Remove
-                                    </Button>
+                                    }} className="px-4 py-2.5 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-sm font-medium rounded-xl hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-2">
+                                        <X className="h-4 w-4" /> Remove
+                                    </button>
                                 )}
                             </div>
-                            <p className="text-xs text-muted-foreground">Recommended: 1200x400px</p>
+                            <div className="bg-[var(--dark-700)] rounded-xl p-3 border border-[var(--dark-500)]">
+                                <div className="flex items-start gap-2">
+                                    <Lightbulb className="w-4 h-4 text-[var(--brand-peach)] flex-shrink-0 mt-0.5" />
+                                    <p className="text-xs text-[var(--brand-light)]/50">High-quality landscape images (3:1 ratio) work best for cover images.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Image Gallery */}
-                <div className="space-y-2">
-                    <Label>Image Gallery (Slideshow)</Label>
+                <div className="space-y-2 mt-6">
+                    <label className={labelClasses}>Image Gallery (Slideshow)</label>
                     <div className="flex items-center gap-2">
-                        <label className="cursor-pointer bg-muted/30 border-2 border-dashed border-input rounded-lg p-4 text-center w-full hover:bg-muted/50 hover:border-[#4D4DA4]/50 transition-colors">
-                            <Upload className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-                            <span className="text-xs text-muted-foreground">Upload Images</span>
+                        <label className="cursor-pointer bg-[var(--dark-700)] border-2 border-dashed border-[var(--dark-500)] rounded-xl p-4 text-center w-full hover:bg-[var(--dark-600)] hover:border-[var(--brand-primary)]/50 transition-colors">
+                            <Upload className="w-5 h-5 mx-auto text-[var(--brand-light)]/40 mb-1" />
+                            <span className="text-xs text-[var(--brand-light)]/40">Upload Images</span>
                             <input type="file" multiple accept="image/*" className="hidden" 
                                 onChange={e => {
                                     if (e.target.files) {
@@ -1397,7 +1425,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         <img 
                                             src={getMediaUrl(img.image)} 
                                             alt={img.caption || 'Gallery image'} 
-                                            className="w-full h-20 object-cover rounded border"
+                                            className="w-full h-20 object-cover rounded-xl border-2 border-[var(--dark-500)]"
                                         />
                                         <button
                                             type="button"
@@ -1410,7 +1438,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                     alert('Failed to delete image');
                                                 }
                                             }}
-                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute top-1 right-1 bg-[var(--brand-red)] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <X className="w-3 h-3" />
                                         </button>
@@ -1422,21 +1450,21 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         {/* New Images Preview */}
                         {galleryFiles.length > 0 && (
                             <div className="mt-3">
-                                <div className="text-xs text-blue-600 mb-2">{galleryFiles.length} new image(s) selected</div>
+                                <div className="text-xs text-[var(--brand-primary)] mb-2">{galleryFiles.length} new image(s) selected</div>
                                 <div className="grid grid-cols-4 gap-2">
                                     {galleryFiles.map((file, index) => (
                                         <div key={index} className="relative group">
                                             <img 
                                                 src={URL.createObjectURL(file)} 
                                                 alt={`Preview ${index + 1}`} 
-                                                className="w-full h-20 object-cover rounded border"
+                                                className="w-full h-20 object-cover rounded-xl border-2 border-[var(--brand-primary)]/30"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setGalleryFiles(prev => prev.filter((_, i) => i !== index));
                                                 }}
-                                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute top-1 right-1 bg-[var(--brand-red)] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
                                                 <X className="w-3 h-3" />
                                             </button>
@@ -1446,40 +1474,51 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
                         )}
                 </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Section 2: Basic Info */}
-            <Card className="border-none shadow-sm">
-                <CardHeader>
-                    <CardTitle>Basic Information</CardTitle>
-                    <CardDescription>Enter event title, description, cost, and status.</CardDescription>
-                </CardHeader>
-                <Separator />
-                <CardContent className="pt-6 space-y-4">
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Enter event title, description, cost, and status.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2 space-y-2">
-                            <Label>Event Title <span className="text-red-500">*</span></Label>
-                            <Input 
+                            <label className={labelClasses}>Event Title <span className="text-[var(--brand-red)]">*</span></label>
+                            <input 
                                 required 
                                 type="text" 
+                                className={inputClasses}
+                                placeholder="Enter event title..."
                                 value={formData.title} 
                                 onChange={e => handleChange('title', e.target.value)}
                             />
                         </div>
                         
                         <div className="md:col-span-2 space-y-2">
-                            <Label>Description</Label>
-                            <RichTextEditor
+                            <label className={labelClasses}>Description</label>
+                            <DarkRichTextEditor
                                 value={formData.description || ''}
                                 onChange={(content) => handleChange('description', content)}
+                                placeholder="Describe your event..."
+                                minHeight="200px"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Cost (Leave empty for Free)</Label>
-                            <Input 
+                            <label className={labelClasses}>Cost (Leave empty for Free)</label>
+                            <input 
                                 type="text" 
+                                className={inputClasses}
                                 placeholder="e.g. 50" 
                                 value={formData.cost || ''} 
                                 onChange={e => handleChange('cost', e.target.value)}
@@ -1487,9 +1526,10 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Status</Label>
+                            <label className={labelClasses}>Status</label>
                             <select 
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className={selectClasses}
+                                style={selectArrowStyle}
                                 value={formData.status}
                                 onChange={e => handleChange('status', e.target.value)}
                             >
@@ -1503,179 +1543,195 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     
                     {/* Show scheduled publish date when status is SCHEDULED */}
                     {formData.status === EventStatus.SCHEDULED && (
-                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                            <Label className="mb-2">
-                                Schedule Publish Date & Time <span className="text-red-500">*</span>
-                            </Label>
-                            <Input 
+                        <div className="mt-6 p-4 bg-[var(--brand-primary)]/10 rounded-xl border border-[var(--brand-primary)]/30">
+                            <label className={labelClasses}>
+                                Schedule Publish Date & Time <span className="text-[var(--brand-red)]">*</span>
+                            </label>
+                            <input 
                                 required={formData.status === EventStatus.SCHEDULED}
                                 type="datetime-local" 
+                                className={inputClasses}
                                 value={formatDateForInput(formData.scheduled_publish_date)}
                                 onChange={e => handleChange('scheduled_publish_date', e.target.value)}
-                                className="mt-1"
                             />
-                            <p className="text-xs text-muted-foreground mt-1">The event will be automatically published at this date and time</p>
+                            <p className="text-xs text-[var(--brand-light)]/50 mt-2">The event will be automatically published at this date and time</p>
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Section 3: Date & Time */}
-            <Card className="border-none shadow-sm">
-                <CardHeader>
-                    <CardTitle>When</CardTitle>
-                    <CardDescription>Set the start and end date and time for the event.</CardDescription>
-                </CardHeader>
-                <Separator />
-                <CardContent className="pt-6">
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <Clock className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">When</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Set the start and end date and time for the event.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Start Date & Time <span className="text-red-500">*</span></Label>
-                            <Input 
+                            <label className={labelClasses}>Start Date & Time <span className="text-[var(--brand-red)]">*</span></label>
+                            <input 
                                 required 
                                 type="datetime-local" 
+                                className={inputClasses}
                                 value={formatDateForInput(formData.start_date)}
                                 onChange={e => handleChange('start_date', e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>End Date & Time <span className="text-red-500">*</span></Label>
-                            <Input 
+                            <label className={labelClasses}>End Date & Time <span className="text-[var(--brand-red)]">*</span></label>
+                            <input 
                                 required 
                                 type="datetime-local" 
+                                className={inputClasses}
                                 value={formatDateForInput(formData.end_date)}
                                 onChange={e => handleChange('end_date', e.target.value)}
                             />
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Section: Recurrence */}
-            <Card className="border-none shadow-sm">
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>Recurring Event</CardTitle>
-                            <CardDescription>Set up recurring event patterns.</CardDescription>
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                                <Repeat className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Recurring Event</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">Set up recurring event patterns.</p>
+                            </div>
                         </div>
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input 
                                 type="checkbox" 
                                 checked={formData.is_recurring || false} 
                                 onChange={e => handleChange('is_recurring', e.target.checked)} 
-                                className="w-5 h-5 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                                className={checkboxClasses}
                             />
-                            <span className="text-sm font-medium">Repeat this event</span>
+                            <span className="text-sm font-medium text-[var(--brand-light)]">Repeat this event</span>
                         </label>
                     </div>
-                </CardHeader>
+                </div>
                 {formData.is_recurring && (
-                    <>
-                        <Separator />
-                        <CardContent className="pt-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                <div className="space-y-2">
-                                    <Label>Repeat Pattern</Label>
-                                    <select 
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                        value={formData.recurrence_pattern || 'NONE'}
-                                        onChange={e => handleChange('recurrence_pattern', e.target.value)}
-                                    >
-                                        <option value="DAILY">Daily</option>
-                                        <option value="WEEKLY">Weekly</option>
-                                        <option value="MONTHLY">Monthly</option>
-                                    </select>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                    <Label>Repeat Until (End Date)</Label>
-                                    <Input 
-                                        type="date" 
-                                        required={formData.is_recurring}
-                                        value={formData.recurrence_end_date ? formatDateOnlyForInput(formData.recurrence_end_date) : ''}
-                                        onChange={e => handleChange('recurrence_end_date', e.target.value)}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Instances will be created from the start date until this date.
-                                    </p>
-                                </div>
+                    <div className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-[var(--brand-primary)]/10 rounded-xl border border-[var(--brand-primary)]/30">
+                            <div className="space-y-2">
+                                <label className={labelClasses}>Repeat Pattern</label>
+                                <select 
+                                    className={selectClasses}
+                                    style={selectArrowStyle}
+                                    value={formData.recurrence_pattern || 'NONE'}
+                                    onChange={e => handleChange('recurrence_pattern', e.target.value)}
+                                >
+                                    <option value="DAILY">Daily</option>
+                                    <option value="WEEKLY">Weekly</option>
+                                    <option value="MONTHLY">Monthly</option>
+                                </select>
                             </div>
-                        </CardContent>
-                    </>
+                            
+                            <div className="space-y-2">
+                                <label className={labelClasses}>Repeat Until (End Date)</label>
+                                <input 
+                                    type="date" 
+                                    className={inputClasses}
+                                    required={formData.is_recurring}
+                                    value={formData.recurrence_end_date ? formatDateOnlyForInput(formData.recurrence_end_date) : ''}
+                                    onChange={e => handleChange('recurrence_end_date', e.target.value)}
+                                />
+                                <p className="text-xs text-[var(--brand-light)]/50">
+                                    Instances will be created from the start date until this date.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 )}
-            </Card>
+            </div>
 
             {/* Section 3.5: Organization Scope (Super Admin & Municipality Admin) */}
             {(scope === 'SUPER' || scope === 'MUNICIPALITY') && (
-                <Card className="border-none shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Event Scope</CardTitle>
-                        <CardDescription>
-                            {scope === 'SUPER' 
-                                ? 'Choose where this event will be visible and available'
-                                : 'Choose if this event is for all clubs in your municipality or specific clubs'}
-                        </CardDescription>
-                    </CardHeader>
-                    <Separator />
-                    <CardContent className="pt-6">
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                    <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                                <Globe className="w-5 h-5 text-[var(--dark-900)]" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Event Scope</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">
+                                    {scope === 'SUPER' 
+                                        ? 'Choose where this event will be visible and available'
+                                        : 'Choose if this event is for all clubs in your municipality or specific clubs'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-6">
                     
                     {/* Scope Type Selection */}
                     <div className="mb-6 flex flex-wrap gap-3">
                         {scope === 'SUPER' && (
-                            <Button
+                            <button
                                 type="button"
-                                variant={eventScope === 'global' ? 'default' : 'outline'}
                                 onClick={() => {
                                     setEventScope('global');
                                     setSelectedClubs([]);
                                 }}
-                                className={eventScope === 'global' ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
+                                className={`px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all ${eventScope === 'global' ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                             >
-                                Global Event
-                                <div className="text-xs opacity-75 mt-1 font-normal block w-full">All municipalities and clubs</div>
-                            </Button>
+                                <div className="font-semibold">Global Event</div>
+                                <div className="text-xs opacity-75 mt-1">All municipalities and clubs</div>
+                            </button>
                         )}
-                        <Button
+                        <button
                             type="button"
-                            variant={eventScope === 'municipality' ? 'default' : 'outline'}
                             onClick={() => {
                                 setEventScope('municipality');
                                 setSelectedClubs([]);
                             }}
-                            className={eventScope === 'municipality' ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
+                            className={`px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all ${eventScope === 'municipality' ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                         >
-                            {scope === 'SUPER' ? 'Municipality Event' : 'Municipality-Wide Event'}
-                            <div className="text-xs opacity-75 mt-1 font-normal block w-full">
+                            <div className="font-semibold">{scope === 'SUPER' ? 'Municipality Event' : 'Municipality-Wide Event'}</div>
+                            <div className="text-xs opacity-75 mt-1">
                                 {scope === 'SUPER' ? 'Specific municipality' : 'All clubs in your municipality'}
                             </div>
-                        </Button>
-                        <Button
+                        </button>
+                        <button
                             type="button"
-                            variant={eventScope === 'clubs' ? 'default' : 'outline'}
                             onClick={() => {
                                 setEventScope('clubs');
                             }}
-                            className={eventScope === 'clubs' ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
+                            className={`px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all ${eventScope === 'clubs' ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                         >
-                            Club Event(s)
-                            <div className="text-xs opacity-75 mt-1 font-normal block w-full">
+                            <div className="font-semibold">Club Event(s)</div>
+                            <div className="text-xs opacity-75 mt-1">
                                 {scope === 'SUPER' ? 'Specific clubs' : 'Specific clubs in your municipality'}
                             </div>
-                        </Button>
+                        </button>
                     </div>
 
                     {/* Municipality Selection (Super Admin Only) */}
                     {(eventScope === 'municipality' || eventScope === 'global') && scope === 'SUPER' && (
                         <div className="mb-4 space-y-2">
-                            <Label>
+                            <label className={labelClasses}>
                                 Select Municipality
                                 {eventScope === 'global' && (
-                                    <span className="text-xs text-muted-foreground font-normal ml-2">(Required for organizational purposes)</span>
+                                    <span className="text-xs text-[var(--brand-light)]/40 font-normal ml-2">(Required for organizational purposes)</span>
                                 )}
-                            </Label>
+                            </label>
                             <select
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className={selectClasses}
+                                style={selectArrowStyle}
                                 value={selectedMunicipality || ''}
                                 onChange={(e) => {
                                     const muniId = e.target.value ? Number(e.target.value) : null;
@@ -1692,7 +1748,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 ))}
                             </select>
                             {eventScope === 'global' && selectedMunicipality && (
-                                <p className="text-xs text-[#4D4DA4] mt-2">
+                                <p className="text-xs text-[var(--brand-primary)] mt-2">
                                     This event will be visible to all municipalities and clubs, regardless of the selected municipality.
                                 </p>
                             )}
@@ -1700,8 +1756,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     )}
                     {/* Municipality-wide info for Municipality Admin */}
                     {eventScope === 'municipality' && scope === 'MUNICIPALITY' && selectedMunicipality && (
-                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p className="text-sm text-blue-800">
+                        <div className="mb-4 p-3 bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 rounded-xl">
+                            <p className="text-sm text-[var(--brand-primary)]">
                                 <strong>Municipality-wide:</strong> This event will be visible to all clubs in your municipality.
                             </p>
                         </div>
@@ -1713,9 +1769,10 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             {/* Municipality filter (Super Admin only) */}
                             {scope === 'SUPER' && (
                                 <>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Municipality (to filter clubs)</label>
+                                    <label className={labelClasses}>Select Municipality (to filter clubs)</label>
                                     <select
-                                        className="w-full border border-gray-300 rounded-lg p-2.5 mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        className={selectClasses}
+                                        style={selectArrowStyle}
                                         value={selectedMunicipality || ''}
                                         onChange={(e) => {
                                             const muniId = e.target.value ? Number(e.target.value) : null;
@@ -1733,17 +1790,17 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 </>
                             )}
 
-                            <Label>Select Club</Label>
-                            <p className="text-xs text-muted-foreground mb-2">Select one club. For multiple clubs, use Municipality-Wide Event instead.</p>
+                            <label className={`${labelClasses} mt-4`}>Select Club</label>
+                            <p className="text-xs text-[var(--brand-light)]/50 mb-2">Select one club. For multiple clubs, use Municipality-Wide Event instead.</p>
                             
                             {/* Selected Clubs Display */}
                             {selectedClubs.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[#EBEBFE] rounded-lg border border-[#4D4DA4]/20">
+                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[var(--brand-primary)]/10 rounded-xl border border-[var(--brand-primary)]/30">
                                     {selectedClubs.map(clubId => {
                                         const club = allClubs.find(c => c.id === clubId);
                                         if (!club) return null;
                                         return (
-                                            <Badge key={clubId} variant="secondary" className="bg-[#4D4DA4] text-white hover:bg-[#FF5485]">
+                                            <span key={clubId} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium">
                                                 {club.name}
                                                 {club.municipality_detail?.name && (
                                                     <span className="text-xs opacity-75 ml-1">({club.municipality_detail.name})</span>
@@ -1758,7 +1815,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                 >
                                                     <X className="w-3 h-3" />
                                                 </button>
-                                            </Badge>
+                                            </span>
                                         );
                                     })}
                                 </div>
@@ -1767,8 +1824,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             {/* Searchable Club Dropdown */}
                             <div className="relative">
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                                    <Input
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40 pointer-events-none" />
+                                    <input
                                         type="text"
                                         placeholder="Search clubs by name..."
                                         value={clubSearch}
@@ -1777,7 +1834,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                             setShowClubDropdown(true);
                                         }}
                                         onFocus={() => setShowClubDropdown(true)}
-                                        className="pl-9"
+                                        className={`${inputClasses} pl-10`}
                                     />
                                 </div>
 
@@ -1788,7 +1845,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                             className="fixed inset-0 z-10" 
                                             onClick={() => setShowClubDropdown(false)}
                                         />
-                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        <div className="absolute z-20 w-full mt-1 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
                                             {(() => {
                                                 // Filter clubs based on search and municipality
                                                 let filteredClubs = allClubs.filter(club => {
@@ -1816,7 +1873,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
 
                                                 if (filteredClubs.length === 0) {
                                                     return (
-                                                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                                        <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                                                             {clubSearch 
                                                                 ? `No clubs found matching "${clubSearch}"`
                                                                 : selectedMunicipality
@@ -1836,11 +1893,11 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                             setClubSearch('');
                                                             setShowClubDropdown(false);
                                                         }}
-                                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                                        className="w-full text-left px-4 py-3 hover:bg-[var(--dark-600)] transition-colors border-b border-[var(--dark-600)] last:border-b-0"
                                                     >
-                                                        <div className="font-medium text-gray-900">{club.name}</div>
+                                                        <div className="font-medium text-[var(--brand-light)]">{club.name}</div>
                                                         {club.municipality_detail?.name && (
-                                                            <div className="text-xs text-gray-500">{club.municipality_detail.name}</div>
+                                                            <div className="text-xs text-[var(--brand-light)]/50">{club.municipality_detail.name}</div>
                                                         )}
                                                     </button>
                                                 ));
@@ -1852,8 +1909,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             
                             {/* Info about club selection */}
                             {selectedClubs.length > 0 && (
-                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <p className="text-sm text-blue-800">
+                                <div className="mt-3 p-3 bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 rounded-xl">
+                                    <p className="text-sm text-[var(--brand-primary)]">
                                         <strong>Note:</strong> This event will only be visible to members of <strong>{allClubs.find(c => c.id === selectedClubs[0])?.name}</strong>. 
                                         If you want members from multiple clubs to join, create a <strong>Municipality-Wide Event</strong> instead.
                                     </p>
@@ -1861,38 +1918,48 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             )}
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
             )}
 
             {/* Section 4: Location & Maps */}
-            <Card className="border-none shadow-sm">
-                <CardHeader>
-                    <CardTitle>Location</CardTitle>
-                    <CardDescription>Set the event location and map settings.</CardDescription>
-                </CardHeader>
-                <Separator />
-                <CardContent className="pt-6 space-y-4">
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
+                            <MapPin className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Location</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Set the event location and map settings.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2 space-y-2">
-                            <Label>Location Name <span className="text-red-500">*</span></Label>
-                            <Input required type="text" 
+                            <label className={labelClasses}>Location Name <span className="text-[var(--brand-red)]">*</span></label>
+                            <input required type="text" className={inputClasses}
+                                placeholder="e.g. Community Center"
                                 value={formData.location_name} onChange={e => handleChange('location_name', e.target.value)} />
                         </div>
                         <div className="md:col-span-2 space-y-2">
-                            <Label>Address (for Map)</Label>
-                            <Input type="text" 
+                            <label className={labelClasses}>Address (for Map)</label>
+                            <input type="text" className={inputClasses}
+                                placeholder="Full address for map display"
                                 value={formData.address} onChange={e => handleChange('address', e.target.value)} />
                         </div>
                         
                         <div className="space-y-2">
-                            <Label>Latitude</Label>
-                            <Input type="number" step="any" 
+                            <label className={labelClasses}>Latitude</label>
+                            <input type="number" step="any" className={inputClasses}
+                                placeholder="e.g. 59.3293"
                                 value={formData.latitude || ''} onChange={e => handleChange('latitude', e.target.value ? parseFloat(e.target.value) : undefined)} />
                         </div>
                         <div className="space-y-2">
-                            <Label>Longitude</Label>
-                            <Input type="number" step="any" 
+                            <label className={labelClasses}>Longitude</label>
+                            <input type="number" step="any" className={inputClasses}
+                                placeholder="e.g. 18.0686"
                                 value={formData.longitude || ''} onChange={e => handleChange('longitude', e.target.value ? parseFloat(e.target.value) : undefined)} />
                         </div>
 
@@ -1900,42 +1967,51 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" checked={formData.is_map_visible} 
                                     onChange={e => handleChange('is_map_visible', e.target.checked)}
-                                    className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]" />
-                                <span className="text-sm font-medium">Show Map on Event Page</span>
+                                    className={checkboxClasses} />
+                                <span className="text-sm font-medium text-[var(--brand-light)]">Show Map on Event Page</span>
                             </label>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Section 5: Targeting (Search & Add) */}
-            <Card className="border-none shadow-sm">
-                <CardHeader>
-                    <CardTitle>Target Audience</CardTitle>
-                    <CardDescription>Define who this event is targeted towards.</CardDescription>
-                </CardHeader>
-                <Separator />
-                <CardContent className="pt-6">
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Define who this event is targeted towards.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6">
                     {/* Target Audience Type */}
                     <div className="mb-6 flex flex-wrap gap-3">
                         {Object.values(TargetAudience).map(type => (
-                            <Button key={type} type="button" variant={formData.target_audience === type ? 'default' : 'outline'}
+                            <button 
+                                key={type} 
+                                type="button" 
                                 onClick={() => handleChange('target_audience', type)}
-                                className={formData.target_audience === type ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}>
+                                className={`px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${formData.target_audience === type ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
+                            >
                                 {type === 'BOTH' ? 'Youth & Guardians' : type.charAt(0) + type.slice(1).toLowerCase()}
-                            </Button>
+                            </button>
                         ))}
                     </div>
 
                 {/* Group Search Widget - Matching Guardian Pattern */}
                 <div className="mb-6 space-y-2">
-                    <Label>Target Specific Groups</Label>
+                    <label className={labelClasses}>Target Specific Groups</label>
                     
                     {/* Selected Groups Display */}
                     {selectedGroups.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[#EBEBFE] rounded-lg border border-[#4D4DA4]/20">
+                        <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[var(--brand-primary)]/10 rounded-xl border border-[var(--brand-primary)]/30">
                             {selectedGroups.map(group => (
-                                <Badge key={group.id} variant="secondary" className="bg-[#4D4DA4] text-white hover:bg-[#FF5485]">
+                                <span key={group.id} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium">
                                     {group.name}
                                     <button
                                         type="button"
@@ -1945,7 +2021,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     >
                                         <X className="w-3 h-3" />
                                     </button>
-                                </Badge>
+                                </span>
                             ))}
                         </div>
                     )}
@@ -1953,8 +2029,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     {/* Searchable Dropdown */}
                     <div className="relative">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                            <Input
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40 pointer-events-none" />
+                            <input
                                 type="text"
                                 placeholder="Search groups by name..."
                                 value={groupSearch}
@@ -1963,7 +2039,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     setShowGroupDropdown(true);
                                 }}
                                 onFocus={() => setShowGroupDropdown(true)}
-                                className="pl-9"
+                                className={`${inputClasses} pl-10`}
                             />
                         </div>
 
@@ -1974,27 +2050,27 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     className="fixed inset-0 z-10" 
                                     onClick={() => setShowGroupDropdown(false)}
                                 ></div>
-                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                <div className="absolute z-20 w-full mt-1 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
                                     {getFilteredGroups().length > 0 ? (
                                         getFilteredGroups().map(group => (
                                             <button
                                                 key={group.id}
                                                 type="button"
                                                 onClick={() => handleAddGroup(group)}
-                                                className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                                className="w-full text-left px-4 py-2.5 hover:bg-[var(--dark-600)] transition-colors border-b border-[var(--dark-600)] last:border-b-0"
                                             >
-                                                <div className="font-medium text-gray-900">{group.name}</div>
+                                                <div className="font-medium text-[var(--brand-light)]">{group.name}</div>
                                                 {group.municipality_detail?.name && (
-                                                    <div className="text-xs text-gray-500">{group.municipality_detail.name}</div>
+                                                    <div className="text-xs text-[var(--brand-light)]/50">{group.municipality_detail.name}</div>
                                                 )}
                                             </button>
                                         ))
                                     ) : groupSearch ? (
-                                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                        <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                                             No groups found matching "{groupSearch}"
                                         </div>
                                     ) : (
-                                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                        <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                                             {selectedGroups.length === 0 
                                                 ? groupsList.length === 0
                                                     ? 'No groups available.'
@@ -2010,25 +2086,25 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
 
                 {/* Hide demographics if groups are selected */}
                 {(!formData.target_groups || formData.target_groups.length === 0) && (
-                    <div className="mt-8 p-4 bg-muted/30 rounded-lg">
-                        <h4 className="font-bold text-foreground mb-4">Or Filter by Demographics</h4>
+                    <div className="mt-8 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                        <h4 className="font-bold text-[var(--brand-light)] mb-4">Or Filter by Demographics</h4>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Age Range</Label>
+                                <label className={labelClasses}>Age Range</label>
                                 <div className="flex items-center gap-2">
-                                    <Input 
+                                    <input 
                                         type="number" 
                                         placeholder="Min" 
-                                        className="w-20" 
+                                        className={`${inputClasses} w-24`}
                                         value={formData.target_min_age || ''} 
                                         onChange={e => handleChange('target_min_age', e.target.value ? parseInt(e.target.value) : undefined)} 
                                     />
-                                    <span className="text-sm text-muted-foreground">to</span>
-                                    <Input 
+                                    <span className="text-sm text-[var(--brand-light)]/50">to</span>
+                                    <input 
                                         type="number" 
                                         placeholder="Max" 
-                                        className="w-20" 
+                                        className={`${inputClasses} w-24`}
                                         value={formData.target_max_age || ''} 
                                         onChange={e => handleChange('target_max_age', e.target.value ? parseInt(e.target.value) : undefined)} 
                                     />
@@ -2036,10 +2112,10 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Genders</Label>
-                                <div className="flex gap-2 mt-2">
+                                <label className={labelClasses}>Genders</label>
+                                <div className="flex gap-4 mt-2">
                                     {['MALE', 'FEMALE', 'OTHER'].map(g => (
-                                        <label key={g} className="flex items-center gap-1 cursor-pointer">
+                                        <label key={g} className="flex items-center gap-2 cursor-pointer">
                                             <input 
                                                 type="checkbox" 
                                                 checked={formData.target_genders?.includes(g) || false}
@@ -2051,9 +2127,9 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                         handleChange('target_genders', current.filter(x => x !== g));
                                                     }
                                                 }}
-                                                className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                                                className={checkboxClasses}
                                             />
-                                            <span className="text-sm capitalize">{g.toLowerCase()}</span>
+                                            <span className="text-sm capitalize text-[var(--brand-light)]/80">{g.toLowerCase()}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -2061,14 +2137,12 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         </div>
 
                         <div className="mt-4 space-y-2">
-                            <Label>Grades</Label>
+                            <label className={labelClasses}>Grades</label>
                             <div className="flex flex-wrap gap-2 mt-2">
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map(grade => (
-                                    <Button
+                                    <button
                                         key={grade}
                                         type="button"
-                                        variant={formData.target_grades?.includes(grade) ? 'default' : 'outline'}
-                                        size="sm"
                                         onClick={() => {
                                             const current = formData.target_grades || [];
                                             if (current.includes(grade)) {
@@ -2077,22 +2151,22 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                 handleChange('target_grades', [...current, grade]);
                                             }
                                         }}
-                                        className={formData.target_grades?.includes(grade) ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border-2 transition-all ${formData.target_grades?.includes(grade) ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                                     >
                                         Grade {grade}
-                                    </Button>
+                                    </button>
                                 ))}
                             </div>
                         </div>
 
                         <div className="mt-4 space-y-2">
-                            <Label>Interests</Label>
+                            <label className={labelClasses}>Interests</label>
                             
                             {/* Selected Interests Display */}
                             {selectedInterests.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[#EBEBFE] rounded-lg border border-[#4D4DA4]/20">
+                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[var(--brand-primary)]/10 rounded-xl border border-[var(--brand-primary)]/30">
                                     {selectedInterests.map(interest => (
-                                        <Badge key={interest.id} variant="secondary" className="bg-[#4D4DA4] text-white hover:bg-[#FF5485]">
+                                        <span key={interest.id} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium">
                                             {interest.name}
                                             <button
                                                 type="button"
@@ -2102,7 +2176,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                             >
                                                 <X className="w-3 h-3" />
                                             </button>
-                                        </Badge>
+                                        </span>
                                     ))}
                                 </div>
                             )}
@@ -2110,8 +2184,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             {/* Searchable Dropdown */}
                             <div className="relative">
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                                    <Input
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40 pointer-events-none" />
+                                    <input
                                         type="text"
                                         placeholder="Search interests by name..."
                                         value={interestSearch}
@@ -2120,7 +2194,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                             setShowInterestDropdown(true);
                                         }}
                                         onFocus={() => setShowInterestDropdown(true)}
-                                        className="pl-9"
+                                        className={`${inputClasses} pl-10`}
                                     />
                                 </div>
 
@@ -2131,24 +2205,24 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                             className="fixed inset-0 z-10" 
                                             onClick={() => setShowInterestDropdown(false)}
                                         ></div>
-                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        <div className="absolute z-20 w-full mt-1 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
                                             {getFilteredInterests().length > 0 ? (
                                                 getFilteredInterests().map(interest => (
                                                     <button
                                                         key={interest.id}
                                                         type="button"
                                                         onClick={() => handleAddInterest(interest)}
-                                                        className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                                        className="w-full text-left px-4 py-2.5 hover:bg-[var(--dark-600)] transition-colors border-b border-[var(--dark-600)] last:border-b-0"
                                                     >
-                                                        <div className="font-medium text-gray-900">{interest.name}</div>
+                                                        <div className="font-medium text-[var(--brand-light)]">{interest.name}</div>
                                                     </button>
                                                 ))
                                             ) : interestSearch ? (
-                                                <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                                <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                                                     No interests found matching "{interestSearch}"
                                                 </div>
                                             ) : (
-                                                <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                                <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                                                     {selectedInterests.length === 0 
                                                         ? 'Start typing to search for interests...'
                                                         : 'All matching interests are already selected.'}
@@ -2161,18 +2235,24 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         </div>
                     </div>
                 )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Section 6: Documents */}
-            <Card className="border-none shadow-sm">
-                <CardHeader>
-                    <CardTitle>Documents & Attachments</CardTitle>
-                    <CardDescription>Upload documents related to this event.</CardDescription>
-                </CardHeader>
-                <Separator />
-                <CardContent className="pt-6">
-                    <div className="border-2 border-dashed border-input rounded-xl p-6 text-center hover:bg-muted/30 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer">
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Documents & Attachments</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Upload documents related to this event.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6">
+                    <div className="border-2 border-dashed border-[var(--dark-500)] rounded-xl p-6 text-center hover:bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50 transition-colors cursor-pointer">
                         <input type="file" multiple id="doc-upload" className="hidden" 
                             accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
                             onChange={e => { 
@@ -2182,23 +2262,23 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 }
                             }} />
                         <label htmlFor="doc-upload" className="cursor-pointer">
-                            <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">Click to upload PDFs, Docs, or Excel files</p>
+                            <FileText className="w-8 h-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
+                            <p className="text-sm text-[var(--brand-light)]/40">Click to upload PDFs, Docs, or Excel files</p>
                         </label>
                     </div>
                 
                 {/* Existing Documents */}
                 {existingDocuments.length > 0 && (
                     <div className="mt-4">
-                        <p className="text-xs text-gray-500 mb-2">Existing documents:</p>
+                        <p className="text-xs text-[var(--brand-light)]/50 mb-2">Existing documents:</p>
                         <ul className="space-y-2">
                             {existingDocuments.map((doc) => (
-                                <li key={doc.id} className="flex items-center justify-between text-sm bg-gray-50 p-3 rounded border border-gray-200">
+                                <li key={doc.id} className="flex items-center justify-between text-sm bg-[var(--dark-700)] p-3 rounded-xl border border-[var(--dark-500)]">
                                     <div className="flex items-center gap-2 flex-1">
-                                        <FileText className="w-4 h-4 text-gray-400" />
-                                        <span className="font-medium">{doc.title}</span>
+                                        <FileText className="w-4 h-4 text-[var(--brand-light)]/40" />
+                                        <span className="font-medium text-[var(--brand-light)]">{doc.title}</span>
                                         {doc.description && (
-                                            <span className="text-xs text-gray-500">- {doc.description}</span>
+                                            <span className="text-xs text-[var(--brand-light)]/50">- {doc.description}</span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -2207,7 +2287,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                 href={getMediaUrl(doc.file)} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer"
-                                                className="text-blue-600 hover:text-blue-800 text-xs"
+                                                className="text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 text-xs"
                                             >
                                                 Download
                                             </a>
@@ -2225,7 +2305,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                     }
                                                 }
                                             }}
-                                            className="text-red-500 hover:text-red-700 p-1"
+                                            className="text-[var(--brand-red)] hover:text-[var(--brand-red)]/80 p-1"
                                             title="Delete document"
                                         >
                                             <X className="w-4 h-4" />
@@ -2241,16 +2321,16 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 {docFiles.length > 0 && (
                     <ul className="mt-4 space-y-2">
                         {docFiles.map((file, i) => (
-                            <li key={i} className="flex items-center justify-between text-sm bg-blue-50 p-2 rounded">
-                                <span>{file.name}</span>
+                            <li key={i} className="flex items-center justify-between text-sm bg-[var(--brand-primary)]/10 p-3 rounded-xl border border-[var(--brand-primary)]/30">
+                                <span className="text-[var(--brand-light)]">{file.name}</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-400">{(file.size / 1024).toFixed(0)} KB</span>
+                                    <span className="text-xs text-[var(--brand-light)]/40">{(file.size / 1024).toFixed(0)} KB</span>
                                     <button
                                         type="button"
                                         onClick={() => {
                                             setDocFiles(prev => prev.filter((_, idx) => idx !== i));
                                         }}
-                                        className="text-red-500 hover:text-red-700"
+                                        className="text-[var(--brand-red)] hover:text-[var(--brand-red)]/80"
                                     >
                                         <X className="w-4 h-4" />
                                     </button>
@@ -2259,44 +2339,52 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         ))}
                     </ul>
                 )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Section 7: Registration & Capacity */}
-            <Card className="border-none shadow-sm">
-                <CardHeader>
-                    <CardTitle>Registration & Capacity</CardTitle>
-                    <CardDescription>Configure registration settings and capacity limits.</CardDescription>
-                </CardHeader>
-                <Separator />
-                <CardContent className="pt-6">
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                            <Settings className="w-5 h-5 text-[var(--dark-900)]" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Registration & Capacity</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Configure registration settings and capacity limits.</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6">
                     <div className="flex items-center gap-2 mb-6">
                         <input 
                             type="checkbox" 
                             id="allowReg"
-                            className="w-5 h-5 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                            className={checkboxClasses}
                             checked={formData.allow_registration}
                             onChange={e => handleChange('allow_registration', e.target.checked)}
                         />
-                        <Label htmlFor="allowReg" className="font-bold cursor-pointer">Enable Registration</Label>
+                        <label htmlFor="allowReg" className="font-bold cursor-pointer text-[var(--brand-light)]">Enable Registration</label>
                     </div>
 
                     {formData.allow_registration && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Regular Seats</Label>
-                                    <Input 
+                                    <label className={labelClasses}>Regular Seats</label>
+                                    <input 
                                         type="number" 
+                                        className={inputClasses}
                                         value={formData.max_seats}
                                         onChange={e => handleChange('max_seats', parseInt(e.target.value) || 0)}
                                     />
-                                    <p className="text-xs text-muted-foreground">0 = Unlimited</p>
+                                    <p className="text-xs text-[var(--brand-light)]/50">0 = Unlimited</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Waitlist Spots</Label>
-                                    <Input 
+                                    <label className={labelClasses}>Waitlist Spots</label>
+                                    <input 
                                         type="number" 
+                                        className={inputClasses}
                                         value={formData.max_waitlist}
                                         onChange={e => handleChange('max_waitlist', parseInt(e.target.value) || 0)}
                                     />
@@ -2304,148 +2392,151 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Registration Closes</Label>
-                                <Input 
+                                <label className={labelClasses}>Registration Closes</label>
+                                <input 
                                     type="datetime-local" 
+                                    className={inputClasses}
                                     value={formatDateForInput(formData.registration_close_date)}
                                     onChange={e => handleChange('registration_close_date', e.target.value)}
                                     max={formData.start_date ? formatDateForInput(formData.start_date) : undefined}
                                 />
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-[var(--brand-light)]/50">
                                     {formData.registration_close_date 
                                         ? 'Members can apply until this date and time.'
                                         : 'If no date/time is specified, members can apply until the event starts. Registration opens when the event is published.'}
                                 </p>
                             </div>
 
-                            <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                                <h4 className="font-bold text-sm">Approval Rules</h4>
-                                <label className="flex items-center gap-2">
+                            <div className="space-y-3 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                                <h4 className="font-bold text-sm text-[var(--brand-light)]">Approval Rules</h4>
+                                <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
                                         type="checkbox" 
                                         checked={formData.requires_guardian_approval} 
                                         onChange={e => handleChange('requires_guardian_approval', e.target.checked)}
-                                        className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                                        className={checkboxClasses}
                                     />
-                                    <span className="text-sm">Requires Guardian Approval</span>
+                                    <span className="text-sm text-[var(--brand-light)]/80">Requires Guardian Approval</span>
                                 </label>
-                                <label className="flex items-center gap-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
                                         type="checkbox" 
                                         checked={formData.requires_admin_approval} 
                                         onChange={e => handleChange('requires_admin_approval', e.target.checked)}
-                                        className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                                        className={checkboxClasses}
                                     />
-                                    <span className="text-sm">Requires Admin Approval (Manual review)</span>
+                                    <span className="text-sm text-[var(--brand-light)]/80">Requires Admin Approval (Manual review)</span>
                                 </label>
-                                <label className="flex items-center gap-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
                                         type="checkbox" 
                                         checked={formData.enable_tickets} 
                                         onChange={e => handleChange('enable_tickets', e.target.checked)}
-                                        className="w-4 h-4 text-[#4D4DA4] rounded focus:ring-[#4D4DA4]"
+                                        className={checkboxClasses}
                                     />
-                                    <span className="text-sm">Generate Tickets (QR Codes)</span>
+                                    <span className="text-sm text-[var(--brand-light)]/80">Generate Tickets (QR Codes)</span>
                                 </label>
                             </div>
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Section: SEO Settings - Collapsible at bottom */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
                 <button
                     type="button"
                     onClick={() => setSeoExpanded(!seoExpanded)}
-                    className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="w-full px-6 py-5 flex items-center justify-between hover:bg-[var(--dark-700)]/50 transition-colors"
                 >
-                    <h3 className="text-lg font-bold">SEO Settings</h3>
-                    <svg
-                        className={`w-5 h-5 text-gray-500 transition-transform ${seoExpanded ? 'rotate-180' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-pink)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <Globe className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="text-left">
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">SEO Settings</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Optimize for search engines and social media</p>
+                        </div>
+                    </div>
+                    <ChevronUp className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform ${seoExpanded ? '' : 'rotate-180'}`} />
                 </button>
                 
                 {seoExpanded && (
-                    <div className="px-6 pb-6 border-t border-gray-100">
+                    <div className="px-6 pb-6 border-t border-[var(--dark-600)]">
                         <div className="space-y-6 pt-6">
                             {/* Slug */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    URL Slug <span className="text-red-500">*</span>
+                                <label className={labelClasses}>
+                                    URL Slug <span className="text-[var(--brand-red)]">*</span>
                                 </label>
                                 <input 
                                     required
                                     type="text" 
-                                    className="w-full border border-gray-300 p-2 rounded" 
+                                    className={inputClasses}
                                     value={formData.slug || ''} 
                                     onChange={e => handleSlugChange(e.target.value)}
                                     placeholder="Auto-generated from title"
                                 />
-                                <p className="text-xs text-gray-500 mt-1">URL-friendly version of the title (auto-generated, but editable)</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">URL-friendly version of the title (auto-generated, but editable)</p>
                             </div>
 
                             {/* Meta Description */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Meta Description</label>
+                                <label className={labelClasses}>Meta Description</label>
                                 <textarea 
-                                    className="w-full border border-gray-300 p-2 rounded h-24" 
+                                    className={textareaClasses}
+                                    rows={3}
                                     value={formData.meta_description || ''} 
                                     onChange={e => handleChange('meta_description', e.target.value)}
                                     placeholder="Brief description for search engines (recommended: 150-160 characters)"
                                     maxLength={500}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">
                                     {formData.meta_description?.length || 0}/500 characters
                                 </p>
                             </div>
 
                             {/* Meta Tags */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Meta Tags</label>
+                                <label className={labelClasses}>Meta Tags</label>
                                 <input 
                                     type="text" 
-                                    className="w-full border border-gray-300 p-2 rounded" 
+                                    className={inputClasses}
                                     value={formData.meta_tags || ''} 
                                     onChange={e => handleChange('meta_tags', e.target.value)}
                                     placeholder="Comma-separated keywords (e.g., event, youth, activities)"
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Comma-separated keywords for search engines</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">Comma-separated keywords for search engines</p>
                             </div>
 
                             {/* Page Title */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Page Title</label>
+                                <label className={labelClasses}>Page Title</label>
                                 <input 
                                     type="text" 
-                                    className="w-full border border-gray-300 p-2 rounded" 
+                                    className={inputClasses}
                                     value={formData.page_title || ''} 
                                     onChange={e => handleChange('page_title', e.target.value)}
                                     placeholder="Custom page title (defaults to event title if not set)"
                                     maxLength={255}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Custom title for the browser tab (optional)</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">Custom title for the browser tab (optional)</p>
                             </div>
 
                             {/* Social Media Section */}
-                            <div className="border-t pt-6 mt-6">
-                                <h4 className="text-md font-semibold mb-4">Social Media Sharing</h4>
+                            <div className="border-t border-[var(--dark-600)] pt-6 mt-6">
+                                <h4 className="text-md font-semibold mb-4 text-[var(--brand-light)]">Social Media Sharing</h4>
                                 
                                 {/* Open Graph */}
-                                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                                    <h5 className="text-sm font-medium mb-3 text-gray-700">Open Graph (Facebook, LinkedIn, etc.)</h5>
+                                <div className="mb-6 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                                    <h5 className="text-sm font-medium mb-3 text-[var(--brand-light)]">Open Graph (Facebook, LinkedIn, etc.)</h5>
                                     
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">OG Title</label>
+                                            <label className={labelClasses}>OG Title</label>
                                             <input 
                                                 type="text" 
-                                                className="w-full border border-gray-300 p-2 rounded" 
+                                                className={inputClasses}
                                                 value={formData.og_title || ''} 
                                                 onChange={e => handleChange('og_title', e.target.value)}
                                                 placeholder="Title for social media sharing"
@@ -2454,9 +2545,10 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         </div>
                                         
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">OG Description</label>
+                                            <label className={labelClasses}>OG Description</label>
                                             <textarea 
-                                                className="w-full border border-gray-300 p-2 rounded h-20" 
+                                                className={textareaClasses}
+                                                rows={2}
                                                 value={formData.og_description || ''} 
                                                 onChange={e => handleChange('og_description', e.target.value)}
                                                 placeholder="Description for social media sharing"
@@ -2465,19 +2557,19 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         </div>
                                         
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">OG Image</label>
+                                            <label className={labelClasses}>OG Image</label>
                                             <div className="flex items-center gap-4">
-                                                <div className="w-32 h-20 bg-gray-100 rounded-lg overflow-hidden border">
+                                                <div className="w-32 h-20 bg-[var(--dark-600)] rounded-xl overflow-hidden border-2 border-[var(--dark-500)]">
                                                     {ogImagePreview ? (
                                                         <img src={ogImagePreview} className="w-full h-full object-cover" alt="OG Preview" />
                                                     ) : (
-                                                        <div className="flex items-center justify-center h-full text-gray-400 text-xs">No Image</div>
+                                                        <div className="flex items-center justify-center h-full text-[var(--brand-light)]/30 text-xs">No Image</div>
                                                     )}
                                                 </div>
                                                 <input 
                                                     type="file" 
                                                     accept="image/*" 
-                                                    className="text-sm" 
+                                                    className="text-sm text-[var(--brand-light)]/60" 
                                                     onChange={e => {
                                                         if(e.target.files?.[0]) {
                                                             const file = e.target.files[0];
@@ -2490,20 +2582,21 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                     }} 
                                                 />
                                             </div>
-                                            <p className="text-xs text-gray-500 mt-1">Recommended: 1200x630px</p>
+                                            <p className="text-xs text-[var(--brand-light)]/40 mt-2">Recommended: 1200x630px</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Twitter Card */}
-                                <div className="p-4 bg-gray-50 rounded-lg">
-                                    <h5 className="text-sm font-medium mb-3 text-gray-700">Twitter Card</h5>
+                                <div className="p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                                    <h5 className="text-sm font-medium mb-3 text-[var(--brand-light)]">Twitter Card</h5>
                                     
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Card Type</label>
+                                            <label className={labelClasses}>Card Type</label>
                                             <select 
-                                                className="w-full border border-gray-300 p-2 rounded"
+                                                className={selectClasses}
+                                                style={selectArrowStyle}
                                                 value={formData.twitter_card_type || 'summary_large_image'}
                                                 onChange={e => handleChange('twitter_card_type', e.target.value)}
                                             >
@@ -2513,10 +2606,10 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         </div>
                                         
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Twitter Title</label>
+                                            <label className={labelClasses}>Twitter Title</label>
                                             <input 
                                                 type="text" 
-                                                className="w-full border border-gray-300 p-2 rounded" 
+                                                className={inputClasses}
                                                 value={formData.twitter_title || ''} 
                                                 onChange={e => handleChange('twitter_title', e.target.value)}
                                                 placeholder="Title for Twitter sharing"
@@ -2525,9 +2618,10 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         </div>
                                         
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Twitter Description</label>
+                                            <label className={labelClasses}>Twitter Description</label>
                                             <textarea 
-                                                className="w-full border border-gray-300 p-2 rounded h-20" 
+                                                className={textareaClasses}
+                                                rows={2}
                                                 value={formData.twitter_description || ''} 
                                                 onChange={e => handleChange('twitter_description', e.target.value)}
                                                 placeholder="Description for Twitter sharing"
@@ -2536,19 +2630,19 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         </div>
                                         
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Twitter Image</label>
+                                            <label className={labelClasses}>Twitter Image</label>
                                             <div className="flex items-center gap-4">
-                                                <div className="w-32 h-20 bg-gray-100 rounded-lg overflow-hidden border">
+                                                <div className="w-32 h-20 bg-[var(--dark-600)] rounded-xl overflow-hidden border-2 border-[var(--dark-500)]">
                                                     {twitterImagePreview ? (
                                                         <img src={twitterImagePreview} className="w-full h-full object-cover" alt="Twitter Preview" />
                                                     ) : (
-                                                        <div className="flex items-center justify-center h-full text-gray-400 text-xs">No Image</div>
+                                                        <div className="flex items-center justify-center h-full text-[var(--brand-light)]/30 text-xs">No Image</div>
                                                     )}
                                                 </div>
                                                 <input 
                                                     type="file" 
                                                     accept="image/*" 
-                                                    className="text-sm" 
+                                                    className="text-sm text-[var(--brand-light)]/60" 
                                                     onChange={e => {
                                                         if(e.target.files?.[0]) {
                                                             const file = e.target.files[0];
@@ -2561,7 +2655,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                     }} 
                                                 />
                                             </div>
-                                            <p className="text-xs text-gray-500 mt-1">Recommended: 1200x675px</p>
+                                            <p className="text-xs text-[var(--brand-light)]/40 mt-2">Recommended: 1200x675px</p>
                                         </div>
                                     </div>
                                 </div>
@@ -2572,20 +2666,37 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pb-10">
-                <Button 
-                    type="button" 
-                    variant="ghost"
-                    onClick={() => router.push(redirectPath)}
-                >
-                    Cancel
-                </Button>
-                <Button type="submit" disabled={loading} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]">
-                    {loading ? 'Saving...' : initialData ? 'Update Event' : 'Create Event'}
-                </Button>
+            <div className="px-4 sm:px-0 pb-8">
+                <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                    <button 
+                        type="button" 
+                        onClick={() => router.push(redirectPath)}
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        disabled={loading} 
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {loading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-4 h-4" />
+                                {initialData ? 'Update Event' : 'Create Event'}
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
 
         </form>
+        </div>
         </div>
         
         {/* Toast Notification */}
@@ -2595,6 +2706,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 type={toast.type}
                 isVisible={!!toast}
                 onClose={() => setToast(null)}
+                darkMode
             />
         )}
         </>

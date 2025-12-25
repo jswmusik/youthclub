@@ -1,45 +1,61 @@
 'use client';
 
+import { Suspense } from 'react';
 import EventCalendar from '@/app/components/events/EventCalendar';
 import Link from 'next/link';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, Plus, Calendar } from 'lucide-react';
 
-export default function EventCalendarPage() {
+function EventCalendarPageContent() {
     return (
-        <div className="p-4 md:p-8 space-y-6 min-h-screen">
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-6 md:py-8 px-0">
             {/* Header */}
-            <div className="space-y-4">
+            <div className="space-y-4 px-4 sm:px-6 mb-6">
                 {/* Top row: Back button and New Event button */}
                 <div className="flex items-center justify-between">
                     <Link href="/admin/super/events">
-                        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                        <button className="flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-colors text-sm font-medium">
                             <ArrowLeft className="h-4 w-4" />
                             Back to Events
-                        </Button>
+                        </button>
                     </Link>
                     <Link href="/admin/super/events/create">
-                        <Button 
-                            size="sm" 
-                            className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full"
-                        >
+                        <button className="flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-4 py-2.5 transition-all text-sm">
                             <Plus className="h-4 w-4" />
                             <span className="hidden sm:inline">New Event</span>
-                        </Button>
+                        </button>
                     </Link>
                 </div>
                 
                 {/* Title and description */}
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#121213]">Event Calendar</h1>
-                    <p className="text-sm text-muted-foreground mt-1">View and manage events in calendar format.</p>
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-white" />
+                        </div>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Event Calendar</h1>
+                    </div>
+                    <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">View and manage events in calendar format.</p>
                 </div>
             </div>
             
-            <div className="h-[calc(100vh-200px)] min-h-[600px] flex flex-col">
+            <div className="h-[calc(100vh-220px)] min-h-[600px] flex flex-col">
                 <EventCalendar scope="SUPER" />
             </div>
         </div>
     );
 }
 
+export default function EventCalendarPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[var(--brand-light)]/60">Loading calendar...</p>
+                </div>
+            </div>
+        }>
+            <EventCalendarPageContent />
+        </Suspense>
+    );
+}

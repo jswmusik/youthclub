@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://192.168.1.208:8000/api';
 
 // Export for use in other files
 export { API_URL };
@@ -72,6 +72,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      // Save current pathname before session expires (only if we're in an admin or dashboard area)
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith('/admin/') || currentPath.startsWith('/dashboard/')) {
+          sessionStorage.setItem('redirectAfterLogin', currentPath);
+        }
+      }
       // If token is invalid, logout (optional: add refresh logic later)
       Cookies.remove('access_token');
       Cookies.remove('refresh_token');

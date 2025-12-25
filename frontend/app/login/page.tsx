@@ -1,13 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useAuth } from '../../context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Sparkles, Users, Calendar, Gift, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -15,6 +11,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,85 +33,252 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EBEBFE] via-white to-[#EBEBFE]/50 p-4">
-      <div className="w-full max-w-md">
-        <Card className="border border-gray-100 shadow-xl bg-white/95 backdrop-blur-sm">
-          <CardHeader className="space-y-2 text-center pb-6">
-            <div className="mx-auto mb-4 mt-6 flex items-center justify-center">
-              <Image
-                src="/ua-logo-stylized.png"
-                alt="Ungdomsappen Logo"
-                width={120}
-                height={120}
-                className="object-contain"
-                priority
+    <div className="min-h-screen bg-[var(--dark-900)] flex">
+      {/* Left Side - Branding & Features */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden">
+        {/* Hero Image Background */}
+        <div className="absolute inset-0">
+          <Image
+            src="/login-hero.jpg"
+            alt="Youth having fun together"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* Dark Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-900)] via-[var(--dark-900)]/70 to-[var(--dark-900)]/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--dark-900)]/80 to-transparent" />
+        </div>
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
+          {/* Logo */}
+          <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+            <Image
+              src="/ua-logo-2026.svg"
+              alt="Ungdomsappen"
+              width={180}
+              height={60}
+              className="object-contain brightness-0 invert"
+              priority
+            />
+          </div>
+          
+          {/* Hero Content */}
+          <div className="space-y-8">
+            <div className={`transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white leading-tight font-heading">
+                Where Youth
+                <span className="block text-[var(--brand-primary)]">Come Together</span>
+              </h1>
+              <p className="mt-6 text-lg xl:text-xl text-white/70 max-w-lg leading-relaxed">
+                Connect with your local youth club, discover events, earn rewards, and be part of an amazing community.
+              </p>
+            </div>
+            
+            {/* Feature Cards */}
+            <div className={`grid grid-cols-2 gap-4 max-w-lg transition-all duration-700 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <FeatureCard 
+                icon={<Users className="w-5 h-5" />}
+                title="Join Groups"
+                description="Connect with others"
+                color="var(--brand-primary)"
+              />
+              <FeatureCard 
+                icon={<Calendar className="w-5 h-5" />}
+                title="Events"
+                description="Never miss out"
+                color="var(--brand-purple)"
+              />
+              <FeatureCard 
+                icon={<Gift className="w-5 h-5" />}
+                title="Rewards"
+                description="Earn while you engage"
+                color="var(--brand-third)"
+              />
+              <FeatureCard 
+                icon={<Sparkles className="w-5 h-5" />}
+                title="Activities"
+                description="Explore & discover"
+                color="var(--brand-peach)"
               />
             </div>
-            <CardTitle className="text-3xl font-bold tracking-tight text-[#121213]">Welcome Back</CardTitle>
-            <CardDescription className="text-gray-500 text-base">
-              Sign in to Ungdomsappen
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{error}</span>
+          </div>
+          
+          {/* Footer */}
+          <div className={`transition-all duration-700 delay-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+            <p className="text-white/40 text-sm">
+              © {new Date().getFullYear()} Ungdomsappen. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-6 sm:p-8 lg:p-12">
+        <div className={`w-full max-w-md transition-all duration-700 delay-300 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex justify-center mb-8">
+            <Image
+              src="/ua-logo-2026.svg"
+              alt="Ungdomsappen"
+              width={140}
+              height={50}
+              className="object-contain"
+              priority
+            />
+          </div>
+          
+          {/* Welcome Text */}
+          <div className="text-center lg:text-left mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">
+              Welcome back
+            </h2>
+            <p className="mt-2 text-[var(--brand-light)]/60">
+              Sign in to continue to your dashboard
+            </p>
+          </div>
+          
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30 text-[var(--brand-red)] p-4 rounded-xl text-sm flex items-center gap-3 animate-shake">
+              <div className="w-10 h-10 rounded-full bg-[var(--brand-red)]/20 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="h-5 w-5" />
               </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 bg-gray-50 border-gray-200 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
-                  placeholder="admin@example.com"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
-                  Password
-                </Label>
-                <Input
+              <span className="font-medium">{error}</span>
+            </div>
+          )}
+          
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-bold text-[var(--brand-light)]">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-14 px-4 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition-all outline-none"
+                placeholder="your@email.com"
+              />
+            </div>
+            
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-sm font-bold text-[var(--brand-light)]">
+                Password
+              </label>
+              <div className="relative">
+                <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-11 bg-gray-50 border-gray-200 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4]"
+                  className="w-full h-14 px-4 pr-12 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition-all outline-none"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-11 bg-[#4D4DA4] hover:bg-[#FF5485] text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Signing in...' : 'Sign In'}
-              </Button>
-            </form>
-
-            <div className="text-center pt-2">
+            </div>
+            
+            {/* Remember & Forgot */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 rounded border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)] focus:ring-offset-0"
+                />
+                <span className="text-sm text-[var(--brand-light)]/60 group-hover:text-[var(--brand-light)] transition-colors">
+                  Remember me
+                </span>
+              </label>
               <a 
                 href="#" 
-                className="text-sm text-gray-500 hover:text-[#4D4DA4] transition-colors font-medium"
+                className="text-sm text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 transition-colors font-medium"
               >
                 Forgot password?
               </a>
             </div>
-          </CardContent>
-        </Card>
+            
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-14 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-lg shadow-[var(--brand-primary)]/25"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+          </form>
+          
+          {/* Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[var(--dark-600)]" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-4 bg-[var(--dark-900)] text-[var(--brand-light)]/40 text-sm">
+                New to Ungdomsappen?
+              </span>
+            </div>
+          </div>
+          
+          {/* Sign Up Link */}
+          <a
+            href="/register"
+            className="w-full h-14 border-2 border-[var(--dark-500)] hover:border-[var(--brand-primary)] text-[var(--brand-light)] hover:text-[var(--brand-primary)] font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group"
+          >
+            <span>Create an Account</span>
+            <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+          </a>
+          
+          {/* Mobile Footer */}
+          <p className="lg:hidden text-center text-[var(--brand-light)]/40 text-xs mt-8">
+            © {new Date().getFullYear()} Ungdomsappen. All rights reserved.
+          </p>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// Feature Card Component
+function FeatureCard({ icon, title, description, color }: { 
+  icon: React.ReactNode; 
+  title: string; 
+  description: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all duration-300 group cursor-default">
+      <div 
+        className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-110"
+        style={{ backgroundColor: `${color}20`, color }}
+      >
+        {icon}
+      </div>
+      <h3 className="font-bold text-white text-sm">{title}</h3>
+      <p className="text-white/50 text-xs mt-1">{description}</p>
     </div>
   );
 }

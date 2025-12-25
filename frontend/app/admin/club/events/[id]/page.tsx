@@ -3,22 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Edit, BarChart3, ChevronDown, ChevronUp, CheckCircle, Clock, Calendar, MapPin, Users, Building, Settings, Target, Bell, Ticket } from 'lucide-react';
+import { 
+    ArrowLeft, Edit, BarChart3, ChevronDown, ChevronUp, CheckCircle, Clock, Calendar, 
+    MapPin, Users, Building, Settings, Target, Bell, Ticket, Eye, User, 
+    CalendarDays, Globe, Shield, FileText, ChevronRight, Sparkles
+} from 'lucide-react';
 import api from '@/lib/api';
 import ParticipantManager from '@/app/components/events/ParticipantManager';
 import { Event } from '@/types/event';
 import { getMediaUrl, getInitials } from '@/app/utils';
 import { format } from 'date-fns';
-
-// Shadcn
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
 
 export default function EventDashboardPage() {
     const params = useParams();
@@ -43,51 +37,37 @@ export default function EventDashboardPage() {
         const fetchRegistrations = async () => {
             try {
                 setLoading(true);
-                // Fetch all registrations for this event
                 let allRegistrations: any[] = [];
                 let page = 1;
                 const pageSize = 100;
                 const maxPages = 100;
                 
                 while (page <= maxPages) {
-                    // Use the same endpoint as ParticipantManager
                     const res: any = await api.get(`/registrations/?event=${params.id}&page=${page}&page_size=${pageSize}`);
                     const responseData: any = res?.data;
                     
-                    if (!responseData) {
-                        console.log('No response data for page', page);
-                        break;
-                    }
+                    if (!responseData) break;
                     
                     let pageRegistrations: any[] = [];
                     
                     if (Array.isArray(responseData)) {
                         pageRegistrations = responseData;
                         allRegistrations = [...allRegistrations, ...pageRegistrations];
-                        console.log('Got array response, total registrations:', allRegistrations.length);
                         break;
                     } else if (responseData.results && Array.isArray(responseData.results)) {
                         pageRegistrations = responseData.results;
                         allRegistrations = [...allRegistrations, ...pageRegistrations];
                         
-                        console.log(`Page ${page}: Got ${pageRegistrations.length} registrations, total: ${allRegistrations.length}`);
-                        
                         const hasNext = responseData.next !== null && responseData.next !== undefined;
                         const gotEmptyPage = pageRegistrations.length === 0;
                         
-                        if (!hasNext || gotEmptyPage) {
-                            break;
-                        }
-                        
+                        if (!hasNext || gotEmptyPage) break;
                         page++;
                     } else {
-                        console.log('Unexpected response format:', responseData);
                         break;
                     }
                 }
                 
-                console.log('Final registrations:', allRegistrations);
-                console.log('Sample registration:', allRegistrations[0]);
                 setRegistrations(allRegistrations);
             } catch (error) {
                 console.error('Error fetching registrations:', error);
@@ -102,17 +82,24 @@ export default function EventDashboardPage() {
         }
     }, [params.id]);
 
-    // Redirect from CHECKIN tab if tickets are disabled
     useEffect(() => {
         if (event && !event.enable_tickets && activeTab === 'CHECKIN') {
             setActiveTab('PARTICIPANTS');
         }
     }, [event, activeTab]);
 
-    if (!event) return <div className="p-8 text-center">Loading Dashboard...</div>;
+    if (!event) {
+        return (
+            <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[var(--brand-light)]/60">Loading event details...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Calculate analytics
-    // Use registrations if available, otherwise fall back to event's denormalized counts
     const confirmedCount = registrations.length > 0 
         ? registrations.filter((r: any) => r.status === 'APPROVED' || r.status === 'ATTENDED').length
         : event.confirmed_participants_count || 0;
@@ -120,7 +107,6 @@ export default function EventDashboardPage() {
         ? registrations.filter((r: any) => r.status === 'WAITLIST').length
         : event.waitlist_count || 0;
     
-    // Demographics - count all registrations
     const demographics = {
         male: registrations.filter((r: any) => r.user_detail?.legal_gender === 'MALE').length,
         female: registrations.filter((r: any) => r.user_detail?.legal_gender === 'FEMALE').length,
@@ -130,7 +116,6 @@ export default function EventDashboardPage() {
         }).length,
     };
 
-    // Build back URL
     const buildBackUrl = () => {
         const urlParams = new URLSearchParams();
         const page = searchParams.get('page');
@@ -147,260 +132,267 @@ export default function EventDashboardPage() {
         return `/admin/club/events?${queryString}`;
     };
 
-    return (
-        <div className="p-8 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <Link href={buildBackUrl()}>
-                    <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to Events
-                    </Button>
-                </Link>
-                <Link href={`/admin/club/events/edit/${event.id}`}>
-                    <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white">
-                        <Edit className="h-4 w-4" />
-                        Edit Event
-                    </Button>
-                </Link>
-            </div>
+    const getStatusBadgeClasses = (status: string) => {
+        switch (status) {
+            case 'PUBLISHED': return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
+            case 'DRAFT': return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
+            case 'SCHEDULED': return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
+            case 'CANCELLED': return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+            default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
+        }
+    };
 
-            {/* Event Title Card */}
-            <Card className="border-none shadow-sm bg-gradient-to-br from-[#EBEBFE] via-[#EBEBFE]/50 to-white relative overflow-hidden">
-                {event.cover_image && (
+    return (
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+            <div className="space-y-0 sm:space-y-6 px-0 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+                
+                {/* Navigation Header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
+                    <Link 
+                        href={buildBackUrl()}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+                    >
+                        <ArrowLeft className="h-4 w-4" /> Back to Events
+                    </Link>
+                    <Link 
+                        href={`/admin/club/events/edit/${event.id}`}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
+                    >
+                        <Edit className="h-4 w-4" /> Edit Event
+                    </Link>
+                </div>
+
+                {/* Hero Card */}
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                    {/* Header Banner with Background Image */}
                     <div 
-                        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                        className="relative h-36 sm:h-56 bg-gradient-to-br from-[var(--brand-purple)]/30 via-[var(--dark-700)] to-[var(--brand-primary)]/20"
                         style={{
-                            backgroundImage: `url(${getMediaUrl(event.cover_image)})`,
-                            opacity: 0.25
+                            backgroundImage: event.cover_image ? `url(${getMediaUrl(event.cover_image)})` : undefined,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
                         }}
-                    />
-                )}
-                <CardContent className="p-6 sm:p-10 relative z-10">
-                    <div className="flex items-start gap-6">
-                        <Avatar className="h-16 w-16 rounded-lg bg-[#EBEBFE] flex-shrink-0">
-                            <AvatarFallback className="rounded-lg font-bold text-xl text-[#4D4DA4] bg-[#EBEBFE]">
-                                <Calendar className="h-8 w-8" />
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                            <h1 className="text-3xl font-bold tracking-tight text-[#121213] mb-2">{event.title}</h1>
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1.5">
-                                    <Calendar className="h-4 w-4" />
-                                    <span>{new Date(event.start_date).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <MapPin className="h-4 w-4" />
-                                    <span>{event.location_name}</span>
+                    >
+                        {event.cover_image && <div className="absolute inset-0 bg-[var(--dark-900)]/50" />}
+                        
+                        {!event.cover_image && (
+                            <div className="absolute inset-0 opacity-30">
+                                <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
+                                <div className="absolute bottom-4 left-4 w-24 h-24 rounded-full bg-[var(--brand-purple)]/20 blur-2xl" />
+                            </div>
+                        )}
+                        
+                        {/* Status Badge - Top Right */}
+                        <div className={`absolute top-4 right-4 px-4 py-2 rounded-xl backdrop-blur-sm border flex items-center gap-2 ${getStatusBadgeClasses(event.status)}`}>
+                            {event.status === 'PUBLISHED' && <CheckCircle className="w-4 h-4" />}
+                            {event.status === 'SCHEDULED' && <Clock className="w-4 h-4" />}
+                            <span className="text-sm font-semibold">{event.status}</span>
+                        </div>
+
+                        {/* Recurring Badge - Top Left */}
+                        {event.is_recurring && (
+                            <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-sm bg-[var(--brand-purple)]/20 border border-[var(--brand-purple)]/30">
+                                <span className="text-sm text-[var(--brand-purple)] font-medium flex items-center gap-1.5">
+                                    <Sparkles className="w-4 h-4" /> Recurring Event
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Title Section */}
+                    <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-14 sm:-mt-16">
+                        <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
+                            {/* Icon */}
+                            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <CalendarDays className="w-12 h-12 sm:w-16 sm:h-16 text-white" />
+                            </div>
+
+                            {/* Title & Info */}
+                            <div className="flex-1 space-y-2 pt-2">
+                                <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                                    {event.title}
+                                </h1>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center gap-2 text-[var(--brand-light)]/50 text-sm">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>{new Date(event.start_date).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[var(--brand-light)]/50 text-sm">
+                                        <MapPin className="h-4 w-4" />
+                                        <span>{event.location_name}</span>
+                                    </div>
+                                    {event.is_global && (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
+                                            <Globe className="w-3 h-3" /> Global
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
 
-            {/* Analytics Dashboard */}
-            {!loading && (
-                <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                    <Card className="border-0 shadow-sm bg-gray-900">
-                        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-                            <div className="flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 text-gray-400" />
-                                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                                    Analytics Dashboard
-                                </h3>
-                            </div>
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                                    <ChevronUp className={cn(
-                                        "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                        analyticsExpanded ? "rotate-0" : "rotate-180"
-                                    )} />
-                                    <span className="sr-only">Toggle Analytics</span>
-                                </Button>
-                            </CollapsibleTrigger>
-                        </div>
-                        <CollapsibleContent className="transition-all duration-500 ease-in-out">
-                            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                                    {/* Card 1: Confirmed */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                                                    }}>
-                                                    <CheckCircle className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Confirmed</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{confirmedCount}</div>
-                                            <p className="text-xs text-white/70">of {event.max_seats || 'Unlimited'} seats</p>
-                                        </div>
-                                    </Card>
-
-                                    {/* Card 2: Waitlist */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
-                                                    }}>
-                                                    <Clock className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Waitlist</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{waitlistCount}</div>
-                                            <p className="text-xs text-white/70">people waiting</p>
-                                        </div>
-                                    </Card>
-
-                                    {/* Card 3: Demographics */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
-                                                    }}>
-                                                    <Users className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Demographics</CardTitle>
-                                            </div>
-                                            <div className="space-y-1 w-full">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/70">Male:</span>
-                                                    <span className="font-bold text-white">{demographics.male}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/70">Female:</span>
-                                                    <span className="font-bold text-white">{demographics.female}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/70">Other:</span>
-                                                    <span className="font-bold text-white">{demographics.other}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Card>
-
-                                    {/* Card 4: Target Groups */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF6B9D] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                                                    }}>
-                                                    <Target className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Target Groups</CardTitle>
-                                            </div>
-                                            {event.target_groups_details && event.target_groups_details.length > 0 ? (
-                                                <div className="space-y-1 w-full">
-                                                    {event.target_groups_details.slice(0, 3).map((group: any) => (
-                                                        <div key={group.id} className="text-sm font-medium text-white truncate">
-                                                            {group.name}
-                                                        </div>
-                                                    ))}
-                                                    {event.target_groups_details.length > 3 && (
-                                                        <div className="text-xs text-white/70">
-                                                            +{event.target_groups_details.length - 3} more
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <p className="text-sm text-white/70">No target groups</p>
-                                            )}
-                                        </div>
-                                    </Card>
+                {/* Analytics Dashboard */}
+                {!loading && (
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                        <button 
+                            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+                            className="w-full px-6 py-4 flex items-center justify-between hover:bg-[var(--dark-700)]/50 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                    <BarChart3 className="h-5 w-5 text-white" />
                                 </div>
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Card>
-                </Collapsible>
-            )}
+                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Analytics Dashboard</h2>
+                            </div>
+                            <ChevronUp className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform ${analyticsExpanded ? '' : 'rotate-180'}`} />
+                        </button>
+                        
+                        {analyticsExpanded && (
+                            <div className="px-6 pb-6 pt-2">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {/* Confirmed */}
+                                    <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-primary)]/30 hover:border-[var(--brand-primary)]/50 transition-all">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                                                <CheckCircle className="h-5 w-5 text-[var(--brand-primary)]" />
+                                            </div>
+                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">Confirmed</span>
+                                        </div>
+                                        <div className="text-3xl font-bold text-[var(--brand-light)]">{confirmedCount}</div>
+                                        <p className="text-xs text-[var(--brand-light)]/50 mt-1">of {event.max_seats || 'Unlimited'} seats</p>
+                                    </div>
 
-            {/* Tabs */}
-            <div className="border-b border-gray-200 flex gap-6">
-                <button 
-                    onClick={() => setActiveTab('PARTICIPANTS')}
-                    className={cn(
-                        "pb-3 text-sm font-semibold border-b-2 transition-colors",
-                        activeTab === 'PARTICIPANTS' 
-                            ? 'border-[#4D4DA4] text-[#4D4DA4]' 
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                    )}
-                >
-                    Participants & Applications
-                </button>
-                {event.enable_tickets && (
-                    <button 
-                        onClick={() => setActiveTab('CHECKIN')}
-                        className={cn(
-                            "pb-3 text-sm font-semibold border-b-2 transition-colors",
-                            activeTab === 'CHECKIN' 
-                                ? 'border-[#4D4DA4] text-[#4D4DA4]' 
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                    {/* Waitlist */}
+                                    <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-blue)]/30 hover:border-[var(--brand-blue)]/50 transition-all">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
+                                                <Clock className="h-5 w-5 text-[var(--brand-blue)]" />
+                                            </div>
+                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">Waitlist</span>
+                                        </div>
+                                        <div className="text-3xl font-bold text-[var(--brand-light)]">{waitlistCount}</div>
+                                        <p className="text-xs text-[var(--brand-light)]/50 mt-1">people waiting</p>
+                                    </div>
+
+                                    {/* Demographics */}
+                                    <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-green)]/30 hover:border-[var(--brand-green)]/50 transition-all">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-10 h-10 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
+                                                <Users className="h-5 w-5 text-[var(--brand-green)]" />
+                                            </div>
+                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">Demographics</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-[var(--brand-light)]/50">Male:</span>
+                                                <span className="font-semibold text-[var(--brand-light)]">{demographics.male}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-[var(--brand-light)]/50">Female:</span>
+                                                <span className="font-semibold text-[var(--brand-light)]">{demographics.female}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-[var(--brand-light)]/50">Other:</span>
+                                                <span className="font-semibold text-[var(--brand-light)]">{demographics.other}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Target Groups */}
+                                    <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-pink)]/30 hover:border-[var(--brand-pink)]/50 transition-all">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-10 h-10 rounded-lg bg-[var(--brand-pink)]/20 flex items-center justify-center">
+                                                <Target className="h-5 w-5 text-[var(--brand-pink)]" />
+                                            </div>
+                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">Target Groups</span>
+                                        </div>
+                                        {event.target_groups_details && event.target_groups_details.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {event.target_groups_details.slice(0, 3).map((group: any) => (
+                                                    <div key={group.id} className="text-sm font-medium text-[var(--brand-light)] truncate">
+                                                        {group.name}
+                                                    </div>
+                                                ))}
+                                                {event.target_groups_details.length > 3 && (
+                                                    <div className="text-xs text-[var(--brand-light)]/50">
+                                                        +{event.target_groups_details.length - 3} more
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-[var(--brand-light)]/50">No target groups</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         )}
-                    >
-                        Check-in & Tickets
-                    </button>
-                )}
-                <button 
-                    onClick={() => setActiveTab('OVERVIEW')}
-                    className={cn(
-                        "pb-3 text-sm font-semibold border-b-2 transition-colors",
-                        activeTab === 'OVERVIEW' 
-                            ? 'border-[#4D4DA4] text-[#4D4DA4]' 
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                    )}
-                >
-                    Overview
-                </button>
-            </div>
-
-            {/* Content Area */}
-            <div className="min-h-[400px]">
-                {activeTab === 'PARTICIPANTS' && (
-                    <ParticipantManager eventId={event.id} />
+                    </div>
                 )}
 
-                {activeTab === 'CHECKIN' && (
-                    <div className="space-y-6">
-                        {/* Check-in List */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle>Checked-In Members</CardTitle>
-                                <CardDescription>
-                                    {(() => {
-                                        const checkedIn = registrations.filter((r: any) => 
-                                            r.status === 'ATTENDED' || r.ticket?.checked_in_at
-                                        );
-                                        return `${checkedIn.length} member${checkedIn.length !== 1 ? 's' : ''} checked in`;
-                                    })()}
-                                </CardDescription>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
+                {/* Tabs */}
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                    <div className="flex border-b border-[var(--dark-600)]">
+                        <button 
+                            onClick={() => setActiveTab('PARTICIPANTS')}
+                            className={`flex-1 sm:flex-none px-6 py-4 text-sm font-semibold transition-all ${
+                                activeTab === 'PARTICIPANTS' 
+                                    ? 'text-[var(--brand-primary)] border-b-2 border-[var(--brand-primary)] bg-[var(--dark-700)]/30' 
+                                    : 'text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]/20'
+                            }`}
+                        >
+                            <span className="flex items-center justify-center gap-2">
+                                <Users className="w-4 h-4" />
+                                <span className="hidden sm:inline">Participants</span>
+                            </span>
+                        </button>
+                        {event.enable_tickets && (
+                            <button 
+                                onClick={() => setActiveTab('CHECKIN')}
+                                className={`flex-1 sm:flex-none px-6 py-4 text-sm font-semibold transition-all ${
+                                    activeTab === 'CHECKIN' 
+                                        ? 'text-[var(--brand-primary)] border-b-2 border-[var(--brand-primary)] bg-[var(--dark-700)]/30' 
+                                        : 'text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]/20'
+                                }`}
+                            >
+                                <span className="flex items-center justify-center gap-2">
+                                    <Ticket className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Check-in</span>
+                                </span>
+                            </button>
+                        )}
+                        <button 
+                            onClick={() => setActiveTab('OVERVIEW')}
+                            className={`flex-1 sm:flex-none px-6 py-4 text-sm font-semibold transition-all ${
+                                activeTab === 'OVERVIEW' 
+                                    ? 'text-[var(--brand-primary)] border-b-2 border-[var(--brand-primary)] bg-[var(--dark-700)]/30' 
+                                    : 'text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]/20'
+                            }`}
+                        >
+                            <span className="flex items-center justify-center gap-2">
+                                <Eye className="w-4 h-4" />
+                                <span className="hidden sm:inline">Overview</span>
+                            </span>
+                        </button>
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="p-4 sm:p-6">
+                        {activeTab === 'PARTICIPANTS' && (
+                            <ParticipantManager eventId={event.id} />
+                        )}
+
+                        {activeTab === 'CHECKIN' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-[var(--brand-light)]">Checked-In Members</h3>
+                                    <span className="text-sm text-[var(--brand-light)]/50">
+                                        {registrations.filter((r: any) => r.status === 'ATTENDED' || r.ticket?.checked_in_at).length} checked in
+                                    </span>
+                                </div>
 
                                 {loading ? (
-                                    <div className="p-8 text-center text-muted-foreground">
+                                    <div className="py-12 text-center text-[var(--brand-light)]/50">
                                         Loading check-ins...
                                     </div>
                                 ) : (() => {
@@ -414,494 +406,338 @@ export default function EventDashboardPage() {
 
                                     if (checkedInRegistrations.length === 0) {
                                         return (
-                                            <div className="p-12 text-center text-muted-foreground">
-                                                <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                                <p className="font-medium text-[#121213] mb-1">No check-ins yet</p>
-                                                <p className="text-sm">Members will appear here once they check in using the swipe feature.</p>
+                                            <div className="py-16 text-center">
+                                                <Clock className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
+                                                <p className="font-medium text-[var(--brand-light)] mb-1">No check-ins yet</p>
+                                                <p className="text-sm text-[var(--brand-light)]/50">Members will appear here once they check in.</p>
                                             </div>
                                         );
                                     }
 
                                     return (
-                                        <div className="overflow-x-auto">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
-                                                        <TableHead className="h-12 px-6 text-gray-600 font-semibold">Member</TableHead>
-                                                        <TableHead className="h-12 px-6 text-gray-600 font-semibold">Ticket Code</TableHead>
-                                                        <TableHead className="h-12 px-6 text-gray-600 font-semibold">Check-in Time</TableHead>
-                                                        <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {checkedInRegistrations.map((reg: any) => {
-                                                        const checkInTime = reg.ticket?.checked_in_at 
-                                                            ? new Date(reg.ticket.checked_in_at)
-                                                            : null;
-                                                        
-                                                        return (
-                                                            <TableRow key={reg.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                                                <TableCell className="py-4 px-6">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <Avatar className="h-10 w-10 rounded-full">
-                                                                            <AvatarImage src={getMediaUrl(reg.user_detail?.avatar) || undefined} />
-                                                                            <AvatarFallback className="rounded-full bg-[#EBEBFE] text-[#4D4DA4] font-bold text-sm">
-                                                                                {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
-                                                                            </AvatarFallback>
-                                                                        </Avatar>
-                                                                        <div>
-                                                                            <div className="text-sm font-semibold text-[#121213]">
-                                                                                {reg.user_detail?.first_name} {reg.user_detail?.last_name}
-                                                                            </div>
-                                                                            <div className="text-xs text-muted-foreground">{reg.user_detail?.email}</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </TableCell>
-                                                                <TableCell className="px-6">
-                                                                    <Badge variant="outline" className="font-mono">
-                                                                        {reg.ticket?.ticket_code || 'N/A'}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell className="px-6">
-                                                                    {checkInTime ? (
-                                                                        <div className="text-sm text-[#121213]">
-                                                                            <div>{format(checkInTime, 'MMM d, yyyy')}</div>
-                                                                            <div className="text-xs text-muted-foreground">{format(checkInTime, 'h:mm a')}</div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className="text-sm text-muted-foreground">N/A</span>
-                                                                    )}
-                                                                </TableCell>
-                                                                <TableCell className="px-6">
-                                                                    <Badge className="bg-green-50 text-[#10B981] border-[#10B981]/30">
-                                                                        <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                                                                        Checked In
-                                                                    </Badge>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        );
-                                                    })}
-                                                </TableBody>
-                                            </Table>
+                                        <div className="space-y-3">
+                                            {checkedInRegistrations.map((reg: any) => {
+                                                const checkInTime = reg.ticket?.checked_in_at 
+                                                    ? new Date(reg.ticket.checked_in_at)
+                                                    : null;
+                                                
+                                                return (
+                                                    <div key={reg.id} className="flex items-center gap-4 p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                                                            {reg.user_detail?.avatar ? (
+                                                                <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-xl" />
+                                                            ) : (
+                                                                <span className="text-white font-bold">
+                                                                    {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-sm font-semibold text-[var(--brand-light)]">
+                                                                {reg.user_detail?.first_name} {reg.user_detail?.last_name}
+                                                            </div>
+                                                            <div className="text-xs text-[var(--brand-light)]/50">{reg.user_detail?.email}</div>
+                                                        </div>
+                                                        <div className="text-right hidden sm:block">
+                                                            <div className="text-xs text-[var(--brand-light)]/50 mb-1">Ticket</div>
+                                                            <code className="text-xs bg-[var(--dark-600)] px-2 py-1 rounded text-[var(--brand-light)]/70">
+                                                                {reg.ticket?.ticket_code || 'N/A'}
+                                                            </code>
+                                                        </div>
+                                                        <div className="text-right hidden sm:block">
+                                                            {checkInTime && (
+                                                                <>
+                                                                    <div className="text-xs text-[var(--brand-light)]/50">{format(checkInTime, 'MMM d')}</div>
+                                                                    <div className="text-xs text-[var(--brand-light)]/70">{format(checkInTime, 'h:mm a')}</div>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-green)]/20 text-[var(--brand-green)] text-xs font-medium">
+                                                            <CheckCircle className="w-3.5 h-3.5" />
+                                                            <span className="hidden sm:inline">Checked In</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     );
                                 })()}
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
-
-                {activeTab === 'OVERVIEW' && (
-                    <div className="space-y-6">
-                        {/* Cover Image */}
-                        {event.cover_image && (
-                            <Card className="border-none shadow-sm overflow-hidden p-0">
-                                <img 
-                                    src={getMediaUrl(event.cover_image) || ''} 
-                                    alt={event.title}
-                                    className="w-full h-64 object-cover"
-                                />
-                            </Card>
+                            </div>
                         )}
 
-                        {/* Basic Information */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Settings className="h-5 w-5 text-[#4D4DA4]" />
-                                    Basic Information
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Title</label>
-                                        <p className="text-lg font-semibold text-[#121213] mt-1">{event.title}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Description</label>
-                                        <div className="news-content mt-2 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: event.description }} />
-                                    </div>
-                                    {event.video_url && (
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Video URL</label>
-                                            <a href={event.video_url} target="_blank" rel="noopener noreferrer" className="text-[#4D4DA4] hover:text-[#FF5485] hover:underline mt-1 block">
-                                                {event.video_url}
-                                            </a>
-                                        </div>
-                                    )}
-                                    {event.cost !== null && event.cost !== undefined && (
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Cost</label>
-                                            <p className="text-lg font-semibold text-[#121213] mt-1">
-                                                {parseFloat(event.cost.toString()) === 0 ? 'Free' : `$${parseFloat(event.cost.toString()).toFixed(2)}`}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Date & Time */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Calendar className="h-5 w-5 text-[#4D4DA4]" />
-                                    Date & Time
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Start Date & Time</label>
-                                        <p className="text-[#121213] font-medium mt-1">
-                                            {new Date(event.start_date).toLocaleDateString()} at {new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">End Date & Time</label>
-                                        <p className="text-[#121213] font-medium mt-1">
-                                            {new Date(event.end_date).toLocaleDateString()} at {new Date(event.end_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </p>
-                                    </div>
-                                    {event.is_recurring && (
-                                        <>
-                                            <div>
-                                                <label className="text-xs font-bold text-muted-foreground uppercase">Recurrence Pattern</label>
-                                                <p className="text-[#121213] font-medium mt-1">{event.recurrence_pattern || 'NONE'}</p>
+                        {activeTab === 'OVERVIEW' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Main Column */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    
+                                    {/* Basic Information */}
+                                    <div className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                                                <FileText className="w-4 h-4 text-[var(--brand-primary)]" />
                                             </div>
-                                            {event.recurrence_end_date && (
+                                            <h3 className="font-semibold text-[var(--brand-light)]">Basic Information</h3>
+                                        </div>
+                                        <div className="p-5 space-y-4">
+                                            <div>
+                                                <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Title</label>
+                                                <p className="text-lg font-semibold text-[var(--brand-light)]">{event.title}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Description</label>
+                                                <div className="prose prose-invert prose-sm max-w-none text-[var(--brand-light)]/80" dangerouslySetInnerHTML={{ __html: event.description }} />
+                                            </div>
+                                            {event.cost !== null && event.cost !== undefined && (
                                                 <div>
-                                                    <label className="text-xs font-bold text-muted-foreground uppercase">Recurrence End Date</label>
-                                                    <p className="text-[#121213] font-medium mt-1">
-                                                        {new Date(event.recurrence_end_date).toLocaleDateString()}
+                                                    <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Cost</label>
+                                                    <p className="text-lg font-semibold text-[var(--brand-light)]">
+                                                        {parseFloat(event.cost.toString()) === 0 ? 'Free' : `$${parseFloat(event.cost.toString()).toFixed(2)}`}
                                                     </p>
                                                 </div>
                                             )}
-                                        </>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                        </div>
+                                    </div>
 
-                        {/* Location */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <MapPin className="h-5 w-5 text-[#4D4DA4]" />
-                                    Location
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Location Name</label>
-                                        <p className="text-[#121213] font-medium mt-1">{event.location_name}</p>
-                                    </div>
-                                    {event.address && (
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Address</label>
-                                            <p className="text-muted-foreground mt-1">{event.address}</p>
+                                    {/* Date & Time */}
+                                    <div className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                                                <Calendar className="w-4 h-4 text-[var(--brand-purple)]" />
+                                            </div>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">Date & Time</h3>
                                         </div>
-                                    )}
-                                    {(event.latitude && event.longitude) && (
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Coordinates</label>
-                                            <p className="text-muted-foreground mt-1">
-                                                {event.latitude}, {event.longitude}
-                                            </p>
-                                        </div>
-                                    )}
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Map Visible</label>
-                                        <p className="text-[#121213] font-medium mt-1">
-                                            {event.is_map_visible ? 'Yes' : 'No'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Organization */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Building className="h-5 w-5 text-[#4D4DA4]" />
-                                    Organization
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Municipality</label>
-                                        <p className="text-[#121213] font-medium mt-1">
-                                            {event.municipality_detail?.name || (typeof event.municipality === 'object' ? event.municipality.name : 'N/A')}
-                                        </p>
-                                    </div>
-                                    {(event.club_detail || event.club) && (
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Club</label>
-                                            <p className="text-[#121213] font-medium mt-1">
-                                                {event.club_detail?.name || (typeof event.club === 'object' ? event.club.name : 'N/A')}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {event.organizer_name && (
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Organizer Name</label>
-                                            <p className="text-[#121213] font-medium mt-1">{event.organizer_name}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Registration Settings */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Settings className="h-5 w-5 text-[#4D4DA4]" />
-                                    Registration Settings
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Registration Allowed</label>
-                                            <p className="text-[#121213] font-medium mt-1">
-                                                <Badge variant="outline" className={event.allow_registration ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}>
-                                                    {event.allow_registration ? 'Yes' : 'No'}
-                                                </Badge>
-                                            </p>
-                                        </div>
-                                        {event.allow_registration && (
-                                            <>
-                                                <div>
-                                                    <label className="text-xs font-bold text-muted-foreground uppercase">Max Seats</label>
-                                                    <p className="text-[#121213] font-medium mt-1">
-                                                        {event.max_seats === 0 ? 'Unlimited' : event.max_seats}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-bold text-muted-foreground uppercase">Max Waitlist</label>
-                                                    <p className="text-[#121213] font-medium mt-1">
-                                                        {event.max_waitlist === 0 ? 'No waitlist' : event.max_waitlist}
-                                                    </p>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                    {event.allow_registration && (
-                                        <>
-                                            <Separator />
-                                            <div className="pt-4">
-                                                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Requirements</label>
-                                                <div className="space-y-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`w-2 h-2 rounded-full ${event.requires_verified_account ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                                                        <span className="text-sm text-[#121213]">Requires Verified Account</span>
+                                        <div className="p-5">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Start</div>
+                                                    <div className="text-sm text-[var(--brand-light)] font-medium">
+                                                        {new Date(event.start_date).toLocaleDateString()}
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`w-2 h-2 rounded-full ${event.requires_guardian_approval ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                                                        <span className="text-sm text-[#121213]">Requires Guardian Approval</span>
+                                                    <div className="text-xs text-[var(--brand-light)]/50">
+                                                        {new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`w-2 h-2 rounded-full ${event.requires_admin_approval ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                                                        <span className="text-sm text-[#121213]">Requires Admin Approval</span>
+                                                </div>
+                                                <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">End</div>
+                                                    <div className="text-sm text-[var(--brand-light)] font-medium">
+                                                        {new Date(event.end_date).toLocaleDateString()}
+                                                    </div>
+                                                    <div className="text-xs text-[var(--brand-light)]/50">
+                                                        {new Date(event.end_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                     </div>
                                                 </div>
                                             </div>
-                                            {(event.registration_open_date || event.registration_close_date) && (
+                                            {event.is_recurring && (
+                                                <div className="mt-4 p-4 rounded-xl bg-[var(--brand-purple)]/10 border border-[var(--brand-purple)]/30">
+                                                    <div className="flex items-center gap-2 text-[var(--brand-purple)] text-sm font-medium mb-2">
+                                                        <Sparkles className="w-4 h-4" /> Recurring Event
+                                                    </div>
+                                                    <div className="text-xs text-[var(--brand-light)]/60">
+                                                        Pattern: {event.recurrence_pattern || 'NONE'}
+                                                        {event.recurrence_end_date && (
+                                                            <span> • Ends: {new Date(event.recurrence_end_date).toLocaleDateString()}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Location */}
+                                    <div className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
+                                                <MapPin className="w-4 h-4 text-[var(--brand-peach)]" />
+                                            </div>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">Location</h3>
+                                        </div>
+                                        <div className="p-5 space-y-3">
+                                            <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
+                                                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Location Name</div>
+                                                <div className="text-sm text-[var(--brand-light)] font-medium">{event.location_name}</div>
+                                            </div>
+                                            {event.address && (
+                                                <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Address</div>
+                                                    <div className="text-sm text-[var(--brand-light)]/70">{event.address}</div>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/50">
+                                                <span className={`w-2 h-2 rounded-full ${event.is_map_visible ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}></span>
+                                                Map {event.is_map_visible ? 'visible' : 'hidden'} on event page
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Registration Settings */}
+                                    <div className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
+                                                <Settings className="w-4 h-4 text-[var(--brand-green)]" />
+                                            </div>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">Registration Settings</h3>
+                                        </div>
+                                        <div className="p-5 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-[var(--brand-light)]/70">Registration</span>
+                                                <span className={`px-3 py-1 rounded-lg text-xs font-medium ${event.allow_registration ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'}`}>
+                                                    {event.allow_registration ? 'Enabled' : 'Disabled'}
+                                                </span>
+                                            </div>
+                                            {event.allow_registration && (
                                                 <>
-                                                    <Separator />
-                                                    <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        {event.registration_open_date && (
-                                                            <div>
-                                                                <label className="text-xs font-bold text-muted-foreground uppercase">Registration Opens</label>
-                                                                <p className="text-[#121213] font-medium mt-1">
-                                                                    {new Date(event.registration_open_date).toLocaleString()}
-                                                                </p>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
+                                                            <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Max Seats</div>
+                                                            <div className="text-lg font-semibold text-[var(--brand-light)]">
+                                                                {event.max_seats === 0 ? '∞' : event.max_seats}
                                                             </div>
-                                                        )}
-                                                        {event.registration_close_date && (
-                                                            <div>
-                                                                <label className="text-xs font-bold text-muted-foreground uppercase">Registration Closes</label>
-                                                                <p className="text-[#121213] font-medium mt-1">
-                                                                    {new Date(event.registration_close_date).toLocaleString()}
-                                                                </p>
+                                                        </div>
+                                                        <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
+                                                            <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Waitlist</div>
+                                                            <div className="text-lg font-semibold text-[var(--brand-light)]">
+                                                                {event.max_waitlist === 0 ? 'None' : event.max_waitlist}
                                                             </div>
-                                                        )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2 pt-2">
+                                                        <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/70">
+                                                            <span className={`w-2 h-2 rounded-full ${event.requires_guardian_approval ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}></span>
+                                                            Guardian Approval {event.requires_guardian_approval ? 'Required' : 'Not Required'}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/70">
+                                                            <span className={`w-2 h-2 rounded-full ${event.requires_admin_approval ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}></span>
+                                                            Admin Approval {event.requires_admin_approval ? 'Required' : 'Not Required'}
+                                                        </div>
                                                     </div>
                                                 </>
                                             )}
-                                        </>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Targeting & Visibility */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Target className="h-5 w-5 text-[#4D4DA4]" />
-                                    Targeting & Visibility
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Target Audience</label>
-                                            <p className="text-[#121213] font-medium mt-1">{event.target_audience}</p>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Global Visibility</label>
-                                            <p className="text-[#121213] font-medium mt-1">
-                                                <Badge variant="outline" className={event.is_global ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'}>
-                                                    {event.is_global ? 'Global' : 'Limited'}
-                                                </Badge>
-                                            </p>
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* Sidebar */}
+                                <div className="space-y-6">
                                     
-                                    {event.target_groups_details && event.target_groups_details.length > 0 && (
-                                        <>
-                                            <Separator />
-                                            <div className="pt-4">
-                                                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Target Groups</label>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {event.target_groups_details.map((group: any) => (
-                                                        <Badge key={group.id} variant="secondary" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/20">
-                                                            {group.name}
-                                                        </Badge>
-                                                    ))}
+                                    {/* Organization */}
+                                    <div className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center">
+                                                <Building className="w-4 h-4 text-[var(--brand-third)]" />
+                                            </div>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">Organization</h3>
+                                        </div>
+                                        <div className="p-5 space-y-3">
+                                            <div className="p-3 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
+                                                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Municipality</div>
+                                                <div className="text-sm text-[var(--brand-light)] font-medium">
+                                                    {event.municipality_detail?.name || (typeof event.municipality === 'object' ? event.municipality.name : 'N/A')}
                                                 </div>
                                             </div>
-                                        </>
-                                    )}
+                                            {(event.club_detail || event.club) && (
+                                                <div className="p-3 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Club</div>
+                                                    <div className="text-sm text-[var(--brand-light)] font-medium">
+                                                        {event.club_detail?.name || (typeof event.club === 'object' ? event.club.name : 'N/A')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                    {(event.target_genders?.length > 0 || event.target_min_age || event.target_max_age || event.target_grades?.length > 0) && (
-                                        <>
-                                            <Separator />
-                                            <div className="pt-4">
-                                                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Demographic Filters</label>
-                                                <div className="space-y-2">
-                                                    {event.target_genders?.length > 0 && (
-                                                        <div>
-                                                            <span className="text-sm font-medium text-[#121213]">Genders: </span>
-                                                            <span className="text-sm text-muted-foreground">{event.target_genders.join(', ')}</span>
-                                                        </div>
-                                                    )}
-                                                    {(event.target_min_age || event.target_max_age) && (
-                                                        <div>
-                                                            <span className="text-sm font-medium text-[#121213]">Age Range: </span>
-                                                            <span className="text-sm text-muted-foreground">
-                                                                {event.target_min_age || 'Any'} - {event.target_max_age || 'Any'}
+                                    {/* Targeting */}
+                                    <div className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-pink)]/20 flex items-center justify-center">
+                                                <Target className="w-4 h-4 text-[var(--brand-pink)]" />
+                                            </div>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">Targeting</h3>
+                                        </div>
+                                        <div className="p-5 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-[var(--brand-light)]/70">Audience</span>
+                                                <span className="text-sm text-[var(--brand-light)] font-medium">{event.target_audience}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-[var(--brand-light)]/70">Visibility</span>
+                                                <span className={`px-3 py-1 rounded-lg text-xs font-medium ${event.is_global ? 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'}`}>
+                                                    {event.is_global ? 'Global' : 'Limited'}
+                                                </span>
+                                            </div>
+                                            {event.target_groups_details && event.target_groups_details.length > 0 && (
+                                                <div>
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Target Groups</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {event.target_groups_details.map((group: any) => (
+                                                            <span key={group.id} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]">
+                                                                {group.name}
                                                             </span>
-                                                        </div>
-                                                    )}
-                                                    {event.target_grades?.length > 0 && (
-                                                        <div>
-                                                            <span className="text-sm font-medium text-[#121213]">Grades: </span>
-                                                            <span className="text-sm text-muted-foreground">{event.target_grades.join(', ')}</span>
-                                                        </div>
-                                                    )}
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Notifications & Tickets */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Bell className="h-5 w-5 text-[#4D4DA4]" />
-                                    Notifications & Tickets
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Send Reminders</label>
-                                            <p className="text-[#121213] font-medium mt-1">
-                                                <Badge variant="outline" className={event.send_reminders ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}>
-                                                    {event.send_reminders ? 'Enabled' : 'Disabled'}
-                                                </Badge>
-                                            </p>
+                                            )}
+                                            {(event.target_min_age || event.target_max_age) && (
+                                                <div className="text-sm text-[var(--brand-light)]/70">
+                                                    Age: {event.target_min_age || 'Any'} - {event.target_max_age || 'Any'}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-muted-foreground uppercase">Enable Tickets</label>
-                                            <p className="text-[#121213] font-medium mt-1">
-                                                <Badge variant="outline" className={event.enable_tickets ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}>
+                                    </div>
+
+                                    {/* Notifications & Tickets */}
+                                    <div className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
+                                                <Bell className="w-4 h-4 text-[var(--brand-blue)]" />
+                                            </div>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">Notifications</h3>
+                                        </div>
+                                        <div className="p-5 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-[var(--brand-light)]/70">Reminders</span>
+                                                <span className={`px-3 py-1 rounded-lg text-xs font-medium ${event.send_reminders ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'}`}>
+                                                    {event.send_reminders ? 'On' : 'Off'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-[var(--brand-light)]/70">Tickets</span>
+                                                <span className={`px-3 py-1 rounded-lg text-xs font-medium ${event.enable_tickets ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'}`}>
                                                     {event.enable_tickets ? 'Enabled' : 'Disabled'}
-                                                </Badge>
-                                            </p>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                    {event.custom_welcome_message && (
-                                        <>
-                                            <Separator />
-                                            <div className="pt-4">
-                                                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Custom Welcome Message</label>
-                                                <p className="text-muted-foreground bg-muted/30 p-3 rounded-lg">{event.custom_welcome_message}</p>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
 
-                        {/* Status & Statistics */}
-                        <Card className="border-none shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <BarChart3 className="h-5 w-5 text-[#4D4DA4]" />
-                                    Status & Statistics
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="pt-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Status</label>
-                                        <p className="mt-1">
-                                            <Badge variant="outline" className={
-                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                                event.status === 'DRAFT' ? 'bg-gray-50 text-gray-700 border-gray-200' : 
-                                                event.status === 'SCHEDULED' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                event.status === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
-                                                'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                            }>
-                                                {event.status}
-                                            </Badge>
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Confirmed Participants</label>
-                                        <p className="text-[#121213] font-medium mt-1">{event.confirmed_participants_count}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Waitlist Count</label>
-                                        <p className="text-[#121213] font-medium mt-1">{event.waitlist_count}</p>
+                                    {/* Status */}
+                                    <div className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                                                <BarChart3 className="w-4 h-4 text-[var(--brand-primary)]" />
+                                            </div>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">Status</h3>
+                                        </div>
+                                        <div className="p-5 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-[var(--brand-light)]/70">Status</span>
+                                                <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getStatusBadgeClasses(event.status)}`}>
+                                                    {event.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-[var(--brand-light)]/70">Confirmed</span>
+                                                <span className="text-sm text-[var(--brand-light)] font-semibold">{event.confirmed_participants_count}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-[var(--brand-light)]/70">Waitlist</span>
+                                                <span className="text-sm text-[var(--brand-light)] font-semibold">{event.waitlist_count}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

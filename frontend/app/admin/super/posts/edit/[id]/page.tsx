@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import api from '../../../../../../lib/api';
 import PostForm from '../../../../../components/posts/PostForm';
 import { Post } from '../../../../../../types/post';
+import { Sparkles } from 'lucide-react';
 
-export default function EditPostPage() {
+function EditPostPageContent() {
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams();
@@ -42,7 +43,6 @@ export default function EditPostPage() {
                 setPost(res.data);
             } catch (err) {
                 console.error("Failed to fetch post", err);
-                alert("Post not found");
                 router.push('/admin/super/posts');
             } finally {
                 setLoading(false);
@@ -51,16 +51,43 @@ export default function EditPostPage() {
         fetchPost();
     }, [postId, router]);
 
-    if (loading) return <div className="p-8 text-center text-muted-foreground">Loading post data...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+            <div className="text-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
+                    <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <p className="text-[var(--brand-light)]/60">Loading post data...</p>
+            </div>
+        </div>
+    );
+    
     if (!post) return null;
 
     return (
-        <div className="p-8">
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-6 md:py-8 px-0">
             <PostForm 
                 initialData={post}
                 role="super" 
-                onSuccess={() => router.push(buildUrlWithParams(`/admin/super/posts/${post.id}`))} // Redirect to View Page with params
+                onSuccess={() => router.push(buildUrlWithParams(`/admin/super/posts/${post.id}`))}
             />
         </div>
+    );
+}
+
+export default function EditPostPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
+                        <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-[var(--brand-light)]/60">Loading post form...</p>
+                </div>
+            </div>
+        }>
+            <EditPostPageContent />
+        </Suspense>
     );
 }

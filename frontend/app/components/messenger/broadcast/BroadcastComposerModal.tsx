@@ -6,11 +6,6 @@ import { messengerApi } from '../../../../lib/messenger-api';
 import api from '../../../../lib/api';
 import { BroadcastFilters } from '../../../../types/messenger';
 import Toast from '../../../components/Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface BroadcastComposerModalProps {
     onClose: () => void;
@@ -18,6 +13,7 @@ interface BroadcastComposerModalProps {
     onError?: (errorMsg: string) => void;
     initialScope?: 'GLOBAL' | 'MUNICIPALITY' | 'CLUB';
     initialTargetId?: number;
+    darkMode?: boolean;
 }
 
 export default function BroadcastComposerModal({ 
@@ -25,12 +21,14 @@ export default function BroadcastComposerModal({
     onSuccess, 
     onError,
     initialScope = 'CLUB',
-    initialTargetId 
+    initialTargetId,
+    darkMode = false
 }: BroadcastComposerModalProps) {
     const [step, setStep] = useState<1 | 2>(1);
     const [loading, setLoading] = useState(false);
     const [estimating, setEstimating] = useState(false);
     const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
+    const [focusedField, setFocusedField] = useState<string | null>(null);
     
     // Toast state
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
@@ -202,42 +200,62 @@ export default function BroadcastComposerModal({
         }
     };
 
+    const inputClasses = (field: string) => `
+        w-full h-11 sm:h-12 px-4 rounded-xl
+        bg-[var(--dark-700)] border-2 
+        ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+        text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+        outline-none transition-all duration-200
+        hover:border-[var(--brand-primary)]/50
+        focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+    `;
+
+    const selectArrowStyle = {
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 0.75rem center',
+        backgroundSize: '1rem'
+    };
+
     return (
         <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-4"
             onClick={handleBackdropClick}
         >
-            <Card 
-                className="w-full max-w-2xl shadow-2xl border border-gray-100 bg-white rounded-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            <div 
+                className="w-full h-full sm:h-auto sm:max-w-2xl sm:max-h-[90vh] bg-[var(--dark-800)] border-y sm:border sm:rounded-2xl border-[var(--dark-600)] shadow-2xl overflow-hidden flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <CardHeader className="pb-4 bg-white border-b border-gray-100 px-5 sm:px-6 pt-5 flex-shrink-0">
+                <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 flex-shrink-0">
                     <div className="flex justify-between items-start gap-4">
                         <div className="min-w-0 flex-1">
-                            <CardTitle className="text-xl sm:text-2xl font-bold text-[#121213]">New Broadcast</CardTitle>
-                            <p className="text-sm text-gray-500 mt-1">Step {step} of 2: {step === 1 ? 'Select Audience' : 'Compose Message'}</p>
+                            <div className="flex items-center gap-3 mb-1">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                    <Users className="w-5 h-5 text-white" />
+                                </div>
+                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">New Broadcast</h2>
+                            </div>
+                            <p className="text-sm text-[var(--brand-light)]/50 ml-[52px]">Step {step} of 2: {step === 1 ? 'Select Audience' : 'Compose Message'}</p>
                         </div>
-                        <Button 
-                            variant="ghost" 
-                            size="icon"
+                        <button 
                             onClick={onClose}
                             disabled={loading}
-                            className="h-9 w-9 sm:h-10 sm:w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 active:bg-gray-100 flex-shrink-0 touch-manipulation rounded-full"
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--dark-600)] hover:bg-[var(--dark-500)] flex items-center justify-center transition-colors text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] flex-shrink-0"
                         >
                             <X className="h-5 w-5 sm:h-6 sm:w-6" />
-                        </Button>
+                        </button>
                     </div>
-                </CardHeader>
+                </div>
 
                 {/* Body */}
-                <CardContent className="p-5 sm:p-6 overflow-y-auto flex-1 min-h-0">
+                <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
                     
                     {step === 1 && (
                         <div className="space-y-5 sm:space-y-6">
                             {/* 1. Recipient Type */}
                             <div className="space-y-2">
-                                <Label className="text-sm sm:text-base font-semibold text-[#121213]">Who are you messaging?</Label>
+                                <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)]">Who are you messaging?</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                                     {['YOUTH', 'GUARDIAN', 'BOTH', 'ADMINS'].map(type => (
                                         <button
@@ -253,8 +271,8 @@ export default function BroadcastComposerModal({
                                             }}
                                             className={`py-2.5 sm:py-3 px-2 rounded-xl text-xs sm:text-sm font-semibold border-2 transition-all touch-manipulation
                                                 ${recipientType === type 
-                                                    ? 'border-[#4D4DA4] bg-[#EBEBFE] text-[#4D4DA4] shadow-sm' 
-                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100'}
+                                                    ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]' 
+                                                    : 'border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:border-[var(--brand-primary)]/50 hover:bg-[var(--dark-700)]'}
                                             `}
                                         >
                                             {type.charAt(0) + type.slice(1).toLowerCase()}
@@ -265,12 +283,12 @@ export default function BroadcastComposerModal({
 
                             {/* 2. Group Selection (Primary Filter) */}
                             {showDemographics && (
-                                <div className="bg-[#EBEBFE]/30 p-4 sm:p-5 rounded-xl border-2 border-[#EBEBFE]">
-                                    <h3 className="text-sm sm:text-base font-semibold text-[#121213] mb-2 flex items-center gap-2">
-                                        <Users className="h-4 w-4 text-[#4D4DA4]" />
-                                        Select Groups <span className="text-xs text-gray-500 font-normal">(Overrides other filters)</span>
+                                <div className="bg-[var(--dark-700)] p-4 sm:p-5 rounded-xl border-2 border-[var(--dark-500)]">
+                                    <h3 className="text-sm sm:text-base font-semibold text-[var(--brand-light)] mb-2 flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-[var(--brand-primary)]" />
+                                        Select Groups <span className="text-xs text-[var(--brand-light)]/50 font-normal">(Overrides other filters)</span>
                                     </h3>
-                                    <p className="text-xs sm:text-sm text-gray-600 mb-3">Sending to a group targets all approved members of that group.</p>
+                                    <p className="text-xs sm:text-sm text-[var(--brand-light)]/50 mb-3">Sending to a group targets all approved members of that group.</p>
                                     <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                                         {groupOptions.map(g => (
                                             <button
@@ -285,31 +303,34 @@ export default function BroadcastComposerModal({
                                                 }}
                                                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all touch-manipulation ${
                                                     selectedGroups.includes(g.id)
-                                                        ? 'bg-[#4D4DA4] text-white border-[#4D4DA4] hover:bg-[#FF5485] hover:border-[#FF5485]'
-                                                        : 'bg-white text-[#4D4DA4] border-[#EBEBFE] hover:border-[#4D4DA4] hover:bg-[#EBEBFE]/50'
+                                                        ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] border-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90'
+                                                        : 'bg-[var(--dark-600)] text-[var(--brand-light)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50'
                                                 }`}
                                             >
                                                 {g.name}
                                             </button>
                                         ))}
-                                        {groupOptions.length === 0 && <span className="text-xs text-gray-500">No groups available.</span>}
+                                        {groupOptions.length === 0 && <span className="text-xs text-[var(--brand-light)]/50">No groups available.</span>}
                                     </div>
                                 </div>
                             )}
 
                             {/* 3. Demographic Filters */}
                             {showDemographics && !hasGroups && (
-                                <div className="bg-gray-50 p-4 sm:p-5 rounded-xl border-2 border-gray-200 space-y-4">
-                                    <h3 className="text-sm sm:text-base font-semibold text-[#121213] uppercase tracking-wide">Demographics</h3>
+                                <div className="bg-[var(--dark-700)] p-4 sm:p-5 rounded-xl border-2 border-[var(--dark-500)] space-y-4">
+                                    <h3 className="text-sm sm:text-base font-semibold text-[var(--brand-light)] uppercase tracking-wide">Demographics</h3>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                         {/* Gender (Valid for Youth & Guardians) */}
                                         <div className="space-y-2">
-                                            <Label className="text-xs sm:text-sm font-semibold text-[#121213]">Gender</Label>
+                                            <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">Gender</label>
                                             <select 
                                                 value={selectedGender} 
                                                 onChange={e => { setSelectedGender(e.target.value); resetEstimate(); }}
-                                                className="w-full h-11 sm:h-12 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm sm:text-base focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4] focus:bg-white transition-colors"
+                                                className={`${inputClasses('gender')} appearance-none cursor-pointer`}
+                                                style={selectArrowStyle}
+                                                onFocus={() => setFocusedField('gender')}
+                                                onBlur={() => setFocusedField(null)}
                                             >
                                                 <option value="">All Genders</option>
                                                 <option value="MALE">Male</option>
@@ -321,21 +342,25 @@ export default function BroadcastComposerModal({
                                         {/* Age Range (Mostly Youth) */}
                                         {showYouthFilters && (
                                             <div className="space-y-2">
-                                                <Label className="text-xs sm:text-sm font-semibold text-[#121213]">Age Range</Label>
+                                                <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">Age Range</label>
                                                 <div className="flex gap-2">
-                                                    <Input 
+                                                    <input 
                                                         type="number" 
                                                         placeholder="Min" 
                                                         value={ageMin}
                                                         onChange={e => { setAgeMin(e.target.value); resetEstimate(); }}
-                                                        className="h-11 sm:h-12 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm sm:text-base focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4] focus:bg-white"
+                                                        className={`${inputClasses('ageMin')} flex-1`}
+                                                        onFocus={() => setFocusedField('ageMin')}
+                                                        onBlur={() => setFocusedField(null)}
                                                     />
-                                                    <Input 
+                                                    <input 
                                                         type="number" 
                                                         placeholder="Max" 
                                                         value={ageMax}
                                                         onChange={e => { setAgeMax(e.target.value); resetEstimate(); }}
-                                                        className="h-11 sm:h-12 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm sm:text-base focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4] focus:bg-white"
+                                                        className={`${inputClasses('ageMax')} flex-1`}
+                                                        onFocus={() => setFocusedField('ageMax')}
+                                                        onBlur={() => setFocusedField(null)}
                                                     />
                                                 </div>
                                             </div>
@@ -344,11 +369,14 @@ export default function BroadcastComposerModal({
                                         {/* Grade (Only Youth) */}
                                         {showYouthFilters && (
                                             <div className="space-y-2">
-                                                <Label className="text-xs sm:text-sm font-semibold text-[#121213]">Grade</Label>
+                                                <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">Grade</label>
                                                 <select 
                                                     value={selectedGrade} 
                                                     onChange={e => { setSelectedGrade(e.target.value); resetEstimate(); }}
-                                                    className="w-full h-11 sm:h-12 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm sm:text-base focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4] focus:bg-white transition-colors"
+                                                    className={`${inputClasses('grade')} appearance-none cursor-pointer`}
+                                                    style={selectArrowStyle}
+                                                    onFocus={() => setFocusedField('grade')}
+                                                    onBlur={() => setFocusedField(null)}
                                                 >
                                                     <option value="">All Grades</option>
                                                     {[...Array(10)].map((_, i) => (
@@ -362,7 +390,7 @@ export default function BroadcastComposerModal({
                                     {/* Interests (Only Youth) */}
                                     {showYouthFilters && (
                                         <div className="space-y-2">
-                                            <Label className="text-xs sm:text-sm font-semibold text-[#121213]">Interests</Label>
+                                            <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">Interests</label>
                                             <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
                                                 {interestsOptions.map(interest => (
                                                     <button
@@ -377,8 +405,8 @@ export default function BroadcastComposerModal({
                                                         }}
                                                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all touch-manipulation
                                                             ${selectedInterests.includes(interest.id)
-                                                                ? 'bg-[#4D4DA4] text-white border-[#4D4DA4] hover:bg-[#FF5485] hover:border-[#FF5485]'
-                                                                : 'bg-white text-[#4D4DA4] border-gray-200 hover:border-[#4D4DA4] hover:bg-[#EBEBFE]/50'}
+                                                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] border-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90'
+                                                                : 'bg-[var(--dark-600)] text-[var(--brand-light)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50'}
                                                         `}
                                                     >
                                                         {interest.name}
@@ -391,35 +419,34 @@ export default function BroadcastComposerModal({
                             )}
 
                             {/* Estimation Result */}
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-[#EBEBFE]/30 p-4 sm:p-5 rounded-xl border-2 border-[#EBEBFE]">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-[var(--dark-700)] p-4 sm:p-5 rounded-xl border-2 border-[var(--dark-500)]">
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#4D4DA4]/10 flex items-center justify-center flex-shrink-0">
-                                        <Users className="w-5 h-5 sm:w-6 sm:h-6 text-[#4D4DA4]" />
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center flex-shrink-0">
+                                        <Users className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--brand-primary)]" />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm sm:text-base font-bold text-[#121213]">
+                                        <p className="text-sm sm:text-base font-bold text-[var(--brand-light)]">
                                             {estimatedCount !== null ? `${estimatedCount} Recipients` : 'Ready to calculate'}
                                         </p>
-                                        <p className="text-xs sm:text-sm text-gray-500">
+                                        <p className="text-xs sm:text-sm text-[var(--brand-light)]/50">
                                             {hasGroups ? 'Targeting Group Members' : 'Based on filters'}
                                         </p>
                                     </div>
                                 </div>
-                                <Button 
+                                <button 
                                     onClick={handleEstimate}
                                     disabled={estimating}
-                                    variant="ghost"
-                                    className="text-sm sm:text-base font-semibold text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE] disabled:opacity-50 touch-manipulation whitespace-nowrap"
+                                    className="px-4 py-2 rounded-xl text-sm sm:text-base font-semibold text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 transition-all disabled:opacity-50 touch-manipulation whitespace-nowrap"
                                 >
                                     {estimating ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                            <Loader2 className="h-4 w-4 animate-spin mr-2 inline" />
                                             Calculating...
                                         </>
                                     ) : (
                                         'Refresh Count'
                                     )}
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     )}
@@ -427,38 +454,42 @@ export default function BroadcastComposerModal({
                     {step === 2 && (
                         <div className="space-y-4 sm:space-y-5">
                             <div className="space-y-2">
-                                <Label className="text-sm sm:text-base font-semibold text-[#121213]">
-                                    Subject <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
+                                <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)]">
+                                    Subject <span className="text-[var(--brand-primary)]">*</span>
+                                </label>
+                                <input
                                     type="text"
                                     value={subject}
                                     onChange={e => setSubject(e.target.value)}
                                     placeholder="e.g. Important Update regarding Friday's Event"
-                                    className="h-11 sm:h-12 text-sm sm:text-base bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl"
+                                    className={inputClasses('subject')}
+                                    onFocus={() => setFocusedField('subject')}
+                                    onBlur={() => setFocusedField(null)}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-sm sm:text-base font-semibold text-[#121213]">
-                                    Message <span className="text-red-500">*</span>
-                                </Label>
-                                <Textarea
+                                <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)]">
+                                    Message <span className="text-[var(--brand-primary)]">*</span>
+                                </label>
+                                <textarea
                                     value={content}
                                     onChange={e => setContent(e.target.value)}
                                     placeholder="Type your broadcast message here..."
                                     rows={5}
-                                    className="resize-none text-sm sm:text-base bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl min-h-[120px] p-3 sm:p-4"
+                                    className={`${inputClasses('content')} resize-none min-h-[120px]`}
+                                    onFocus={() => setFocusedField('content')}
+                                    onBlur={() => setFocusedField(null)}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-sm sm:text-base font-semibold text-[#121213] flex items-center gap-2">
-                                    <Paperclip className="h-4 w-4 text-gray-500" />
-                                    Attachment <span className="text-gray-500 font-normal text-xs">(Optional)</span>
-                                </Label>
+                                <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                                    <Paperclip className="h-4 w-4 text-[var(--brand-light)]/60" />
+                                    Attachment <span className="font-normal text-xs text-[var(--brand-light)]/50">(Optional)</span>
+                                </label>
                                 
                                 {!attachment ? (
                                     <div className="relative">
-                                        <Input
+                                        <input
                                             ref={fileInputRef}
                                             type="file"
                                             accept="image/*"
@@ -469,91 +500,87 @@ export default function BroadcastComposerModal({
                                         />
                                         <label
                                             htmlFor="broadcast-file-upload"
-                                            className="flex flex-col items-center justify-center w-full h-24 sm:h-28 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:border-[#4D4DA4] hover:bg-[#EBEBFE]/20 active:bg-[#EBEBFE]/30 transition-all cursor-pointer group touch-manipulation"
+                                            className="flex flex-col items-center justify-center w-full h-24 sm:h-28 border-2 border-dashed border-[var(--dark-500)] bg-[var(--dark-700)] rounded-xl hover:border-[var(--brand-primary)] hover:bg-[var(--dark-600)] transition-all cursor-pointer group touch-manipulation"
                                         >
-                                            <div className="flex flex-col items-center justify-center pt-3 pb-3 px-4">
-                                                <div className="mb-2 p-2 rounded-full bg-[#EBEBFE]/50 group-hover:bg-[#EBEBFE] transition-colors">
-                                                    <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400 group-hover:text-[#4D4DA4] transition-colors" />
+                                            <div className="flex flex-col items-center justify-center py-3 px-4">
+                                                <div className="mb-2 p-2 rounded-full bg-[var(--dark-600)] group-hover:bg-[var(--brand-primary)]/20 transition-colors">
+                                                    <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--brand-light)]/60 group-hover:text-[var(--brand-primary)] transition-colors" />
                                                 </div>
-                                                <p className="mb-0.5 text-xs sm:text-sm font-semibold text-gray-700 group-hover:text-[#4D4DA4] transition-colors text-center">
+                                                <p className="mb-0.5 text-xs sm:text-sm font-semibold text-[var(--brand-light)]/80 group-hover:text-[var(--brand-primary)] transition-colors text-center">
                                                     <span className="font-semibold">Click to upload</span> or drag and drop
                                                 </p>
-                                                <p className="text-xs text-gray-500 text-center">
+                                                <p className="text-xs text-[var(--brand-light)]/50 text-center">
                                                     PNG, JPG, GIF up to 10MB
                                                 </p>
                                             </div>
                                         </label>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-3 text-sm sm:text-base text-[#121213] bg-[#EBEBFE]/30 p-3 sm:p-4 rounded-xl border-2 border-[#EBEBFE]">
-                                        <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center">
-                                            <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-[#4D4DA4]" />
+                                    <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-[var(--brand-primary)]/10 border-2 border-[var(--brand-primary)]/30">
+                                        <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                                            <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--brand-primary)]" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-semibold text-sm truncate">{attachment.name}</p>
-                                            <p className="text-xs text-gray-500 mt-0.5">
+                                            <p className="font-semibold text-sm text-[var(--brand-light)] truncate">{attachment.name}</p>
+                                            <p className="text-xs mt-0.5 text-[var(--brand-light)]/60">
                                                 {(attachment.size / 1024 / 1024).toFixed(2)} MB
                                             </p>
                                         </div>
-                                        <Button
+                                        <button
                                             type="button"
-                                            variant="ghost"
-                                            size="sm"
                                             onClick={() => setAttachment(null)}
                                             disabled={loading}
-                                            className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 flex-shrink-0 touch-manipulation rounded-full"
+                                            className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-colors flex-shrink-0"
                                         >
                                             <X className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        </Button>
+                                        </button>
                                     </div>
                                 )}
                             </div>
                         </div>
                     )}
-                </CardContent>
+                </div>
 
                 {/* Footer */}
-                <div className="p-4 sm:p-5 sm:p-6 border-t border-gray-100 bg-white flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between flex-shrink-0">
+                <div className="p-4 sm:p-5 sm:p-6 border-t border-[var(--dark-600)] bg-[var(--dark-700)]/30 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between flex-shrink-0">
                     {step === 2 ? (
-                        <Button
+                        <button
                             type="button"
-                            variant="ghost"
                             onClick={() => setStep(1)}
                             disabled={loading}
-                            className="order-2 sm:order-1 h-11 sm:h-12 text-sm sm:text-base font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100 touch-manipulation rounded-xl"
+                            className="order-2 sm:order-1 h-11 sm:h-12 px-4 sm:px-6 rounded-xl text-sm sm:text-base font-semibold text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] border border-[var(--dark-500)] transition-all touch-manipulation"
                         >
-                            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 mr-2 inline" />
                             Back
-                        </Button>
+                        </button>
                     ) : (
-                        <Button
+                        <button
                             type="button"
-                            variant="ghost"
                             onClick={onClose}
                             disabled={loading}
-                            className="order-2 sm:order-1 h-11 sm:h-12 text-sm sm:text-base font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100 touch-manipulation rounded-xl"
+                            className="order-2 sm:order-1 h-11 sm:h-12 px-4 sm:px-6 rounded-xl text-sm sm:text-base font-semibold text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] border border-[var(--dark-500)] transition-all touch-manipulation"
                         >
                             Cancel
-                        </Button>
+                        </button>
                     )}
 
                     {step === 1 ? (
-                        <Button
+                        <button
                             type="button"
                             onClick={() => {
                                 if (estimatedCount === null) handleEstimate();
                                 setStep(2);
                             }}
-                            className="order-1 sm:order-2 flex-1 sm:flex-none h-11 sm:h-12 text-sm sm:text-base font-semibold bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors shadow-lg hover:shadow-xl touch-manipulation"
+                            className="order-1 sm:order-2 flex-1 sm:flex-none h-11 sm:h-12 px-4 sm:px-6 rounded-xl text-sm sm:text-base font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] transition-all shadow-lg hover:shadow-xl touch-manipulation"
                         >
                             Next: Compose
-                        </Button>
+                        </button>
                     ) : (
-                        <Button
+                        <button
                             type="button"
                             onClick={handleSend}
                             disabled={loading || !subject.trim() || !content.trim()}
-                            className="order-1 sm:order-2 flex-1 sm:flex-none h-11 sm:h-12 text-sm sm:text-base font-semibold bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2 rounded-full transition-colors disabled:opacity-50 disabled:hover:bg-[#4D4DA4] touch-manipulation shadow-lg hover:shadow-xl"
+                            className="order-1 sm:order-2 flex-1 sm:flex-none h-11 sm:h-12 px-4 sm:px-6 rounded-xl text-sm sm:text-base font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] gap-2 transition-all disabled:opacity-50 disabled:hover:bg-[var(--brand-primary)] touch-manipulation shadow-lg hover:shadow-xl flex items-center justify-center"
                         >
                             {loading ? (
                                 <>
@@ -566,10 +593,10 @@ export default function BroadcastComposerModal({
                                     <span>Send Broadcast</span>
                                 </>
                             )}
-                        </Button>
+                        </button>
                     )}
                 </div>
-            </Card>
+            </div>
             
             {/* Toast Notification */}
             <Toast
@@ -577,6 +604,8 @@ export default function BroadcastComposerModal({
                 type={toast.type}
                 isVisible={toast.isVisible}
                 onClose={() => setToast({ ...toast, isVisible: false })}
+                darkMode
+                duration={1250}
             />
         </div>
     );

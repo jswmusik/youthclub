@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Plus, X, Settings, ToggleLeft, ListFilter } from 'lucide-react';
 import api from '../../lib/api';
 
 interface CustomField {
@@ -11,24 +12,22 @@ interface CustomField {
 }
 
 interface CustomRuleBuilderProps {
-  currentRules: Record<string, any>; // { "1": "Value", "2": true }
+  currentRules: Record<string, any>;
   onChange: (rules: Record<string, any>) => void;
+  darkMode?: boolean;
 }
 
-export default function CustomRuleBuilder({ currentRules, onChange }: CustomRuleBuilderProps) {
+export default function CustomRuleBuilder({ currentRules, onChange, darkMode = true }: CustomRuleBuilderProps) {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // New Rule State
   const [selectedFieldId, setSelectedFieldId] = useState<string>('');
   const [selectedValue, setSelectedValue] = useState<string>('');
   const [selectedBool, setSelectedBool] = useState<string>('true');
 
   useEffect(() => {
-    // Fetch fields available to this admin
     api.get('/custom-fields/').then(res => {
       const data = Array.isArray(res.data) ? res.data : res.data.results;
-      // Filter to only include BOOLEAN, SINGLE_SELECT, and MULTI_SELECT fields (exclude TEXT)
       const filteredFields = (data || []).filter(
         (field: CustomField) => 
           field.field_type === 'BOOLEAN' || 
@@ -56,7 +55,6 @@ export default function CustomRuleBuilder({ currentRules, onChange }: CustomRule
       [selectedFieldId]: val
     });
 
-    // Reset input
     setSelectedValue('');
     setSelectedBool('true');
     setSelectedFieldId('');
@@ -68,80 +66,197 @@ export default function CustomRuleBuilder({ currentRules, onChange }: CustomRule
     onChange(newRules);
   };
 
-  if (loading) return <div className="text-sm text-gray-500">Loading fields...</div>;
-  if (fields.length === 0) return <div className="text-sm text-gray-400 italic">No custom fields defined.</div>;
+  // Dark mode styles
+  const bgColor = darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-50';
+  const borderColor = darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200';
+  const textColor = darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900';
+  const textMuted = darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500';
+  const inputBg = darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)]' : 'bg-white border-gray-300 text-gray-900';
+
+  if (loading) {
+    return (
+      <div className={`flex items-center gap-2 py-4 ${textMuted}`}>
+        <div className={`w-4 h-4 border-2 ${darkMode ? 'border-[var(--dark-500)] border-t-[var(--brand-primary)]' : 'border-gray-300 border-t-indigo-600'} rounded-full animate-spin`} />
+        <span className="text-sm">Loading fields...</span>
+      </div>
+    );
+  }
+
+  if (fields.length === 0) {
+    return (
+      <div className={`flex items-center gap-3 py-4 ${textMuted}`}>
+        <div className={`w-10 h-10 rounded-xl ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'} flex items-center justify-center`}>
+          <Settings className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'}`} />
+        </div>
+        <div>
+          <p className={`text-sm font-medium ${textColor}`}>No custom fields available</p>
+          <p className={`text-xs ${textMuted}`}>Create custom fields first to add rules</p>
+        </div>
+      </div>
+    );
+  }
 
   const selectedField = fields.find(f => f.id.toString() === selectedFieldId);
+
+  const getFieldIcon = (type: string) => {
+    switch (type) {
+      case 'BOOLEAN': return <ToggleLeft className="w-4 h-4" />;
+      case 'SINGLE_SELECT':
+      case 'MULTI_SELECT': return <ListFilter className="w-4 h-4" />;
+      default: return <Settings className="w-4 h-4" />;
+    }
+  };
 
   return (
     <div className="space-y-4">
       
-      {/* 1. Rule Creator */}
-      <div className="flex flex-wrap gap-2 items-end bg-gray-50 p-3 rounded-lg border border-gray-200">
-        
-        {/* Select Field */}
-        <div className="flex-1 min-w-[150px]">
-          <label className="block text-xs font-bold text-gray-500 mb-1">Field</label>
-          <select 
-            className="w-full border p-2 rounded text-sm"
-            value={selectedFieldId}
-            onChange={e => { setSelectedFieldId(e.target.value); setSelectedValue(''); }}
-          >
-            <option value="">Select Field...</option>
-            {fields.map(f => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Input Value (Changes based on Type) */}
-        <div className="flex-1 min-w-[150px]">
-          <label className="block text-xs font-bold text-gray-500 mb-1">Condition (Must Match)</label>
+      {/* Rule Creator */}
+      <div className={`${bgColor} p-4 rounded-xl border ${borderColor}`}>
+        <div className="flex flex-col sm:flex-row gap-3">
           
-          {!selectedField && <input disabled className="w-full border p-2 rounded text-sm bg-gray-100" placeholder="Select field first" />}
-
-          {selectedField && selectedField.field_type === 'BOOLEAN' && (
-            <select className="w-full border p-2 rounded text-sm" value={selectedBool} onChange={e => setSelectedBool(e.target.value)}>
-              <option value="true">Yes (Checked)</option>
-              <option value="false">No (Unchecked)</option>
+          {/* Select Field */}
+          <div className="flex-1 min-w-0">
+            <label className={`block text-xs font-semibold ${textMuted} mb-2`}>Field</label>
+            <select 
+              className={`w-full h-10 px-3 rounded-xl border-2 ${inputBg} text-sm outline-none transition-all focus:border-[var(--brand-primary)] appearance-none cursor-pointer`}
+              value={selectedFieldId}
+              onChange={e => { setSelectedFieldId(e.target.value); setSelectedValue(''); }}
+              style={{
+                backgroundImage: darkMode 
+                  ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`
+                  : `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 0.75rem center',
+                backgroundSize: '1rem'
+              }}
+            >
+              <option value="">Select Field...</option>
+              {fields.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
             </select>
-          )}
+          </div>
 
-          {selectedField && (selectedField.field_type === 'SINGLE_SELECT' || selectedField.field_type === 'MULTI_SELECT') && (
-            <select className="w-full border p-2 rounded text-sm" value={selectedValue} onChange={e => setSelectedValue(e.target.value)}>
-              <option value="">Select Option...</option>
-              {selectedField.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          )}
+          {/* Input Value */}
+          <div className="flex-1 min-w-0">
+            <label className={`block text-xs font-semibold ${textMuted} mb-2`}>Condition (Must Match)</label>
+            
+            {!selectedField && (
+              <input 
+                disabled 
+                className={`w-full h-10 px-3 rounded-xl border-2 ${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)] text-[var(--brand-light)]/30' : 'bg-gray-100 border-gray-200 text-gray-400'} text-sm cursor-not-allowed`}
+                placeholder="Select field first" 
+              />
+            )}
 
+            {selectedField && selectedField.field_type === 'BOOLEAN' && (
+              <select 
+                className={`w-full h-10 px-3 rounded-xl border-2 ${inputBg} text-sm outline-none transition-all focus:border-[var(--brand-primary)] appearance-none cursor-pointer`}
+                value={selectedBool} 
+                onChange={e => setSelectedBool(e.target.value)}
+                style={{
+                  backgroundImage: darkMode 
+                    ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`
+                    : `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 0.75rem center',
+                  backgroundSize: '1rem'
+                }}
+              >
+                <option value="true">Yes (Checked)</option>
+                <option value="false">No (Unchecked)</option>
+              </select>
+            )}
+
+            {selectedField && (selectedField.field_type === 'SINGLE_SELECT' || selectedField.field_type === 'MULTI_SELECT') && (
+              <select 
+                className={`w-full h-10 px-3 rounded-xl border-2 ${inputBg} text-sm outline-none transition-all focus:border-[var(--brand-primary)] appearance-none cursor-pointer`}
+                value={selectedValue} 
+                onChange={e => setSelectedValue(e.target.value)}
+                style={{
+                  backgroundImage: darkMode 
+                    ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`
+                    : `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 0.75rem center',
+                  backgroundSize: '1rem'
+                }}
+              >
+                <option value="">Select Option...</option>
+                {selectedField.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            )}
+          </div>
+
+          {/* Add Button */}
+          <div className="flex items-end">
+            <button 
+              type="button" 
+              onClick={handleAddRule}
+              disabled={!selectedFieldId || (selectedField?.field_type !== 'BOOLEAN' && !selectedValue)}
+              className={`h-10 px-4 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                darkMode 
+                  ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 disabled:bg-[var(--dark-500)] disabled:text-[var(--brand-light)]/30'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500'
+              } disabled:cursor-not-allowed`}
+            >
+              <Plus className="w-4 h-4" />
+              Add
+            </button>
+          </div>
         </div>
-
-        {/* Add Button */}
-        <button 
-          type="button" 
-          onClick={handleAddRule}
-          disabled={!selectedFieldId}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 h-[38px]"
-        >
-          Add Rule
-        </button>
       </div>
 
-      {/* 2. Active Rules List */}
+      {/* Active Rules List */}
       {Object.keys(currentRules).length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(currentRules).map(([id, val]) => {
-            const fieldName = fields.find(f => f.id.toString() === id)?.name || `Field #${id}`;
-            let displayVal = val.toString();
-            if (typeof val === 'boolean') displayVal = val ? 'Yes' : 'No';
+        <div className="space-y-2">
+          <p className={`text-xs font-semibold ${textMuted}`}>Active Rules ({Object.keys(currentRules).length})</p>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(currentRules).map(([id, val]) => {
+              const field = fields.find(f => f.id.toString() === id);
+              const fieldName = field?.name || `Field #${id}`;
+              let displayVal = val.toString();
+              if (typeof val === 'boolean') displayVal = val ? 'Yes' : 'No';
 
-            return (
-              <span key={id} className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
-                <span><b>{fieldName}</b> = {displayVal}</span>
-                <button type="button" onClick={() => removeRule(id)} className="hover:text-red-600 font-bold">×</button>
-              </span>
-            );
-          })}
+              return (
+                <span 
+                  key={id} 
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${
+                    darkMode 
+                      ? 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30'
+                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                  }`}
+                >
+                  <span className={darkMode ? 'text-[var(--brand-light)]/50' : 'text-blue-500'}>
+                    {getFieldIcon(field?.field_type || '')}
+                  </span>
+                  <span>
+                    <span className="font-semibold">{fieldName}</span>
+                    <span className={darkMode ? 'text-[var(--brand-light)]/50 mx-1' : 'text-blue-400 mx-1'}>=</span>
+                    <span>{displayVal}</span>
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={() => removeRule(id)} 
+                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
+                      darkMode 
+                        ? 'hover:bg-[var(--brand-red)]/20 hover:text-[var(--brand-red)]'
+                        : 'hover:bg-red-100 hover:text-red-600'
+                    }`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {Object.keys(currentRules).length === 0 && (
+        <div className={`text-center py-3 ${textMuted}`}>
+          <p className="text-xs">No rules added yet. Add rules to filter members.</p>
         </div>
       )}
     </div>

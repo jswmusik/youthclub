@@ -9,7 +9,7 @@ from custom_fields.views import CustomFieldDefinitionViewSet, PublicCustomFieldL
 from groups.views import GroupViewSet, GroupMembershipViewSet
 from rewards.views import RewardViewSet
 # Add this line at the top with other imports
-from posts.views import PostViewSet, PostCommentViewSet
+from posts.views import PostViewSet, PostCommentViewSet, PostTemplateViewSet
 from learning.views import CourseViewSet, LearningCategoryViewSet, ChapterViewSet, ContentItemViewSet, upload_image
 
 router = DefaultRouter()
@@ -25,6 +25,7 @@ router.register(r'rewards', RewardViewSet, basename='rewards')
 # --- ADD THESE TWO LINES ---
 router.register(r'posts', PostViewSet, basename='posts')
 router.register(r'post-comments', PostCommentViewSet, basename='post-comments')
+router.register(r'post-templates', PostTemplateViewSet, basename='post-templates')
 router.register(r'learning/courses', CourseViewSet, basename='courses')
 router.register(r'learning/categories', LearningCategoryViewSet, basename='learning-categories')
 router.register(r'learning/chapters', ChapterViewSet, basename='learning-chapters')

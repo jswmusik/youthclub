@@ -2,16 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { ArrowLeft, Upload, X, Heart, Image, Smile, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import Toast from './Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 
 interface InterestFormProps {
   initialData?: any;
@@ -22,6 +17,7 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -34,6 +30,14 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
     initialData?.avatar ? getMediaUrl(initialData.avatar) : null
   );
 
+  // Calculate progress
+  const calculateProgress = () => {
+    let filled = 0;
+    let total = 1; // Only name is required
+    if (formData.name.trim()) filled++;
+    return Math.round((filled / total) * 100);
+  };
+
   // Update form data when initialData changes
   useEffect(() => {
     if (initialData) {
@@ -44,7 +48,6 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
       setAvatarFile(null);
       setAvatarPreview(initialData.avatar ? getMediaUrl(initialData.avatar) : null);
     } else {
-      // Reset form when creating new
       setFormData({
         name: '',
         icon: '',
@@ -66,12 +69,10 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Revoke previous object URL if it exists
       if (avatarPreview && avatarPreview.startsWith('blob:')) {
         URL.revokeObjectURL(avatarPreview);
       }
       setAvatarFile(file);
-      // Use FileReader like in page.tsx for consistency
       const reader = new FileReader();
       reader.onloadend = () => setAvatarPreview(reader.result as string);
       reader.readAsDataURL(file);
@@ -106,159 +107,230 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
         setToast({ message: 'Interest created successfully!', type: 'success', isVisible: true });
       }
 
-      // Short delay to show toast before redirect
       setTimeout(() => router.push(redirectPath), 1000);
 
     } catch (err: any) {
       console.error(err);
-      // Handle "Unique" error specifically
       const msg = err.response?.data?.name ? 'An interest with this name already exists.' : 'Operation failed.';
       setToast({ message: msg, type: 'error', isVisible: true });
       setLoading(false);
     }
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={redirectPath}>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {initialData ? 'Edit Interest' : 'Create New Interest'}
-          </h1>
-          <p className="text-sm text-muted-foreground">Manage interest details and information.</p>
-        </div>
-      </div>
+  const inputClasses = (field: string) => `
+    w-full h-12 px-4 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        
-        {/* Basic Information */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Enter the interest name and icon.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">
-                Interest Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                required
-                type="text"
-                placeholder="e.g. Football"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
-              />
+  const progress = calculateProgress();
+
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
+        {/* Header */}
+        <div className="flex items-center gap-4 px-4 sm:px-0 mb-6">
+          <Link href={redirectPath}>
+            <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </Link>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+              {initialData ? 'Edit Interest' : 'Create New Interest'}
+            </h1>
+            <p className="text-sm text-[var(--brand-light)]/50">Define the interest details</p>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] px-4 sm:px-6 py-4 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-[var(--brand-light)]/50">Required fields</span>
+            <span className="text-sm font-bold text-[var(--brand-primary)]">{progress}%</span>
+          </div>
+          <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Basic Information Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            {/* Card Header */}
+            <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Heart className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-[var(--brand-light)]">Basic Information</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Enter the interest name and icon</p>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="icon">Icon (Emoji)</Label>
-              <div className="flex gap-4 items-center">
-                <Input
-                  id="icon"
+            {/* Card Content */}
+            <div className="px-4 sm:px-6 py-6 space-y-6">
+              {/* Interest Name */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                  Interest Name <span className="text-[var(--brand-red)]">*</span>
+                </label>
+                <input
                   type="text"
-                  className="w-20 text-center text-2xl border-gray-200 focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
-                  placeholder="⚽"
-                  value={formData.icon}
-                  onChange={e => setFormData({ ...formData, icon: e.target.value })}
+                  required
+                  placeholder="e.g. Football, Music, Art..."
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  onFocus={() => setFocusedField('name')}
+                  onBlur={() => setFocusedField(null)}
+                  className={inputClasses('name')}
                 />
-                <p className="text-sm text-muted-foreground">
-                  Type an emoji (Win + . or Cmd + Ctrl + Space)
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">
+                  A clear, descriptive name helps users find this interest
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Cover Image */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Cover Image</CardTitle>
-            <CardDescription>Upload a cover image or SVG icon for this interest.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6">
-            <div className="flex gap-4 items-center">
-              <div className="relative group h-24 w-24 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => document.getElementById('avatar-input')?.click()}>
-                {avatarPreview ? (
-                  <>
-                    <img src={avatarPreview} alt="Preview" className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Upload className="h-5 w-5 text-white" />
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center p-2">
-                    <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                    <span className="text-[10px] text-muted-foreground">Click to upload</span>
+              {/* Icon (Emoji) */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                  Icon (Emoji)
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="⚽"
+                      value={formData.icon}
+                      onChange={e => setFormData({ ...formData, icon: e.target.value })}
+                      onFocus={() => setFocusedField('icon')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-20 h-12 text-center text-2xl rounded-xl bg-[var(--dark-700)] border-2 ${focusedField === 'icon' ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'} text-[var(--brand-light)] outline-none transition-all hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20`}
+                    />
+                    <Smile className="absolute -right-2 -top-2 w-5 h-5 text-[var(--brand-yellow)]" />
                   </div>
-                )}
+                  <p className="text-sm text-[var(--brand-light)]/50">
+                    Type an emoji (Win + . or Cmd + Ctrl + Space)
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 space-y-2">
-                <div className="flex gap-2">
-                  <Button 
-                    type="button" 
-                    variant="secondary" 
-                    size="sm" 
-                    onClick={() => document.getElementById('avatar-input')?.click()}
-                  >
-                    Choose File
-                  </Button>
-                  {avatarPreview && (
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-destructive hover:text-destructive" 
-                      onClick={handleRemoveImage}
-                    >
-                      <X className="h-4 w-4 mr-1" /> Remove
-                    </Button>
+            </div>
+          </div>
+
+          {/* Cover Image Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            {/* Card Header */}
+            <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                  <Image className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-[var(--brand-light)]">Cover Image</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Featured image for this interest</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="px-4 sm:px-6 py-6">
+              <div className="flex flex-col sm:flex-row gap-6">
+                {/* Image Preview */}
+                <div 
+                  className="relative w-32 h-32 rounded-xl border-2 border-dashed border-[var(--dark-500)] bg-[var(--dark-700)] flex items-center justify-center overflow-hidden cursor-pointer hover:border-[var(--brand-primary)]/50 transition-all group flex-shrink-0"
+                  onClick={() => document.getElementById('avatar-input')?.click()}
+                >
+                  {avatarPreview ? (
+                    <>
+                      <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Upload className="w-6 h-6 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center p-4">
+                      <Upload className="w-8 h-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
+                      <span className="text-xs text-[var(--brand-light)]/40">Click to upload</span>
+                      <span className="block text-[10px] text-[var(--brand-light)]/30 mt-1">Square image</span>
+                    </div>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">Optional. Used for detailed views or cards. Recommended: Square image, 400x400px</p>
-                <input 
-                  id="avatar-input"
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  onChange={handleFileChange}
-                />
+
+                {/* Upload Controls */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex flex-wrap gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => document.getElementById('avatar-input')?.click()}
+                      className="px-4 py-2.5 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all"
+                    >
+                      Choose File
+                    </button>
+                    {avatarPreview && (
+                      <button 
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="px-4 py-2.5 rounded-xl bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30 text-[var(--brand-red)] font-medium hover:bg-[var(--brand-red)]/20 transition-all flex items-center gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="bg-[var(--dark-700)] rounded-xl p-3 border border-[var(--dark-500)]">
+                    <div className="flex items-start gap-2">
+                      <Lightbulb className="w-4 h-4 text-[var(--brand-yellow)] flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-[var(--brand-light)]/50">
+                        Optional. Used for detailed views or cards. Recommended: Square image, 400×400px
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
+              
+              <input 
+                id="avatar-input"
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleFileChange}
+              />
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4">
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={() => router.push(redirectPath)}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={loading}
-            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors"
-          >
-            {loading ? 'Saving...' : initialData ? 'Update Interest' : 'Create Interest'}
-          </Button>
-        </div>
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 pt-4 pb-8">
+            <button 
+              type="button"
+              onClick={() => router.push(redirectPath)}
+              disabled={loading}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading || !formData.name.trim()}
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Saving...' : initialData ? 'Update Interest' : 'Create Interest'}
+            </button>
+          </div>
 
-      </form>
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+        </form>
+      </div>
+
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
     </div>
   );
 }

@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
 import { 
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
   eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, 
   addWeeks, subWeeks, isToday 
 } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { Event } from '@/types/event';
 import EventRegistrationModal from './EventRegistrationModal';
+
 
 interface MemberEventCalendarProps {
     events: Event[];
@@ -16,6 +18,7 @@ interface MemberEventCalendarProps {
     onEventUpdate?: () => void;
     viewMode?: 'monthly' | 'weekly';
     onViewModeChange?: (mode: 'monthly' | 'weekly') => void;
+    darkMode?: boolean;
 }
 
 export default function MemberEventCalendar({ 
@@ -23,7 +26,8 @@ export default function MemberEventCalendar({
     loading = false, 
     onEventUpdate,
     viewMode = 'weekly',
-    onViewModeChange 
+    onViewModeChange,
+    darkMode = false
 }: MemberEventCalendarProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -59,7 +63,13 @@ export default function MemberEventCalendar({
     const getEventStatusColor = (event: Event) => {
         // Past events are always grey
         if (isEventPast(event)) {
-            return {
+            return darkMode ? {
+                bg: 'bg-[var(--dark-600)]',
+                text: 'text-[var(--brand-light)]/40',
+                border: 'border-[var(--dark-500)]',
+                hover: '',
+                cursor: 'cursor-not-allowed'
+            } : {
                 bg: 'bg-gray-100',
                 text: 'text-gray-400',
                 border: 'border-gray-200',
@@ -71,9 +81,15 @@ export default function MemberEventCalendar({
         // Check user registration status
         const userStatus = (event as any).user_registration_status;
 
-        // Confirmed/Approved - Green
+        // Confirmed/Approved - Green/Lime
         if (userStatus === 'APPROVED' || userStatus === 'ATTENDED') {
-            return {
+            return darkMode ? {
+                bg: 'bg-[var(--brand-third)]/20',
+                text: 'text-[var(--brand-third)]',
+                border: 'border-[var(--brand-third)]/50',
+                hover: 'hover:bg-[var(--brand-third)]/30',
+                cursor: 'cursor-pointer'
+            } : {
                 bg: 'bg-green-50',
                 text: 'text-green-700',
                 border: 'border-green-200',
@@ -82,9 +98,15 @@ export default function MemberEventCalendar({
             };
         }
 
-        // Pending - Orange
+        // Pending - Orange/Third
         if (userStatus === 'PENDING_ADMIN' || userStatus === 'PENDING_GUARDIAN' || userStatus === 'WAITLIST') {
-            return {
+            return darkMode ? {
+                bg: 'bg-[var(--brand-peach)]/20',
+                text: 'text-[var(--brand-peach)]',
+                border: 'border-[var(--brand-peach)]/50',
+                hover: 'hover:bg-[var(--brand-peach)]/30',
+                cursor: 'cursor-pointer'
+            } : {
                 bg: 'bg-orange-50',
                 text: 'text-orange-700',
                 border: 'border-orange-200',
@@ -93,8 +115,14 @@ export default function MemberEventCalendar({
             };
         }
 
-        // Not applied yet or other status - Blue
-        return {
+        // Not applied yet or other status - Blue/Primary
+        return darkMode ? {
+            bg: 'bg-[var(--brand-sky)]/20',
+            text: 'text-[var(--brand-sky)]',
+            border: 'border-[var(--brand-sky)]/50',
+            hover: 'hover:bg-[var(--brand-sky)]/30',
+            cursor: 'cursor-pointer'
+        } : {
             bg: 'bg-blue-50',
             text: 'text-blue-700',
             border: 'border-blue-100',
@@ -138,8 +166,11 @@ export default function MemberEventCalendar({
 
     if (loading) {
         return (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-                <div className="text-center text-gray-500">Loading calendar...</div>
+            <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/10'} rounded-none sm:rounded-2xl border-y sm:border p-8`}>
+                <div className="flex flex-col items-center gap-3">
+                    <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'}`}></div>
+                    <div className={`text-center ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Loading calendar...</div>
+                </div>
             </div>
         );
     }
@@ -165,79 +196,121 @@ export default function MemberEventCalendar({
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/10'} rounded-none sm:rounded-2xl border-y sm:border overflow-hidden`}>
             {/* Calendar Header */}
-            <div className="p-4 border-b flex items-center justify-between">
-                <h2 className="font-bold text-gray-800 text-lg">
-                    {displayTitle}
-                </h2>
-                <div className="flex items-center gap-3">
-                    {/* View Mode Toggle */}
-                    {onViewModeChange && (
-                        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                            <button
-                                onClick={() => onViewModeChange('weekly')}
-                                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                                    viewMode === 'weekly'
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                }`}
+            <div className={`p-3 sm:p-4 md:p-6 ${darkMode ? 'bg-[var(--brand-purple)]' : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4]'} text-white`}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <CalendarIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <h2 className="font-bold text-lg sm:text-xl md:text-2xl font-heading">
+                            {displayTitle}
+                        </h2>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                        {/* View Mode Toggle */}
+                        {onViewModeChange && (
+                            <div className={`flex items-center gap-2 ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white/20'} backdrop-blur-sm rounded-xl p-1`}>
+                                <button
+                                    onClick={() => onViewModeChange('weekly')}
+                                    className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                                        viewMode === 'weekly'
+                                            ? darkMode 
+                                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                                                : 'bg-white text-[#4D4DA4] shadow-md'
+                                            : darkMode
+                                                ? 'text-[var(--brand-light)]/70 hover:bg-[var(--dark-700)]'
+                                                : 'text-white hover:bg-white/10'
+                                    }`}
+                                >
+                                    Week
+                                </button>
+                                <button
+                                    onClick={() => onViewModeChange('monthly')}
+                                    className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                                        viewMode === 'monthly'
+                                            ? darkMode 
+                                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                                                : 'bg-white text-[#4D4DA4] shadow-md'
+                                            : darkMode
+                                                ? 'text-[var(--brand-light)]/70 hover:bg-[var(--dark-700)]'
+                                                : 'text-white hover:bg-white/10'
+                                    }`}
+                                >
+                                    Month
+                                </button>
+                            </div>
+                        )}
+                        
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={handleToday}
+                                className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold ${darkMode ? 'bg-[var(--dark-800)] hover:bg-[var(--dark-700)] text-[var(--brand-light)]' : 'bg-white/20 hover:bg-white/30'} backdrop-blur-sm rounded-xl transition-all`}
                             >
-                                Week
+                                Today
                             </button>
-                            <button
-                                onClick={() => onViewModeChange('monthly')}
-                                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                                    viewMode === 'monthly'
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                }`}
-                            >
-                                Month
-                            </button>
-                        </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                        <button 
-                            onClick={handleToday}
-                            className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                        >
-                            Today
-                        </button>
-                        <div className="flex gap-1">
-                            <button onClick={handlePrevious} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <ChevronLeft className="w-5 h-5" />
-                            </button>
-                            <button onClick={handleNext} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={handlePrevious} 
+                                    className={`p-2 ${darkMode ? 'bg-[var(--dark-800)] hover:bg-[var(--dark-700)]' : 'bg-white/20 hover:bg-white/30'} backdrop-blur-sm rounded-xl transition-all`}
+                                    aria-label="Previous"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+                                <button 
+                                    onClick={handleNext} 
+                                    className={`p-2 ${darkMode ? 'bg-[var(--dark-800)] hover:bg-[var(--dark-700)]' : 'bg-white/20 hover:bg-white/30'} backdrop-blur-sm rounded-xl transition-all`}
+                                    aria-label="Next"
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Grid */}
-            <div className="grid grid-cols-7 border-b">
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, index) => (
-                    <div key={`day-header-${index}`} className="py-2 text-center text-xs font-bold text-gray-400">{d}</div>
+            {/* Day Headers */}
+            <div className={`hidden sm:grid grid-cols-7 ${darkMode ? 'bg-[var(--dark-700)] border-b border-[var(--dark-600)]' : 'bg-[#EBEBFE] border-b-2 border-[#4D4DA4]/10'}`}>
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d, index) => (
+                    <div key={`day-header-${index}`} className={`py-3 text-center text-xs font-bold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-[#4D4DA4]'} uppercase tracking-wider`}>
+                        <span className="hidden lg:inline">{d}</span>
+                        <span className="lg:hidden">{d.substring(0, 3)}</span>
+                    </div>
                 ))}
             </div>
             
-            <div className={`grid grid-cols-7 auto-rows-fr bg-gray-100 gap-px border-b ${viewMode === 'weekly' ? 'min-h-[500px]' : ''}`}>
+            {/* Mobile Day Headers */}
+            <div className={`grid sm:hidden grid-cols-7 ${darkMode ? 'bg-[var(--dark-700)] border-b border-[var(--dark-600)]' : 'bg-[#EBEBFE] border-b-2 border-[#4D4DA4]/10'}`}>
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, index) => (
+                    <div key={`day-header-mobile-${index}`} className={`py-2 text-center text-xs font-bold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-[#4D4DA4]'}`}>{d}</div>
+                ))}
+            </div>
+            
+            {/* Calendar Grid */}
+            <div className={`grid grid-cols-7 auto-rows-fr ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-50'} gap-px ${viewMode === 'weekly' ? 'min-h-[400px] sm:min-h-[500px]' : 'min-h-[300px]'}`}>
                 {calendarDays.map((day) => {
                     const dayEvents = getEventsForDay(day);
-                    // In weekly view, all days are current. In monthly view, check if day is in current month
                     const isCurrent = viewMode === 'weekly' ? true : isSameMonth(day, monthStart);
+                    const today = isToday(day);
                     
                     return (
-                        <div key={day.toString()} className={`${viewMode === 'weekly' ? 'min-h-[400px]' : 'min-h-[80px]'} bg-white p-2 flex flex-col ${!isCurrent ? 'bg-gray-50' : ''}`}>
-                            <div className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full mb-1 ${isToday(day) ? 'bg-blue-600 text-white' : 'text-gray-500'}`}>
+                        <div key={day.toString()} className={`${viewMode === 'weekly' ? 'min-h-[300px] sm:min-h-[400px]' : 'min-h-[80px] sm:min-h-[100px]'} ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'} p-1.5 sm:p-2 flex flex-col ${!isCurrent ? (darkMode ? 'bg-[var(--dark-900)]/50' : 'bg-gray-50/50') : ''} ${today ? (darkMode ? 'ring-2 ring-[var(--brand-third)] ring-inset' : 'ring-2 ring-[#10B981] ring-inset') : ''}`}>
+                            <div className={`text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full mb-1 ${
+                                today 
+                                    ? darkMode 
+                                        ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
+                                        : 'bg-gradient-to-br from-[#10B981] to-emerald-600 text-white shadow-md'
+                                    : darkMode 
+                                        ? 'text-[var(--brand-light)]/70' 
+                                        : 'text-gray-600'
+                            }`}>
                                 {format(day, 'd')}
                             </div>
                             
                             <div className="flex-1 space-y-1 overflow-y-auto">
                                 {dayEvents.length === 0 ? (
-                                    <div className="text-xs text-gray-400 text-center py-2">No events</div>
+                                    <div className={`text-[10px] sm:text-xs ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'} text-center py-1 sm:py-2 italic`}>No events</div>
                                 ) : (
                                     dayEvents.map(event => {
                                         const isPast = isEventPast(event);
@@ -247,10 +320,14 @@ export default function MemberEventCalendar({
                                                 key={event.id}
                                                 onClick={() => !isPast && setSelectedEvent(event)}
                                                 disabled={isPast}
-                                                className={`w-full text-left px-2 py-1 ${viewMode === 'weekly' ? 'text-xs' : 'text-[10px]'} rounded border truncate font-medium block transition-colors ${colors.bg} ${colors.text} ${colors.border} ${colors.hover} ${colors.cursor} ${isPast ? 'opacity-60' : ''}`}
+                                                className={`w-full text-left px-1.5 sm:px-2 py-1 sm:py-1.5 ${viewMode === 'weekly' ? 'text-[10px] sm:text-xs' : 'text-[9px] sm:text-[10px]'} rounded-lg border truncate font-bold transition-all ${colors.bg} ${colors.text} ${colors.border} ${colors.hover} ${colors.cursor} ${isPast ? 'opacity-50' : ''}`}
                                                 title={getEventStatusTooltip(event)}
                                             >
-                                                {format(new Date(event.start_date), 'HH:mm')} {event.title}
+                                                <div className="truncate">
+                                                    <span className="font-black">{format(new Date(event.start_date), 'HH:mm')}</span>
+                                                    {' '}
+                                                    <span className={viewMode === 'monthly' ? 'hidden sm:inline' : ''}>{event.title}</span>
+                                                </div>
                                             </button>
                                         );
                                     })
@@ -274,9 +351,9 @@ export default function MemberEventCalendar({
                             onEventUpdate();
                         }
                     }}
+                    darkMode={darkMode}
                 />
             )}
         </div>
     );
 }
-

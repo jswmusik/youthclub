@@ -1,21 +1,251 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, Clock, UserCheck, ShieldCheck, Building, UserPlus, UsersRound, CheckCircle2 } from 'lucide-react';
+import { 
+  Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X,
+  Users, Building, UserPlus, UsersRound, CheckCircle2, Mail, ChevronLeft
+} from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+}
+
+function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140; // Width of the action buttons area
+  const threshold = 50; // Minimum swipe distance to trigger open/close
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    // Only allow swiping left (positive diff) or closing (negative diff when open)
+    if (isOpen) {
+      // When open, allow swiping right to close
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      // When closed, only allow swiping left to open
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    // Determine if we should snap open or closed
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        // Close it
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        // Keep it open
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        // Open it
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        // Keep it closed
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Only navigate if the card is not swiped open and we didn't just finish dragging
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      // Close the card when tapping on it while open
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  // Close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      {/* Action buttons (behind the card) */}
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleEditClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+        >
+          <Edit className="w-5 h-5" />
+          <span className="text-xs font-medium">Edit</span>
+        </button>
+        <button
+          onClick={handleDeleteClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+
+      {/* Swipeable card content */}
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {/* Swipe hint indicator */}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function YouthCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-4 w-16 rounded-full" />
+            <Skeleton className="h-4 w-10 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function YouthTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-1">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function YouthPageSkeleton() {
+  return (
+    <>
+      {/* Mobile Cards Skeleton */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {[...Array(4)].map((_, i) => (
+          <YouthCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Grade / Age</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(5)].map((_, i) => (
+              <YouthTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 interface YouthManagerProps {
   basePath: string;
@@ -31,6 +261,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
   const [allUsersForAnalytics, setAllUsersForAnalytics] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
   // Dropdowns
@@ -42,10 +273,32 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
   const [userToDelete, setUserToDelete] = useState<any>(null);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
+  // Filter State
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [genderFilter, setGenderFilter] = useState(searchParams.get('legal_gender') || '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('verification_status') || '');
+  const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('municipality') || '');
+  const [clubFilter, setClubFilter] = useState(searchParams.get('preferred_club') || '');
+
   useEffect(() => {
     fetchDropdowns();
     fetchAllUsersForAnalytics();
   }, []);
+
+  // Debounced Search/Filter Update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchInput) params.set('search', searchInput); else params.delete('search');
+      if (genderFilter) params.set('legal_gender', genderFilter); else params.delete('legal_gender');
+      if (statusFilter) params.set('verification_status', statusFilter); else params.delete('verification_status');
+      if (municipalityFilter) params.set('municipality', municipalityFilter); else params.delete('municipality');
+      if (clubFilter) params.set('preferred_club', clubFilter); else params.delete('preferred_club');
+      params.set('page', '1');
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, genderFilter, statusFilter, municipalityFilter, clubFilter]);
 
   useEffect(() => {
     fetchYouth();
@@ -118,8 +371,11 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     }
   };
 
-  const fetchYouth = async () => {
+  const fetchYouth = useCallback(async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+
     try {
       const params = new URLSearchParams();
       params.set('role', 'YOUTH_MEMBER');
@@ -180,10 +436,18 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
       setTotalCount(count);
     } catch (err) {
       console.error(err);
+      setAllUsers([]);
+      setTotalCount(0);
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
-  };
+  }, [searchParams]);
 
   const updateUrl = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -224,6 +488,15 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     return queryString ? `${path}?${queryString}` : path;
   };
 
+  const clearFilters = () => {
+    setSearchInput('');
+    setGenderFilter('');
+    setStatusFilter('');
+    setMunicipalityFilter('');
+    setClubFilter('');
+    router.push(pathname);
+  };
+
   const handleDelete = async () => {
     if (!userToDelete) return;
     try {
@@ -256,12 +529,12 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     return age;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeClasses = (status: string) => {
     switch (status) {
-      case 'VERIFIED': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
-      case 'PENDING': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
-      case 'UNVERIFIED': return 'bg-red-50 text-[#EF4444] border-[#EF4444]/30';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'VERIFIED': return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
+      case 'PENDING': return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
+      case 'UNVERIFIED': return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+      default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
     }
   };
 
@@ -301,171 +574,149 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
   const totalPages = Math.ceil(totalCount / pageSize);
   const paginatedUsers = allUsers;
 
+  const handlePageChange = (p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', p.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const hasFilters = searchInput || genderFilter || statusFilter || municipalityFilter || clubFilter ||
+    searchParams.get('age_from') || searchParams.get('age_to') ||
+    searchParams.get('grade_from') || searchParams.get('grade_to') ||
+    searchParams.get('interest') || searchParams.get('birthday_today');
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Youth Members</h1>
-          <p className="text-gray-500 mt-1">Manage youth members and their information.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <Users className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Youth Members</h1>
+          </div>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">View and manage youth member accounts across the platform.</p>
         </div>
         <Link href={`${basePath}/create`}>
-          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+          <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> Add Youth
-          </Button>
+          </button>
         </Link>
       </div>
 
-      {/* Analytics */}
-      {!loading && (
-        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border-0 shadow-sm bg-gray-900">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                  Analytics Dashboard
-                </h3>
+      {/* Analytics Dashboard */}
+      {!showSkeleton && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          {/* Header */}
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                  )} />
-                  <span className="sr-only">Toggle Analytics</span>
-                </Button>
-              </CollapsibleTrigger>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
             </div>
-            <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {/* Card 1: Total Youth */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <Users className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Total Youth</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_youth}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 2: New Last 7 Days */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
-                          }}>
-                          <UserPlus className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">New (7 Days)</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.new_last_7_days}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 3: Gender Breakdown */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF6B9D] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <UsersRound className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Gender Breakdown</CardTitle>
-                      </div>
-                      <div className="space-y-1.5 w-full">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Male:</span>
-                          <span className="font-bold text-white">{analytics.gender.male}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Female:</span>
-                          <span className="font-bold text-white">{analytics.gender.female}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Other:</span>
-                          <span className="font-bold text-white">{analytics.gender.other}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-
-                  {/* Card 4: Verification Status */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
-                          }}>
-                          <CheckCircle2 className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Verification</CardTitle>
-                      </div>
-                      <div className="space-y-1.5 w-full">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Verified:</span>
-                          <span className="font-bold text-white">{analytics.verification.verified}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Unverified/Pending:</span>
-                          <span className="font-bold text-white">{analytics.verification.unverified_pending}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
+            <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+          </button>
+          
+          {/* Content */}
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              
+              {/* Total Youth */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
                 </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_youth}</div>
+              </div>
+
+              {/* New Last 7 Days */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">New (7d)</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.new_last_7_days}</div>
+              </div>
+
+              {/* Gender Breakdown */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                    <UsersRound className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Gender</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-[var(--brand-light)]/60">M/F/O:</span>
+                    <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.male}/{analytics.gender.female}/{analytics.gender.other}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verification Status */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Verified</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.verification.verified}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          {/* Main Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            {/* Search - Takes more space on larger screens */}
-            <div className="relative md:col-span-4 lg:col-span-3">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search by name or email..." 
-                className="pl-9 bg-gray-50 border-0"
-                value={searchParams.get('search') || ''}
-                onChange={e => updateUrl('search', e.target.value)}
-              />
-            </div>
-            
-            {/* Gender Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
+      {/* Search & Filters */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex flex-col gap-3">
+          {/* Search Row */}
+          <div className="flex items-center gap-3">
+            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+            <input 
+              type="text"
+              placeholder="Search by name or email..." 
+              className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+            />
+            {searchInput && (
+              <button 
+                onClick={() => setSearchInput('')}
+                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          
+          {/* Filters Row */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="w-full sm:w-[160px]">
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('legal_gender') || ''} 
-                onChange={e => updateUrl('legal_gender', e.target.value)}
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={genderFilter}
+                onChange={e => setGenderFilter(e.target.value)}
+                style={selectArrowStyle}
               >
                 <option value="">All Genders</option>
                 <option value="MALE">Male</option>
@@ -473,13 +724,12 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 <option value="OTHER">Other</option>
               </select>
             </div>
-            
-            {/* Status Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
+            <div className="w-full sm:w-[160px]">
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('verification_status') || ''} 
-                onChange={e => updateUrl('verification_status', e.target.value)}
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                style={selectArrowStyle}
               >
                 <option value="">All Statuses</option>
                 <option value="VERIFIED">Verified</option>
@@ -487,14 +737,13 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 <option value="UNVERIFIED">Unverified</option>
               </select>
             </div>
-            
-            {/* Municipality Filter - Only for SUPER scope */}
             {scope === 'SUPER' && (
-              <div className="md:col-span-2 lg:col-span-2">
+              <div className="w-full sm:w-[200px]">
                 <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                  value={searchParams.get('municipality') || ''} 
-                  onChange={e => updateUrl('municipality', e.target.value)}
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={municipalityFilter}
+                  onChange={e => setMunicipalityFilter(e.target.value)}
+                  style={selectArrowStyle}
                 >
                   <option value="">All Municipalities</option>
                   {municipalities.map(m => (
@@ -503,13 +752,12 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 </select>
               </div>
             )}
-            
-            {/* Club Filter */}
-            <div className={cn("md:col-span-2", scope === 'SUPER' ? "lg:col-span-2" : "lg:col-span-3")}>
+            <div className="w-full sm:w-[200px]">
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('preferred_club') || ''} 
-                onChange={e => updateUrl('preferred_club', e.target.value)}
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={clubFilter}
+                onChange={e => setClubFilter(e.target.value)}
+                style={selectArrowStyle}
               >
                 <option value="">All Clubs</option>
                 {clubs.map(c => (
@@ -517,281 +765,214 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 ))}
               </select>
             </div>
-            
-            {/* Clear Button */}
-            <div className="md:col-span-2 lg:col-span-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(pathname)}
-                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                <X className="h-4 w-4" /> Clear
-              </Button>
-            </div>
-          </div>
-          
-          {/* Advanced Filters Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-3 pt-3 border-t border-gray-100">
-            <div className="col-span-1">
-              <Input
-                type="number"
-                placeholder="Age from"
-                className="h-9 bg-gray-50 border-0"
-                value={searchParams.get('age_from') || ''}
-                onChange={e => updateUrl('age_from', e.target.value)}
-              />
-            </div>
-            <div className="col-span-1">
-              <Input
-                type="number"
-                placeholder="Age to"
-                className="h-9 bg-gray-50 border-0"
-                value={searchParams.get('age_to') || ''}
-                onChange={e => updateUrl('age_to', e.target.value)}
-              />
-            </div>
-            <div className="col-span-1">
-              <Input
-                type="number"
-                placeholder="Grade from"
-                className="h-9 bg-gray-50 border-0"
-                value={searchParams.get('grade_from') || ''}
-                onChange={e => updateUrl('grade_from', e.target.value)}
-              />
-            </div>
-            <div className="col-span-1">
-              <Input
-                type="number"
-                placeholder="Grade to"
-                className="h-9 bg-gray-50 border-0"
-                value={searchParams.get('grade_to') || ''}
-                onChange={e => updateUrl('grade_to', e.target.value)}
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1 md:col-span-2 lg:col-span-2">
-              <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('interest') || ''} 
-                onChange={e => updateUrl('interest', e.target.value)}
-              >
-                <option value="">All Interests</option>
-                {interests.map(i => (
-                  <option key={i.id} value={i.id.toString()}>{i.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="col-span-2 sm:col-span-1 md:col-span-2 lg:col-span-2">
-              <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('birthday_today') || ''} 
-                onChange={e => updateUrl('birthday_today', e.target.value)}
-              >
-                <option value="">All Birthdays</option>
-                <option value="true">Today</option>
-              </select>
-            </div>
+                Clear All
+              </button>
+            )}
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* Stats Bar */}
+      {!showSkeleton && paginatedUsers.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedUsers.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'member' : 'members'}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
+      {showSkeleton ? (
+        <YouthPageSkeleton />
       ) : paginatedUsers.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">No youth members found.</p>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-        </Card>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No youth members found</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm mb-6">
+            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by adding your first youth member.'}
+          </p>
+          {!hasFilters && (
+            <Link href={`${basePath}/create`}>
+              <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
+                <Plus className="h-4 w-4" /> Add Youth
+              </button>
+            </Link>
+          )}
+        </div>
       ) : (
         <>
-          {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {paginatedUsers.map(user => (
-              <Card key={user.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
-                      <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
-                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                        {getInitials(user.first_name, user.last_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base font-semibold text-[#121213] truncate">
-                        {user.first_name} {user.last_name}
-                      </CardTitle>
-                      <CardDescription className="text-xs text-gray-500 truncate flex items-center gap-1">
-                        <Building className="h-3 w-3 flex-shrink-0" />
-                        {getClubName(user)}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
-                      <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
-                        {user.verification_status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Grade / Age</span>
-                      <div className="flex flex-wrap gap-1 justify-end">
-                        {user.grade && (
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">
-                            Grade {user.grade}
-                          </Badge>
+          {/* Mobile Cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {paginatedUsers.map((user, index) => (
+              <SwipeableCard
+                key={user.id}
+                onClick={() => router.push(buildUrlWithParams(`${basePath}/${user.id}`))}
+                onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${user.id}`))}
+                onDelete={() => setUserToDelete(user)}
+              >
+                <div className="border-y border-[var(--dark-600)] p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Left: Avatar and Info */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-12 h-12 rounded-full bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {user.avatar ? (
+                          <img src={getMediaUrl(user.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold text-[var(--brand-primary)]">
+                            {getInitials(user.first_name, user.last_name)}
+                          </span>
                         )}
-                        {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
-                          <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
-                            {calculateAge(user.date_of_birth)} years
-                          </Badge>
-                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
+                          {user.first_name} {user.last_name}
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Building className="w-3 h-3 text-[var(--brand-light)]/40" />
+                          <p className="text-xs text-[var(--brand-light)]/50 truncate">{getClubName(user)}</p>
+                        </div>
+                        {/* Status & Grade/Age - Inline */}
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
+                            {user.verification_status}
+                          </span>
+                          {user.grade && (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
+                              Grade {user.grade}
+                            </span>
+                          )}
+                          {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]">
+                              {calculateAge(user.date_of_birth)}y
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                    <Link href={buildUrlWithParams(`${basePath}/${user.id}`)} className="flex-1">
-                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
-                    </Link>
-                    <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} className="flex-1">
-                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setUserToDelete(user)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </SwipeableCard>
             ))}
           </div>
 
-          {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Grade / Age</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedUsers.map(user => (
-                  <TableRow key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4 px-6">
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Grade / Age</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedUsers.map((user, index) => (
+                  <tr 
+                    key={user.id} 
+                    className={`${index !== paginatedUsers.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors`}
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
-                          <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                            {getInitials(user.first_name, user.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="w-10 h-10 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center overflow-hidden">
+                          {user.avatar ? (
+                            <img src={getMediaUrl(user.avatar)} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-[var(--brand-primary)]">
+                              {getInitials(user.first_name, user.last_name)}
+                            </span>
+                          )}
+                        </div>
                         <div>
-                          <div className="font-semibold text-[#121213]">{user.first_name} {user.last_name}</div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <Building className="h-3 w-3 flex-shrink-0" />
+                          <div className="font-semibold text-[var(--brand-light)]">{user.first_name} {user.last_name}</div>
+                          <div className="text-xs text-[var(--brand-light)]/50 flex items-center gap-1">
+                            <Building className="w-3 h-3" />
                             {getClubName(user)}
                           </div>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
                         {user.verification_status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex flex-wrap items-center gap-2">
                         {user.grade && (
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">
+                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
                             Grade {user.grade}
-                          </Badge>
+                          </span>
                         )}
                         {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
-                          <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
+                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]">
                             {calculateAge(user.date_of_birth)} years
-                          </Badge>
+                          </span>
                         )}
                         {!user.grade && (!user.date_of_birth || calculateAge(user.date_of_birth) === null) && (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-[var(--brand-light)]/30">—</span>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-right">
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${user.id}`)}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Eye className="w-4 h-4" />
+                          </button>
                         </Link>
                         <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Edit className="w-4 h-4" />
+                          </button>
                         </Link>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                        <button 
                           onClick={() => setUserToDelete(user)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </Card>
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
+            <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+              <button 
                 disabled={currentPage === 1} 
-                onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Prev
-              </Button>
-              <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
+                Previous
+              </button>
+              <div className="text-sm text-[var(--brand-light)]/50">
+                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+              </div>
+              <button 
                 disabled={currentPage >= totalPages} 
-                onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Next
-              </Button>
+              </button>
             </div>
           )}
         </>
       )}
 
+      {/* Modals */}
       <ConfirmationModal 
         isVisible={!!userToDelete}
         onClose={() => setUserToDelete(null)}
@@ -801,8 +982,9 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
         confirmButtonText="Delete"
         cancelButtonText="Cancel"
         variant="danger"
+        darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
     </div>
   );
 }

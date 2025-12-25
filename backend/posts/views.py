@@ -1,13 +1,14 @@
-from rest_framework import viewsets, permissions, status, parsers
+from rest_framework import viewsets, permissions, status, parsers, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, NotFound
 from django.db.models import Q, Count, Exists, OuterRef
 from django.utils import timezone
 from datetime import timedelta
+from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Post, PostComment, PostReaction
-from .serializers import PostSerializer, PostCommentSerializer
+from .models import Post, PostComment, PostReaction, PostTemplate
+from .serializers import PostSerializer, PostCommentSerializer, PostTemplateSerializer, PostTemplateListSerializer
 from .engine import PostEngine
 
 # Import Reward models
@@ -385,6 +386,8 @@ class PostViewSet(viewsets.ModelViewSet):
         It filters posts to only those CREATED BY this club (not just targeted to it),
         THEN applies the standard security engine (PostEngine) 
         to ensure the user is allowed to see them (Age/Gender/Group).
+        Only shows actual posts (excludes activity posts like borrowed/returned items, 
+        completed questionnaires, joined groups, etc.)
         """
         user = request.user
         
@@ -401,7 +404,14 @@ class PostViewSet(viewsets.ModelViewSet):
         # even if they are on the club's wall.
         queryset = PostEngine.get_posts_for_user(user, queryset=club_posts)
         
-        # 3. Add annotations (same as feed)
+        # 3. Exclude activity posts (only show actual posts)
+        # These are auto-generated activity posts that should only appear in user's activity feed
+        queryset = queryset.exclude(title__startswith='Borrowed ')
+        queryset = queryset.exclude(title__startswith='Returned ')
+        queryset = queryset.exclude(title__startswith='Completed Questionnaire: ')
+        queryset = queryset.exclude(title__startswith='Joined ')
+        
+        # 4. Add annotations (same as feed)
         queryset = queryset.annotate(
             comment_count=Count('comments', filter=Q(comments__is_approved=True)),
             reaction_count=Count('reactions')
@@ -420,7 +430,7 @@ class PostViewSet(viewsets.ModelViewSet):
         # Order by published_at (or created_at as fallback)
         queryset = queryset.order_by('-is_pinned', '-published_at', '-created_at')
         
-        # 4. Pagination & Serialization
+        # 5. Pagination & Serialization
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, context={'request': request})
@@ -859,3 +869,226 @@ class PostCommentViewSet(viewsets.ModelViewSet):
             serializer.save(author=self.request.user, is_approved=False)
         else:
             serializer.save(author=self.request.user, is_approved=True)
+
+
+class PostTemplateViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Post Templates.
+    Admins can create, edit, and delete templates for quick post creation.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'usage_count', 'created_at', 'updated_at']
+    ordering = ['-usage_count', '-created_at']
+    
+    def get_serializer_class(self):
+        """Use list serializer for list action, full serializer otherwise."""
+        if self.action == 'list':
+            return PostTemplateListSerializer
+        return PostTemplateSerializer
+    
+    def get_queryset(self):
+        """
+        Filter templates based on Admin Role.
+        Each admin level only sees templates created by admins at their same level and organization:
+        - Super Admin: only sees templates created by super admins (role_scope='SUPER')
+        - Municipality Admin: only sees templates created by municipality admins from the same municipality
+        - Club Admin: only sees templates created by club admins from the same club
+        """
+        user = self.request.user
+        
+        # Only admins can access templates
+        if user.role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+            return PostTemplate.objects.none()
+        
+        queryset = PostTemplate.objects.all()
+        
+        # Filter by is_active unless explicitly requested
+        show_inactive = self.request.query_params.get('show_inactive', 'false').lower() == 'true'
+        if not show_inactive:
+            queryset = queryset.filter(is_active=True)
+        
+        # Super Admin sees only SUPER scope templates
+        if user.role == 'SUPER_ADMIN':
+            return queryset.filter(role_scope='SUPER')
+        
+        # Municipality Admin sees only templates from their municipality (created by municipality admins)
+        if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            return queryset.filter(
+                role_scope='MUNICIPALITY',
+                municipality=user.assigned_municipality
+            )
+        
+        # Club Admin sees only templates from their club (created by club admins)
+        if user.role == 'CLUB_ADMIN' and user.assigned_club:
+            return queryset.filter(
+                role_scope='CLUB',
+                club=user.assigned_club
+            )
+        
+        return PostTemplate.objects.none()
+    
+    def perform_create(self, serializer):
+        """
+        Auto-assign creator, role_scope, and ownership context.
+        """
+        user = self.request.user
+        
+        save_kwargs = {'created_by': user}
+        
+        if user.role == 'SUPER_ADMIN':
+            save_kwargs['role_scope'] = 'SUPER'
+        elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            save_kwargs['role_scope'] = 'MUNICIPALITY'
+            save_kwargs['municipality'] = user.assigned_municipality
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            save_kwargs['role_scope'] = 'CLUB'
+            save_kwargs['club'] = user.assigned_club
+        else:
+            raise PermissionDenied("You do not have permission to create templates.")
+        
+        serializer.save(**save_kwargs)
+    
+    def perform_update(self, serializer):
+        """
+        Only allow editing own templates or templates in their scope.
+        """
+        user = self.request.user
+        template = self.get_object()
+        
+        # Super Admin can edit any template
+        if user.role == 'SUPER_ADMIN':
+            serializer.save()
+            return
+        
+        # Others can only edit their own templates
+        if template.created_by != user:
+            raise PermissionDenied("You can only edit templates you created.")
+        
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """
+        Only allow deleting own templates.
+        """
+        user = self.request.user
+        
+        # Super Admin can delete any template
+        if user.role == 'SUPER_ADMIN':
+            instance.delete()
+            return
+        
+        # Others can only delete their own templates
+        if instance.created_by != user:
+            raise PermissionDenied("You can only delete templates you created.")
+        
+        instance.delete()
+    
+    @action(detail=True, methods=['post'])
+    def duplicate(self, request, pk=None):
+        """
+        Duplicate an existing template.
+        The duplicated template belongs to the current user's scope.
+        """
+        template = self.get_object()
+        user = request.user
+        
+        # Determine role_scope and organization based on current user
+        if user.role == 'SUPER_ADMIN':
+            role_scope = 'SUPER'
+            municipality = None
+            club = None
+        elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            role_scope = 'MUNICIPALITY'
+            municipality = user.assigned_municipality
+            club = None
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            role_scope = 'CLUB'
+            municipality = None
+            club = user.assigned_club
+        else:
+            raise PermissionDenied("You do not have permission to duplicate templates.")
+        
+        # Create a copy of the template with the current user's scope
+        new_template = PostTemplate.objects.create(
+            name=f"{template.name} (Copy)",
+            description=template.description,
+            icon=template.icon,
+            created_by=user,
+            role_scope=role_scope,
+            municipality=municipality,
+            club=club,
+            is_global=template.is_global if user.role == 'SUPER_ADMIN' else False,
+            default_post_type=template.default_post_type,
+            target_member_type=template.target_member_type,
+            target_min_age=template.target_min_age,
+            target_max_age=template.target_max_age,
+            target_grades=template.target_grades,
+            target_genders=template.target_genders,
+            target_custom_fields=template.target_custom_fields,
+            allow_comments=template.allow_comments,
+            require_moderation=template.require_moderation,
+            allow_replies=template.allow_replies,
+            limit_comments_per_user=template.limit_comments_per_user,
+            send_push_notification=template.send_push_notification,
+            default_push_title=template.default_push_title,
+            is_pinned_default=template.is_pinned_default,
+            usage_count=0,  # Reset usage count for the copy
+            is_active=True
+        )
+        
+        # Copy ManyToMany relationships
+        new_template.target_municipalities.set(template.target_municipalities.all())
+        new_template.target_clubs.set(template.target_clubs.all())
+        new_template.target_groups.set(template.target_groups.all())
+        new_template.target_interests.set(template.target_interests.all())
+        
+        serializer = PostTemplateSerializer(new_template, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """
+        Toggle the is_active status of a template.
+        """
+        template = self.get_object()
+        user = request.user
+        
+        # Only creator or super admin can toggle
+        if template.created_by != user and user.role != 'SUPER_ADMIN':
+            raise PermissionDenied("You can only toggle templates you created.")
+        
+        template.is_active = not template.is_active
+        template.save(update_fields=['is_active'])
+        
+        return Response({
+            'id': template.id,
+            'is_active': template.is_active,
+            'message': f"Template {'activated' if template.is_active else 'deactivated'} successfully."
+        })
+    
+    @action(detail=True, methods=['post'])
+    def increment_usage(self, request, pk=None):
+        """
+        Increment the usage count when a post is created from this template.
+        Called by the frontend after successfully creating a post.
+        """
+        template = self.get_object()
+        template.increment_usage()
+        
+        return Response({
+            'id': template.id,
+            'usage_count': template.usage_count
+        })
+    
+    @action(detail=False, methods=['get'])
+    def icons(self, request):
+        """
+        Return available icon choices.
+        """
+        icons = [
+            {'value': choice[0], 'label': choice[1]}
+            for choice in PostTemplate.TemplateIcon.choices
+        ]
+        return Response(icons)

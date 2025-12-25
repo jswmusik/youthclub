@@ -5,10 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import { getMediaUrl } from '@/app/utils';
-import { Package, Clock, Users, Calendar, Tag, ChevronLeft, Edit, History } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { 
+  Package, Clock, Users, Calendar, Tag, ArrowLeft, Edit, History,
+  AlertCircle, CheckCircle2, User, Building2, ChevronRight, FileText,
+  Timer, Info, Eye, EyeOff
+} from 'lucide-react';
 
 interface ItemDetailViewProps {
   itemId: string;
@@ -50,259 +51,398 @@ export default function ItemDetailView({ itemId, basePath }: ItemDetailViewProps
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeClasses = (status: string) => {
     switch(status) {
       case 'AVAILABLE':
-        return <Badge className="bg-green-50 text-green-700 border-green-200">Available</Badge>;
+        return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
       case 'BORROWED':
-        return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Borrowed</Badge>;
+        return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
       case 'MAINTENANCE':
-        return <Badge className="bg-red-50 text-red-700 border-red-200">In Maintenance</Badge>;
+        return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
       case 'MISSING':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Missing</Badge>;
+        return 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border-[var(--brand-peach)]/30';
       case 'HIDDEN':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Hidden</Badge>;
+        return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
       default:
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">{status}</Badge>;
+        return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch(status) {
+      case 'AVAILABLE':
+        return <CheckCircle2 className="w-4 h-4" />;
+      case 'BORROWED':
+        return <User className="w-4 h-4" />;
+      case 'MAINTENANCE':
+        return <AlertCircle className="w-4 h-4" />;
+      case 'MISSING':
+        return <AlertCircle className="w-4 h-4" />;
+      case 'HIDDEN':
+        return <EyeOff className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch(status) {
+      case 'AVAILABLE': return 'Available';
+      case 'BORROWED': return 'Borrowed';
+      case 'MAINTENANCE': return 'In Maintenance';
+      case 'MISSING': return 'Missing';
+      case 'HIDDEN': return 'Hidden';
+      default: return status;
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-pulse text-gray-400">Loading item details...</div>
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[var(--brand-light)]/60">Loading item details...</p>
+        </div>
       </div>
     );
   }
 
   if (!item) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Link href={buildUrlWithParams(basePath)}>
-            <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-              <ChevronLeft className="h-4 w-4" />
-              Back to Inventory
-            </Button>
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <Package className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
+          <p className="text-[var(--brand-light)] font-semibold">Item not found</p>
+          <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
+            Return to inventory
           </Link>
         </div>
-        <Card className="border border-red-200 bg-red-50">
-          <CardContent className="p-6">
-            <p className="text-red-800 font-medium">Item not found.</p>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header with Back Button and Action Buttons */}
-      <div className="flex items-center justify-between">
-        <Link href={buildUrlWithParams(basePath)}>
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-            <ChevronLeft className="h-4 w-4" />
-            Back to Inventory
-          </Button>
+    <div className="space-y-0 sm:space-y-6">
+      {/* Navigation Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
+        <Link 
+          href={buildUrlWithParams(basePath)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to Inventory
         </Link>
-        
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <Link href={`${basePath}/view/${item.id}/history?${searchParams.toString()}`}>
-            <Button variant="outline" size="sm" className="gap-2 text-gray-700 hover:text-[#4D4DA4] hover:border-[#4D4DA4]">
-              <History className="h-4 w-4" />
-              View History
-            </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link 
+            href={`${basePath}/view/${item.id}/history?${searchParams.toString()}`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+          >
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">History</span>
           </Link>
-          <Link href={`${basePath}/edit/${item.id}?${searchParams.toString()}`}>
-            <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white">
-              <Edit className="h-4 w-4" />
-              Edit Item
-            </Button>
+          <Link 
+            href={`${basePath}/edit/${item.id}?${searchParams.toString()}`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
+          >
+            <Edit className="h-4 w-4" /> Edit
           </Link>
         </div>
       </div>
 
-      {/* ITEM HEADER CARD */}
-      <Card className="border border-gray-100 shadow-sm overflow-hidden bg-gradient-to-br from-[#EBEBFE] via-[#EBEBFE]/50 to-white !py-0 !gap-0">
-        {/* Cover Image */}
-        {item.image && (
-          <div className="h-48 md:h-64 bg-gradient-to-r from-[#4D4DA4] via-[#4D4DA4]/80 to-[#FF5485] relative w-full overflow-hidden">
-            <img 
-              src={getMediaUrl(item.image) || item.image} 
-              alt={item.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-            <div className="absolute inset-0 bg-black/10"></div>
-          </div>
-        )}
-
-        <CardContent className={`p-6 sm:p-10 ${item.image ? 'pt-6 sm:pt-10' : ''} bg-gradient-to-br from-[#EBEBFE] via-[#EBEBFE]/50 to-white`}>
-          <div className={`flex flex-col sm:flex-row items-start sm:items-end gap-6 ${item.image ? '-mt-20 sm:-mt-24' : ''}`}>
-            {!item.image && (
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-white shadow-lg bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center text-white flex-shrink-0">
-                <Package className="w-12 h-12 sm:w-16 sm:h-16" />
-              </div>
-            )}
-            
-            <div className="text-center sm:text-left flex-1 space-y-3 pt-4 sm:pt-0">
-              <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-lg inline-block">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#121213]">
-                  {item.title}
-                </h1>
-                <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4 text-gray-600 mt-2 flex-wrap">
-                  {item.club_name && (
-                    <span className="flex items-center gap-1.5 text-sm sm:text-base">
-                      <Package className="w-4 h-4 text-[#4D4DA4]" />
-                      <span className="font-medium text-[#121213]">{item.club_name}</span>
-                    </span>
-                  )}
-                  {item.category_details && (
-                    <span className="flex items-center gap-1.5 text-sm sm:text-base">
-                      <span>{item.category_details.icon}</span>
-                      <span className="font-medium text-[#121213]">{item.category_details.name}</span>
-                    </span>
-                  )}
-                </div>
-              </div>
+      {/* Hero Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        {/* Header Banner with Background Image */}
+        <div 
+          className="relative h-36 sm:h-48 bg-gradient-to-br from-[var(--brand-purple)]/30 via-[var(--dark-700)] to-[var(--brand-primary)]/20"
+          style={{
+            backgroundImage: item.image ? `url(${getMediaUrl(item.image)})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        >
+          {/* Overlay for background images */}
+          {item.image && <div className="absolute inset-0 bg-[var(--dark-900)]/50" />}
+          
+          {/* Decorative elements (only show if no background image) */}
+          {!item.image && (
+            <div className="absolute inset-0 opacity-30">
+              <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
+              <div className="absolute bottom-4 left-4 w-24 h-24 rounded-full bg-[var(--brand-purple)]/20 blur-2xl" />
             </div>
+          )}
+          
+          {/* Status Badge - Top Right */}
+          <div className={`absolute top-4 right-4 px-4 py-2 rounded-xl backdrop-blur-sm border flex items-center gap-2 ${getStatusBadgeClasses(item.status)}`}>
+            {getStatusIcon(item.status)}
+            <span className="text-sm font-semibold">{getStatusLabel(item.status)}</span>
+          </div>
 
-            <div className="flex flex-col items-center sm:items-end gap-3">
-              {getStatusBadge(item.status)}
-              {item.active_loan && (
-                <div className="bg-white/80 backdrop-blur-sm px-4 py-3 rounded-lg text-right min-w-[200px]">
-                  <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Currently Borrowed By</div>
-                  <div className="font-semibold text-[#121213] text-sm sm:text-base">{item.active_loan.user_name}</div>
-                  {item.active_loan.is_guest && (
-                    <Badge className="mt-1 bg-orange-50 text-orange-700 border-orange-200 text-xs">Guest</Badge>
-                  )}
-                  <div className="text-xs text-gray-500 mt-2">
-                    Due: {new Date(item.active_loan.due_at).toLocaleString()}
-                  </div>
+          {/* Club Badge - Top Left */}
+          {item.club_name && (
+            <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-sm bg-[var(--dark-800)]/80 border border-[var(--dark-500)]">
+              <span className="text-sm text-[var(--brand-light)] flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-[var(--brand-primary)]" />
+                {item.club_name}
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {/* Avatar & Title Section */}
+        <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-14 sm:-mt-16">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
+            {/* Item Image/Icon */}
+            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
+              {item.image ? (
+                <img 
+                  src={getMediaUrl(item.image) || item.image} 
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                  <Package className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
                 </div>
               )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* MAIN CONTENT */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-          {/* DESCRIPTION */}
+            {/* Title & Info */}
+            <div className="flex-1 space-y-2 pt-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                {item.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-3">
+                {item.category_details && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]">
+                    <span>{item.category_details.icon}</span> {item.category_details.name}
+                  </span>
+                )}
+                {item.queue_count > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
+                    <Users className="w-3 h-3" /> {item.queue_count} in queue
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6 px-0 sm:px-0">
+        
+        {/* Main Column */}
+        <div className="lg:col-span-2 space-y-0 sm:space-y-6">
+          
+          {/* Quick Stats */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Stats</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center mx-auto mb-2">
+                    <Timer className="w-5 h-5 text-[var(--brand-purple)]" />
+                  </div>
+                  <div className="text-2xl font-bold text-[var(--brand-light)]">{item.max_borrow_duration}</div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">Max Minutes</div>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center mx-auto mb-2">
+                    <Users className="w-5 h-5 text-[var(--brand-blue)]" />
+                  </div>
+                  <div className="text-2xl font-bold text-[var(--brand-light)]">{item.queue_count || 0}</div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">In Queue</div>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center mx-auto mb-2">
+                    <Calendar className="w-5 h-5 text-[var(--brand-primary)]" />
+                  </div>
+                  <div className="text-lg font-bold text-[var(--brand-light)]">
+                    {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">Created</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Description Card */}
           {item.description && (
-            <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Description</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm sm:text-base text-[#121213] whitespace-pre-wrap leading-relaxed">{item.description}</p>
-              </CardContent>
-            </Card>
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+                <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-[var(--brand-purple)]" />
+                  Description
+                </h2>
+              </div>
+              <div className="p-6">
+                <p className="text-sm sm:text-base text-[var(--brand-light)]/80 whitespace-pre-wrap leading-relaxed">
+                  {item.description}
+                </p>
+              </div>
+            </div>
           )}
 
-          {/* BORROWING INFORMATION */}
+          {/* Current Loan Card */}
           {item.active_loan && (
-            <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Current Loan</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-[#EBEBFE]/30 rounded-lg border border-[#EBEBFE]">
-                  <span className="text-sm font-semibold text-gray-600">Borrower:</span>
-                  <span className="font-medium text-[#121213]">{item.active_loan.user_name}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-[#EBEBFE]/30 rounded-lg border border-[#EBEBFE]">
-                  <span className="text-sm font-semibold text-gray-600">Due Date:</span>
-                  <span className="font-medium text-[#121213]">{new Date(item.active_loan.due_at).toLocaleString()}</span>
-                </div>
-                {item.active_loan.is_guest && (
-                  <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                    <span className="text-sm font-semibold text-orange-800">⚠️ Guest User</span>
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+                <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <User className="h-5 w-5 text-[var(--brand-blue)]" />
+                  Current Loan
+                </h2>
+              </div>
+              <div className="p-6 space-y-3">
+                {/* Borrower */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-[var(--brand-blue)]" />
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Borrower</div>
+                    <div className="text-sm text-[var(--brand-light)] font-medium truncate">{item.active_loan.user_name}</div>
+                  </div>
+                  {item.active_loan.is_guest && (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+                      Guest
+                    </span>
+                  )}
+                </div>
+
+                {/* Due Date */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-4 h-4 text-[var(--brand-primary)]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Due Date</div>
+                    <div className="text-sm text-[var(--brand-light)] font-medium">
+                      {new Date(item.active_loan.due_at).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Internal Note Card */}
+          {item.internal_note && (
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+                <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Info className="h-5 w-5 text-[var(--brand-peach)]" />
+                  Internal Note
+                </h2>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-[var(--brand-light)]/80 whitespace-pre-wrap leading-relaxed">
+                  {item.internal_note}
+                </p>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* SIDEBAR */}
-        <div className="space-y-4 sm:space-y-6">
-          {/* DETAILS CARD */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Max Borrow Duration</label>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#4D4DA4]" />
-                  <p className="text-sm sm:text-base text-[#121213] font-medium">{item.max_borrow_duration} minutes</p>
+        {/* Sidebar Column */}
+        <div className="space-y-0 sm:space-y-6">
+          
+          {/* Details Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <Package className="h-5 w-5 text-[var(--brand-primary)]" />
+                Details
+              </h2>
+            </div>
+            <div className="p-6 space-y-3">
+              {/* Max Borrow Duration */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                <div className="w-10 h-10 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-4 h-4 text-[var(--brand-purple)]" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Max Duration</div>
+                  <div className="text-sm text-[var(--brand-light)] font-medium">{item.max_borrow_duration} minutes</div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Queue</label>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#4D4DA4]" />
-                  <p className="text-sm sm:text-base font-medium">
+              {/* Queue */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-4 h-4 text-[var(--brand-blue)]" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Queue</div>
+                  <div className="text-sm text-[var(--brand-light)] font-medium">
                     {item.queue_count > 0 ? (
-                      <span className="text-[#4D4DA4] font-semibold">{item.queue_count} waiting</span>
+                      <span className="text-[var(--brand-peach)]">{item.queue_count} waiting</span>
                     ) : (
-                      <span className="text-gray-500">No queue</span>
+                      <span className="text-[var(--brand-light)]/50">No queue</span>
                     )}
-                  </p>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Created</label>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-[#4D4DA4]" />
-                  <p className="text-sm sm:text-base text-[#121213] font-medium">{new Date(item.created_at).toLocaleDateString()}</p>
+              {/* Created Date */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                <div className="w-10 h-10 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-4 h-4 text-[var(--brand-third)]" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Created</div>
+                  <div className="text-sm text-[var(--brand-light)] font-medium">{new Date(item.created_at).toLocaleDateString()}</div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              {item.internal_note && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Internal Note</label>
-                  <p className="text-sm sm:text-base text-[#121213] font-medium">{item.internal_note}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* TAGS CARD */}
+          {/* Tags Card */}
           {item.tags_details && item.tags_details.length > 0 && (
-            <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-[#4D4DA4]" />
-                  <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Tags</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+                <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-[var(--brand-peach)]" />
+                  Tags
+                </h2>
+              </div>
+              <div className="p-6">
                 <div className="flex flex-wrap gap-2">
                   {item.tags_details.map(tag => (
-                    <Badge 
-                      key={tag.id}
-                      variant="outline"
-                      className="bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE] text-sm font-semibold"
+                    <span 
+                      key={tag.id} 
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30"
                     >
-                      {tag.icon} {tag.name}
-                    </Badge>
+                      <span>{tag.icon}</span>
+                      {tag.name}
+                    </span>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
+
+          {/* Status Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Status</h2>
+            </div>
+            <div className="p-6">
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${getStatusBadgeClasses(item.status)}`}>
+                {getStatusIcon(item.status)}
+                {getStatusLabel(item.status)}
+              </div>
+              <p className="text-xs text-[var(--brand-light)]/50 mt-3">
+                {item.status === 'AVAILABLE' && 'This item is available for borrowing.'}
+                {item.status === 'BORROWED' && 'This item is currently borrowed.'}
+                {item.status === 'MAINTENANCE' && 'This item is under maintenance.'}
+                {item.status === 'MISSING' && 'This item is reported as missing.'}
+                {item.status === 'HIDDEN' && 'This item is hidden from users.'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

@@ -13,9 +13,10 @@ interface ConversationDetailProps {
     onBack?: () => void; // For mobile
     isAdmin?: boolean;
     onRefresh?: () => void; // Callback to refresh conversation list
+    darkMode?: boolean;
 }
 
-export default function ConversationDetail({ conversationId, onBack, isAdmin, onRefresh }: ConversationDetailProps) {
+export default function ConversationDetail({ conversationId, onBack, isAdmin, onRefresh, darkMode = false }: ConversationDetailProps) {
     const [detail, setDetail] = useState<ConversationDetailType | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMenu, setShowMenu] = useState(false);
@@ -73,16 +74,27 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
     };
 
     // Close menu when clicking outside
+    // Note: We use a small timeout to prevent the menu from closing immediately after opening on touch devices
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
+        if (!showMenu) return;
+        
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setShowMenu(false);
             }
         };
-        if (showMenu) {
+        
+        // Delay adding the listener to prevent immediate closure on touch devices
+        const timeoutId = setTimeout(() => {
             document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }
+            document.addEventListener('touchstart', handleClickOutside, { passive: true });
+        }, 100);
+        
+        return () => {
+            clearTimeout(timeoutId);
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
     }, [showMenu]);
 
     const handleHideClick = () => {
@@ -156,7 +168,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
     };
 
     if (loading && !detail) {
-        return <div className="h-full flex items-center justify-center text-gray-400">Loading chat...</div>;
+        return <div className={`h-full flex items-center justify-center ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-400'}`}>Loading chat...</div>;
     }
 
     if (!detail) return null;
@@ -169,26 +181,40 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
     const canReply = !isBroadcast || isAdmin;
 
     return (
-        <div className="flex flex-col h-full bg-white md:rounded-r-xl min-h-0 max-w-full overflow-hidden" style={{ height: '100%', maxHeight: '100%', overflow: 'hidden' }}>
-            {/* Header */}
-            <div className="flex-shrink-0 min-h-[56px] sm:h-16 border-b border-gray-200 flex items-center px-2 sm:px-3 md:px-4 justify-between bg-white md:rounded-tr-xl min-w-0 max-w-full">
-                <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0 flex-1">
+        <div className={`flex flex-col h-full md:rounded-r-xl min-h-0 max-w-full overflow-hidden max-h-full w-full ${
+            darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'
+        }`}>
+            {/* Header - Not fixed on mobile anymore, relative positioning */}
+            <div className={`flex-shrink-0 h-14 sm:h-16 border-b flex items-center px-3 sm:px-4 md:px-4 justify-between md:rounded-tr-xl min-w-0 w-full ${
+                darkMode 
+                    ? 'border-[var(--dark-500)] bg-[var(--dark-700)]' 
+                    : 'border-gray-200 bg-white'
+            }`}>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 w-full">
                     {onBack && (
                         <button 
                             onClick={onBack} 
-                            className="md:hidden text-gray-500 hover:text-gray-700 active:text-gray-900 flex-shrink-0 touch-manipulation p-1"
+                            className={`md:hidden flex-shrink-0 touch-manipulation p-1.5 -ml-1 ${
+                                darkMode 
+                                    ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] active:text-[var(--brand-primary)]' 
+                                    : 'text-gray-600 hover:text-gray-800 active:text-gray-900'
+                            }`}
                             aria-label="Back to inbox"
                         >
-                            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                             </svg>
                         </button>
                     )}
                     <div className="min-w-0 flex-1 overflow-hidden">
-                        <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">
+                        <h3 className={`font-semibold text-base sm:text-lg truncate leading-tight ${
+                            darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+                        }`}>
                             {detail.subject || 'No Subject'}
                         </h3>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className={`text-xs sm:text-sm truncate mt-0.5 ${
+                            darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
+                        }`}>
                             {detail.participants.length} {detail.participants.length === 1 ? 'participant' : 'participants'} • {detail.type}
                         </p>
                     </div>
@@ -197,49 +223,87 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 {/* Context Menu */}
                 <div className="relative flex-shrink-0" ref={menuRef}>
                     <button 
-                        onClick={() => setShowMenu(!showMenu)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowMenu(prev => !prev);
+                        }}
                         disabled={actionLoading}
-                        className="text-gray-400 hover:text-gray-600 active:text-gray-800 disabled:opacity-50 touch-manipulation p-1"
+                        className={`disabled:opacity-50 touch-manipulation p-2 -mr-1 ${
+                            darkMode 
+                                ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] active:text-[var(--brand-primary)]' 
+                                : 'text-gray-500 hover:text-gray-700 active:text-gray-900'
+                        }`}
                         aria-label="Conversation options"
                     >
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                         </svg>
                     </button>
                     
+                    {/* Dropdown Menu - Inline positioned */}
                     {showMenu && (
-                        <div className="absolute right-0 top-full mt-2 w-44 sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                            <button
-                                onClick={handleHideClick}
-                                disabled={actionLoading}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        <>
+                            {/* Backdrop for closing */}
+                            <div 
+                                className="fixed inset-0 z-[60]" 
+                                onClick={() => setShowMenu(false)}
+                            />
+                            <div 
+                                className={`fixed md:absolute top-[6.5rem] md:top-full right-4 md:right-0 md:mt-1 w-48 rounded-lg py-1 shadow-xl z-[61] ${
+                                    darkMode 
+                                        ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' 
+                                        : 'bg-white border border-gray-200'
+                                }`}
                             >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.367 5.19m-6.176-6.176L3 3z" />
-                                </svg>
-                                Hide Conversation
-                            </button>
-                            <button
-                                onClick={handleDeleteClick}
-                                disabled={actionLoading}
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center gap-2"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                Delete Permanently
-                            </button>
-                        </div>
+                                <button
+                                    type="button"
+                                    disabled={actionLoading}
+                                    onClick={handleHideClick}
+                                    className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:opacity-70 ${
+                                        darkMode 
+                                            ? 'text-[var(--brand-light)] hover:bg-[var(--dark-500)] active:bg-[var(--dark-500)]' 
+                                            : 'text-gray-700 hover:bg-gray-100 active:bg-gray-100'
+                                    }`}
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.367 5.19m-6.176-6.176L3 3z" />
+                                    </svg>
+                                    Hide Conversation
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={actionLoading}
+                                    onClick={handleDeleteClick}
+                                    className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:opacity-70 ${
+                                        darkMode 
+                                            ? 'text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 active:bg-[var(--brand-red)]/10' 
+                                            : 'text-red-600 hover:bg-red-50 active:bg-red-50'
+                                    }`}
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Delete Permanently
+                                </button>
+                            </div>
+                        </>
                     )}
                 </div>
             </div>
 
-            {/* Messages Area - ensure proper scrolling on mobile, add padding-bottom for fixed composer */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:pb-3 md:pb-4 bg-gray-50 custom-scrollbar min-h-0" style={{ WebkitOverflowScrolling: 'touch', overflowY: 'auto', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
+            {/* Messages Area - ensure proper scrolling on mobile */}
+            {/* Add bottom padding on mobile to account for fixed input */}
+            <div className={`flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar min-h-0 pb-20 md:pb-0 w-full overflow-x-hidden ${
+                darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'
+            }`}>
                 {/* System Notice for Broadcasts */}
                 {isBroadcast && (
                     <div className="flex justify-center mb-4 sm:mb-6">
-                        <span className="bg-yellow-100 text-yellow-800 text-xs px-2 sm:px-3 py-1 rounded-full font-medium text-center">
+                        <span className={`text-xs px-2 sm:px-3 py-1 rounded-full font-medium text-center ${
+                            darkMode 
+                                ? 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]' 
+                                : 'bg-yellow-100 text-yellow-800'
+                        }`}>
                             📢 This is a one-way broadcast message.
                         </span>
                     </div>
@@ -249,6 +313,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                     <MessageBubble 
                         key={msg.id} 
                         message={msg}
+                        darkMode={darkMode}
                         onReactionUpdate={(messageId, reactionData) => {
                             // Update the message in the detail state
                             setDetail(prev => {
@@ -273,21 +338,44 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 <div ref={bottomRef} />
             </div>
 
-            {/* Composer or Action Area - fixed to viewport bottom on mobile, relative on desktop */}
+            {/* Composer or Action Area - Fixed at bottom on mobile, relative on desktop */}
             {canReply ? (
-                <div className="md:relative fixed md:static bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 md:border-t-0 shadow-lg md:shadow-none" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
-                    <MessageComposer onSend={handleSend} />
-                </div>
+                <>
+                    {/* Mobile: Fixed at bottom, full width, outside card */}
+                    <div className={`md:hidden fixed bottom-0 left-0 right-0 z-30 border-t w-screen max-w-screen overflow-x-hidden ${
+                        darkMode 
+                            ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
+                            : 'bg-white border-gray-200 shadow-lg'
+                    }`}>
+                        <MessageComposer onSend={handleSend} darkMode={darkMode} />
+                    </div>
+                    {/* Desktop: Relative inside card */}
+                    <div className={`hidden md:block flex-shrink-0 border-t ${
+                        darkMode 
+                            ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
+                            : 'bg-white border-gray-200'
+                    }`}>
+                        <MessageComposer onSend={handleSend} darkMode={darkMode} />
+                    </div>
+                </>
             ) : (
-                <div className="p-4 border-t border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2">
-                    <p className="text-sm text-gray-500">Replies are disabled for this conversation.</p>
+                <div className={`flex-shrink-0 p-4 border-t flex flex-col items-center justify-center gap-2 ${
+                    darkMode 
+                        ? 'border-[var(--dark-500)] bg-[var(--dark-700)]' 
+                        : 'border-gray-200 bg-gray-50'
+                }`}>
+                    <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Replies are disabled for this conversation.</p>
                     <button 
                         onClick={() => setToast({ 
                             message: "Redirect to create new DM with sender logic here", 
                             type: 'info', 
                             isVisible: true 
                         })}
-                        className="text-[#4D4DA4] font-bold text-sm hover:text-[#FF5485] hover:underline transition-colors"
+                        className={`font-bold text-sm hover:underline transition-colors ${
+                            darkMode 
+                                ? 'text-[var(--brand-primary)] hover:text-[var(--brand-purple)]' 
+                                : 'text-[#4D4DA4] hover:text-[#FF5485]'
+                        }`}
                     >
                         Contact Staff Directly
                     </button>
@@ -305,6 +393,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 cancelButtonText="Cancel"
                 isLoading={actionLoading}
                 variant="warning"
+                darkMode={darkMode}
             />
 
             {/* Delete Confirmation Modal */}
@@ -318,6 +407,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 cancelButtonText="Cancel"
                 isLoading={actionLoading}
                 variant="danger"
+                darkMode={darkMode}
             />
 
             {/* Toast Notification */}

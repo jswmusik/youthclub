@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 import { Course } from '@/types/learning';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Clock, PlayCircle, CheckCircle, ArrowRight } from 'lucide-react';
 
 interface Props {
@@ -18,9 +16,9 @@ export default function CourseCard({ course, href }: Props) {
 
     return (
         <Link href={href} className="block h-full group">
-            <Card className="h-full overflow-hidden border-2 border-transparent hover:border-[#4D4DA4]/30 hover:shadow-xl transition-all duration-300 flex flex-col bg-white hover:-translate-y-1 p-0">
+            <div className="h-full overflow-hidden border-2 border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30 hover:shadow-xl transition-all duration-300 flex flex-col bg-[var(--dark-800)] hover:-translate-y-1 rounded-none sm:rounded-2xl">
                 {/* Cover Image - Reduced height */}
-                <div className="relative h-28 bg-gradient-to-br from-[#4D4DA4] via-[#6B6BC4] to-[#FF5485] overflow-hidden">
+                <div className="relative h-28 bg-gradient-to-br from-[var(--brand-primary)] via-[var(--brand-purple)] to-[var(--brand-peach)] overflow-hidden">
                     {course.cover_image ? (
                         <img 
                             src={course.cover_image} 
@@ -38,7 +36,7 @@ export default function CourseCard({ course, href }: Props) {
                     
                     {/* Status Badge overlay */}
                     {isCompleted && (
-                        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg animate-pulse">
+                        <div className="absolute top-2 right-2 bg-[var(--brand-green)] text-[var(--dark-900)] text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg animate-pulse">
                             <CheckCircle className="w-3 h-3" /> Completed
                         </div>
                     )}
@@ -46,50 +44,50 @@ export default function CourseCard({ course, href }: Props) {
                     {/* Category Badge */}
                     {course.category_name && (
                         <div className="absolute top-2 left-2">
-                            <Badge className="bg-white/90 backdrop-blur-sm text-[#4D4DA4] text-[10px] font-semibold px-2 py-0.5 border-0 shadow-sm">
+                            <span className="px-2 py-0.5 bg-[var(--dark-800)]/90 backdrop-blur-sm text-[var(--brand-light)] text-[10px] font-semibold rounded-full border-0 shadow-sm">
                                 {course.category_name}
-                            </Badge>
+                            </span>
                         </div>
                     )}
                 </div>
 
-                <CardHeader className="p-4 pb-2">
-                    <h3 className="font-bold text-base leading-tight group-hover:text-[#4D4DA4] transition-colors line-clamp-2 mb-2">
+                <div className="p-4 pb-2">
+                    <h3 className="font-bold text-base leading-tight group-hover:text-[var(--brand-primary)] transition-colors line-clamp-2 mb-2 text-[var(--brand-light)]">
                         {course.title}
                     </h3>
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-[var(--brand-light)]/50 line-clamp-2 leading-relaxed">
                         {course.description}
                     </p>
-                </CardHeader>
+                </div>
 
-                <CardFooter className="p-4 pt-0 mt-auto">
+                <div className="p-4 pt-0 mt-auto">
                     {isStarted ? (
                         <div className="w-full space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-gray-700">{progress}% complete</span>
-                                <span className="text-gray-400">Continue</span>
+                                <span className="font-semibold text-[var(--brand-light)]">{progress}% complete</span>
+                                <span className="text-[var(--brand-light)]/40">Continue</span>
                             </div>
                             {/* Animated Progress Bar */}
-                            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                            <div className="w-full bg-[var(--dark-600)] rounded-full h-2 overflow-hidden">
                                 <div 
-                                    className="bg-gradient-to-r from-[#4D4DA4] to-[#FF5485] h-full rounded-full transition-all duration-500 shadow-sm"
+                                    className="bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] h-full rounded-full transition-all duration-500 shadow-sm"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
                         </div>
                     ) : (
                         <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center text-xs text-gray-500 gap-1.5">
+                            <div className="flex items-center text-xs text-[var(--brand-light)]/50 gap-1.5">
                                 <Clock className="w-3.5 h-3.5" />
                                 <span className="font-medium">Start learning</span>
                             </div>
-                            <div className="p-1.5 bg-[#EBEBFE] rounded-full group-hover:bg-[#4D4DA4] transition-colors duration-300">
-                                <ArrowRight className="w-3.5 h-3.5 text-[#4D4DA4] group-hover:text-white transition-colors duration-300" />
+                            <div className="p-1.5 bg-[var(--brand-primary)]/20 rounded-full group-hover:bg-[var(--brand-primary)] transition-colors duration-300">
+                                <ArrowRight className="w-3.5 h-3.5 text-[var(--brand-primary)] group-hover:text-white transition-colors duration-300" />
                             </div>
                         </div>
                     )}
-                </CardFooter>
-            </Card>
+                </div>
+            </div>
         </Link>
     );
 }

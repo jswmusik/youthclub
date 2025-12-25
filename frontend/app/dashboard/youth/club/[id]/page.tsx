@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
-import api from '@/lib/api';
+import api, { visits } from '@/lib/api';
 import { Club } from '@/types/organization';
 import ClubHeader from '@/app/components/club/ClubHeader';
 import ClubTabs from '@/app/components/club/ClubTabs';
@@ -13,25 +13,27 @@ import ClubPolicies from '@/app/components/club/tabs/ClubPolicies';
 import ClubContact from '@/app/components/club/tabs/ClubContact';
 import ClubEvents from '@/app/components/club/tabs/ClubEvents';
 import NavBar from '@/app/components/NavBar';
-
-// Placeholder components for the tabs (We will build these next)
-const PlaceholderTab = ({ name }: { name: string }) => (
-  <div className="p-8 text-center text-gray-500 bg-white rounded-lg shadow mt-4">
-    <h3 className="text-lg font-medium">{name}</h3>
-    <p>This section is under construction.</p>
-  </div>
-);
+import YouthSidebar from '@/app/components/youth/YouthSidebar';
+import { useAuth } from '@/context/AuthContext';
+import { X } from 'lucide-react';
+import YouthFooter from '@/app/components/youth/YouthFooter';
 
 export default function ClubDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useAuth();
   const id = params?.id;
 
   const [club, setClub] = useState<Club | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isTabsSticky, setIsTabsSticky] = useState(false);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabsInitialTopRef = useRef<number | null>(null);
   
   // Get initial tab from URL, default to 'overview'
   const tabFromUrl = searchParams.get('tab');
@@ -86,61 +88,174 @@ export default function ClubDetailsPage() {
     }
   }, [id]);
 
+  // Check active visit status
+  useEffect(() => {
+    if (!user || user.role !== 'YOUTH_MEMBER') return;
+
+    const checkVisitStatus = async () => {
+      try {
+        const res = await visits.getMyActiveVisit();
+        setIsCheckedIn(res.data?.is_checked_in || false);
+      } catch (e) {
+        setIsCheckedIn(false);
+      }
+    };
+    
+    checkVisitStatus();
+    const interval = setInterval(checkVisitStatus, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Handle tabs sticky behavior - stick when navbar reaches tabs, unstick when scrolling back up
+  useEffect(() => {
+    // Only run after club data is loaded
+    if (!club) return;
+    
+    // Small delay to ensure DOM has updated after club loads
+    const initTimeout = setTimeout(() => {
+      if (tabsRef.current) {
+        const rect = tabsRef.current.getBoundingClientRect();
+        tabsInitialTopRef.current = rect.top + window.scrollY;
+      }
+    }, 100);
+    
+    const handleScroll = () => {
+      if (!tabsRef.current || tabsInitialTopRef.current === null) return;
+      
+      const scrollY = window.scrollY;
+      const initialTop = tabsInitialTopRef.current;
+      // Navbar height: h-14 (56px) on mobile, h-16 (64px) on desktop (sm and up)
+      // Plus checked-in bar if present: ~34px
+      const navbarHeight = window.innerWidth >= 640 ? 64 : 56;
+      const checkedInHeight = isCheckedIn ? 34 : 0;
+      const totalHeaderHeight = navbarHeight + checkedInHeight;
+      
+      // Should stick when: scrolled past the point where tabs top would be at navbar height
+      // Should unstick when: scrolled back up before that point
+      const threshold = initialTop - totalHeaderHeight;
+      const shouldStick = scrollY >= threshold;
+      
+      setIsTabsSticky(shouldStick);
+    };
+    
+    // Add scroll listener after a short delay to ensure initial position is set
+    const scrollTimeout = setTimeout(() => {
+      handleScroll();
+      window.addEventListener('scroll', handleScroll);
+    }, 150);
+    
+    return () => {
+      clearTimeout(initTimeout);
+      clearTimeout(scrollTimeout);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [club, isCheckedIn]);
+
   if (loading) return (
-    <div className="min-h-screen bg-gray-50">
-      <NavBar />
-      <div className="p-8 text-center">Loading club details...</div>
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+      <div className="pt-14 sm:pt-16 flex justify-center py-12">
+        <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+      </div>
     </div>
   );
 
   if (error || !club) return (
-    <div className="min-h-screen bg-gray-50">
-      <NavBar />
-      <div className="p-8 text-center text-red-500">{error || 'Club not found'}</div>
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+      <div className="pt-14 sm:pt-16 text-center py-12 text-[var(--brand-red)]">{error || 'Club not found'}</div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12">
-      <NavBar />
+    <div className="min-h-screen bg-[var(--dark-900)] pb-24 md:pb-12">
+      {/* Fixed NavBar with hamburger menu */}
+      <NavBar 
+        darkMode={true} 
+        showBackButton={true} 
+        onMenuToggle={() => setIsSidebarOpen(true)} 
+      />
       
-      {/* Profile Header Container - same width as youth profile */}
-      <div className="max-w-6xl mx-auto md:pt-6 md:px-6">
-        <ClubHeader club={club} />
-      </div>
+      {/* Mobile Sidebar Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/70 z-40 md:hidden transition-opacity duration-300 ${
+          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      
+      {/* Mobile Sidebar */}
+      <aside 
+        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+          <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
+          <YouthSidebar activePath={pathname} darkMode />
+        </div>
+      </aside>
+      
+      {/* Main Content */}
+      <div className="pt-14 sm:pt-16">
+        {/* Club Header */}
+        <div className="max-w-6xl mx-auto md:pt-6 px-0 md:px-6">
+          <ClubHeader club={club} darkMode={true} />
+        </div>
 
-      {/* Tabs & Content - same spacing as youth profile */}
-      <div className="mt-4">
-        <ClubTabs activeTab={activeTab} onChange={handleTabChange} excludeTabs={['visits']} />
+        {/* Tabs Navigation - becomes sticky on scroll */}
+        <div ref={tabsRef} className="mt-6">
+          <ClubTabs 
+            activeTab={activeTab} 
+            onChange={handleTabChange} 
+            excludeTabs={['visits']} 
+            darkMode={true}
+            isCheckedIn={isCheckedIn}
+            isSticky={isTabsSticky}
+          />
+        </div>
         
-        {/* Content Area */}
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
-        {activeTab === 'overview' && club && (
-          <ClubOverview club={club} onChangeTab={handleTabChange} />
-        )}
-        
-        {activeTab === 'groups' && club && (
-          <ClubGroups clubId={club.id} />
-        )}
+        {/* Spacer to maintain layout when tabs are sticky */}
+        {isTabsSticky && <div className="h-[57px]"></div>}
 
-        {activeTab === 'hours' && club && (
-          <ClubHours club={club} />
-        )}
+        {/* Tab Content */}
+        <div className="max-w-6xl mx-auto px-0 sm:px-4 md:px-6 py-6">
+          {activeTab === 'overview' && club && (
+            <ClubOverview club={club} onChangeTab={handleTabChange} darkMode={true} />
+          )}
+          
+          {activeTab === 'groups' && club && (
+            <ClubGroups clubId={club.id} darkMode={true} />
+          )}
 
-        {activeTab === 'events' && (
-          <ClubEvents />
-        )}
-        
-        {activeTab === 'policies' && club && (
-          <ClubPolicies club={club} />
-        )}
+          {activeTab === 'hours' && club && (
+            <ClubHours club={club} darkMode={true} />
+          )}
 
-        {activeTab === 'contact' && club && (
-          <ClubContact club={club} />
-        )}
+          {activeTab === 'events' && club && (
+            <ClubEvents clubId={club.id} darkMode={true} />
+          )}
+          
+          {activeTab === 'policies' && club && (
+            <ClubPolicies club={club} darkMode={true} />
+          )}
+
+          {activeTab === 'contact' && club && (
+            <ClubContact club={club} darkMode={true} />
+          )}
         </div>
       </div>
+      
+      {/* Footer */}
+      <YouthFooter />
     </div>
   );
 }
-

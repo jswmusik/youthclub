@@ -1,20 +1,18 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { 
+  ArrowLeft, Upload, X, Search, CheckCircle2, Lightbulb, Save,
+  Users, Layers, Image, Target, UserPlus, Heart, Settings, Globe, Lock, FileQuestion
+} from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import Toast from './Toast';
 import MemberSelector from './MemberSelector';
 import CustomRuleBuilder from './CustomRuleBuilder';
 import { getMediaUrl } from '../utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 
 interface Interest {
   id: number;
@@ -22,11 +20,11 @@ interface Interest {
 }
 
 interface GroupFormProps {
-  initialData?: any; // If provided, we are in "Edit Mode"
-  redirectPath: string; // Where to go after saving
+  initialData?: any;
+  redirectPath: string;
 }
 
-const GRADES = Array.from({ length: 13 }, (_, i) => i + 1); // [1, 2, ... 12, 13]
+const GRADES = Array.from({ length: 13 }, (_, i) => i + 1);
 const GENDERS = [
   { value: 'MALE', label: 'Male' },
   { value: 'FEMALE', label: 'Female' },
@@ -36,17 +34,26 @@ const GENDERS = [
 export default function GroupForm({ initialData, redirectPath }: GroupFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const progressPlaceholderRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLInputElement>(null);
+  const bgRef = useRef<HTMLInputElement>(null);
+  
   const [loading, setLoading] = useState(false);
   const [interestsList, setInterestsList] = useState<Interest[]>([]);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isProgressFixed, setIsProgressFixed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   
   // File uploads
-  const avatarRef = useRef<HTMLInputElement>(null);
-  const bgRef = useRef<HTMLInputElement>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [backgroundImageFile, setBackgroundImageFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
+
+  // Interest search
+  const [interestSearchTerm, setInterestSearchTerm] = useState('');
+  const [showInterestDropdown, setShowInterestDropdown] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -59,18 +66,24 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
     grades: [] as number[],
     genders: [] as string[],
     interests: [] as number[],
-    custom_field_rules: {} as Record<string, any>, // NEW: Custom Fields
+    custom_field_rules: {} as Record<string, any>,
     members_to_add: [] as number[],
   });
 
+  // Track component mount for portal
   useEffect(() => {
-    // 1. Fetch Interests
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  useEffect(() => {
+    // Fetch Interests
     api.get('/interests/').then(res => {
       const data = Array.isArray(res.data) ? res.data : res.data.results;
       setInterestsList(data || []);
     });
 
-    // 2. Load Initial Data (if editing)
+    // Load Initial Data (if editing)
     if (initialData) {
       setFormData({
         name: initialData.name,
@@ -82,11 +95,10 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
         grades: initialData.grades || [],
         genders: initialData.genders || [],
         interests: initialData.interests || [],
-        custom_field_rules: initialData.custom_field_rules || {}, // Load existing rules
+        custom_field_rules: initialData.custom_field_rules || {},
         members_to_add: [],
       });
       
-      // Set previews for existing images
       if (initialData.avatar) {
         setAvatarPreview(getMediaUrl(initialData.avatar));
       }
@@ -96,7 +108,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
     }
   }, [initialData]);
   
-  // Clean up object URLs to prevent memory leaks
+  // Clean up object URLs
   useEffect(() => {
     return () => {
       if (avatarPreview && avatarPreview.startsWith('blob:')) {
@@ -107,6 +119,45 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
       }
     };
   }, [avatarPreview, backgroundPreview]);
+
+  // Calculate completion percentage
+  const calculateCompletion = useCallback(() => {
+    const requiredFields = [formData.name];
+    const filled = requiredFields.filter(f => f && f.toString().trim()).length;
+    return Math.round((filled / requiredFields.length) * 100);
+  }, [formData]);
+
+  const completionPercent = calculateCompletion();
+
+  // Progress scroll tracking
+  const checkScroll = useCallback(() => {
+    if (!progressPlaceholderRef.current) return;
+    const rect = progressPlaceholderRef.current.getBoundingClientRect();
+    const mainElement = document.querySelector('main');
+    const headerHeight = mainElement ? 0 : 64;
+    setIsProgressFixed(rect.top < headerHeight);
+  }, []);
+
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.addEventListener('scroll', checkScroll);
+    }
+    window.addEventListener('scroll', checkScroll);
+    checkScroll();
+    
+    return () => {
+      if (mainElement) {
+        mainElement.removeEventListener('scroll', checkScroll);
+      }
+      window.removeEventListener('scroll', checkScroll);
+    };
+  }, [checkScroll]);
+
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
 
   // --- Handlers ---
 
@@ -129,10 +180,27 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
   const toggleInterest = (id: number) => {
     setFormData(prev => {
       const exists = prev.interests.includes(id);
-      if (exists) return { ...prev, interests: prev.interests.filter(i => i !== id) };
-      return { ...prev, interests: [...prev.interests, id] };
+      return { 
+        ...prev, 
+        interests: exists ? prev.interests.filter(i => i !== id) : [...prev.interests, id] 
+      };
     });
+    setInterestSearchTerm('');
+    setShowInterestDropdown(false);
   };
+
+  const removeInterest = (id: number) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.filter(i => i !== id)
+    }));
+  };
+
+  const getSelectedInterests = () => formData.interests.map(id => interestsList.find(i => i.id === id)).filter(Boolean) as Interest[];
+  
+  const filteredInterests = interestsList.filter(i => 
+    i.name.toLowerCase().includes(interestSearchTerm.toLowerCase()) && !formData.interests.includes(i.id)
+  );
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -175,7 +243,6 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
     try {
       const data = new FormData();
       
-      // Basic fields
       data.append('name', formData.name);
       data.append('description', formData.description);
       data.append('group_type', formData.group_type);
@@ -188,15 +255,11 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
         data.append('max_age', parseInt(formData.max_age as string).toString());
       }
       
-      // Arrays
       data.append('grades', JSON.stringify(formData.grades));
       data.append('genders', JSON.stringify(formData.genders));
       formData.interests.forEach(id => data.append('interests', id.toString()));
-      
-      // Custom field rules - always send, even if empty
       data.append('custom_field_rules', JSON.stringify(formData.custom_field_rules || {}));
       
-      // File uploads - only append if new files are selected
       if (avatarFile) {
         data.append('avatar', avatarFile);
       }
@@ -204,24 +267,18 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
         data.append('background_image', backgroundImageFile);
       }
       
-      // Members to add
       formData.members_to_add.forEach(id => data.append('members_to_add', id.toString()));
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
 
       if (initialData) {
-        // Update
         await api.patch(`/groups/${initialData.id}/`, data, config);
         setToast({ message: 'Group updated successfully!', type: 'success', isVisible: true });
       } else {
-        // Create
         await api.post('/groups/', data, config);
         setToast({ message: 'Group created successfully!', type: 'success', isVisible: true });
       }
       
-      // Delay redirect slightly to show toast
-      // Use redirectPath as-is if it already contains query parameters
-      // Otherwise, append current search params
       let finalRedirectPath = redirectPath;
       if (!redirectPath.includes('?')) {
         const currentSearchParams = searchParams.toString();
@@ -240,329 +297,677 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
     }
   };
 
+  // Styling
+  const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
+  
+  const inputClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl appearance-none cursor-pointer
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)]
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 1rem center',
+    backgroundSize: '1rem'
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'OPEN': return <Globe className="w-4 h-4" />;
+      case 'APPLICATION': return <FileQuestion className="w-4 h-4" />;
+      case 'CLOSED': return <Lock className="w-4 h-4" />;
+      default: return <Layers className="w-4 h-4" />;
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={redirectPath}>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {initialData ? 'Edit Group' : 'Create New Group'}
-          </h1>
-          <p className="text-sm text-muted-foreground">Define the rules for who belongs in this group.</p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
         
-        {/* 1. Basic Information */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Enter group name, type, and description.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Group Name <span className="text-red-500">*</span></Label>
-                <Input 
-                  required
-                  placeholder="e.g. Summer Football Camp"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Group Type <span className="text-red-500">*</span></Label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value={formData.group_type}
-                  onChange={e => setFormData({...formData, group_type: e.target.value})}
-                >
-                  <option value="OPEN">Open (Join Freely)</option>
-                  <option value="APPLICATION">Application Required</option>
-                  <option value="CLOSED">Closed (Invite Only)</option>
-                </select>
-              </div>
-            </div>
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+          <Link 
+            href={buildUrlWithParams(redirectPath)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+              {initialData ? 'Edit Group' : 'Create New Group'}
+            </h1>
+            <p className="text-[var(--brand-light)]/50 text-sm mt-1">
+              Define the rules for who belongs in this group
+            </p>
+          </div>
+        </div>
 
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <textarea 
-                rows={3}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                placeholder="Describe what this group is about..."
-                value={formData.description}
-                onChange={e => setFormData({...formData, description: e.target.value})}
+        {/* Progress Indicator */}
+        <div 
+          ref={progressPlaceholderRef}
+          className="mb-6 sm:mb-8"
+          style={{ minHeight: isProgressFixed ? 72 : 'auto' }}
+        >
+          <div 
+            className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}
+            role="region"
+            aria-label="Form completion progress"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+            </div>
+            <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${completionPercent}%` }}
               />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* 2. Profile Visuals */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Profile Visuals</CardTitle>
-            <CardDescription>Upload profile images for this group.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Background Image */}
-              <div className="space-y-2">
-                <Label>Cover Image</Label>
-                <div className="flex gap-4 items-center">
-                  <div className="relative group h-20 w-32 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => bgRef.current?.click()}>
-                    {backgroundPreview ? (
-                      <>
-                        <img src={backgroundPreview} className="h-full w-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Upload className="h-5 w-5 text-white" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-2">
-                        <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                        <span className="text-[10px] text-muted-foreground">Click to upload</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex gap-2">
-                      <Button type="button" variant="secondary" size="sm" onClick={() => bgRef.current?.click()}>Choose File</Button>
-                      {backgroundPreview && (
-                        <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleRemoveImage('bg')}>
-                          <X className="h-4 w-4 mr-1" /> Remove
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Recommended: 1200x400px</p>
-                  </div>
-                  <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={handleBackgroundChange} />
-                </div>
-              </div>
-
-              {/* Avatar */}
-              <div className="space-y-2">
-                <Label>Avatar</Label>
-                <div className="flex gap-4 items-center">
-                  <div className="relative group h-20 w-20 rounded-full border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => avatarRef.current?.click()}>
-                    {avatarPreview ? (
-                      <>
-                        <img src={avatarPreview} className="h-full w-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Upload className="h-5 w-5 text-white" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-2">
-                        <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                        <span className="text-[10px] text-muted-foreground">Click to upload</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex gap-2">
-                      <Button type="button" variant="secondary" size="sm" onClick={() => avatarRef.current?.click()}>Choose File</Button>
-                      {avatarPreview && (
-                        <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleRemoveImage('avatar')}>
-                          <X className="h-4 w-4 mr-1" /> Remove
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Recommended: Square image, 400x400px</p>
-                  </div>
-                  <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 3. Membership Rules */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Membership Rules</CardTitle>
-            <CardDescription>Define who can join this group based on criteria.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-6">
-            {/* Member Type */}
-            <div className="space-y-2">
-              <Label>Target Audience</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center space-x-2 cursor-pointer flex-1">
-                  <input 
-                    type="radio" 
-                    name="member_type"
-                    value="YOUTH"
-                    checked={formData.target_member_type === 'YOUTH'}
-                    onChange={e => setFormData({...formData, target_member_type: e.target.value})}
-                    className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  />
-                  <span className="text-sm font-medium">Youth Members</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer flex-1">
-                  <input 
-                    type="radio" 
-                    name="member_type"
-                    value="GUARDIAN"
-                    checked={formData.target_member_type === 'GUARDIAN'}
-                    onChange={e => setFormData({...formData, target_member_type: e.target.value})}
-                    className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  />
-                  <span className="text-sm font-medium">Guardians</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Age Range */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Min Age</Label>
-                <Input 
-                  type="number" 
-                  min="0" 
-                  max="100"
-                  placeholder="Any"
-                  value={formData.min_age}
-                  onChange={e => setFormData({...formData, min_age: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Max Age</Label>
-                <Input 
-                  type="number" 
-                  min="0" 
-                  max="100"
-                  placeholder="Any"
-                  value={formData.max_age}
-                  onChange={e => setFormData({...formData, max_age: e.target.value})}
-                />
-              </div>
-            </div>
-
-            {/* Grades (Only if Youth) */}
-            {formData.target_member_type === 'YOUTH' && (
-              <div className="space-y-2">
-                <Label>Allowed Grades</Label>
-                <div className="flex flex-wrap gap-2">
-                  {GRADES.map(grade => (
-                    <button
-                      key={grade}
-                      type="button"
-                      onClick={() => toggleGrade(grade)}
-                      className={`w-10 h-10 rounded-full font-bold text-sm transition
-                        ${formData.grades.includes(grade) 
-                          ? 'bg-[#4D4DA4] text-white shadow-md' 
-                          : 'bg-white border border-input text-gray-600 hover:border-[#4D4DA4]'}
-                      `}
-                    >
-                      {grade}
-                    </button>
-                  ))}
-                </div>
-                {formData.grades.length === 0 && <p className="text-xs text-muted-foreground mt-1">Leave empty to allow all grades.</p>}
+            {completionPercent === 100 && (
+              <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm font-medium">All required fields completed!</span>
               </div>
             )}
+          </div>
+        </div>
 
-            {/* Gender */}
-            <div className="space-y-2">
-              <Label>Allowed Genders</Label>
-              <div className="flex gap-4">
-                {GENDERS.map(g => (
-                  <label key={g.value} className="flex items-center space-x-2 cursor-pointer">
-                    <input 
-                      type="checkbox"
-                      checked={formData.genders.includes(g.value)}
-                      onChange={() => toggleGender(g.value)}
-                      className="text-[#4D4DA4] focus:ring-[#4D4DA4] rounded"
-                    />
-                    <span className="text-sm">{g.label}</span>
+        {/* Fixed Progress Indicator - rendered via portal */}
+        {isMounted && createPortal(
+          <div 
+            className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}
+            role="region"
+            aria-label="Form completion progress"
+            aria-hidden={!isProgressFixed}
+          >
+            <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+              </div>
+              <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+              {completionPercent === 100 && (
+                <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-sm font-medium">All required fields completed!</span>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Main Form */}
+        <form onSubmit={handleSubmit}>
+          
+          {/* Basic Information Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Layers className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Enter group name, type, and description</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="name" className={labelClasses}>
+                    Group Name <span className="text-[var(--brand-primary)]">*</span>
                   </label>
-                ))}
-              </div>
-              {formData.genders.length === 0 && <p className="text-xs text-muted-foreground mt-1">Leave empty to allow all genders.</p>}
-            </div>
-
-            {/* Interests */}
-            <div className="space-y-2">
-              <Label>Required Interests</Label>
-              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto border border-input p-4 rounded-lg bg-muted/30">
-                {interestsList.map(interest => (
-                  <button
-                    key={interest.id}
-                    type="button"
-                    onClick={() => toggleInterest(interest.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition
-                      ${formData.interests.includes(interest.id)
-                        ? 'bg-[#4D4DA4] text-white'
-                        : 'bg-white border border-input text-gray-600 hover:border-[#4D4DA4]'}
-                    `}
+                  <input 
+                    id="name"
+                    type="text"
+                    required
+                    placeholder="e.g. Summer Football Camp"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    onFocus={() => setFocusedField('name')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('name')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="group_type" className={labelClasses}>
+                    Group Type <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <select 
+                    id="group_type"
+                    value={formData.group_type}
+                    onChange={e => setFormData({...formData, group_type: e.target.value})}
+                    onFocus={() => setFocusedField('group_type')}
+                    onBlur={() => setFocusedField(null)}
+                    className={selectClasses('group_type')}
+                    style={selectArrowStyle}
                   >
-                    {interest.name}
-                  </button>
-                ))}
+                    <option value="OPEN">Open (Join Freely)</option>
+                    <option value="APPLICATION">Application Required</option>
+                    <option value="CLOSED">Closed (Invite Only)</option>
+                  </select>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Users matching ANY of selected interests will be eligible.</p>
+
+              {/* Group Type Visual Selector */}
+              <div>
+                <label className={labelClasses}>Access Type</label>
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { value: 'OPEN', label: 'Open', desc: 'Anyone can join', icon: Globe, color: 'green' },
+                    { value: 'APPLICATION', label: 'Application', desc: 'Requires approval', icon: FileQuestion, color: 'blue' },
+                    { value: 'CLOSED', label: 'Closed', desc: 'Invite only', icon: Lock, color: 'gray' },
+                  ].map(type => {
+                    const isSelected = formData.group_type === type.value;
+                    const Icon = type.icon;
+                    const colorClasses = {
+                      green: isSelected ? 'border-[var(--brand-green)] bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : '',
+                      blue: isSelected ? 'border-[var(--brand-blue)] bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]' : '',
+                      gray: isSelected ? 'border-[var(--brand-light)]/50 bg-[var(--dark-600)] text-[var(--brand-light)]' : '',
+                    };
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => setFormData({...formData, group_type: type.value})}
+                        className={`flex-1 min-w-[120px] p-4 rounded-xl border-2 transition-all ${
+                          isSelected 
+                            ? colorClasses[type.color as keyof typeof colorClasses]
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:border-[var(--brand-primary)]/50'
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 mx-auto mb-2 ${isSelected ? '' : 'text-[var(--brand-light)]/40'}`} />
+                        <div className={`text-sm font-semibold ${isSelected ? '' : 'text-[var(--brand-light)]'}`}>{type.label}</div>
+                        <div className={`text-xs mt-0.5 ${isSelected ? 'opacity-80' : 'text-[var(--brand-light)]/40'}`}>{type.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="description" className={labelClasses}>
+                  Description
+                </label>
+                <textarea 
+                  id="description"
+                  rows={3}
+                  placeholder="Describe what this group is about..."
+                  value={formData.description}
+                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  onFocus={() => setFocusedField('description')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`${inputClasses('description')} h-auto min-h-[100px] py-3`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Profile Visuals Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Image className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Profile Visuals</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Upload profile images for this group</p>
+                </div>
+              </div>
             </div>
 
-            {/* Custom Field Rules */}
-            <div className="space-y-2">
-              <Label>Custom Field Rules</Label>
-              <p className="text-xs text-muted-foreground mb-2">Members must match ALL these additional conditions.</p>
-              <CustomRuleBuilder 
-                currentRules={formData.custom_field_rules}
-                onChange={(newRules) => setFormData(prev => ({...prev, custom_field_rules: newRules}))}
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Cover Image */}
+                <div>
+                  <label className={labelClasses}>Cover Image</label>
+                  <div className="flex items-start gap-4">
+                    <div 
+                      className="relative group w-24 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => bgRef.current?.click()}
+                    >
+                      {backgroundPreview ? (
+                        <>
+                          <img src={backgroundPreview} alt="Cover preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Upload className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
+                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => bgRef.current?.click()}
+                          className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
+                        >
+                          Choose File
+                        </button>
+                        {backgroundPreview && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveImage('bg')}
+                            className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
+                          >
+                            <X className="h-3 w-3" /> Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--brand-light)]/40">1200x400px (JPG, PNG)</p>
+                    </div>
+                    <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={handleBackgroundChange} />
+                  </div>
+                </div>
+
+                {/* Avatar */}
+                <div>
+                  <label className={labelClasses}>Avatar</label>
+                  <div className="flex items-start gap-4">
+                    <div 
+                      className="relative group w-16 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => avatarRef.current?.click()}
+                    >
+                      {avatarPreview ? (
+                        <>
+                          <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Upload className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <Upload className="h-4 w-4 text-[var(--brand-light)]/40 mx-auto mb-0.5" />
+                          <span className="text-[9px] text-[var(--brand-light)]/40">Upload</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => avatarRef.current?.click()}
+                          className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
+                        >
+                          Choose File
+                        </button>
+                        {avatarPreview && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveImage('avatar')}
+                            className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
+                          >
+                            <X className="h-3 w-3" /> Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--brand-light)]/40">Square image, 400x400px</p>
+                    </div>
+                    <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Membership Rules Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Membership Rules</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Define who can join this group based on criteria</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Target Audience */}
+              <div>
+                <label className={labelClasses}>Target Audience</label>
+                <div className="flex gap-3">
+                  {[
+                    { value: 'YOUTH', label: 'Youth Members', icon: Users },
+                    { value: 'GUARDIAN', label: 'Guardians', icon: Users },
+                  ].map(type => {
+                    const isSelected = formData.target_member_type === type.value;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => setFormData({...formData, target_member_type: type.value})}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-medium text-sm transition-all ${
+                          isSelected 
+                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]'
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:border-[var(--brand-primary)]/50'
+                        }`}
+                      >
+                        <type.icon className="w-4 h-4" />
+                        {type.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Age Range */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="min_age" className={labelClasses}>
+                    Min Age
+                  </label>
+                  <input 
+                    id="min_age"
+                    type="number" 
+                    min="0" 
+                    max="100"
+                    placeholder="Any"
+                    value={formData.min_age}
+                    onChange={e => setFormData({...formData, min_age: e.target.value})}
+                    onFocus={() => setFocusedField('min_age')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('min_age')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="max_age" className={labelClasses}>
+                    Max Age
+                  </label>
+                  <input 
+                    id="max_age"
+                    type="number" 
+                    min="0" 
+                    max="100"
+                    placeholder="Any"
+                    value={formData.max_age}
+                    onChange={e => setFormData({...formData, max_age: e.target.value})}
+                    onFocus={() => setFocusedField('max_age')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('max_age')}
+                  />
+                </div>
+              </div>
+
+              {/* Grades (Only if Youth) */}
+              {formData.target_member_type === 'YOUTH' && (
+                <>
+                  <div className="h-px bg-[var(--dark-600)]" />
+                  <div>
+                    <label className={labelClasses}>Allowed Grades</label>
+                    <div className="flex flex-wrap gap-2">
+                      {GRADES.map(grade => (
+                        <button
+                          key={grade}
+                          type="button"
+                          onClick={() => toggleGrade(grade)}
+                          className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
+                            formData.grades.includes(grade) 
+                              ? 'bg-[var(--brand-primary)] text-white shadow-lg' 
+                              : 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:border-[var(--brand-primary)]/50'
+                          }`}
+                        >
+                          {grade}
+                        </button>
+                      ))}
+                    </div>
+                    {formData.grades.length === 0 && (
+                      <p className="text-xs text-[var(--brand-light)]/40 mt-2">Leave empty to allow all grades</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Gender */}
+              <div>
+                <label className={labelClasses}>Allowed Genders</label>
+                <div className="flex flex-wrap gap-3">
+                  {GENDERS.map(g => {
+                    const isSelected = formData.genders.includes(g.value);
+                    return (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => toggleGender(g.value)}
+                        className={`px-4 py-2.5 rounded-xl border-2 font-medium text-sm transition-all ${
+                          isSelected 
+                            ? 'border-[var(--brand-purple)] bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]'
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:border-[var(--brand-primary)]/50'
+                        }`}
+                      >
+                        {g.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {formData.genders.length === 0 && (
+                  <p className="text-xs text-[var(--brand-light)]/40 mt-2">Leave empty to allow all genders</p>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Interests */}
+              <div>
+                <label className={labelClasses}>
+                  <Heart className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-peach)]" />
+                  Required Interests
+                </label>
+                
+                {/* Selected Interests Display */}
+                {formData.interests.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] mb-3">
+                    {getSelectedInterests().map(interest => (
+                      <span key={interest.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-white text-sm font-medium">
+                        {interest.name}
+                        <button
+                          type="button"
+                          onClick={() => removeInterest(interest.id)}
+                          className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Searchable Dropdown */}
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
+                    <input
+                      type="text"
+                      placeholder="Search interests by name..."
+                      value={interestSearchTerm}
+                      onChange={(e) => {
+                        setInterestSearchTerm(e.target.value);
+                        setShowInterestDropdown(true);
+                      }}
+                      onFocus={() => setShowInterestDropdown(true)}
+                      className={`${inputClasses('interest_search')} pl-10`}
+                    />
+                  </div>
+
+                  {showInterestDropdown && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setShowInterestDropdown(false)}
+                      ></div>
+                      <div className="absolute z-20 w-full mt-2 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        {filteredInterests.length > 0 ? (
+                          filteredInterests.map(interest => (
+                            <button
+                              key={interest.id}
+                              type="button"
+                              onClick={() => toggleInterest(interest.id)}
+                              className="w-full text-left px-4 py-3 hover:bg-[var(--dark-600)] transition-colors border-b border-[var(--dark-600)] last:border-b-0"
+                            >
+                              <div className="font-medium text-[var(--brand-light)]">{interest.name}</div>
+                            </button>
+                          ))
+                        ) : interestSearchTerm ? (
+                          <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
+                            No interests found matching "{interestSearchTerm}"
+                          </div>
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
+                            {formData.interests.length === 0 
+                              ? 'No interests available'
+                              : 'All interests are already selected'}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">Users matching ANY of selected interests will be eligible</p>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Custom Field Rules */}
+              <div>
+                <label className={labelClasses}>
+                  <Settings className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
+                  Custom Field Rules
+                </label>
+                <p className="text-xs text-[var(--brand-light)]/40 mb-3">Members must match ALL these additional conditions</p>
+                <CustomRuleBuilder 
+                  currentRules={formData.custom_field_rules}
+                  onChange={(newRules) => setFormData(prev => ({...prev, custom_field_rules: newRules}))}
+                  darkMode={true}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Add Members Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 text-[var(--dark-900)]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Add Members</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Select users to immediately add to this group</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <MemberSelector
+                criteria={{
+                  target_member_type: formData.target_member_type,
+                  min_age: formData.min_age,
+                  max_age: formData.max_age,
+                  grades: formData.grades,
+                  genders: formData.genders,
+                  interests: formData.interests,
+                  custom_field_rules: formData.custom_field_rules
+                }}
+                selectedIds={formData.members_to_add}
+                onChange={(ids) => setFormData(prev => ({ ...prev, members_to_add: ids }))}
+                excludeGroupId={initialData?.id}
+                darkMode={true}
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 4. Add Members */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Add Members</CardTitle>
-            <CardDescription>Select users to immediately add to this group.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground mb-4">
-              The list below filters based on ALL the rules above (Age, Grade, Interests, Custom Fields).
-            </p>
-            
-            <MemberSelector
-              criteria={{
-                target_member_type: formData.target_member_type,
-                min_age: formData.min_age,
-                max_age: formData.max_age,
-                grades: formData.grades,
-                genders: formData.genders,
-                interests: formData.interests,
-                custom_field_rules: formData.custom_field_rules
-              }}
-              selectedIds={formData.members_to_add}
-              onChange={(ids) => setFormData(prev => ({ ...prev, members_to_add: ids }))}
-              excludeGroupId={initialData?.id}
-            />
-          </CardContent>
-        </Card>
+          {/* Quick Tips */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="p-6">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center flex-shrink-0">
+                  <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-2">Quick Tips</h3>
+                  <ul className="text-sm text-[var(--brand-light)]/60 space-y-1.5">
+                    <li>• Fill in all required fields marked with <span className="text-[var(--brand-primary)]">*</span></li>
+                    <li>• Open groups allow anyone to join freely</li>
+                    <li>• Application groups require admin approval</li>
+                    <li>• Closed groups are invite-only</li>
+                    <li>• Leave criteria empty to allow all members</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pb-10">
-          <Button type="button" variant="ghost" onClick={() => router.push(redirectPath)}>Cancel</Button>
-          <Button type="submit" disabled={loading} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]">
-            {loading ? 'Saving...' : initialData ? 'Update Group' : 'Create Group'}
-          </Button>
-        </div>
-      </form>
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pb-10 px-4 sm:px-0">
+            <button 
+              type="button" 
+              onClick={() => router.push(redirectPath)}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)] transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  {initialData ? 'Update Group' : 'Create Group'}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
 
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
+      </div>
     </div>
   );
 }

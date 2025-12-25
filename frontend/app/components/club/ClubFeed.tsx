@@ -5,9 +5,10 @@ import PostCard from '@/app/components/posts/PostCard';
 
 interface ClubFeedProps {
   clubId: number;
+  darkMode?: boolean;
 }
 
-export default function ClubFeed({ clubId }: ClubFeedProps) {
+export default function ClubFeed({ clubId, darkMode = false }: ClubFeedProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -82,17 +83,34 @@ export default function ClubFeed({ clubId }: ClubFeedProps) {
   }, [hasMore, loadingMore, loading, page, clubId, fetchPosts]);
 
   if (loading) {
-    return <div className="py-8 text-center text-gray-500">Loading updates...</div>;
+    return (
+      <div className={`py-8 text-center ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
+        <div className={`w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-3 ${
+          darkMode 
+            ? 'border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)]' 
+            : 'border-blue-600/20 border-t-blue-600'
+        }`} />
+        Loading updates...
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="py-8 text-center text-red-500">{error}</div>;
+    return (
+      <div className={`py-8 text-center ${darkMode ? 'text-[var(--brand-red)]' : 'text-red-500'}`}>
+        {error}
+      </div>
+    );
   }
 
   if (posts.length === 0) {
     return (
-      <div className="py-12 text-center bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-        <p className="text-gray-500 dark:text-gray-400 text-lg">
+      <div className={`py-12 text-center rounded-none sm:rounded-xl border-y sm:border mx-0 ${
+        darkMode 
+          ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
+          : 'bg-white shadow-sm border-gray-100'
+      }`}>
+        <p className={`text-lg ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
           No updates from this club yet.
         </p>
       </div>
@@ -100,24 +118,27 @@ export default function ClubFeed({ clubId }: ClubFeedProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0 sm:space-y-4">
       {posts.map((post) => (
         <PostCard 
           key={post.id} 
           post={post}
+          darkMode={darkMode}
         />
       ))}
       
       {/* Infinite Scroll Trigger */}
       <div ref={observerTarget} className="h-10 flex items-center justify-center">
         {loadingMore && (
-          <div className="flex items-center gap-2 text-gray-500">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+          <div className={`flex items-center gap-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
+            <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${
+              darkMode ? 'border-[var(--brand-primary)]' : 'border-blue-600'
+            }`}></div>
             <span className="text-sm">Loading more posts...</span>
           </div>
         )}
         {!hasMore && posts.length > 0 && (
-          <p className="text-sm text-gray-400 text-center py-4">
+          <p className={`text-sm text-center py-4 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>
             No more updates
           </p>
         )}
@@ -125,4 +146,3 @@ export default function ClubFeed({ clubId }: ClubFeedProps) {
     </div>
   );
 }
-

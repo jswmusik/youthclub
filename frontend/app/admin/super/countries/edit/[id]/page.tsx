@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import CountryForm from '@/app/components/CountryForm';
-import { Card } from '@/components/ui/card';
+import { Globe } from 'lucide-react';
 
 export default function Page() {
   const { id } = useParams() as { id: string };
@@ -16,16 +16,14 @@ export default function Page() {
 
   if (!data) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <div className="text-gray-400 animate-pulse">Loading...</div>
+      <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+          <Globe className="w-6 h-6 text-white" />
+        </div>
+        <div className="text-[var(--brand-light)]/60 animate-pulse">Loading country data...</div>
       </div>
     );
   }
 
-  return (
-    <div className="p-8">
-      <CountryForm initialData={data} redirectPath="/admin/super/countries" />
-    </div>
-  );
+  return <CountryForm initialData={data} redirectPath="/admin/super/countries" />;
 }
-

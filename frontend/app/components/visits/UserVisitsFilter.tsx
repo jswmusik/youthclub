@@ -1,11 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { X, Filter } from 'lucide-react';
 
 interface Props {
   onFilter: (filters: { start_date?: string; end_date?: string; club_id?: string }) => void;
@@ -30,15 +27,14 @@ export default function UserVisitsFilter({
   const [endDate, setEndDate] = useState(initialEndDate || '');
   const [clubId, setClubId] = useState(initialClubId || '');
 
-  // Update state when initial values change (e.g., from URL)
+  // Update state when initial values change
   useEffect(() => {
     setStartDate(initialStartDate || '');
     setEndDate(initialEndDate || '');
     setClubId(initialClubId || '');
   }, [initialStartDate, initialEndDate, initialClubId]);
 
-  // Auto-apply filters on change (matching YouthManager behavior)
-  // Only apply if values differ from initial values
+  // Auto-apply filters on change
   useEffect(() => {
     const hasChanged = 
       startDate !== (initialStartDate || '') ||
@@ -52,7 +48,7 @@ export default function UserVisitsFilter({
           end_date: endDate || undefined,
           club_id: clubId || undefined
         });
-      }, 500); // Debounce to avoid too many updates
+      }, 500);
 
       return () => clearTimeout(timer);
     }
@@ -65,57 +61,76 @@ export default function UserVisitsFilter({
     router.push(pathname);
   };
 
+  const hasFilters = startDate || endDate || clubId;
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-      {/* Start Date */}
-      <div className="md:col-span-3 lg:col-span-3">
-        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">From Date</label>
-        <Input 
-          type="date" 
-          className="bg-gray-50 border-0"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-      </div>
-      
-      {/* End Date */}
-      <div className="md:col-span-3 lg:col-span-3">
-        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">To Date</label>
-        <Input 
-          type="date" 
-          className="bg-gray-50 border-0"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="flex items-center gap-2 text-[var(--brand-light)]/50">
+        <Filter className="w-4 h-4" />
+        <span className="text-sm font-medium">Filter Visits</span>
       </div>
 
-      {/* Club Filter */}
-      {showClubFilter && (
-        <div className="md:col-span-4 lg:col-span-4">
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Club</label>
-          <select
-            className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-            value={clubId}
-            onChange={(e) => setClubId(e.target.value)}
-          >
-            <option value="">All Clubs</option>
-            {clubs.map(club => (
-              <option key={club.id} value={club.id.toString()}>{club.name}</option>
-            ))}
-          </select>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Start Date */}
+        <div className="flex-1 sm:max-w-[180px]">
+          <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">From Date</label>
+          <input 
+            type="date" 
+            className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
         </div>
-      )}
+        
+        {/* End Date */}
+        <div className="flex-1 sm:max-w-[180px]">
+          <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">To Date</label>
+          <input 
+            type="date" 
+            className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
 
-      {/* Clear Button */}
-      <div className={cn("md:col-span-2", showClubFilter ? "lg:col-span-2" : "lg:col-span-3")}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClear}
-          className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-        >
-          <X className="h-4 w-4" /> Clear
-        </Button>
+        {/* Club Filter */}
+        {showClubFilter && (
+          <div className="flex-1 sm:max-w-[220px]">
+            <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">Club</label>
+            <select
+              className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+              value={clubId}
+              onChange={(e) => setClubId(e.target.value)}
+              style={selectArrowStyle}
+            >
+              <option value="">All Clubs</option>
+              {clubs.map(club => (
+                <option key={club.id} value={club.id.toString()}>{club.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Clear Button */}
+        {hasFilters && (
+          <div className="flex items-end">
+            <button
+              onClick={handleClear}
+              className="h-10 px-4 flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
+            >
+              <X className="h-4 w-4" /> Clear
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -9,10 +9,11 @@ import ThreeColumnLayout from './layouts/ThreeColumnLayout';
 
 interface MessengerManagerProps {
     role: 'ADMIN' | 'YOUTH' | 'GUARDIAN';
-    scope?: 'GLOBAL' | 'MUNICIPALITY' | 'CLUB'; // Useful for Admins context
+    scope?: 'GLOBAL' | 'MUNICIPALITY' | 'CLUB';
+    darkMode?: boolean;
 }
 
-export default function MessengerManager({ role, scope }: MessengerManagerProps) {
+export default function MessengerManager({ role, scope, darkMode = false }: MessengerManagerProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -94,6 +95,7 @@ export default function MessengerManager({ role, scope }: MessengerManagerProps)
                 onSetSearchQuery={setSearchQuery}
                 onRefresh={handleRefresh}
                 scope={scope}
+                darkMode={darkMode}
             />
         );
     }
@@ -109,6 +111,7 @@ export default function MessengerManager({ role, scope }: MessengerManagerProps)
             searchQuery={searchQuery}
             onSetSearchQuery={setSearchQuery}
             onConversationCreated={handleConversationCreated}
+            darkMode={darkMode}
         />
     );
 }

@@ -1,27 +1,253 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, Building, UserPlus, UsersRound, FolderX } from 'lucide-react';
+import { 
+  Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, 
+  Users, Building, UsersRound, FolderX, ChevronLeft, Layers, Globe, Lock, FileQuestion
+} from 'lucide-react';
 import api from '../../lib/api';
 import Toast from './Toast';
 import ConfirmationModal from './ConfirmationModal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onClick: () => void;
+  showActions?: boolean;
+}
+
+function SwipeableCard({ children, onEdit, onDelete, onClick, showActions = true }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!showActions) return;
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !showActions) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!showActions) return;
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdit) onEdit();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      {/* Action buttons (behind the card) */}
+      {showActions && (
+        <div className="absolute inset-y-0 right-0 flex items-stretch">
+          <button
+            onClick={handleEditClick}
+            className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+          >
+            <Edit className="w-5 h-5" />
+            <span className="text-xs font-medium">Edit</span>
+          </button>
+          <button
+            onClick={handleDeleteClick}
+            className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+          >
+            <Trash2 className="w-5 h-5" />
+            <span className="text-xs font-medium">Delete</span>
+          </button>
+        </div>
+      )}
+
+      {/* Swipeable card content */}
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {/* Swipe hint indicator */}
+        {showActions && !isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function GroupCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GroupTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-1">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function GroupPageSkeleton() {
+  return (
+    <>
+      {/* Mobile Cards Skeleton */}
+      <div className="flex flex-col md:hidden">
+        {[...Array(4)].map((_, i) => (
+          <GroupCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Group</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Location</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Members</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(5)].map((_, i) => (
+              <GroupTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 interface Group {
   id: number;
   name: string;
   group_type: 'OPEN' | 'APPLICATION' | 'CLOSED';
   is_system_group: boolean;
-  member_count?: number; // Optional in case API doesn't return it
-  pending_request_count?: number; // Optional in case API doesn't return it
+  member_count?: number;
+  pending_request_count?: number;
   created_at: string;
   municipality: number | null;
   municipality_name?: string;
@@ -30,7 +256,7 @@ interface Group {
 }
 
 interface GroupManagerProps {
-  basePath: string; // e.g., "/admin/super/groups"
+  basePath: string;
 }
 
 export default function GroupManager({ basePath }: GroupManagerProps) {
@@ -39,20 +265,18 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
   const searchParams = useSearchParams();
   
   const [groups, setGroups] = useState<Group[]>([]);
-  const [allGroups, setAllGroups] = useState<Group[]>([]); // Store all groups from API
-  const [allFilteredGroups, setAllFilteredGroups] = useState<Group[]>([]); // Store all filtered groups for pagination
+  const [allGroups, setAllGroups] = useState<Group[]>([]);
+  const [allFilteredGroups, setAllFilteredGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
-  // Determine admin type from basePath
   const isSuperAdmin = basePath.includes('/super');
   const isMuniAdmin = basePath.includes('/municipality');
   
-  // Dropdowns
   const [municipalities, setMunicipalities] = useState<any[]>([]);
   const [clubs, setClubs] = useState<any[]>([]);
   
-  // Stats - calculated from all groups for analytics
   const [stats, setStats] = useState({
     totalGroups: 0,
     totalMembers: 0,
@@ -60,7 +284,12 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
     emptyGroups: 0
   });
   
-  // Calculate stats from all groups (for analytics)
+  // Filter State
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('municipality') || '');
+  const [clubFilter, setClubFilter] = useState(searchParams.get('club') || '');
+  const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || '');
+  
   useEffect(() => {
     const totalMembers = allGroups.reduce((sum, g) => {
       const count = g.member_count ?? 0;
@@ -79,20 +308,23 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
     });
   }, [allGroups]);
 
-  // Actions
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
   const [showDelete, setShowDelete] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   
-  const updateUrl = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value); else params.delete(key);
-    // Reset to page 1 when filters change (except when changing page itself)
-    if (key !== 'page') {
+  // Debounced Filter Update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchInput) params.set('search', searchInput); else params.delete('search');
+      if (municipalityFilter) params.set('municipality', municipalityFilter); else params.delete('municipality');
+      if (clubFilter) params.set('club', clubFilter); else params.delete('club');
+      if (typeFilter) params.set('type', typeFilter); else params.delete('type');
       params.set('page', '1');
-    }
-    router.push(`${pathname}?${params.toString()}`);
-  };
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, municipalityFilter, clubFilter, typeFilter]);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -137,67 +369,65 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
 
   const fetchGroups = async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+    
     try {
-      // Fetch ALL groups by paginating through all pages
-      // (Backend paginates by default, so we need to fetch all pages)
       let allGroupsData: Group[] = [];
       let pageNum = 1;
       let totalCount = 0;
-      const fetchPageSize = 100; // Fetch large pages to minimize requests
-      const maxPages = 100; // Safety limit
+      const fetchPageSize = 100;
+      const maxPages = 100;
       
       while (pageNum <= maxPages) {
         const res = await api.get(`/groups/?page=${pageNum}&page_size=${fetchPageSize}`);
         const responseData = res.data;
         
         if (Array.isArray(responseData)) {
-          // Direct array response (unlikely with DRF)
           allGroupsData = [...allGroupsData, ...responseData];
           break;
         } else if (responseData.results && Array.isArray(responseData.results)) {
-          // Paginated response
           const pageGroups = responseData.results;
           allGroupsData = [...allGroupsData, ...pageGroups];
           
-          // Get total count from first page
           if (pageNum === 1) {
             totalCount = responseData.count || 0;
           }
           
-          // Check if we should continue
           const hasNext = responseData.next !== null && responseData.next !== undefined;
           const hasAllResults = totalCount > 0 && allGroupsData.length >= totalCount;
           const gotEmptyPage = pageGroups.length === 0;
           
-          // Stop if: no next page, we have all results, or got empty page
           if (!hasNext || hasAllResults || gotEmptyPage) {
             break;
           }
           
-          // Continue to next page
           pageNum++;
         } else {
-          // Fallback: treat as array
           allGroupsData = Array.isArray(responseData) ? responseData : [];
           break;
         }
       }
       
       setAllGroups(allGroupsData);
-      // applyFilters will calculate stats from filtered groups
       applyFilters();
     } catch (err) {
       console.error(err);
       setToast({ message: 'Failed to load groups.', type: 'error', isVisible: true });
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
   };
 
   const applyFilters = () => {
     let filtered = [...allGroups];
 
-    // Search filter (by name)
     const search = searchParams.get('search') || '';
     if (search) {
       const searchLower = search.toLowerCase();
@@ -206,7 +436,6 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
       );
     }
 
-    // Municipality filter
     const municipality = searchParams.get('municipality') || '';
     if (municipality) {
       filtered = filtered.filter(g => 
@@ -214,7 +443,6 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
       );
     }
 
-    // Club filter
     const club = searchParams.get('club') || '';
     if (club) {
       filtered = filtered.filter(g => 
@@ -222,7 +450,6 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
       );
     }
 
-    // Type filter
     const type = searchParams.get('type') || '';
     if (type) {
       filtered = filtered.filter(g => 
@@ -230,10 +457,8 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
       );
     }
 
-    // Store all filtered groups for pagination calculation
     setAllFilteredGroups(filtered);
     
-    // Apply pagination
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
     const startIndex = (currentPage - 1) * pageSize;
@@ -243,6 +468,13 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
     setGroups(paginatedGroups);
   };
 
+  const clearFilters = () => {
+    setSearchInput('');
+    setMunicipalityFilter('');
+    setClubFilter('');
+    setTypeFilter('');
+    router.push(pathname);
+  };
 
   const handleDelete = async () => {
     if (!selectedGroup) return;
@@ -258,162 +490,164 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
     }
   };
 
-  const getBadgeStyle = (type: string) => {
+  const getTypeBadgeClasses = (type: string) => {
     switch (type) {
-      case 'OPEN': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
-      case 'APPLICATION': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
-      case 'CLOSED': return 'bg-gray-50 text-gray-700 border-gray-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'OPEN': return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
+      case 'APPLICATION': return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
+      case 'CLOSED': return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
+      default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
     }
   };
 
-  // Pagination logic
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'OPEN': return <Globe className="w-3 h-3" />;
+      case 'APPLICATION': return <FileQuestion className="w-3 h-3" />;
+      case 'CLOSED': return <Lock className="w-3 h-3" />;
+      default: return <Layers className="w-3 h-3" />;
+    }
+  };
+
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = 10;
   const totalPages = Math.ceil(allFilteredGroups.length / pageSize);
 
+  const handlePageChange = (p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', p.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const hasFilters = searchInput || municipalityFilter || clubFilter || typeFilter;
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Groups</h1>
-          <p className="text-gray-500 mt-1">Manage member segments and filters.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <Layers className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Groups</h1>
+          </div>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage member segments and filters.</p>
         </div>
         <Link href={`${basePath}/create`}>
-          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+          <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> Add Group
-          </Button>
+          </button>
         </Link>
       </div>
 
-      {/* Analytics */}
-      <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <Card className="border-0 shadow-sm bg-gray-900">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                Analytics Dashboard
-              </h3>
-            </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                <ChevronUp className={cn(
-                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                  analyticsExpanded ? "rotate-0" : "rotate-180"
-                )} />
-                <span className="sr-only">Toggle Analytics</span>
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent className="transition-all duration-500 ease-in-out">
-            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {/* Card 1: Total Groups */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                        }}>
-                        <Building className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Total Groups</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.totalGroups || 0}</div>
-                  </div>
-                </Card>
-
-                {/* Card 2: Total Members */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                        }}>
-                        <Users className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Total Members</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.totalMembers || 0}</div>
-                  </div>
-                </Card>
-
-                {/* Card 3: Active Groups */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                        }}>
-                        <UsersRound className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Active Groups</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.activeGroups || 0}</div>
-                  </div>
-                </Card>
-
-                {/* Card 4: Empty Groups */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
-                        }}>
-                        <FolderX className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Empty Groups</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{stats.emptyGroups || 0}</div>
-                  </div>
-                </Card>
+      {/* Analytics Dashboard */}
+      {!showSkeleton && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          {/* Header */}
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          {/* Main Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            {/* Search - Takes more space on larger screens */}
-            <div className="relative md:col-span-4 lg:col-span-3">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search by name..." 
-                className="pl-9 bg-gray-50 border-0"
-                value={searchParams.get('search') || ''}
-                onChange={e => updateUrl('search', e.target.value)}
-              />
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
             </div>
-            
-            {/* Municipality Filter - Only for SUPER scope */}
+            <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+          </button>
+          
+          {/* Content */}
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              
+              {/* Total Groups */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <Layers className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{stats.totalGroups}</div>
+              </div>
+
+              {/* Total Members */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Members</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{stats.totalMembers}</div>
+              </div>
+
+              {/* Active Groups */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                    <UsersRound className="h-5 w-5 text-[var(--dark-900)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Active</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{stats.activeGroups}</div>
+              </div>
+
+              {/* Empty Groups */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                    <FolderX className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Empty</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{stats.emptyGroups}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search & Filters */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex flex-col gap-3">
+          {/* Search Row */}
+          <div className="flex items-center gap-3">
+            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+            <input 
+              type="text"
+              placeholder="Search by group name..." 
+              className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+            />
+            {searchInput && (
+              <button 
+                onClick={() => setSearchInput('')}
+                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          
+          {/* Filters Row */}
+          <div className="flex flex-col sm:flex-row gap-3">
             {isSuperAdmin && (
-              <div className="md:col-span-2 lg:col-span-2">
+              <div className="w-full sm:w-[200px]">
                 <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                  value={searchParams.get('municipality') || ''} 
-                  onChange={e => updateUrl('municipality', e.target.value)}
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={municipalityFilter}
+                  onChange={e => setMunicipalityFilter(e.target.value)}
+                  style={selectArrowStyle}
                 >
                   <option value="">All Municipalities</option>
                   {municipalities.map(m => (
@@ -422,14 +656,13 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                 </select>
               </div>
             )}
-            
-            {/* Club Filter */}
             {(isSuperAdmin || isMuniAdmin) && (
-              <div className={cn("md:col-span-2", isSuperAdmin ? "lg:col-span-2" : "lg:col-span-3")}>
+              <div className="w-full sm:w-[200px]">
                 <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                  value={searchParams.get('club') || ''} 
-                  onChange={e => updateUrl('club', e.target.value)}
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={clubFilter}
+                  onChange={e => setClubFilter(e.target.value)}
+                  style={selectArrowStyle}
                 >
                   <option value="">All Clubs</option>
                   {clubs.map(c => (
@@ -438,13 +671,12 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                 </select>
               </div>
             )}
-            
-            {/* Type Filter */}
-            <div className={cn("md:col-span-2", (isSuperAdmin || isMuniAdmin) ? "lg:col-span-2" : "lg:col-span-3")}>
+            <div className="w-full sm:w-[160px]">
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('type') || ''} 
-                onChange={e => updateUrl('type', e.target.value)}
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                style={selectArrowStyle}
               >
                 <option value="">All Types</option>
                 <option value="OPEN">Open</option>
@@ -452,244 +684,239 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                 <option value="CLOSED">Closed</option>
               </select>
             </div>
-            
-            {/* Clear Button */}
-            <div className="md:col-span-2 lg:col-span-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(pathname)}
-                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                <X className="h-4 w-4" /> Clear
-              </Button>
-            </div>
+                Clear All
+              </button>
+            )}
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* Stats Bar */}
+      {!showSkeleton && groups.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{groups.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{allFilteredGroups.length}</span> {allFilteredGroups.length === 1 ? 'group' : 'groups'}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
+      {showSkeleton ? (
+        <GroupPageSkeleton />
       ) : groups.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">
-              {searchParams.get('search') || searchParams.get('municipality') || searchParams.get('club') || searchParams.get('type')
-                ? 'No groups found matching your filters.'
-                : 'No groups found. Create your first group to get started.'}
-            </p>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+            <Layers className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-        </Card>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No groups found</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm mb-6">
+            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by creating your first group.'}
+          </p>
+          {!hasFilters && (
+            <Link href={`${basePath}/create`}>
+              <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
+                <Plus className="h-4 w-4" /> Add Group
+              </button>
+            </Link>
+          )}
+        </div>
       ) : (
         <>
-          {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {groups.map(group => (
-              <Card key={group.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="h-10 w-10 rounded-full border border-gray-200 bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
-                      <Users className="h-5 w-5 text-[#4D4DA4]" />
+          {/* Mobile Cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {groups.map((group) => (
+              <SwipeableCard
+                key={group.id}
+                onClick={() => router.push(buildUrlWithParams(`${basePath}/${group.id}`))}
+                onEdit={!group.is_system_group ? () => router.push(buildUrlWithParams(`${basePath}/edit/${group.id}`)) : undefined}
+                onDelete={!group.is_system_group ? () => { setSelectedGroup(group); setShowDelete(true); } : undefined}
+                showActions={!group.is_system_group}
+              >
+                <div className="border-y border-[var(--dark-600)] p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Icon */}
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0">
+                      <Users className="w-5 h-5 text-[var(--brand-primary)]" />
                     </div>
+                    
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base font-semibold text-[#121213] truncate">
-                        {group.name}
-                      </CardTitle>
-                      <CardDescription className="text-xs text-gray-500 truncate flex items-center gap-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
+                          {group.name}
+                        </h3>
                         {group.is_system_group && (
-                          <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
                             System
-                          </Badge>
+                          </span>
                         )}
-                        {isSuperAdmin && group.municipality_name && (
-                          <>
-                            <Building className="h-3 w-3 flex-shrink-0" />
-                            {group.municipality_name}
-                          </>
-                        )}
-                        {(isSuperAdmin || isMuniAdmin) && group.club_name && (
-                          <>
-                            <Building className="h-3 w-3 flex-shrink-0" />
-                            {group.club_name}
-                          </>
-                        )}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Type</span>
-                      <Badge variant="outline" className={getBadgeStyle(group.group_type)}>
-                        {group.group_type}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Members</span>
-                      <div className="flex flex-wrap gap-1 justify-end">
-                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                      </div>
+                      
+                      {/* Location */}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Building className="w-3 h-3 text-[var(--brand-light)]/40" />
+                        <p className="text-xs text-[var(--brand-light)]/50 truncate">
+                          {isSuperAdmin && group.municipality_name ? group.municipality_name : ''}
+                          {isSuperAdmin && group.municipality_name && group.club_name ? ' • ' : ''}
+                          {(isSuperAdmin || isMuniAdmin) && group.club_name ? group.club_name : ''}
+                          {!group.municipality_name && !group.club_name && 'Global'}
+                        </p>
+                      </div>
+                      
+                      {/* Type & Members */}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getTypeBadgeClasses(group.group_type)}`}>
+                          {getTypeIcon(group.group_type)}
+                          {group.group_type}
+                        </span>
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
                           {group.member_count ?? 0} members
-                        </Badge>
-                        {group.pending_request_count > 0 && (
-                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                        </span>
+                        {(group.pending_request_count ?? 0) > 0 && (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
                             {group.pending_request_count} pending
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </div>
                   </div>
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                    <Link href={buildUrlWithParams(`${basePath}/${group.id}`)} className="flex-1">
-                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
-                    </Link>
-                    {!group.is_system_group && (
-                      <>
-                        <Link href={buildUrlWithParams(`${basePath}/edit/${group.id}`)} className="flex-1">
-                          <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                            <Edit className="h-4 w-4" />
-                            Edit
-                          </Button>
-                        </Link>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => { setSelectedGroup(group); setShowDelete(true); }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </SwipeableCard>
             ))}
           </div>
 
-          {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Group Name</TableHead>
-                  {isSuperAdmin && <TableHead className="h-12 px-6 text-gray-600 font-semibold">Municipality</TableHead>}
-                  {(isSuperAdmin || isMuniAdmin) && <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club</TableHead>}
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Members</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {groups.map(group => (
-                  <TableRow key={group.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4 px-6">
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Group</th>
+                  {(isSuperAdmin || isMuniAdmin) && (
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Location</th>
+                  )}
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Members</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((group, index) => (
+                  <tr 
+                    key={group.id} 
+                    className={`${index !== groups.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors`}
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full border border-gray-200 bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
-                          <Users className="h-4 w-4 text-[#4D4DA4]" />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0">
+                          <Users className="w-4 h-4 text-[var(--brand-primary)]" />
                         </div>
                         <div>
-                          <div className="font-semibold text-[#121213]">{group.name}</div>
-                          {group.is_system_group && (
-                            <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200 mt-1">
-                              System
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-[var(--brand-light)]">{group.name}</span>
+                            {group.is_system_group && (
+                              <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
+                                System
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </TableCell>
-                    {isSuperAdmin && (
-                      <TableCell className="py-4 px-6">
-                        <div className="text-sm text-gray-500">{group.municipality_name || '-'}</div>
-                      </TableCell>
-                    )}
+                    </td>
                     {(isSuperAdmin || isMuniAdmin) && (
-                      <TableCell className="py-4 px-6">
-                        <div className="text-sm text-gray-500">{group.club_name || '-'}</div>
-                      </TableCell>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-[var(--brand-light)]/60">
+                          {isSuperAdmin && group.municipality_name ? (
+                            <span>{group.municipality_name}</span>
+                          ) : null}
+                          {isSuperAdmin && group.municipality_name && group.club_name ? (
+                            <span className="mx-1 text-[var(--brand-light)]/30">•</span>
+                          ) : null}
+                          {(isSuperAdmin || isMuniAdmin) && group.club_name ? (
+                            <span>{group.club_name}</span>
+                          ) : null}
+                          {!group.municipality_name && !group.club_name && (
+                            <span className="text-[var(--brand-light)]/30">Global</span>
+                          )}
+                        </div>
+                      </td>
                     )}
-                    <TableCell className="py-4 px-6">
-                      <Badge variant="outline" className={getBadgeStyle(group.group_type)}>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getTypeBadgeClasses(group.group_type)}`}>
+                        {getTypeIcon(group.group_type)}
                         {group.group_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-gray-900 font-medium">{group.member_count ?? 0}</span>
-                        {group.pending_request_count > 0 && (
-                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                        <span className="text-sm font-medium text-[var(--brand-light)]">{group.member_count ?? 0}</span>
+                        {(group.pending_request_count ?? 0) > 0 && (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
                             {group.pending_request_count} pending
-                          </Badge>
+                          </span>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-right">
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${group.id}`)}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Eye className="w-4 h-4" />
+                          </button>
                         </Link>
                         {!group.is_system_group && (
                           <>
                             <Link href={buildUrlWithParams(`${basePath}/edit/${group.id}`)}>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                                <Edit className="h-4 w-4" />
-                              </Button>
+                              <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                                <Edit className="w-4 h-4" />
+                              </button>
                             </Link>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                            <button 
                               onClick={() => { setSelectedGroup(group); setShowDelete(true); }}
+                              className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
                             >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </>
                         )}
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </Card>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+              <button 
+                disabled={currentPage === 1} 
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <div className="text-sm text-[var(--brand-light)]/50">
+                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+              </div>
+              <button 
+                disabled={currentPage >= totalPages} 
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 py-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            disabled={currentPage === 1} 
-            onClick={() => updateUrl('page', (currentPage - 1).toString())}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-          >
-            Prev
-          </Button>
-          <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            disabled={currentPage >= totalPages} 
-            onClick={() => updateUrl('page', (currentPage + 1).toString())}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-          >
-            Next
-          </Button>
-        </div>
-      )}
-
+      {/* Modals */}
       <ConfirmationModal 
         isVisible={showDelete}
         onClose={() => setShowDelete(false)}
@@ -699,9 +926,9 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
         confirmButtonText="Delete"
         cancelButtonText="Cancel"
         variant="danger"
+        darkMode={true}
       />
-
-      <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} />
+      <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} darkMode />
     </div>
   );
 }

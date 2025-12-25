@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
 import api from '../../../../lib/api';
 import { format, addDays, startOfToday, isSameDay } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, Users, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
 import Toast from '../../../components/Toast';
 
+
 interface Props {
   resource: any;
+  darkMode?: boolean;
 }
 
 interface TimeSlot {
@@ -17,7 +20,7 @@ interface TimeSlot {
   title?: string;
 }
 
-export default function BookingWizard({ resource }: Props) {
+export default function BookingWizard({ resource, darkMode = false }: Props) {
   const router = useRouter();
   
   // State
@@ -114,42 +117,114 @@ export default function BookingWizard({ resource }: Props) {
   // --- STEP 1: PICK TIME ---
   if (step === 1) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white p-4 rounded-xl border shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => handleDateChange(-1)} className="p-2 hover:bg-gray-100 rounded-full">
-              <ChevronLeft className="w-5 h-5" />
+      <div className="space-y-4 sm:space-y-6">
+        {/* Step Title */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+            darkMode 
+              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+              : 'bg-gradient-to-br from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md'
+          }`}>
+            1
+          </div>
+          <h3 className={`text-xl sm:text-2xl font-heading font-bold ${
+            darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+          }`}>
+            Pick a Time Slot
+          </h3>
+        </div>
+
+        <div className={`p-4 sm:p-6 rounded-2xl border ${
+          darkMode 
+            ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' 
+            : 'bg-gradient-to-br from-[#EBEBFE]/30 to-white border-2 border-[#4D4DA4]/10 shadow-md'
+        }`}>
+          <div className="flex items-center justify-between mb-6">
+            <button 
+              onClick={() => handleDateChange(-1)} 
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group ${
+                darkMode 
+                  ? 'bg-[var(--dark-600)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]' 
+                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-gray-200 hover:border-[#4D4DA4]'
+              }`}
+            >
+              <ChevronLeft className="w-5 h-5 group-hover:scale-110 transition-transform" />
             </button>
             <div className="text-center">
-              <div className="text-sm text-gray-500 uppercase font-bold">{format(selectedDate, 'EEEE')}</div>
-              <div className="text-lg font-bold">{format(selectedDate, 'MMM d, yyyy')}</div>
+              <div className={`text-xs sm:text-sm uppercase font-bold tracking-wide ${
+                darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+              }`}>{format(selectedDate, 'EEEE')}</div>
+              <div className={`text-lg sm:text-xl font-bold font-heading ${
+                darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+              }`}>{format(selectedDate, 'MMM d, yyyy')}</div>
             </div>
-            <button onClick={() => handleDateChange(1)} className="p-2 hover:bg-gray-100 rounded-full">
-              <ChevronRight className="w-5 h-5" />
+            <button 
+              onClick={() => handleDateChange(1)} 
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group ${
+                darkMode 
+                  ? 'bg-[var(--dark-600)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]' 
+                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-gray-200 hover:border-[#4D4DA4]'
+              }`}
+            >
+              <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />
             </button>
           </div>
 
           {loadingSlots ? (
-            <div className="text-center py-8 text-gray-400">Checking schedule...</div>
+            <div className="text-center py-12">
+              <div className={`w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-3 ${
+                darkMode 
+                  ? 'border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)]' 
+                  : 'border-[#4D4DA4]/20 border-t-[#4D4DA4]'
+              }`} />
+              <p className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Checking schedule...</p>
+            </div>
           ) : slots.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg">
-              No available slots on this day.
+            <div className={`text-center py-12 rounded-xl border-2 border-dashed ${
+              darkMode 
+                ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' 
+                : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300'
+            }`}>
+              <CalendarIcon className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-[var(--brand-light)]/20' : 'text-gray-300'}`} />
+              <p className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>No available slots on this day.</p>
+              <p className={`text-xs mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>Try selecting a different date</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {slots.map((slot, idx) => {
                 const isSelected = selectedSlot?.start === slot.start;
                 return (
                   <button
                     key={idx}
                     onClick={() => setSelectedSlot(slot)}
-                    className={`p-3 rounded-lg border text-sm font-bold transition-all
-                      ${isSelected 
-                        ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-200' 
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'}
-                    `}
+                    className={`group p-3 sm:p-4 rounded-xl border-2 text-sm font-bold transition-all active:scale-95 ${
+                      isSelected 
+                        ? darkMode
+                          ? 'bg-[var(--brand-third)] text-[var(--dark-900)] border-[var(--brand-third)] scale-105' 
+                          : 'bg-gradient-to-br from-[#10B981] to-[#059669] text-white border-[#10B981] shadow-lg shadow-[#10B981]/30 scale-105'
+                        : darkMode
+                          ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/80 border-[var(--dark-500)] hover:border-[var(--brand-primary)]' 
+                          : 'bg-white text-gray-700 border-gray-200 hover:border-[#4D4DA4] hover:shadow-md'
+                    }`}
                   >
-                    {format(new Date(slot.start), 'HH:mm')} - {format(new Date(slot.end), 'HH:mm')}
+                    <div className="flex flex-col items-center gap-1">
+                      <Clock className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 ${
+                        isSelected 
+                          ? darkMode ? 'text-[var(--dark-900)]' : 'text-white' 
+                          : darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+                      }`} />
+                      <div className="text-xs sm:text-sm">
+                        {format(new Date(slot.start), 'HH:mm')}
+                      </div>
+                      <div className={`text-[10px] ${
+                        isSelected 
+                          ? darkMode ? 'text-[var(--dark-900)]/60' : 'text-white/80' 
+                          : darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'
+                      }`}>to</div>
+                      <div className="text-xs sm:text-sm">
+                        {format(new Date(slot.end), 'HH:mm')}
+                      </div>
+                    </div>
                   </button>
                 );
               })}
@@ -160,7 +235,11 @@ export default function BookingWizard({ resource }: Props) {
         <button 
           disabled={!selectedSlot}
           onClick={() => setStep(2)}
-          className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className={`w-full py-3.5 sm:py-4 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 ${
+            darkMode 
+              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+              : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-lg hover:from-[#3D3D94] hover:to-[#5D5DC4]'
+          }`}
         >
           Next: Add Friends
         </button>
@@ -171,29 +250,55 @@ export default function BookingWizard({ resource }: Props) {
   // --- STEP 2: PARTICIPANTS ---
   if (step === 2) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white p-5 rounded-xl border shadow-sm space-y-4">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
-            Who is joining?
+      <div className="space-y-4 sm:space-y-6">
+        {/* Step Title */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+            darkMode 
+              ? 'bg-[var(--brand-purple)] text-[var(--brand-light)]' 
+              : 'bg-gradient-to-br from-gray-400 to-gray-500 text-white shadow-md'
+          }`}>
+            2
+          </div>
+          <h3 className={`text-xl sm:text-2xl font-heading font-bold ${
+            darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+          }`}>
+            Add Friends
           </h3>
-          
-          <div className="text-sm text-gray-500">
-            You + {participants.length} friends (Max {resource.max_participants})
+        </div>
+
+        <div className={`p-4 sm:p-6 rounded-2xl border space-y-4 ${
+          darkMode 
+            ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' 
+            : 'bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 shadow-md'
+        }`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Users className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`} />
+            <span className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>
+              You + {participants.length} friends (Max {resource.max_participants})
+            </span>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input 
               type="text" 
               placeholder="Friend's Name" 
-              className="flex-1 border p-2 rounded-lg"
+              className={`flex-1 p-3 rounded-xl outline-none transition-all font-medium ${
+                darkMode 
+                  ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20' 
+                  : 'border-2 border-gray-200 focus:border-[#4D4DA4] focus:ring-2 focus:ring-[#4D4DA4]/20'
+              }`}
               value={friendName}
               onChange={e => setFriendName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addParticipant()}
             />
             <button 
               onClick={addParticipant}
-              className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-bold hover:bg-gray-200"
+              className={`px-5 py-3 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap ${
+                darkMode 
+                  ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                  : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-md hover:shadow-lg'
+              }`}
             >
               Add
             </button>
@@ -201,32 +306,75 @@ export default function BookingWizard({ resource }: Props) {
 
           <div className="space-y-2">
             {/* List self first */}
-            <div className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
-                <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">ME</div>
-                <span className="font-bold text-sm text-gray-800">You (Host)</span>
+            <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+              darkMode 
+                ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' 
+                : 'bg-gradient-to-r from-[#10B981]/10 to-[#10B981]/5 border-[#10B981]/20'
+            }`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
+                  darkMode 
+                    ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
+                    : 'bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-sm'
+                }`}>
+                  ME
+                </div>
+                <span className={`font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>You (Host)</span>
             </div>
             
             {participants.map((name, idx) => (
-              <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+              <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border group transition-all ${
+                darkMode 
+                  ? 'bg-[var(--dark-600)] border-[var(--dark-500)] hover:border-[var(--dark-400)]' 
+                  : 'bg-gradient-to-r from-gray-50 to-white border-gray-200 hover:border-gray-300'
+              }`}>
                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs">#{idx + 1}</div>
-                    <span className="font-medium text-sm text-gray-700">{name}</span>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
+                      darkMode 
+                        ? 'bg-[var(--brand-purple)] text-[var(--brand-light)]' 
+                        : 'bg-gradient-to-br from-[#4D4DA4] to-[#6D6DD4] text-white shadow-sm'
+                    }`}>
+                      {idx + 1}
+                    </div>
+                    <span className={`font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{name}</span>
                  </div>
-                 <button onClick={() => removeParticipant(idx)} className="text-red-400 hover:text-red-600 p-1">×</button>
+                 <button 
+                   onClick={() => removeParticipant(idx)} 
+                   className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all font-bold text-lg ${
+                     darkMode 
+                       ? 'text-[var(--brand-red)] hover:text-[var(--brand-light)] hover:bg-[var(--brand-red)]' 
+                       : 'text-red-400 hover:text-white hover:bg-red-500'
+                   }`}
+                 >
+                   ×
+                 </button>
               </div>
             ))}
           </div>
         </div>
 
         <div className="flex gap-3">
-          <button onClick={() => setStep(1)} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold">
+          <button 
+            onClick={() => setStep(1)} 
+            className={`flex-1 py-3.5 rounded-xl font-bold transition-all active:scale-95 ${
+              darkMode 
+                ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/80 hover:border-[var(--brand-primary)] hover:text-[var(--brand-light)]' 
+                : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
+            }`}
+          >
             Back
           </button>
-          <button onClick={() => setStep(3)} className="flex-1 bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-md">
+          <button 
+            onClick={() => setStep(3)} 
+            className={`flex-1 py-3.5 rounded-xl font-bold transition-all active:scale-95 ${
+              darkMode 
+                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-lg hover:from-[#3D3D94] hover:to-[#5D5DC4]'
+            }`}
+          >
             Review
           </button>
         </div>
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={darkMode} />
       </div>
     );
   }
@@ -234,65 +382,143 @@ export default function BookingWizard({ resource }: Props) {
   // --- STEP 3: CONFIRM ---
   if (step === 3 && selectedSlot) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-xl border shadow-sm text-center space-y-4">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle className="w-8 h-8" />
+      <div className="space-y-4 sm:space-y-6">
+        {/* Step Title */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+            darkMode 
+              ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
+              : 'bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-md'
+          }`}>
+            3
+          </div>
+          <h3 className={`text-xl sm:text-2xl font-heading font-bold ${
+            darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+          }`}>
+            Confirm Booking
+          </h3>
+        </div>
+
+        <div className={`p-6 rounded-2xl border text-center space-y-5 ${
+          darkMode 
+            ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' 
+            : 'bg-gradient-to-br from-[#10B981]/10 to-white border-2 border-[#10B981]/20 shadow-md'
+        }`}>
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${
+            darkMode 
+              ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
+              : 'bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-lg shadow-[#10B981]/30'
+          }`}>
+            <CheckCircle className="w-9 h-9" />
           </div>
           
-          <h3 className="text-xl font-bold text-gray-900">Confirm Booking</h3>
+          <h3 className={`text-2xl font-bold font-heading ${
+            darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+          }`}>
+            Review Your Booking
+          </h3>
           
-          <div className="bg-gray-50 p-4 rounded-lg text-left space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Resource</span>
-              <span className="font-bold">{resource.name}</span>
+          <div className={`p-5 rounded-xl text-left space-y-3 text-sm border ${
+            darkMode 
+              ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' 
+              : 'bg-white border-2 border-gray-100 shadow-sm'
+          }`}>
+            <div className={`flex justify-between items-center pb-3 border-b ${
+              darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
+            }`}>
+              <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Resource</span>
+              <span className={`font-bold ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`}>{resource.name}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Date</span>
-              <span className="font-bold">{format(new Date(selectedSlot.start), 'MMM d, yyyy')}</span>
+            <div className={`flex justify-between items-center pb-3 border-b ${
+              darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
+            }`}>
+              <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Date</span>
+              <span className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{format(new Date(selectedSlot.start), 'MMM d, yyyy')}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Time</span>
-              <span className="font-bold">{format(new Date(selectedSlot.start), 'HH:mm')} - {format(new Date(selectedSlot.end), 'HH:mm')}</span>
+            <div className={`flex justify-between items-center pb-3 border-b ${
+              darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
+            }`}>
+              <span className={`font-semibold flex items-center gap-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
+                <Clock className="w-4 h-4" />
+                Time
+              </span>
+              <span className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{format(new Date(selectedSlot.start), 'HH:mm')} - {format(new Date(selectedSlot.end), 'HH:mm')}</span>
             </div>
-            <div className="flex justify-between border-t pt-2 mt-2">
-              <span className="text-gray-500">Participants</span>
-              <span className="font-bold">{participants.length + 1} people</span>
+            <div className="flex justify-between items-center pt-1">
+              <span className={`font-semibold flex items-center gap-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
+                <Users className="w-4 h-4" />
+                Participants
+              </span>
+              <span className={`font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`}>{participants.length + 1} people</span>
             </div>
           </div>
         </div>
 
         <div className="flex gap-3">
-          <button onClick={() => setStep(2)} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold">
+          <button 
+            onClick={() => setStep(2)} 
+            className={`flex-1 py-3.5 rounded-xl font-bold transition-all active:scale-95 ${
+              darkMode 
+                ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/80 hover:border-[var(--brand-primary)] hover:text-[var(--brand-light)]' 
+                : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
+            }`}
+          >
             Back
           </button>
           <button 
             onClick={handleSubmit} 
             disabled={isSubmitting}
-            className="flex-1 bg-green-600 text-white py-3.5 rounded-xl font-bold shadow-md disabled:opacity-50"
+            className={`flex-1 py-3.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 ${
+              darkMode 
+                ? 'bg-[var(--brand-third)] text-[var(--dark-900)] hover:bg-[var(--brand-third)]/90' 
+                : 'bg-gradient-to-r from-[#10B981] to-[#059669] text-white shadow-lg hover:from-[#0EA572] hover:to-[#047857]'
+            }`}
           >
-            {isSubmitting ? 'Booking...' : 'Confirm'}
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className={`w-4 h-4 border-2 rounded-full animate-spin ${
+                  darkMode ? 'border-[var(--dark-900)]/30 border-t-[var(--dark-900)]' : 'border-white/30 border-t-white'
+                }`} />
+                Booking...
+              </span>
+            ) : (
+              'Confirm Booking'
+            )}
           </button>
         </div>
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={darkMode} />
         
         {/* Weekly Limit Error Modal */}
         {showLimitModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all duration-200">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+            <div className={`rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all duration-200 animate-in zoom-in ${
+              darkMode ? 'bg-[var(--dark-800)] border border-[var(--dark-600)]' : 'bg-white'
+            }`}>
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="w-6 h-6 text-yellow-600" />
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                    darkMode 
+                      ? 'bg-[var(--brand-peach)]/20' 
+                      : 'bg-gradient-to-br from-amber-100 to-amber-200 shadow-md'
+                  }`}>
+                    <AlertCircle className={`w-7 h-7 ${darkMode ? 'text-[var(--brand-peach)]' : 'text-amber-600'}`} />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Weekly Booking Limit Reached</h3>
+                  <h3 className={`text-xl font-bold font-heading ${
+                    darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+                  }`}>
+                    Weekly Limit Reached
+                  </h3>
                 </div>
                 
-                <div className="mb-6">
-                  <p className="text-gray-700 mb-4">
+                <div className={`mb-6 p-4 rounded-xl border ${
+                  darkMode 
+                    ? 'bg-[var(--brand-peach)]/10 border-[var(--brand-peach)]/30' 
+                    : 'bg-amber-50 border-amber-200'
+                }`}>
+                  <p className={`font-semibold mb-3 ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>
                     {limitError || 'You have already reached your weekly booking limit for this resource.'}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                     Please try booking again next week, or contact your club admin if you need assistance.
                   </p>
                 </div>
@@ -302,7 +528,11 @@ export default function BookingWizard({ resource }: Props) {
                     setShowLimitModal(false);
                     setLimitError('');
                   }}
-                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                  className={`w-full py-3.5 rounded-xl font-bold transition-all active:scale-95 ${
+                    darkMode 
+                      ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                      : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-lg'
+                  }`}
                 >
                   Understood
                 </button>
@@ -316,4 +546,3 @@ export default function BookingWizard({ resource }: Props) {
 
   return null;
 }
-

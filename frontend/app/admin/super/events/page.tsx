@@ -1,77 +1,304 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Calendar, Clock, Users, Repeat } from 'lucide-react';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, Calendar, Clock, Users, Repeat, MapPin, ChevronLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { Event } from '@/types/event';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+import Toast from '@/app/components/Toast';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+    children: React.ReactNode;
+    onEdit: () => void;
+    onDelete: () => void;
+    onClick: () => void;
+}
+
+function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [currentX, setCurrentX] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const cardRef = useRef<HTMLDivElement>(null);
+    const actionWidth = 140;
+    const threshold = 50;
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setStartX(e.touches[0].clientX);
+        setIsDragging(true);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging) return;
+        const diff = startX - e.touches[0].clientX;
+        if (isOpen) {
+            const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+            setCurrentX(newX);
+        } else {
+            const newX = Math.max(-actionWidth, Math.min(0, -diff));
+            setCurrentX(newX);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        setIsDragging(false);
+        if (isOpen) {
+            if (currentX > -actionWidth + threshold) {
+                setIsOpen(false);
+                setCurrentX(0);
+            } else {
+                setCurrentX(-actionWidth);
+            }
+        } else {
+            if (currentX < -threshold) {
+                setIsOpen(true);
+                setCurrentX(-actionWidth);
+            } else {
+                setCurrentX(0);
+            }
+        }
+    };
+
+    const handleClick = (e: React.MouseEvent) => {
+        if (!isOpen && Math.abs(currentX) < 5) {
+            onClick();
+        } else if (isOpen) {
+            setIsOpen(false);
+            setCurrentX(0);
+        }
+    };
+
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onEdit();
+        setIsOpen(false);
+        setCurrentX(0);
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onDelete();
+        setIsOpen(false);
+        setCurrentX(0);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+                setIsOpen(false);
+                setCurrentX(0);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    return (
+        <div ref={cardRef} className="relative overflow-hidden">
+            <div className="absolute inset-y-0 right-0 flex items-stretch">
+                <button
+                    onClick={handleEditClick}
+                    className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+                >
+                    <Edit className="w-5 h-5" />
+                    <span className="text-xs font-medium">Edit</span>
+                </button>
+                <button
+                    onClick={handleDeleteClick}
+                    className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+                >
+                    <Trash2 className="w-5 h-5" />
+                    <span className="text-xs font-medium">Delete</span>
+                </button>
+            </div>
+
+            <div
+                className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+                style={{
+                    transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+                    transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+                }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onClick={handleClick}
+            >
+                {children}
+                {!isOpen && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+                        <ChevronLeft className="w-4 h-4" />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+    return (
+        <div
+            className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+            style={{
+                backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+            }}
+        />
+    );
+}
+
+function EventCardSkeleton() {
+    return (
+        <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+            <div className="flex items-start gap-3">
+                <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                    <div className="flex items-center gap-2 mt-2">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                        <Skeleton className="h-4 w-24 rounded-full" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function EventTableRowSkeleton() {
+    return (
+        <tr className="border-b border-[var(--dark-600)]/50">
+            <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-lg flex-shrink-0" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-3 w-28" />
+                    </div>
+                </div>
+            </td>
+            <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+            <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+            <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+            <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
+            <td className="px-6 py-4">
+                <div className="flex items-center justify-end gap-1">
+                    <Skeleton className="w-9 h-9 rounded-lg" />
+                    <Skeleton className="w-9 h-9 rounded-lg" />
+                    <Skeleton className="w-9 h-9 rounded-lg" />
+                </div>
+            </td>
+        </tr>
+    );
+}
+
+function EventPageSkeleton() {
+    return (
+        <>
+            {/* Mobile Cards Skeleton */}
+            <div className="flex flex-col gap-3 md:hidden">
+                {[...Array(4)].map((_, i) => (
+                    <EventCardSkeleton key={i} />
+                ))}
+            </div>
+
+            {/* Desktop Table Skeleton */}
+            <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                <table className="w-full">
+                    <thead>
+                        <tr className="border-b border-[var(--dark-600)]">
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Event</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Recurring</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Registrations</th>
+                            <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {[...Array(5)].map((_, i) => (
+                            <EventTableRowSkeleton key={i} />
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </>
+    );
+}
 
 export default function SuperEventsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    
+
     const [events, setEvents] = useState<Event[]>([]);
     const [allEventsForAnalytics, setAllEventsForAnalytics] = useState<Event[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [showSkeleton, setShowSkeleton] = useState(true);
     const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-    const [filtersExpanded, setFiltersExpanded] = useState(true);
     const [attendedCount, setAttendedCount] = useState(0);
+
+    // Filter State
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+    const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+    const [recurringFilter, setRecurringFilter] = useState(searchParams.get('recurring') || '');
+
+    // Delete
     const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
     const [deleteMode, setDeleteMode] = useState<'single' | 'future' | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
 
     useEffect(() => {
         fetchAllEventsForAnalytics();
         fetchAttendedCount();
     }, []);
 
+    // Debounced Search/Filter Update
     useEffect(() => {
-        // Ensure page parameter is always set in URL
-        const currentPage = searchParams.get('page');
-        if (!currentPage) {
+        const timer = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
+            if (searchInput) params.set('search', searchInput); else params.delete('search');
+            if (statusFilter) params.set('status', statusFilter); else params.delete('status');
+            if (recurringFilter) params.set('recurring', recurringFilter); else params.delete('recurring');
             params.set('page', '1');
             router.replace(`${pathname}?${params.toString()}`);
-            return;
-        }
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchInput, statusFilter, recurringFilter]);
+
+    useEffect(() => {
         fetchEvents();
-    }, [searchParams, pathname, router]);
+    }, [searchParams]);
 
     const fetchAllEventsForAnalytics = async () => {
         try {
-            // Fetch all events for analytics calculation
             let allEvents: Event[] = [];
             let page = 1;
             let totalCount = 0;
             const pageSize = 100;
             const maxPages = 100;
-            
+
             while (page <= maxPages) {
                 const params = new URLSearchParams();
                 params.set('page', page.toString());
                 params.set('page_size', pageSize.toString());
-                
+
                 const res: any = await api.get(`/events/?${params.toString()}`);
                 const responseData: any = res?.data;
-                
-                if (!responseData) {
-                    break;
-                }
-                
+
+                if (!responseData) break;
+
                 let pageEvents: Event[] = [];
-                
+
                 if (Array.isArray(responseData)) {
                     pageEvents = responseData;
                     allEvents = [...allEvents, ...pageEvents];
@@ -79,25 +306,22 @@ export default function SuperEventsPage() {
                 } else if (responseData.results && Array.isArray(responseData.results)) {
                     pageEvents = responseData.results;
                     allEvents = [...allEvents, ...pageEvents];
-                    
+
                     if (page === 1) {
                         totalCount = responseData.count || 0;
                     }
-                    
+
                     const hasNext = responseData.next !== null && responseData.next !== undefined;
                     const hasAllResults = totalCount > 0 && allEvents.length >= totalCount;
                     const gotEmptyPage = pageEvents.length === 0;
-                    
-                    if (!hasNext || hasAllResults || gotEmptyPage) {
-                        break;
-                    }
-                    
+
+                    if (!hasNext || hasAllResults || gotEmptyPage) break;
                     page++;
                 } else {
                     break;
                 }
             }
-            
+
             setAllEventsForAnalytics(allEvents);
         } catch (err) {
             console.error('Error fetching events for analytics:', err);
@@ -107,27 +331,24 @@ export default function SuperEventsPage() {
 
     const fetchAttendedCount = async () => {
         try {
-            // Fetch all registrations with ATTENDED status
             let allRegistrations: any[] = [];
             let page = 1;
             const pageSize = 100;
             const maxPages = 100;
-            
+
             while (page <= maxPages) {
                 const params = new URLSearchParams();
                 params.set('status', 'ATTENDED');
                 params.set('page', page.toString());
                 params.set('page_size', pageSize.toString());
-                
+
                 const res: any = await api.get(`/registrations/?${params.toString()}`);
                 const responseData: any = res?.data;
-                
-                if (!responseData) {
-                    break;
-                }
-                
+
+                if (!responseData) break;
+
                 let pageRegistrations: any[] = [];
-                
+
                 if (Array.isArray(responseData)) {
                     pageRegistrations = responseData;
                     allRegistrations = [...allRegistrations, ...pageRegistrations];
@@ -135,21 +356,17 @@ export default function SuperEventsPage() {
                 } else if (responseData.results && Array.isArray(responseData.results)) {
                     pageRegistrations = responseData.results;
                     allRegistrations = [...allRegistrations, ...pageRegistrations];
-                    
+
                     const hasNext = responseData.next !== null && responseData.next !== undefined;
                     const gotEmptyPage = pageRegistrations.length === 0;
-                    
-                    if (!hasNext || gotEmptyPage) {
-                        break;
-                    }
-                    
+
+                    if (!hasNext || gotEmptyPage) break;
                     page++;
                 } else {
                     break;
                 }
             }
-            
-            // Count unique users who attended
+
             const uniqueUsers = new Set(allRegistrations.map((r: any) => r.user));
             setAttendedCount(uniqueUsers.size);
         } catch (err) {
@@ -158,43 +375,40 @@ export default function SuperEventsPage() {
         }
     };
 
-    const fetchEvents = async () => {
+    const fetchEvents = useCallback(async () => {
         setLoading(true);
+        setShowSkeleton(true);
+        const startTime = Date.now();
+
         try {
-            // Get filters from URL - only get valid parameters
             const search = searchParams.get('search') || '';
             const status = searchParams.get('status') || '';
             const recurringFilter = searchParams.get('recurring') || '';
             const page = searchParams.get('page') || '1';
-            
-            // Validate status parameter - only allow valid event statuses
+
             const validStatuses = ['DRAFT', 'PUBLISHED', 'SCHEDULED', 'CANCELLED'];
             const validStatus = status && validStatuses.includes(status) ? status : '';
-            
-            // Fetch ALL events for client-side filtering and pagination
-            // We need all events because we're doing client-side filtering for recurring
+
             let eventsData: Event[] = [];
             let pageNum = 1;
             const fetchPageSize = 100;
             const maxPages = 100;
-            
+
             while (pageNum <= maxPages) {
                 const params = new URLSearchParams();
                 if (search && search.trim()) params.set('search', search.trim());
                 if (validStatus) params.set('status', validStatus);
                 params.set('page', pageNum.toString());
                 params.set('page_size', fetchPageSize.toString());
-                
+
                 try {
                     const res: any = await api.get(`/events/?${params.toString()}`);
                     const responseData: any = res?.data;
-                
-                    if (!responseData) {
-                        break;
-                    }
-                    
+
+                    if (!responseData) break;
+
                     let pageEvents: Event[] = [];
-                    
+
                     if (Array.isArray(responseData)) {
                         pageEvents = responseData;
                         eventsData = [...eventsData, ...pageEvents];
@@ -202,164 +416,112 @@ export default function SuperEventsPage() {
                     } else if (responseData.results && Array.isArray(responseData.results)) {
                         pageEvents = responseData.results;
                         eventsData = [...eventsData, ...pageEvents];
-                        
+
                         const hasNext = responseData.next !== null && responseData.next !== undefined;
                         const gotEmptyPage = pageEvents.length === 0;
-                        
-                        if (!hasNext || gotEmptyPage) {
-                            break;
-                        }
-                        
+
+                        if (!hasNext || gotEmptyPage) break;
                         pageNum++;
                     } else {
                         break;
                     }
                 } catch (error: any) {
                     console.error(`Error fetching events page ${pageNum}:`, error);
-                    if (error.response?.status === 400) {
-                        console.error('Bad request parameters:', params.toString());
-                        console.error('Error details:', error.response?.data);
-                    }
-                    // Break on error to prevent infinite loop
                     break;
                 }
             }
-            
+
             // Apply client-side filtering for recurring events
             if (recurringFilter === 'only') {
-                // Show only recurring events with their instances
-                // Group events by parent_event or is_recurring
                 const parentEventIds = new Set<number>();
                 eventsData.forEach((e: Event) => {
                     if (e.is_recurring && !e.parent_event) {
                         parentEventIds.add(e.id);
                     }
                 });
-                
-                // Filter to show only parent events and their instances
+
                 eventsData = eventsData.filter((e: Event) => {
-                    if (e.is_recurring && !e.parent_event) {
-                        return true; // Include parent events
-                    }
-                    if (e.parent_event && parentEventIds.has(e.parent_event)) {
-                        return true; // Include instances of parent events we're showing
-                    }
+                    if (e.is_recurring && !e.parent_event) return true;
+                    if (e.parent_event && parentEventIds.has(e.parent_event)) return true;
                     return false;
                 });
             } else if (recurringFilter === 'exclude') {
-                // Exclude recurring events and their instances
                 const parentEventIds = new Set<number>();
                 eventsData.forEach((e: Event) => {
                     if (e.is_recurring && !e.parent_event) {
                         parentEventIds.add(e.id);
                     }
                 });
-                
-                // Filter out parent events and their instances
+
                 eventsData = eventsData.filter((e: Event) => {
-                    if (e.is_recurring && !e.parent_event) {
-                        return false; // Exclude parent events
-                    }
-                    if (e.parent_event && parentEventIds.has(e.parent_event)) {
-                        return false; // Exclude instances of recurring events
-                    }
-                    return true; // Include everything else
+                    if (e.is_recurring && !e.parent_event) return false;
+                    if (e.parent_event && parentEventIds.has(e.parent_event)) return false;
+                    return true;
                 });
             }
-            
+
             // Apply pagination after filtering
             const pageSize = 10;
             const currentPageNum = Number(page) || 1;
             const startIndex = (currentPageNum - 1) * pageSize;
             const endIndex = startIndex + pageSize;
             const paginatedEvents = eventsData.slice(startIndex, endIndex);
-            
-            // If current page is empty and not page 1, redirect to last available page
+
             if (paginatedEvents.length === 0 && currentPageNum > 1 && eventsData.length > 0) {
                 const lastPage = Math.ceil(eventsData.length / pageSize);
                 if (lastPage > 0) {
-                    // Update URL to last available page, preserving other filters
                     const params = new URLSearchParams(searchParams.toString());
                     params.set('page', lastPage.toString());
                     router.replace(`${pathname}?${params.toString()}`);
-                    // Don't set events here, let the useEffect trigger a re-fetch
                     return;
                 }
             }
-            
-            // If no events and we're not on page 1, go to page 1
+
             if (paginatedEvents.length === 0 && currentPageNum > 1 && eventsData.length === 0) {
                 const params = new URLSearchParams(searchParams.toString());
                 params.set('page', '1');
                 router.replace(`${pathname}?${params.toString()}`);
                 return;
             }
-            
+
             setEvents(paginatedEvents);
-            // Set total count based on filtered results
             setTotalCount(eventsData.length);
         } catch (error: any) {
             console.error('Error fetching events:', error);
-            if (error.response?.status === 400) {
-                console.error('Bad request - check URL parameters:', searchParams.toString());
-                console.error('Error details:', error.response?.data);
-                // Try to fetch without problematic parameters
-                try {
-                    const params = new URLSearchParams();
-                    params.set('page', '1');
-                    params.set('page_size', '100');
-                    const res: any = await api.get(`/events/?${params.toString()}`);
-                    const responseData: any = res?.data;
-                    if (responseData) {
-                        const events = Array.isArray(responseData) ? responseData : (responseData.results || []);
-                        setEvents(events.slice(0, 10));
-                        setTotalCount(events.length);
-                    }
-                } catch (fallbackError) {
-                    console.error('Fallback fetch also failed:', fallbackError);
-                    setEvents([]);
-                    setTotalCount(0);
-                }
-            } else {
-                setEvents([]);
-                setTotalCount(0);
-            }
+            setEvents([]);
+            setTotalCount(0);
         } finally {
-            setLoading(false);
-        }
-    };
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
 
-    const updateUrl = (key: string, value: string) => {
-        const params = new URLSearchParams(searchParams.toString());
-        if (value) {
-            params.set(key, value);
-        } else {
-            params.delete(key);
+            setTimeout(() => {
+                setLoading(false);
+                setShowSkeleton(false);
+            }, remaining);
         }
-        // Reset to page 1 when filters change (but not when changing page itself)
-        if (key !== 'page') {
-            params.set('page', '1');
-        }
-        // Use push to allow browser back button to work properly
-        router.push(`${pathname}?${params.toString()}`);
-    };
+    }, [searchParams, pathname, router]);
 
     const buildUrlWithParams = (path: string) => {
         const params = new URLSearchParams();
-        // Always preserve all current URL params including page
         const page = searchParams.get('page') || '1';
         const search = searchParams.get('search');
         const status = searchParams.get('status');
         const recurring = searchParams.get('recurring');
-        
-        // Always include page to preserve pagination state
+
         params.set('page', page);
         if (search) params.set('search', search);
         if (status) params.set('status', status);
         if (recurring) params.set('recurring', recurring);
-        
+
         const queryString = params.toString();
         return `${path}?${queryString}`;
+    };
+
+    const clearFilters = () => {
+        setSearchInput('');
+        setStatusFilter('');
+        setRecurringFilter('');
+        router.push(pathname);
     };
 
     const handleDeleteClick = (event: Event) => {
@@ -369,36 +531,31 @@ export default function SuperEventsPage() {
 
     const handleDeleteConfirm = async () => {
         if (!eventToDelete) return;
-        
-        // For recurring instances, deleteMode must be set
         if (eventToDelete.parent_event && !deleteMode) return;
 
         setDeleting(true);
         try {
             if (deleteMode === 'future' && eventToDelete.parent_event) {
-                // Delete this instance and all future instances
                 await api.delete(`/events/${eventToDelete.id}/?delete_future=true`);
             } else {
-                // Delete only this instance (or parent event which deletes all instances)
                 await api.delete(`/events/${eventToDelete.id}/`);
             }
-            
-            // Refresh the events list (this will use current URL params including page)
-            // fetchEvents() will automatically handle empty pages and redirect if needed
+
+            setToast({ message: 'Event deleted successfully.', type: 'success', isVisible: true });
             await fetchEvents();
             await fetchAllEventsForAnalytics();
-            
+
             setEventToDelete(null);
             setDeleteMode(null);
         } catch (error: any) {
             console.error('Error deleting event:', error);
-            alert(error.response?.data?.error || 'Failed to delete event');
+            setToast({ message: error.response?.data?.error || 'Failed to delete event', type: 'error', isVisible: true });
         } finally {
             setDeleting(false);
         }
     };
 
-    // Calculate analytics from allEventsForAnalytics
+    // Calculate analytics
     const now = new Date();
     const analytics = {
         total_events: allEventsForAnalytics.length,
@@ -409,548 +566,498 @@ export default function SuperEventsPage() {
         total_attended: attendedCount,
     };
 
-    // Pagination logic
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
     const totalPages = Math.ceil(totalCount / pageSize);
-    const paginatedEvents = events;
+
+    const handlePageChange = (p: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', p.toString());
+        router.push(`${pathname}?${params.toString()}`);
+    };
+
+    const selectArrowStyle = {
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 0.75rem center',
+        backgroundSize: '1rem'
+    };
+
+    const hasFilters = searchInput || statusFilter || recurringFilter;
+
+    const getStatusBadge = (status: string) => {
+        const styles: Record<string, string> = {
+            'PUBLISHED': 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30',
+            'DRAFT': 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30',
+            'SCHEDULED': 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30',
+            'CANCELLED': 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30',
+        };
+        return styles[status] || 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]';
+    };
 
     return (
-        <div className="p-8">
-            <div className="space-y-6">
+        <div className="py-4 sm:py-6 md:py-8 px-0 space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Events</h1>
-                    <p className="text-gray-500 mt-1">Manage events and their information.</p>
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-white" />
+                        </div>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Events</h1>
+                    </div>
+                    <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Create and manage events for the platform.</p>
                 </div>
                 <Link href="/admin/super/events/create">
-                    <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+                    <button className="flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all text-sm">
                         <Plus className="h-4 w-4" /> Create Event
-                    </Button>
+                    </button>
                 </Link>
             </div>
 
-            {/* Analytics */}
-            {!loading && (
-                <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                    <Card className="border-0 shadow-sm bg-gray-900">
-                        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-                            <div className="flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 text-gray-400" />
-                                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                                    Analytics Dashboard
-                                </h3>
+            {/* Analytics Dashboard */}
+            {!showSkeleton && (
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                    <button
+                        onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+                        className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                             </div>
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                                    <ChevronUp className={cn(
-                                        "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                        analyticsExpanded ? "rotate-0" : "rotate-180"
-                                    )} />
-                                    <span className="sr-only">Toggle Analytics</span>
-                                </Button>
-                            </CollapsibleTrigger>
+                            <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
                         </div>
-                        <CollapsibleContent className="transition-all duration-500 ease-in-out">
-                            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                                    {/* Card 1: Total Events */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                                                    }}>
-                                                    <Calendar className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Total Events</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_events}</div>
-                                        </div>
-                                    </Card>
+                        <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+                    </button>
 
-                                    {/* Card 2: Upcoming Events */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                                                    }}>
-                                                    <Clock className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Upcoming Events</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.upcoming_events}</div>
-                                        </div>
-                                    </Card>
+                    <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+                        <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-3 gap-3 sm:gap-4">
 
-                                    {/* Card 3: Total Members Who Attended */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                                                    }}>
-                                                    <Users className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Members Attended</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_attended}</div>
-                                        </div>
-                                    </Card>
+                            {/* Total Events */}
+                            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                        <Calendar className="h-5 w-5 text-white" />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
                                 </div>
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Card>
-                </Collapsible>
+                                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_events}</div>
+                            </div>
+
+                            {/* Upcoming Events */}
+                            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                                        <Clock className="h-5 w-5 text-white" />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Upcoming</span>
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.upcoming_events}</div>
+                            </div>
+
+                            {/* Members Attended */}
+                            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                                        <Users className="h-5 w-5 text-[var(--dark-900)]" />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Attended</span>
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.total_attended}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
-            {/* Filters */}
-            <Card className="border border-gray-100 shadow-sm bg-white">
-                <div className="px-6 py-4 space-y-4">
-                    {/* Main Filters Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                        {/* Search - Takes more space on larger screens */}
-                        <div className="relative md:col-span-4 lg:col-span-3">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                            <Input 
-                                placeholder="Search by title or location..." 
-                                className="pl-9 bg-gray-50 border-0"
-                                value={searchParams.get('search') || ''} 
-                                onChange={e => updateUrl('search', e.target.value)}
-                            />
-                        </div>
-                        
-                        {/* Status Filter */}
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <select 
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                                value={searchParams.get('status') || ''} 
-                                onChange={e => updateUrl('status', e.target.value)}
+            {/* Search & Filters */}
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+                <div className="flex flex-col gap-3">
+                    {/* Search Row */}
+                    <div className="flex items-center gap-3">
+                        <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+                        <input
+                            type="text"
+                            placeholder="Search by title or location..."
+                            className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+                            value={searchInput}
+                            onChange={e => setSearchInput(e.target.value)}
+                        />
+                        {searchInput && (
+                            <button
+                                onClick={() => setSearchInput('')}
+                                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+                            >
+                                ×
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Filters Row */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="w-full sm:w-[160px]">
+                            <select
+                                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                value={statusFilter}
+                                onChange={e => setStatusFilter(e.target.value)}
+                                style={selectArrowStyle}
                             >
                                 <option value="">All Statuses</option>
                                 <option value="DRAFT">Draft</option>
                                 <option value="SCHEDULED">Scheduled</option>
                                 <option value="PUBLISHED">Published</option>
                                 <option value="CANCELLED">Cancelled</option>
-                                <option value="ARCHIVED">Archived</option>
                             </select>
                         </div>
-                        
-                        {/* Recurring Events Filter */}
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <select 
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                                value={searchParams.get('recurring') || ''} 
-                                onChange={e => updateUrl('recurring', e.target.value)}
+                        <div className="w-full sm:w-[180px]">
+                            <select
+                                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                value={recurringFilter}
+                                onChange={e => setRecurringFilter(e.target.value)}
+                                style={selectArrowStyle}
                             >
                                 <option value="">All Events</option>
                                 <option value="only">Only Recurring</option>
                                 <option value="exclude">Exclude Recurring</option>
                             </select>
                         </div>
-                        
-                        {/* Clear Button */}
-                        <div className="md:col-span-2 lg:col-span-1">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => router.replace(`${pathname}?page=1`)}
-                                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+                        {hasFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
                             >
-                                <X className="h-4 w-4" /> Clear
-                            </Button>
-                        </div>
+                                Clear All
+                            </button>
+                        )}
                     </div>
                 </div>
-            </Card>
+            </div>
+
+            {/* Stats Bar */}
+            {!showSkeleton && events.length > 0 && (
+                <div className="px-4 sm:px-0">
+                    <p className="text-sm text-[var(--brand-light)]/50">
+                        Showing <span className="text-[var(--brand-primary)] font-semibold">{events.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'event' : 'events'}
+                    </p>
+                </div>
+            )}
 
             {/* Content */}
-            {loading ? (
-                <div className="py-20 flex justify-center text-gray-400">
-                    <div className="animate-pulse">Loading events...</div>
-                </div>
-            ) : paginatedEvents.length === 0 ? (
-                <Card className="border border-gray-100 shadow-sm">
-                    <div className="py-20 text-center">
-                        <p className="text-gray-500">
-                            {searchParams.get('search') || searchParams.get('status') || searchParams.get('recurring')
-                                ? 'No events found matching your filters.'
-                                : 'No events found. Create your first one!'}
-                        </p>
+            {showSkeleton ? (
+                <EventPageSkeleton />
+            ) : events.length === 0 ? (
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                        <Calendar className="w-8 h-8 text-[var(--brand-light)]/30" />
                     </div>
-                </Card>
+                    <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No events found</h3>
+                    <p className="text-[var(--brand-light)]/50 text-sm mb-6">
+                        {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by creating your first event.'}
+                    </p>
+                    {!hasFilters && (
+                        <Link href="/admin/super/events/create">
+                            <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
+                                <Plus className="h-4 w-4" /> Create Event
+                            </button>
+                        </Link>
+                    )}
+                </div>
             ) : (
                 <>
-                    {/* MOBILE: Cards */}
-                    <div className="grid grid-cols-1 gap-3 md:hidden">
-                        {paginatedEvents.map(event => (
-                            <Card key={event.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-[#EBEBFE] flex-shrink-0">
-                                            <AvatarFallback className="rounded-full font-bold text-sm text-[#4D4DA4] bg-[#EBEBFE]">
-                                                <Calendar className="h-5 w-5" />
-                                            </AvatarFallback>
-                                        </Avatar>
+                    {/* Mobile Cards */}
+                    <div className="flex flex-col gap-3 md:hidden">
+                        {events.map((event) => (
+                            <SwipeableCard
+                                key={event.id}
+                                onClick={() => router.push(buildUrlWithParams(`/admin/super/events/${event.id}`))}
+                                onEdit={() => router.push(buildUrlWithParams(`/admin/super/events/edit/${event.id}`))}
+                                onDelete={() => handleDeleteClick(event)}
+                            >
+                                <div className="border-y border-[var(--dark-600)] p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
+                                            <Calendar className="w-5 h-5 text-white" />
+                                        </div>
                                         <div className="flex-1 min-w-0">
-                                            <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                                            <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
                                                 {event.title}
-                                            </CardTitle>
-                                            <CardDescription className="text-xs text-gray-500 truncate">
-                                                {event.location_name}
-                                            </CardDescription>
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-3 pt-0">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-xs text-gray-500 uppercase font-semibold">Date</span>
-                                            <div className="text-right">
-                                                <div className="text-sm text-gray-600">{new Date(event.start_date).toLocaleDateString()}</div>
-                                                <div className="text-xs text-gray-500">{new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                            </h3>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <MapPin className="w-3 h-3 text-[var(--brand-light)]/40" />
+                                                <span className="text-xs text-[var(--brand-light)]/50 truncate">{event.location_name}</span>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-xs text-gray-500 uppercase font-semibold">Recurring</span>
-                                            {event.is_recurring || event.parent_event ? (
-                                                <div className="flex flex-wrap gap-1 justify-end">
-                                                    {event.is_recurring && (
-                                                        <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 text-xs">
-                                                            <Repeat className="h-3 w-3 mr-1" />
-                                                            {event.recurrence_pattern || 'Recurring'}
-                                                        </Badge>
-                                                    )}
-                                                    {event.parent_event && (
-                                                        <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs">
-                                                            Instance
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">-</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
-                                            <Badge variant="outline" className={`text-xs ${
-                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' :
-                                                event.status === 'DRAFT' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' :
-                                                event.status === 'SCHEDULED' ? 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30' :
-                                                event.status === 'CANCELLED' ? 'bg-red-50 text-[#EF4444] border-[#EF4444]/30' :
-                                                'bg-gray-50 text-gray-700 border-gray-200'
-                                            }`}>
-                                                {event.status}
-                                            </Badge>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-xs text-gray-500 uppercase font-semibold">Registrations</span>
-                                            {event.allow_registration ? (
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-sm font-medium text-gray-600">{event.confirmed_participants_count}</span>
-                                                    <span className="text-gray-400">/</span>
-                                                    <span className="text-sm text-gray-500">{event.max_seats === 0 ? '∞' : event.max_seats}</span>
+                                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(event.status)}`}>
+                                                    {event.status}
+                                                </span>
+                                                {(event.is_recurring || event.parent_event) && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
+                                                        <Repeat className="w-3 h-3" />
+                                                        {event.parent_event ? 'Instance' : event.recurrence_pattern || 'Recurring'}
+                                                    </span>
+                                                )}
+                                                <span className="flex items-center gap-1 text-xs text-[var(--brand-light)]/40">
+                                                    <Clock className="w-3 h-3" />
+                                                    {new Date(event.start_date).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            {event.allow_registration && (
+                                                <div className="flex items-center gap-2 mt-2 text-xs text-[var(--brand-light)]/60">
+                                                    <Users className="w-3 h-3" />
+                                                    <span>{event.confirmed_participants_count}/{event.max_seats === 0 ? '∞' : event.max_seats}</span>
                                                     {event.waitlist_count > 0 && (
-                                                        <Badge variant="outline" className="ml-2 bg-orange-50 text-orange-700 border-orange-200 text-xs">
+                                                        <span className="px-1.5 py-0.5 rounded bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] text-xs">
                                                             +{event.waitlist_count} WL
-                                                        </Badge>
+                                                        </span>
                                                     )}
                                                 </div>
-                                            ) : (
-                                                <span className="text-sm text-gray-400">-</span>
                                             )}
                                         </div>
                                     </div>
-                                    {/* Action Buttons */}
-                                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                                        <Link href={buildUrlWithParams(`/admin/super/events/edit/${event.id}`)} className="flex-1">
-                                            <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                                                <Edit className="h-4 w-4" />
-                                                Edit
-                                            </Button>
-                                        </Link>
-                                        <Link href={buildUrlWithParams(`/admin/super/events/${event.id}`)} className="flex-1">
-                                            <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                                                <Eye className="h-4 w-4" />
-                                                View
-                                            </Button>
-                                        </Link>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                            onClick={() => handleDeleteClick(event)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                            Delete
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </SwipeableCard>
                         ))}
                     </div>
 
-                    {/* DESKTOP: Table */}
-                    <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Event</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Recurring</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Registrations</TableHead>
-                                    <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {paginatedEvents.map(event => (
-                                    <TableRow key={event.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                        <TableCell className="py-4 px-6">
+                    {/* Desktop Table */}
+                    <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-[var(--dark-600)]">
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Event</th>
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Recurring</th>
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Registrations</th>
+                                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {events.map(event => (
+                                    <tr key={event.id} className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/30 transition-colors">
+                                        <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <Avatar className="h-9 w-9 rounded-full bg-[#EBEBFE] flex items-center justify-center flex-shrink-0">
-                                                    <AvatarFallback className="rounded-full font-bold text-sm text-[#4D4DA4] bg-[#EBEBFE]">
-                                                        <Calendar className="h-5 w-5" />
-                                                    </AvatarFallback>
-                                                </Avatar>
+                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
+                                                    <Calendar className="w-5 h-5 text-white" />
+                                                </div>
                                                 <div>
-                                                    <div className="font-semibold text-[#121213] truncate max-w-xs">{event.title}</div>
-                                                    <div className="text-xs text-gray-500 truncate max-w-xs">{event.location_name}</div>
+                                                    <div className="font-semibold text-[var(--brand-light)] truncate max-w-xs">{event.title}</div>
+                                                    <div className="flex items-center gap-1 text-xs text-[var(--brand-light)]/50 truncate max-w-xs">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {event.location_name}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </TableCell>
-                                        <TableCell className="py-4 px-6">
-                                            <div className="text-sm text-gray-600">{new Date(event.start_date).toLocaleDateString()}</div>
-                                            <div className="text-xs text-gray-500">
-                                                {new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/70">
+                                                <Clock className="w-4 h-4" />
+                                                <div>
+                                                    <div>{new Date(event.start_date).toLocaleDateString()}</div>
+                                                    <div className="text-xs text-[var(--brand-light)]/50">
+                                                        {new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </TableCell>
-                                        <TableCell className="py-4 px-6">
+                                        </td>
+                                        <td className="px-6 py-4">
                                             {event.is_recurring || event.parent_event ? (
                                                 <div className="flex flex-wrap gap-1">
                                                     {event.is_recurring && (
-                                                        <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 text-xs">
-                                                            <Repeat className="h-3 w-3 mr-1" />
+                                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
+                                                            <Repeat className="w-3 h-3" />
                                                             {event.recurrence_pattern || 'Recurring'}
-                                                        </Badge>
+                                                        </span>
                                                     )}
                                                     {event.parent_event && (
-                                                        <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs">
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
                                                             Instance
-                                                        </Badge>
+                                                        </span>
                                                     )}
                                                 </div>
                                             ) : (
-                                                <span className="text-sm text-gray-400">-</span>
+                                                <span className="text-sm text-[var(--brand-light)]/40">-</span>
                                             )}
-                                        </TableCell>
-                                        <TableCell className="py-4 px-6">
-                                            <Badge variant="outline" className={`text-xs ${
-                                                event.status === 'PUBLISHED' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' :
-                                                event.status === 'DRAFT' ? 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30' :
-                                                event.status === 'SCHEDULED' ? 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30' :
-                                                event.status === 'CANCELLED' ? 'bg-red-50 text-[#EF4444] border-[#EF4444]/30' :
-                                                'bg-gray-50 text-gray-700 border-gray-200'
-                                            }`}>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusBadge(event.status)}`}>
                                                 {event.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="py-4 px-6">
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
                                             {event.allow_registration ? (
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-sm font-medium text-gray-600">{event.confirmed_participants_count}</span>
-                                                    <span className="text-gray-400">/</span>
-                                                    <span className="text-sm text-gray-500">{event.max_seats === 0 ? '∞' : event.max_seats}</span>
+                                                <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/70">
+                                                    <span className="font-medium">{event.confirmed_participants_count}</span>
+                                                    <span className="text-[var(--brand-light)]/40">/</span>
+                                                    <span>{event.max_seats === 0 ? '∞' : event.max_seats}</span>
                                                     {event.waitlist_count > 0 && (
-                                                        <Badge variant="outline" className="ml-2 bg-orange-50 text-orange-700 border-orange-200 text-xs">
+                                                        <span className="px-1.5 py-0.5 rounded bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] text-xs">
                                                             +{event.waitlist_count} WL
-                                                        </Badge>
+                                                        </span>
                                                     )}
                                                 </div>
                                             ) : (
-                                                <span className="text-sm text-gray-400">-</span>
+                                                <span className="text-sm text-[var(--brand-light)]/40">-</span>
                                             )}
-                                        </TableCell>
-                                        <TableCell className="py-4 px-6 text-right">
+                                        </td>
+                                        <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-1">
-                                                <Link href={buildUrlWithParams(`/admin/super/events/edit/${event.id}`)}>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
                                                 <Link href={buildUrlWithParams(`/admin/super/events/${event.id}`)}>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
+                                                    <button className="w-9 h-9 rounded-lg hover:bg-[var(--brand-primary)]/20 text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] flex items-center justify-center transition-all">
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
                                                 </Link>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm" 
-                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                                <Link href={buildUrlWithParams(`/admin/super/events/edit/${event.id}`)}>
+                                                    <button className="w-9 h-9 rounded-lg hover:bg-[var(--brand-blue)]/20 text-[var(--brand-light)]/60 hover:text-[var(--brand-blue)] flex items-center justify-center transition-all">
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                </Link>
+                                                <button
                                                     onClick={() => handleDeleteClick(event)}
+                                                    className="w-9 h-9 rounded-lg hover:bg-[var(--brand-red)]/20 text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] flex items-center justify-center transition-all"
                                                 >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
+                                        </td>
+                                    </tr>
                                 ))}
-                            </TableBody>
-                        </Table>
-                    </Card>
+                            </tbody>
+                        </table>
+                    </div>
                 </>
             )}
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 py-4">
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        disabled={currentPage === 1} 
-                        onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                        className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                <div className="flex items-center justify-center gap-2 py-4 px-4 sm:px-0">
+                    <button
+                        disabled={currentPage === 1}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         Prev
-                    </Button>
-                    <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        disabled={currentPage >= totalPages} 
-                        onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                        className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    </button>
+                    <span className="text-sm text-[var(--brand-light)]/50 px-2">
+                        Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                    </span>
+                    <button
+                        disabled={currentPage >= totalPages}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         Next
-                    </Button>
+                    </button>
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
-            {eventToDelete && (
-                <>
-                    {eventToDelete.parent_event || eventToDelete.is_recurring ? (
-                        // Recurring event modal - show options
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-                                <div className="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100">
-                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                </div>
-                                <h2 className="text-xl font-bold text-gray-900 text-center mb-3">
-                                    Delete Recurring Event
-                                </h2>
-                                <p className="text-gray-600 text-center mb-6">
-                                    {eventToDelete.parent_event 
-                                        ? `"${eventToDelete.title}" is part of a recurring series. How would you like to proceed?`
-                                        : `"${eventToDelete.title}" is a recurring event. How would you like to proceed?`
-                                    }
-                                </p>
-                                
-                                {eventToDelete.parent_event && (
-                                    <div className="space-y-3 mb-6">
-                                        <button
-                                            onClick={() => setDeleteMode('single')}
-                                            className={`w-full px-4 py-3 text-left rounded-lg border-2 transition-colors ${
-                                                deleteMode === 'single'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
-                                            }`}
-                                        >
-                                            <div className="font-semibold text-gray-900">Delete only this instance</div>
-                                            <div className="text-sm text-gray-600 mt-1">Only this event will be deleted. Past and future instances will remain.</div>
-                                        </button>
-                                        <button
-                                            onClick={() => setDeleteMode('future')}
-                                            className={`w-full px-4 py-3 text-left rounded-lg border-2 transition-colors ${
-                                                deleteMode === 'future'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
-                                            }`}
-                                        >
-                                            <div className="font-semibold text-gray-900">Delete this and all future instances</div>
-                                            <div className="text-sm text-gray-600 mt-1">This event and all future events in the series will be deleted. Past instances will remain.</div>
-                                        </button>
-                                    </div>
-                                )}
-
-                                {!eventToDelete.parent_event && eventToDelete.is_recurring && (
-                                    <p className="text-sm text-gray-600 text-center mb-6">
-                                        Deleting the parent event will delete all instances in the series.
-                                    </p>
-                                )}
-
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => {
-                                            setEventToDelete(null);
-                                            setDeleteMode(null);
-                                        }}
-                                        disabled={deleting}
-                                        className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleDeleteConfirm}
-                                        disabled={deleting || (eventToDelete.parent_event && !deleteMode)}
-                                        className="flex-1 px-4 py-2.5 text-white bg-red-600 rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                    >
-                                        {deleting ? (
-                                            <>
-                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                                </svg>
-                                                Deleting...
-                                            </>
-                                        ) : (
-                                            'Delete'
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
+            {/* Delete Confirmation Modal for Recurring Events */}
+            {eventToDelete && (eventToDelete.parent_event || eventToDelete.is_recurring) && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-[var(--dark-800)] rounded-2xl shadow-2xl w-full max-w-md p-6 border border-[var(--dark-600)]">
+                        <div className="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--brand-red)]/20">
+                            <Trash2 className="w-6 h-6 text-[var(--brand-red)]" />
                         </div>
-                    ) : (
-                        // Regular event modal
-                        <ConfirmationModal
-                            isVisible={!!eventToDelete}
-                            onClose={() => {
-                                if (!deleting) {
+                        <h2 className="text-xl font-bold text-[var(--brand-light)] text-center mb-3">
+                            Delete Recurring Event
+                        </h2>
+                        <p className="text-[var(--brand-light)]/60 text-center mb-6">
+                            {eventToDelete.parent_event
+                                ? `"${eventToDelete.title}" is part of a recurring series. How would you like to proceed?`
+                                : `"${eventToDelete.title}" is a recurring event. How would you like to proceed?`
+                            }
+                        </p>
+
+                        {eventToDelete.parent_event && (
+                            <div className="space-y-3 mb-6">
+                                <button
+                                    onClick={() => setDeleteMode('single')}
+                                    className={`w-full px-4 py-3 text-left rounded-xl border-2 transition-colors ${deleteMode === 'single'
+                                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
+                                            : 'border-[var(--dark-500)] hover:border-[var(--dark-400)]'
+                                        }`}
+                                >
+                                    <div className="font-semibold text-[var(--brand-light)]">Delete only this instance</div>
+                                    <div className="text-sm text-[var(--brand-light)]/50 mt-1">Only this event will be deleted. Past and future instances will remain.</div>
+                                </button>
+                                <button
+                                    onClick={() => setDeleteMode('future')}
+                                    className={`w-full px-4 py-3 text-left rounded-xl border-2 transition-colors ${deleteMode === 'future'
+                                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
+                                            : 'border-[var(--dark-500)] hover:border-[var(--dark-400)]'
+                                        }`}
+                                >
+                                    <div className="font-semibold text-[var(--brand-light)]">Delete this and all future instances</div>
+                                    <div className="text-sm text-[var(--brand-light)]/50 mt-1">This event and all future events in the series will be deleted.</div>
+                                </button>
+                            </div>
+                        )}
+
+                        {!eventToDelete.parent_event && eventToDelete.is_recurring && (
+                            <p className="text-sm text-[var(--brand-light)]/60 text-center mb-6">
+                                Deleting the parent event will delete all instances in the series.
+                            </p>
+                        )}
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
                                     setEventToDelete(null);
                                     setDeleteMode(null);
-                                }
-                            }}
-                            onConfirm={() => {
-                                setDeleteMode('single');
-                                handleDeleteConfirm();
-                            }}
-                            title="Confirm Deletion"
-                            message={eventToDelete ? `Are you sure you want to delete "${eventToDelete.title}"? This action cannot be undone.` : ''}
-                            confirmButtonText="Delete"
-                            cancelButtonText="Cancel"
-                            isLoading={deleting}
-                            variant="danger"
-                        />
-                    )}
-                </>
+                                }}
+                                disabled={deleting}
+                                className="flex-1 px-4 py-2.5 text-[var(--brand-light)] bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl font-semibold hover:bg-[var(--dark-600)] transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                disabled={deleting || (eventToDelete.parent_event && !deleteMode)}
+                                className="flex-1 px-4 py-2.5 text-white bg-[var(--brand-red)] rounded-xl font-semibold hover:bg-[var(--brand-red)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {deleting ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
-            </div>
+
+            {/* Regular Delete Confirmation Modal */}
+            {eventToDelete && !eventToDelete.parent_event && !eventToDelete.is_recurring && (
+                <ConfirmationModal
+                    isVisible={!!eventToDelete}
+                    onClose={() => {
+                        if (!deleting) {
+                            setEventToDelete(null);
+                            setDeleteMode(null);
+                        }
+                    }}
+                    onConfirm={() => {
+                        setDeleteMode('single');
+                        handleDeleteConfirm();
+                    }}
+                    title="Delete Event"
+                    message={`Are you sure you want to delete "${eventToDelete.title}"? This action cannot be undone.`}
+                    confirmButtonText="Delete"
+                    cancelButtonText="Cancel"
+                    isLoading={deleting}
+                    variant="danger"
+                    darkMode={true}
+                />
+            )}
+
+            <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} darkMode duration={1250} />
         </div>
     );
 }

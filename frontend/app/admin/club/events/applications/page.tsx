@@ -1,12 +1,28 @@
 'use client';
 
+import { Suspense } from 'react';
+import { ClipboardList } from 'lucide-react';
 import ApplicationList from '@/app/components/events/ApplicationList';
+
+function ApplicationsPageContent() {
+    return (
+        <div className="py-4 sm:py-6 md:py-8 px-0">
+            <ApplicationList scope="CLUB" />
+        </div>
+    );
+}
 
 export default function ClubApplicationsPage() {
     return (
-        <div className="h-[calc(100vh-64px)] p-6 flex flex-col">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Manage Applications</h1>
-            <div className="flex-1 min-h-0"><ApplicationList scope="CLUB" /></div>
-        </div>
+        <Suspense fallback={
+            <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[var(--brand-light)]/60">Loading applications...</p>
+                </div>
+            </div>
+        }>
+            <ApplicationsPageContent />
+        </Suspense>
     );
 }

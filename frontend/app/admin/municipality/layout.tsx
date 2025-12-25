@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -33,7 +33,9 @@ import {
   ClipboardList,
   FileEdit,
   Rss,
-  LogIn
+  LogIn,
+  BookOpen,
+  History
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -61,11 +63,12 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   // Collapsible groups state
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    municipality: true,
-    users: true,
+    municipality: false,
+    users: false,
     content: false,
     events: false,
     groups: false,
@@ -238,6 +241,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
       icon: Box,
       items: [
         { name: 'Inventory', href: '/admin/municipality/inventory', icon: Box },
+        { name: 'Inventory History', href: '/admin/municipality/inventory/history', icon: History },
       ]
     },
     {
@@ -256,6 +260,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
       icon: GraduationCap,
       items: [
         { name: 'Knowledge Center', href: '/admin/municipality/knowledge', icon: GraduationCap },
+        { name: 'Find a course', href: '/admin/municipality/knowledge/courses', icon: BookOpen },
       ]
     },
     {
@@ -271,10 +276,10 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
   ];
 
   const SidebarContent = ({ isCollapsed = false }: { isCollapsed?: boolean }) => (
-    <div className="flex flex-col h-full bg-gray-900 border-r border-gray-800 w-full">
+    <div className="flex flex-col h-full bg-[var(--dark-800)] border-r border-[var(--dark-600)] w-full">
       {/* Brand Header */}
       <div className={cn(
-        "p-4 border-b border-gray-800 flex items-center gap-3 transition-all duration-500 ease-in-out flex-shrink-0",
+        "p-4 border-b border-[var(--dark-600)] flex items-center gap-3 transition-all duration-500 ease-in-out flex-shrink-0",
         isCollapsed && "justify-center px-2"
       )}>
         <Link href="/admin/municipality/profile" className="inline-block transition-opacity duration-300 flex-shrink-0">
@@ -297,16 +302,16 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
             ? "opacity-0 max-w-0 w-0" 
             : "opacity-100 max-w-full"
         )}>
-          <h2 className="text-sm font-semibold truncate text-gray-100">
+          <h2 className="text-sm font-semibold truncate text-[var(--brand-light)]">
             {user?.first_name} {user?.last_name}
           </h2>
-          <p className="text-xs text-gray-400 truncate">Municipality Admin</p>
+          <p className="text-xs text-[var(--brand-light)]/60 truncate">Municipality Admin</p>
         </div>
       </div>
 
       {/* Navigation - Scrollable Area */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        <ScrollArea className="h-full">
+        <ScrollArea className="h-full" ref={scrollAreaRef}>
           <div className={cn("py-4", isCollapsed ? "px-2" : "px-3")}>
             <nav className={cn("space-y-1 transition-all duration-500 ease-in-out")}>
               {navigationGroups.map((group) => {
@@ -334,13 +339,13 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                         className={cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
                           isActive 
-                            ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
-                            : "text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white",
+                            ? "bg-[var(--brand-purple)]/20 text-[var(--brand-light)] shadow-sm" 
+                            : "text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]",
                           isCollapsed && "justify-center px-2"
                         )}
                       >
                         {item.icon && (
-                          <item.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors duration-300", isActive ? "text-[#FF5485]" : "text-gray-400 group-hover:text-white")} />
+                          <item.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors duration-300", isActive ? "text-[var(--brand-primary)]" : "text-[var(--brand-light)]/50 group-hover:text-[var(--brand-light)]")} />
                         )}
                         <span className={cn(
                           "flex-1 truncate transition-all duration-500 ease-in-out overflow-hidden",
@@ -351,7 +356,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                         {hasBadge && (
                           <>
                             <span className={cn(
-                              "ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5485] text-[10px] font-bold text-white flex-shrink-0 transition-all duration-500 ease-in-out overflow-hidden",
+                              "ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-[10px] font-bold text-white flex-shrink-0 transition-all duration-500 ease-in-out overflow-hidden",
                               isCollapsed 
                                 ? "opacity-0 max-w-0 w-0 ml-0" 
                                 : "opacity-100 max-w-full"
@@ -359,7 +364,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                               {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
                             </span>
                             {isCollapsed && (
-                              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#FF5485] ring-2 ring-gray-900 transition-opacity duration-500 ease-in-out"></span>
+                              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--brand-primary)] ring-2 ring-[var(--dark-800)] transition-opacity duration-500 ease-in-out"></span>
                             )}
                           </>
                         )}
@@ -372,7 +377,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                           <TooltipTrigger asChild>
                             {navItem}
                           </TooltipTrigger>
-                          <TooltipContent side="right" className="bg-gray-800 text-white border-gray-700">
+                          <TooltipContent side="right" className="bg-[var(--dark-700)] text-[var(--brand-light)] border-[var(--dark-600)]">
                             <p>{item.name}</p>
                           </TooltipContent>
                         </Tooltip>
@@ -391,14 +396,14 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                       <PopoverTrigger asChild>
                         <button
                           className={cn(
-                            "w-full flex items-center justify-center px-2 py-2.5 rounded-lg text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white transition-all duration-300 ease-in-out",
-                            hasActiveItem && "bg-[#4D4DA4]/10"
+                            "w-full flex items-center justify-center px-2 py-2.5 rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all duration-300 ease-in-out",
+                            hasActiveItem && "bg-[var(--brand-purple)]/20"
                           )}
                         >
                           {group.icon && (
                             <group.icon className={cn(
                               "h-5 w-5 transition-colors duration-300",
-                              hasActiveItem ? "text-[#FF5485]" : "text-gray-400"
+                              hasActiveItem ? "text-[var(--brand-primary)]" : "text-[var(--brand-light)]/50"
                             )} />
                           )}
                         </button>
@@ -406,10 +411,10 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                       <PopoverContent 
                         side="right" 
                         align="start"
-                        className="w-64 p-2 bg-gray-800 border-gray-700"
+                        className="w-64 p-2 bg-[var(--dark-700)] border-[var(--dark-600)]"
                       >
                         <div className="px-2 py-1.5 mb-2">
-                          <h3 className="text-sm font-semibold text-white">{group.title}</h3>
+                          <h3 className="text-sm font-semibold text-[var(--brand-light)]">{group.title}</h3>
                         </div>
                         <div className="space-y-1">
                           {group.items.map((item) => {
@@ -428,16 +433,16 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                                 className={cn(
                                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
                                   isActive 
-                                    ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
-                                    : "text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white"
+                                    ? "bg-[var(--brand-purple)]/20 text-[var(--brand-light)]" 
+                                    : "text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]"
                                 )}
                               >
                                 {item.icon && (
-                                  <item.icon className={cn("h-4 w-4 flex-shrink-0 transition-colors duration-300", isActive ? "text-[#FF5485]" : "text-gray-400 group-hover:text-white")} />
+                                  <item.icon className={cn("h-4 w-4 flex-shrink-0 transition-colors duration-300", isActive ? "text-[var(--brand-primary)]" : "text-[var(--brand-light)]/50 group-hover:text-[var(--brand-light)]")} />
                                 )}
                                 <span className="flex-1 truncate">{item.name}</span>
                                 {hasBadge && (
-                                  <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5485] text-[10px] font-bold text-white flex-shrink-0">
+                                  <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-[10px] font-bold text-white flex-shrink-0">
                                     {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
                                   </span>
                                 )}
@@ -454,24 +459,40 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                   <Collapsible
                     key={group.id}
                     open={isGroupOpen}
-                    onOpenChange={(open) => setOpenGroups(prev => ({ ...prev, [group.id]: open }))}
+                    onOpenChange={(open) => {
+                      // Save scroll position before state change
+                      const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+                      const scrollTop = scrollContainer?.scrollTop || 0;
+                      
+                      setOpenGroups(prev => ({ ...prev, [group.id]: open }));
+                      
+                      // Restore scroll position after DOM updates (wait for animation to complete)
+                      requestAnimationFrame(() => {
+                        setTimeout(() => {
+                          const updatedContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+                          if (updatedContainer) {
+                            updatedContainer.scrollTop = scrollTop;
+                          }
+                        }, 300); // Wait for transition duration
+                      });
+                    }}
                   >
                     <CollapsibleTrigger
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-in-out",
                         hasActiveItem 
-                          ? "text-white bg-[#4D4DA4]/10" 
-                          : "text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white"
+                          ? "text-[var(--brand-light)] bg-[var(--brand-purple)]/20" 
+                          : "text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]"
                       )}
                     >
                       {group.icon && (
-                        <group.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors duration-300", hasActiveItem ? "text-[#FF5485]" : "text-gray-400")} />
+                        <group.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors duration-300", hasActiveItem ? "text-[var(--brand-primary)]" : "text-[var(--brand-light)]/50")} />
                       )}
                       <span className="flex-1 text-left truncate">{group.title}</span>
                       <ChevronDown
                         className={cn(
                           "h-4 w-4 transition-all duration-300 ease-in-out flex-shrink-0",
-                          hasActiveItem ? "text-[#FF5485]" : "text-gray-500",
+                          hasActiveItem ? "text-[var(--brand-primary)]" : "text-[var(--brand-light)]/50",
                           isGroupOpen && "transform rotate-180"
                         )}
                       />
@@ -493,16 +514,16 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
                             className={cn(
                               "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-in-out relative group",
                               isActive 
-                                ? "bg-[#4D4DA4]/10 text-white shadow-sm" 
-                                : "text-gray-400 hover:bg-[#4D4DA4]/10 hover:text-white"
+                                ? "bg-[var(--brand-purple)]/20 text-[var(--brand-light)] shadow-sm" 
+                                : "text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]"
                             )}
                           >
                             {item.icon && (
-                              <item.icon className={cn("h-4 w-4 flex-shrink-0 transition-colors duration-300", isActive ? "text-[#FF5485]" : "text-gray-400 group-hover:text-white")} />
+                              <item.icon className={cn("h-4 w-4 flex-shrink-0 transition-colors duration-300", isActive ? "text-[var(--brand-primary)]" : "text-[var(--brand-light)]/50 group-hover:text-[var(--brand-light)]")} />
                             )}
                             <span className="flex-1 truncate">{item.name}</span>
                             {hasBadge && (
-                              <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5485] text-[10px] font-bold text-white flex-shrink-0">
+                              <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-[10px] font-bold text-white flex-shrink-0">
                                 {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
                               </span>
                             )}
@@ -519,18 +540,18 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
       </div>
 
       {/* Footer - Always Visible */}
-      <div className={cn("p-4 border-t border-gray-800 transition-all duration-500 ease-in-out flex-shrink-0", isCollapsed && "px-2")}>
+      <div className={cn("p-4 border-t border-[var(--dark-600)] transition-all duration-500 ease-in-out flex-shrink-0", isCollapsed && "px-2")}>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 
               variant="ghost" 
               className={cn(
-                "w-full text-gray-400 hover:text-white hover:bg-[#4D4DA4]/10 transition-all duration-300 ease-in-out",
+                "w-full text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all duration-300 ease-in-out",
                 isCollapsed ? "justify-center" : "justify-start gap-2"
               )}
               onClick={logout}
             >
-              <LogOut className="h-4 w-4 text-[#FF5485] transition-transform duration-300 flex-shrink-0" />
+              <LogOut className="h-4 w-4 text-[var(--brand-primary)] transition-transform duration-300 flex-shrink-0" />
               <span className={cn(
                 "transition-all duration-500 ease-in-out overflow-hidden",
                 isCollapsed 
@@ -540,7 +561,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
             </Button>
           </TooltipTrigger>
           {isCollapsed && (
-            <TooltipContent side="right" className="bg-gray-800 text-white border-gray-700">
+            <TooltipContent side="right" className="bg-[var(--dark-700)] text-[var(--brand-light)] border-[var(--dark-600)]">
               <p>Sign Out</p>
             </TooltipContent>
           )}
@@ -551,7 +572,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
 
   return (
     <RoleGuard allowedRoles={['MUNICIPALITY_ADMIN']}>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-[var(--dark-900)]">
         
         {/* DESKTOP SIDEBAR */}
         <aside 
@@ -569,14 +590,14 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
             {/* Toggle Button - Positioned outside sidebar bounds */}
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-gray-800 border border-gray-700 shadow-md flex items-center justify-center hover:bg-[#4D4DA4]/10 transition-all duration-300 ease-in-out z-50 hover:scale-110"
+              className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] shadow-md flex items-center justify-center hover:bg-[var(--brand-purple)]/20 hover:border-[var(--brand-primary)]/30 transition-all duration-300 ease-in-out z-50 hover:scale-110"
               style={{ right: '-12px' }}
               aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isSidebarCollapsed ? (
-                <ChevronRight className="h-3.5 w-3.5 text-gray-300 transition-transform duration-300" />
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--brand-light)]/60 transition-transform duration-300" />
               ) : (
-                <ChevronLeft className="h-3.5 w-3.5 text-gray-300 transition-transform duration-300" />
+                <ChevronLeft className="h-3.5 w-3.5 text-[var(--brand-light)]/60 transition-transform duration-300" />
               )}
             </button>
           </div>
@@ -592,32 +613,32 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
           }}
         >
           
-          {/* Mobile Header */}
-          <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+          {/* Mobile Header - Fixed at top */}
+          <header className="md:hidden flex items-center justify-between p-4 bg-[var(--dark-800)] border-b border-[var(--dark-600)] fixed top-0 left-0 right-0 z-50">
             <div className="flex items-center gap-3">
               <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-gray-600 hover:bg-gray-50">
+                  <Button variant="ghost" size="icon" className="text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-72 bg-gray-900 border-r-gray-800">
+                <SheetContent side="left" className="p-0 w-72 bg-[var(--dark-800)] border-r-[var(--dark-600)]">
                   <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                   <SidebarContent />
                 </SheetContent>
               </Sheet>
-              <span className="font-semibold text-lg text-gray-900">Ungdomsappen</span>
+              <span className="font-semibold text-lg text-[var(--brand-light)]">Ungdomsappen</span>
             </div>
             {messageCount > 0 && (
               <div className="relative">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[#FF5485] ring-2 ring-white"></span>
+                <Bell className="h-5 w-5 text-[var(--brand-light)]/60" />
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[var(--brand-primary)] ring-2 ring-[var(--dark-800)]"></span>
               </div>
             )}
           </header>
 
-          {/* MAIN CONTENT */}
-          <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto overflow-x-hidden bg-gray-50">
+          {/* MAIN CONTENT - Add padding-top on mobile to account for fixed header */}
+          <main className="flex-1 pt-16 md:pt-3 px-0 sm:px-4 md:px-6 lg:px-8 pb-3 sm:pb-4 md:pb-6 lg:pb-8 overflow-y-auto overflow-x-hidden bg-[var(--dark-900)]">
             <div className="mx-auto max-w-7xl w-full min-w-0">
               {children}
             </div>

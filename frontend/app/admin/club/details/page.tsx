@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { Building2 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import ClubDetailView from '../../../components/ClubDetailView';
 
@@ -21,8 +22,13 @@ function ClubDetailsPageContent() {
 
   if (authLoading || !clubId) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-gray-500">Loading club details...</p>
+      <div className="py-20 text-center">
+        <div className="inline-flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+            <Building2 className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-[var(--brand-light)]/60 animate-pulse">Loading club details...</span>
+        </div>
       </div>
     );
   }
@@ -33,7 +39,7 @@ function ClubDetailsPageContent() {
       basePath="/admin/club"
       editPath="/admin/club/settings"
       followersPath="/admin/club/followers"
-      visitsPath={null}
+      visitsPath="/admin/club/visits"
       backLabel="Back to Overview"
     />
   );
@@ -41,7 +47,16 @@ function ClubDetailsPageContent() {
 
 export default function ClubDetailsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+    <Suspense fallback={
+      <div className="py-20 text-center">
+        <div className="inline-flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+            <Building2 className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-[var(--brand-light)]/60 animate-pulse">Loading...</span>
+        </div>
+      </div>
+    }>
       <ClubDetailsPageContent />
     </Suspense>
   );

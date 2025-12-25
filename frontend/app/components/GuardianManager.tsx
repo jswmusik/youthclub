@@ -1,21 +1,234 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, UserPlus, UsersRound, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, UserPlus, UsersRound, CheckCircle2, Mail, Building, ChevronLeft } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+}
+
+function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleEditClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+        >
+          <Edit className="w-5 h-5" />
+          <span className="text-xs font-medium">Edit</span>
+        </button>
+        <button
+          onClick={handleDeleteClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function GuardianCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GuardianTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-12" /></td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-1">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function GuardiansPageSkeleton() {
+  return (
+    <>
+      {/* Mobile Cards Skeleton */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {[...Array(4)].map((_, i) => (
+          <GuardianCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Guardian</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Connected Youth</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(5)].map((_, i) => (
+              <GuardianTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 interface GuardianManagerProps {
   basePath: string;
@@ -32,8 +245,8 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
   const [allUsersForAnalytics, setAllUsersForAnalytics] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [avatarErrors, setAvatarErrors] = useState<Set<number>>(new Set());
   
   // Dropdowns
   const [municipalities, setMunicipalities] = useState<any[]>([]);
@@ -58,6 +271,14 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     fetchGuardians();
   }, [searchParams]);
 
+  // Minimum skeleton display time
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSkeleton(false);
+    }, MIN_LOADING_TIME);
+    return () => clearTimeout(timer);
+  }, []);
+
   const fetchDropdowns = async () => {
     try {
       if (scope === 'SUPER') {
@@ -71,8 +292,6 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
 
   const fetchAllUsersForAnalytics = async () => {
     try {
-      // Fetch all guardians for analytics calculation
-      // Fetch page by page until we have all results
       let allUsers: any[] = [];
       let page = 1;
       let totalCount = 0;
@@ -88,42 +307,29 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
         const res: any = await api.get(`/users/?${params.toString()}`);
         const responseData: any = res?.data;
         
-        if (!responseData) {
-          console.warn(`No response data for page ${page}`);
-          break;
-        }
+        if (!responseData) break;
         
         let pageUsers: any[] = [];
         
         if (Array.isArray(responseData)) {
-          // Direct array response
           pageUsers = responseData.filter((user: any) => user.role === 'GUARDIAN');
           allUsers = [...allUsers, ...pageUsers];
           break;
         } else if (responseData.results && Array.isArray(responseData.results)) {
-          // Paginated response
           pageUsers = responseData.results.filter((user: any) => user.role === 'GUARDIAN');
           allUsers = [...allUsers, ...pageUsers];
           
-          // Get total count from first page
           if (page === 1) {
             totalCount = responseData.count || 0;
           }
           
-          // Check if we should continue
           const hasNext = responseData.next !== null && responseData.next !== undefined;
           const hasAllResults = totalCount > 0 && allUsers.length >= totalCount;
           const gotEmptyPage = pageUsers.length === 0;
           
-          // Stop if: no next page, we have all results, or got empty page
-          if (!hasNext || hasAllResults || gotEmptyPage) {
-            break;
-          }
-          
-          // Continue to next page
+          if (!hasNext || hasAllResults || gotEmptyPage) break;
           page++;
         } else {
-          console.warn(`Unexpected response format on page ${page}:`, responseData);
           break;
         }
       }
@@ -139,10 +345,8 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      // Always force role to GUARDIAN - this page only shows guardians
       params.set('role', 'GUARDIAN');
       
-      // Add filters from URL
       const search = searchParams.get('search');
       if (search) params.set('search', search);
       
@@ -160,13 +364,11 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
       
       const res = await api.get(`/users/?${params.toString()}`);
       
-      // Handle paginated response
       if (res.data.results) {
         const guardiansOnly = res.data.results.filter((user: any) => user.role === 'GUARDIAN');
         setUsers(guardiansOnly);
         setTotalCount(res.data.count || guardiansOnly.length);
       } else {
-        // Non-paginated response
         const guardiansOnly = (Array.isArray(res.data) ? res.data : []).filter((user: any) => user.role === 'GUARDIAN');
         setUsers(guardiansOnly);
         setTotalCount(guardiansOnly.length);
@@ -227,15 +429,13 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     }
   };
 
-  // Helper function to get initials from name
   const getInitials = (firstName: string = '', lastName: string = '') => {
     const first = firstName?.charAt(0)?.toUpperCase() || '';
     const last = lastName?.charAt(0)?.toUpperCase() || '';
     return first + last || '?';
   };
 
-
-  // Calculate analytics from allUsersForAnalytics
+  // Calculate analytics
   const analytics = {
     total_guardians: allUsersForAnalytics.length,
     new_last_7_days: allUsersForAnalytics.filter((u: any) => {
@@ -258,12 +458,12 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     },
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeClasses = (status: string) => {
     switch (status) {
-      case 'VERIFIED': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
-      case 'PENDING': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
-      case 'UNVERIFIED': return 'bg-red-50 text-[#EF4444] border-[#EF4444]/30';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'VERIFIED': return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
+      case 'PENDING': return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
+      case 'UNVERIFIED': return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+      default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
     }
   };
 
@@ -273,385 +473,348 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
   const totalPages = Math.ceil(totalCount / pageSize);
   const paginatedUsers = users;
 
+  const clearFilters = () => {
+    router.push(pathname);
+  };
+
+  const hasActiveFilters = searchParams.get('search') || searchParams.get('legal_gender') || 
+    searchParams.get('verification_status') || searchParams.get('municipality');
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Guardians</h1>
-          <p className="text-gray-500 mt-1">Manage guardians and their information.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <Users className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Guardians</h1>
+          </div>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage guardians and their information.</p>
         </div>
         <Link href={`${basePath}/create`}>
-          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+          <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> Add Guardian
-          </Button>
+          </button>
         </Link>
       </div>
 
       {/* Analytics */}
       {!isLoading && (
-        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border-0 shadow-sm bg-gray-900">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                  Analytics Dashboard
-                </h3>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                  )} />
-                  <span className="sr-only">Toggle Analytics</span>
-                </Button>
-              </CollapsibleTrigger>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
             </div>
-            <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 transition-opacity duration-500 ease-in-out">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {/* Card 1: Total Guardians */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <Users className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Total Guardians</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_guardians}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 2: New Last 7 Days */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                          }}>
-                          <UserPlus className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">New (7 Days)</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.new_last_7_days}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 3: Gender Breakdown */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
-                          }}>
-                          <UsersRound className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Gender Breakdown</CardTitle>
-                      </div>
-                      <div className="w-full space-y-1.5 mt-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Male:</span>
-                          <span className="font-bold text-white">{analytics.gender.male}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Female:</span>
-                          <span className="font-bold text-white">{analytics.gender.female}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Other:</span>
-                          <span className="font-bold text-white">{analytics.gender.other}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-
-                  {/* Card 4: Verification Status */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                          }}>
-                          <CheckCircle2 className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Verification</CardTitle>
-                      </div>
-                      <div className="w-full space-y-1.5 mt-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Verified:</span>
-                          <span className="font-bold text-white">{analytics.verification.verified}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white/70">Unverified/Pending:</span>
-                          <span className="font-bold text-white">{analytics.verification.unverified_pending}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
+            <ChevronUp className={cn(
+              "h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300",
+              analyticsExpanded ? "rotate-0" : "rotate-180"
+            )} />
+          </button>
+          {analyticsExpanded && (
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Card 1: Total Guardians */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
+                    <Users className="h-5 w-5 text-[var(--brand-purple)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total Guardians</span>
                 </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_guardians}</div>
+              </div>
+
+              {/* Card 2: New Last 7 Days */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-[var(--brand-blue)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">New (7 Days)</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.new_last_7_days}</div>
+              </div>
+
+              {/* Card 3: Gender Breakdown */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
+                    <UsersRound className="h-5 w-5 text-[var(--brand-primary)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Gender</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-[var(--brand-light)]/50">Male:</span>
+                    <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.male}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[var(--brand-light)]/50">Female:</span>
+                    <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.female}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[var(--brand-light)]/50">Other:</span>
+                    <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.other}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Verification Status */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-[var(--brand-green)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Verification</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-[var(--brand-light)]/50">Verified:</span>
+                    <span className="font-semibold text-[var(--brand-green)]">{analytics.verification.verified}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[var(--brand-light)]/50">Pending:</span>
+                    <span className="font-semibold text-[var(--brand-light)]">{analytics.verification.unverified_pending}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          {/* Main Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            {/* Search - Takes more space on larger screens */}
-            <div className="relative md:col-span-4 lg:col-span-3">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search by name or email..." 
-                className="pl-9 bg-gray-50 border-0"
-                value={searchParams.get('search') || ''}
-                onChange={e => updateUrl('search', e.target.value)}
-              />
-            </div>
-            
-            {/* Gender Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
-              <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('legal_gender') || ''} 
-                onChange={e => updateUrl('legal_gender', e.target.value)}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex flex-col gap-3">
+          {/* Search Row */}
+          <div className="flex items-center gap-3">
+            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+            <input 
+              type="text"
+              placeholder="Search by name or email..." 
+              className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+              value={searchParams.get('search') || ''}
+              onChange={e => updateUrl('search', e.target.value)}
+            />
+            {hasActiveFilters && (
+              <button 
+                onClick={clearFilters}
+                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
               >
-                <option value="">All Genders</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
-            
-            {/* Status Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
-              <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('verification_status') || ''} 
-                onChange={e => updateUrl('verification_status', e.target.value)}
-              >
-                <option value="">All Statuses</option>
-                <option value="VERIFIED">Verified</option>
-                <option value="PENDING">Pending</option>
-                <option value="UNVERIFIED">Unverified</option>
-              </select>
-            </div>
-            
-            {/* Municipality Filter - Only for SUPER scope */}
-            {scope === 'SUPER' && (
-              <div className="md:col-span-2 lg:col-span-2">
-                <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                  value={searchParams.get('municipality') || ''} 
-                  onChange={e => updateUrl('municipality', e.target.value)}
-                >
-                  <option value="">All Municipalities</option>
-                  {municipalities.map(m => (
-                    <option key={m.id} value={m.id.toString()}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
+                ×
+              </button>
             )}
+          </div>
+          
+          {/* Filter Dropdowns */}
+          <div className="flex flex-wrap gap-2">
+            <select 
+              className="flex-1 min-w-[120px] h-9 rounded-lg border-2 border-[var(--dark-500)] bg-[var(--dark-700)] px-3 text-sm text-[var(--brand-light)] focus:border-[var(--brand-primary)] focus:outline-none transition-colors"
+              value={searchParams.get('legal_gender') || ''} 
+              onChange={e => updateUrl('legal_gender', e.target.value)}
+            >
+              <option value="">All Genders</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
+            </select>
             
-            {/* Clear Button */}
-            <div className={cn("md:col-span-2", scope === 'SUPER' ? "lg:col-span-1" : "lg:col-span-3")}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(pathname)}
-                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+            <select 
+              className="flex-1 min-w-[120px] h-9 rounded-lg border-2 border-[var(--dark-500)] bg-[var(--dark-700)] px-3 text-sm text-[var(--brand-light)] focus:border-[var(--brand-primary)] focus:outline-none transition-colors"
+              value={searchParams.get('verification_status') || ''} 
+              onChange={e => updateUrl('verification_status', e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="VERIFIED">Verified</option>
+              <option value="PENDING">Pending</option>
+              <option value="UNVERIFIED">Unverified</option>
+            </select>
+            
+            {scope === 'SUPER' && (
+              <select 
+                className="flex-1 min-w-[140px] h-9 rounded-lg border-2 border-[var(--dark-500)] bg-[var(--dark-700)] px-3 text-sm text-[var(--brand-light)] focus:border-[var(--brand-primary)] focus:outline-none transition-colors"
+                value={searchParams.get('municipality') || ''} 
+                onChange={e => updateUrl('municipality', e.target.value)}
               >
-                <X className="h-4 w-4" /> Clear
-              </Button>
-            </div>
+                <option value="">All Municipalities</option>
+                {municipalities.map(m => (
+                  <option key={m.id} value={m.id.toString()}>{m.name}</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* Stats Bar */}
+      {!isLoading && paginatedUsers.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedUsers.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> guardians
+          </p>
+        </div>
+      )}
 
       {/* Content */}
-      {isLoading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
+      {showSkeleton || isLoading ? (
+        <GuardiansPageSkeleton />
       ) : paginatedUsers.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">No guardians found.</p>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-        </Card>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No guardians found</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm mb-6">
+            {hasActiveFilters ? 'Try adjusting your search or filters.' : 'Get started by adding your first guardian.'}
+          </p>
+          {!hasActiveFilters && (
+            <Link href={`${basePath}/create`}>
+              <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
+                <Plus className="h-4 w-4" /> Add Guardian
+              </button>
+            </Link>
+          )}
+        </div>
       ) : (
         <>
-          {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {paginatedUsers.map(user => (
-              <Card key={user.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
-                      <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
-                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                        {getInitials(user.first_name, user.last_name)}
-                      </AvatarFallback>
-                    </Avatar>
+          {/* Mobile Cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {paginatedUsers.map((user, index) => (
+              <SwipeableCard
+                key={user.id}
+                onClick={() => router.push(buildUrlWithParams(`${basePath}/${user.id}`))}
+                onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${user.id}`))}
+                onDelete={() => setUserToDelete(user)}
+              >
+                <div className="border-y border-[var(--dark-600)] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-full bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {user.avatar ? (
+                        <img src={getMediaUrl(user.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-[var(--brand-primary)]">
+                          {getInitials(user.first_name, user.last_name)}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                      <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
                         {user.first_name} {user.last_name}
-                      </CardTitle>
-                      <CardDescription className="text-xs text-gray-500 truncate">{user.email}</CardDescription>
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Mail className="w-3 h-3 text-[var(--brand-light)]/40" />
+                        <p className="text-xs text-[var(--brand-light)]/50 truncate">{user.email}</p>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
+                          {user.verification_status || 'UNVERIFIED'}
+                        </span>
+                        <span className="text-xs text-[var(--brand-light)]/50">
+                          <span className="font-semibold text-[var(--brand-primary)]">{user.youth_members ? user.youth_members.length : 0}</span> youth connected
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
-                      <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
-                        {user.verification_status || 'UNVERIFIED'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Connected Youth</span>
-                      <span className="font-bold text-[#4D4DA4]">{user.youth_members ? user.youth_members.length : 0}</span>
-                    </div>
-                  </div>
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                    <Link href={buildUrlWithParams(`${basePath}/${user.id}`)} className="flex-1">
-                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
-                    </Link>
-                    <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} className="flex-1">
-                      <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setUserToDelete(user)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </SwipeableCard>
             ))}
           </div>
 
-          {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Guardian</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Connected Youth</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedUsers.map(user => (
-                  <TableRow key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4 px-6">
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Guardian</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Connected Youth</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedUsers.map((user, index) => (
+                  <tr 
+                    key={user.id} 
+                    className={`${index !== paginatedUsers.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors`}
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
-                          <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                            {getInitials(user.first_name, user.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="w-10 h-10 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center overflow-hidden">
+                          {user.avatar ? (
+                            <img src={getMediaUrl(user.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-[var(--brand-primary)]">
+                              {getInitials(user.first_name, user.last_name)}
+                            </span>
+                          )}
+                        </div>
                         <div>
-                          <div className="font-semibold text-[#121213]">{user.first_name} {user.last_name}</div>
-                          <div className="text-xs text-gray-500">{user.email}</div>
+                          <div className="font-semibold text-[var(--brand-light)]">{user.first_name} {user.last_name}</div>
+                          <div className="text-xs text-[var(--brand-light)]/50">{user.email}</div>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
                         {user.verification_status || 'UNVERIFIED'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <span className="font-semibold text-[#4D4DA4]">{user.youth_members ? user.youth_members.length : 0}</span>
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-right">
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-semibold text-[var(--brand-primary)]">{user.youth_members ? user.youth_members.length : 0}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${user.id}`)}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-600)] transition-all">
+                            <Eye className="w-4 h-4" />
+                          </button>
                         </Link>
                         <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-blue)] hover:bg-[var(--dark-600)] transition-all">
+                            <Edit className="w-4 h-4" />
+                          </button>
                         </Link>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                        <button 
                           onClick={() => setUserToDelete(user)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </Card>
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
+            <div className="flex items-center justify-center gap-2 py-4 px-4 sm:px-0">
+              <button 
                 disabled={currentPage === 1} 
                 onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)] border border-[var(--dark-500)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Prev
-              </Button>
-              <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              </button>
+              <div className="text-sm text-[var(--brand-light)]/70">
+                Page <span className="font-bold text-[var(--brand-primary)]">{currentPage}</span> of {totalPages}
+              </div>
+              <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)] border border-[var(--dark-500)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Next
-              </Button>
+              </button>
             </div>
           )}
         </>
@@ -659,11 +822,15 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
-        isOpen={!!userToDelete}
+        isVisible={!!userToDelete}
         onClose={() => setUserToDelete(null)}
         onConfirm={handleDelete}
         title="Delete Guardian"
         message={`Are you sure you want to delete ${userToDelete?.first_name} ${userToDelete?.last_name}? This action cannot be undone.`}
+        confirmButtonText="Delete"
+        cancelButtonText="Cancel"
+        variant="danger"
+        darkMode={true}
       />
 
       {/* Toast Notification */}
@@ -676,4 +843,3 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     </div>
   );
 }
-

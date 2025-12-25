@@ -2,12 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Calendar, User } from 'lucide-react';
+import { ArrowRight, Calendar, User, Newspaper, Star, Archive, Sparkles } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 interface Tag {
   id: number;
@@ -25,9 +22,8 @@ interface Article {
   tags_details: Tag[];
 }
 
-// New Interface for Props
 interface NewsFeedProps {
-  basePath: string; // e.g., "/admin/super/news-feed" or "/dashboard/youth/news"
+  basePath: string;
 }
 
 export default function NewsFeed({ basePath }: NewsFeedProps) {
@@ -62,131 +58,233 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
     });
   };
 
+  const getAuthorInitials = (name: string) => {
+    if (!name) return 'A';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+    return name.charAt(0).toUpperCase();
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-pulse text-muted-foreground">Loading latest news...</div>
+      <div className="min-h-screen bg-[var(--dark-900)]">
+        <div className="sm:max-w-6xl sm:mx-auto sm:px-6 py-4 sm:py-8">
+          {/* Hero Skeleton */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] h-64 sm:h-80 md:h-96 animate-pulse mb-8" />
+          
+          {/* Section Header Skeleton */}
+          <div className="flex items-center justify-between mb-6 px-4 sm:px-0">
+            <div className="h-8 w-48 bg-[var(--dark-700)] rounded-lg animate-pulse" />
+            <div className="h-8 w-32 bg-[var(--dark-700)] rounded-lg animate-pulse" />
+          </div>
+
+          {/* Articles Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-0">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                <div className="h-48 bg-[var(--dark-700)] animate-pulse" />
+                <div className="p-6 space-y-3">
+                  <div className="h-4 w-20 bg-[var(--dark-700)] rounded animate-pulse" />
+                  <div className="h-6 w-full bg-[var(--dark-700)] rounded animate-pulse" />
+                  <div className="h-4 w-3/4 bg-[var(--dark-700)] rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-12">
-      
-      {/* --- HERO SECTION --- */}
-      {hero && hero.hero_image && (
-        <Card className="border-none shadow-sm overflow-hidden !p-0 relative group">
-          <div className="relative w-full h-64 sm:h-80 md:h-96 bg-gradient-to-r from-[#4D4DA4] via-[#4D4DA4]/80 to-[#FF5485]">
-            <img 
-              src={getMediaUrl(hero.hero_image) || ''} 
-              alt={hero.title} 
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <div className="sm:max-w-6xl sm:mx-auto sm:px-6 py-4 sm:py-8">
+        
+        {/* --- HERO SECTION --- */}
+        {hero && (
+          <div className="relative rounded-none sm:rounded-2xl overflow-hidden mb-8 group">
+            {/* Hero Image */}
+            <div className="relative w-full h-64 sm:h-80 md:h-[28rem]">
+              {hero.hero_image ? (
+                <img 
+                  src={getMediaUrl(hero.hero_image) || ''} 
+                  alt={hero.title} 
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)]" />
+              )}
+              
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-900)] via-[var(--dark-900)]/60 to-transparent" />
 
-            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 md:p-12 max-w-4xl">
-              <div className="flex flex-wrap gap-2 mb-4">
-                {hero.tags_details.map(tag => (
-                  <Badge key={tag.id} className="bg-[#4D4DA4] text-white border-none text-xs font-bold uppercase tracking-wide">
-                    {tag.name}
-                  </Badge>
-                ))}
+              {/* Hero Badge */}
+              <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-peach)] text-[var(--dark-900)] text-xs font-bold uppercase">
+                  <Star className="w-3.5 h-3.5" />
+                  Featured
+                </span>
               </div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-                {hero.title}
-              </h2>
-              <p className="text-gray-200 text-base sm:text-lg md:text-xl mb-6 line-clamp-2">
-                {hero.excerpt}
-              </p>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <Link href={`${basePath}/${hero.id}`}>
-                  <Button className="bg-white text-[#121213] hover:bg-gray-100 font-bold shadow-lg">
-                    Read Full Article
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <div className="flex items-center gap-2 text-gray-300 text-sm font-medium">
-                  <Calendar className="h-4 w-4" />
-                  <span>{formatDate(hero.published_at)}</span>
-                  <span className="hidden sm:inline">•</span>
-                  <User className="h-4 w-4 hidden sm:inline" />
-                  <span className="hidden sm:inline">{hero.author_name}</span>
+
+              {/* Hero Content */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {hero.tags_details.map(tag => (
+                    <span 
+                      key={tag.id} 
+                      className="px-3 py-1 rounded-full bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] text-xs font-semibold border border-[var(--brand-primary)]/30 backdrop-blur-sm"
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Title */}
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+                  {hero.title}
+                </h2>
+
+                {/* Excerpt */}
+                <p className="text-[var(--brand-light)]/70 text-base sm:text-lg mb-4 line-clamp-2 max-w-3xl">
+                  {hero.excerpt}
+                </p>
+
+                {/* Meta & CTA */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <Link href={`${basePath}/${hero.id}`}>
+                    <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-purple)] transition-all">
+                      Read Article
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </Link>
+                  <div className="flex items-center gap-3 text-[var(--brand-light)]/60 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center text-white text-xs font-bold">
+                        {getAuthorInitials(hero.author_name)}
+                      </div>
+                      <span>{hero.author_name}</span>
+                    </div>
+                    <span>•</span>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>{formatDate(hero.published_at)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </Card>
-      )}
+        )}
 
-      {/* --- RECENT NEWS GRID --- */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold tracking-tight text-[#121213]">Recent Stories</h3>
-          <Link href={`${basePath}/archive`}>
-            <Button variant="ghost" className="text-[#4D4DA4] hover:text-[#FF5485] font-semibold gap-2">
-              View Archive
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
+        {/* --- RECENT NEWS SECTION --- */}
+        <section>
+          {/* Section Header */}
+          <div className="flex items-center justify-between mb-6 px-4 sm:px-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                <Newspaper className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Recent Stories</h3>
+                <p className="text-sm text-[var(--brand-light)]/50">Latest updates and news</p>
+              </div>
+            </div>
+            <Link 
+              href={`${basePath}/archive`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+            >
+              <Archive className="w-4 h-4" />
+              <span className="hidden sm:inline">View Archive</span>
+            </Link>
+          </div>
 
-        {articles.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="p-12 text-center">
-              <p className="text-muted-foreground">No recent news available.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map(article => (
-              <Card key={article.id} className="border-none shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full group">
-                <div className="h-48 overflow-hidden relative bg-[#EBEBFE]/30">
-                  {article.hero_image ? (
-                    <img 
-                      src={getMediaUrl(article.hero_image) || ''} 
-                      alt={article.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">📰</div>
-                        <div className="text-sm">No Image</div>
+          {/* Articles Grid */}
+          {articles.length === 0 ? (
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-12 text-center">
+              <Newspaper className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
+              <p className="text-[var(--brand-light)]/50 mb-2">No recent news available</p>
+              <p className="text-sm text-[var(--brand-light)]/30">Check back later for updates</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-0">
+              {articles.map(article => (
+                <Link 
+                  key={article.id} 
+                  href={`${basePath}/${article.id}`}
+                  className="group"
+                >
+                  <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden hover:border-[var(--brand-primary)]/30 transition-all h-full flex flex-col">
+                    {/* Article Image */}
+                    <div className="h-48 overflow-hidden relative bg-[var(--dark-700)]">
+                      {article.hero_image ? (
+                        <img 
+                          src={getMediaUrl(article.hero_image) || ''} 
+                          alt={article.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <Newspaper className="w-10 h-10 text-[var(--brand-light)]/20 mx-auto mb-2" />
+                            <span className="text-xs text-[var(--brand-light)]/30">No Image</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Article Content */}
+                    <div className="p-5 flex flex-col flex-grow">
+                      {/* Tags */}
+                      {article.tags_details.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {article.tags_details.slice(0, 2).map(tag => (
+                            <span 
+                              key={tag.id} 
+                              className="px-2.5 py-1 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-xs font-medium"
+                            >
+                              #{tag.name}
+                            </span>
+                          ))}
+                          {article.tags_details.length > 2 && (
+                            <span className="px-2.5 py-1 rounded-full bg-[var(--dark-600)] text-[var(--brand-light)]/50 text-xs">
+                              +{article.tags_details.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Title */}
+                      <h4 className="text-lg font-bold text-[var(--brand-light)] mb-2 line-clamp-2 group-hover:text-[var(--brand-primary)] transition-colors">
+                        {article.title}
+                      </h4>
+
+                      {/* Excerpt */}
+                      <p className="text-[var(--brand-light)]/60 text-sm mb-4 line-clamp-2 flex-grow">
+                        {article.excerpt}
+                      </p>
+                      
+                      {/* Footer */}
+                      <div className="pt-4 border-t border-[var(--dark-600)] flex items-center justify-between mt-auto">
+                        <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/50">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{formatDate(article.published_at)}</span>
+                        </div>
+                        <span className="inline-flex items-center gap-1 text-[var(--brand-primary)] text-sm font-medium group-hover:gap-2 transition-all">
+                          Read
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
-
-                <CardContent className="p-6 flex flex-col flex-grow">
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {article.tags_details.map(tag => (
-                      <Badge key={tag.id} variant="outline" className="bg-[#EBEBFE]/30 text-[#4D4DA4] border-[#4D4DA4]/20 text-xs font-semibold">
-                        #{tag.name}
-                      </Badge>
-                    ))}
                   </div>
-                  
-                  <h4 className="text-xl font-bold text-[#121213] mb-2 line-clamp-2 group-hover:text-[#4D4DA4] transition-colors">{article.title}</h4>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">{article.excerpt}</p>
-                  
-                  <div className="pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>{formatDate(article.published_at)}</span>
-                    </div>
-                    <Link href={`${basePath}/${article.id}`}>
-                      <Button variant="ghost" size="sm" className="text-[#4D4DA4] hover:text-[#FF5485] font-semibold gap-1 h-auto p-0">
-                        Read More
-                        <ArrowRight className="h-3 w-3" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

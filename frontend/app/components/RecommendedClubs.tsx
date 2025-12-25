@@ -18,7 +18,11 @@ interface Club {
     municipality_name: string;
 }
 
-export default function RecommendedClubs() {
+interface RecommendedClubsProps {
+    darkMode?: boolean;
+}
+
+export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {}) {
     const router = useRouter();
     const { user, refreshUser } = useAuth();
     const [clubs, setClubs] = useState<Club[]>([]);
@@ -147,17 +151,27 @@ export default function RecommendedClubs() {
 
     return (
         <>
-            <div className="bg-[#0a0a0a] rounded-2xl shadow-lg border border-[#262626] p-4 mb-6">
+            <div className={`rounded-2xl p-4 mb-6 ${
+                darkMode
+                    ? 'bg-[var(--dark-700)] border border-[var(--dark-500)]'
+                    : 'bg-white shadow-lg border border-gray-200'
+            }`}>
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-200">Recommended Clubs</h3>
+                    <h3 className={`text-lg font-bold ${
+                        darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'
+                    }`}>Recommended Clubs</h3>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrevious}
                             disabled={!canGoPrevious}
                             className={`p-2 rounded-full transition-colors ${
-                                canGoPrevious 
-                                    ? 'bg-[#050505] hover:bg-[#0f0f0f] text-gray-300 border border-[#262626]' 
-                                    : 'bg-[#050505] text-gray-600 cursor-not-allowed border border-[#262626]'
+                                darkMode
+                                    ? canGoPrevious 
+                                        ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)] border border-[var(--dark-500)]' 
+                                        : 'bg-[var(--dark-600)] text-[var(--brand-light)]/30 cursor-not-allowed border border-[var(--dark-500)]'
+                                    : canGoPrevious 
+                                        ? 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200' 
+                                        : 'bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-200'
                             }`}
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,9 +182,13 @@ export default function RecommendedClubs() {
                             onClick={handleNext}
                             disabled={!canGoNext}
                             className={`p-2 rounded-full transition-colors ${
-                                canGoNext 
-                                    ? 'bg-[#050505] hover:bg-[#0f0f0f] text-gray-300 border border-[#262626]' 
-                                    : 'bg-[#050505] text-gray-600 cursor-not-allowed border border-[#262626]'
+                                darkMode
+                                    ? canGoNext 
+                                        ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)] border border-[var(--dark-500)]' 
+                                        : 'bg-[var(--dark-600)] text-[var(--brand-light)]/30 cursor-not-allowed border border-[var(--dark-500)]'
+                                    : canGoNext 
+                                        ? 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200' 
+                                        : 'bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-200'
                             }`}
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -184,11 +202,19 @@ export default function RecommendedClubs() {
                     {visibleClubs.map((club) => (
                         <div 
                             key={club.id} 
-                            className="border border-[#262626] rounded-lg overflow-hidden hover:border-[#4D4DA4]/40 transition-all cursor-pointer bg-[#050505]"
+                            className={`rounded-lg overflow-hidden transition-all cursor-pointer ${
+                                darkMode
+                                    ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/40'
+                                    : 'border border-gray-200 hover:border-[#4D4DA4]/40 bg-white'
+                            }`}
                             onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
                         >
                             {/* Cover Image */}
-                            <div className="relative h-32 bg-gradient-to-br from-[#4D4DA4] to-[#FF5485]">
+                            <div className={`relative h-32 ${
+                                darkMode
+                                    ? 'bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-primary)]'
+                                    : 'bg-gradient-to-br from-[#4D4DA4] to-[#FF5485]'
+                            }`}>
                                 {club.hero_image ? (
                                     <img 
                                         src={getMediaUrl(club.hero_image)} 
@@ -211,23 +237,37 @@ export default function RecommendedClubs() {
                                         <img 
                                             src={getMediaUrl(club.avatar)} 
                                             alt={club.name}
-                                            className="w-10 h-10 rounded-full object-cover border-2 border-[#0a0a0a] -mt-6 relative z-10 bg-[#0a0a0a]"
+                                            className={`w-10 h-10 rounded-full object-cover border-2 -mt-6 relative z-10 ${
+                                                darkMode
+                                                    ? 'border-[var(--dark-600)] bg-[var(--dark-600)]'
+                                                    : 'border-white bg-white'
+                                            }`}
                                         />
                                     ) : (
-                                        <div className="w-10 h-10 rounded-full bg-[#4D4DA4] flex items-center justify-center border-2 border-[#0a0a0a] -mt-6 relative z-10">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 -mt-6 relative z-10 ${
+                                            darkMode
+                                                ? 'bg-[var(--brand-secondary)] border-[var(--dark-600)]'
+                                                : 'bg-[#4D4DA4] border-white'
+                                        }`}>
                                             <span className="text-white font-bold text-sm">
                                                 {club.name.charAt(0).toUpperCase()}
                                             </span>
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-gray-200 text-sm truncate">{club.name}</h4>
-                                        <p className="text-xs text-gray-400 truncate">{club.municipality_name}</p>
+                                        <h4 className={`font-bold text-sm truncate ${
+                                            darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'
+                                        }`}>{club.name}</h4>
+                                        <p className={`text-xs truncate ${
+                                            darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                                        }`}>{club.municipality_name}</p>
                                     </div>
                                 </div>
 
                                 {/* Description */}
-                                <p className="text-xs text-gray-400 line-clamp-2 mb-3">
+                                <p className={`text-xs line-clamp-2 mb-3 ${
+                                    darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                                }`}>
                                     {club.description}
                                 </p>
 
@@ -238,9 +278,13 @@ export default function RecommendedClubs() {
                                         handleFollow(club.id);
                                     }}
                                     className={`w-full py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-                                        isFollowing[club.id]
-                                            ? 'bg-[#262626] text-gray-300 hover:bg-[#323235] border border-[#262626]'
-                                            : 'bg-[#4D4DA4] text-white hover:bg-[#5D5DB4] shadow-lg shadow-[#4D4DA4]/20'
+                                        darkMode
+                                            ? isFollowing[club.id]
+                                                ? 'bg-[var(--dark-500)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-400)] border border-[var(--dark-400)]'
+                                                : 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/80'
+                                            : isFollowing[club.id]
+                                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                                                : 'bg-[#4D4DA4] text-white hover:bg-[#5D5DB4] shadow-lg shadow-[#4D4DA4]/20'
                                     }`}
                                 >
                                     {isFollowing[club.id] ? 'Following' : 'Follow'}

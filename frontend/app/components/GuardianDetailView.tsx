@@ -3,21 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Edit, MoreVertical, Mail, Phone, Calendar as CalendarIcon, User, Users } from 'lucide-react';
+import { 
+  ArrowLeft, MessageSquare, Edit, Mail, Phone, Calendar as CalendarIcon, 
+  User, Users, ShieldCheck, ChevronRight, Clock
+} from 'lucide-react';
 import api from '../../lib/api';
-import { messengerApi } from '../../lib/messenger-api';
 import { getMediaUrl } from '../../app/utils';
 import CustomFieldsDisplay from './CustomFieldsDisplay';
 import QuickMessageModal from './messenger/QuickMessageModal';
 import { verifyGuardianRelationship, rejectGuardianRelationship, resetGuardianRelationship } from '../../lib/api';
 import Toast from './Toast';
 import ConfirmationModal from './ConfirmationModal';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
 
 interface GuardianDetailProps {
   userId: string;
@@ -39,12 +35,11 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
       try {
         const [uRes, yRes] = await Promise.all([
             api.get(`/users/${userId}/`),
-            api.get('/users/list_youth/') // Fetches youth visible to this admin
+            api.get('/users/list_youth/')
         ]);
         setUser(uRes.data);
         setYouthList(Array.isArray(yRes.data) ? yRes.data : []);
         
-        // If user is a guardian and youth_members is empty or only IDs, fetch relationships
         if (uRes.data?.role === 'GUARDIAN') {
           try {
             const relRes = await api.get(`/admin/guardian-relationships/?guardian=${userId}`);
@@ -66,15 +61,7 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
     return firstInitial + lastInitial || '?';
   };
 
-  const getInboxPath = () => {
-    if (pathname.includes('/admin/super')) return '/admin/super/inbox';
-    if (pathname.includes('/admin/municipality')) return '/admin/municipality/inbox';
-    if (pathname.includes('/admin/club')) return '/admin/club/inbox';
-    return '/admin/club/inbox';
-  };
-
   const handleSendMessage = () => {
-    // Open modal instead of redirecting
     setShowMessageModal(true);
   };
 
@@ -94,29 +81,60 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-pulse text-gray-400">Loading...</div>
-    </div>
-  );
-  if (!user) return <div className="p-12 text-center text-red-500">User not found.</div>;
+  const getStatusBadgeClasses = (status: string) => {
+    switch (status) {
+      case 'VERIFIED': return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
+      case 'PENDING': return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
+      case 'UNVERIFIED': return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+      default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
+    }
+  };
+
+  const getRelationshipStatusClasses = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
+      case 'PENDING': return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
+      case 'REJECTED': return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+      default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[var(--brand-light)]/60">Loading guardian details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <User className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
+          <p className="text-[var(--brand-light)] font-semibold">User not found</p>
+          <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
+            Return to list
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Build connected youth list from multiple sources
   let connectedYouth: any[] = [];
   
-  // First, try to use youth_members from user object (new serializer format with full details)
   if (Array.isArray(user.youth_members) && user.youth_members.length > 0) {
-    // Check if first item is an object with relationship details (new format)
     if (typeof user.youth_members[0] === 'object' && user.youth_members[0] !== null && 'first_name' in user.youth_members[0]) {
-      // Already full objects with relationship details - use directly
       connectedYouth = user.youth_members;
     } else {
-      // Legacy format: array of IDs - map to youth objects and merge with relationships
       const youthFromIds = user.youth_members
         .map((id: number) => {
           const youth = youthList.find((y: any) => y.id === id);
           if (youth) {
-            // Try to find relationship data for this youth
             const relationship = relationships.find((r: any) => r.guardian === parseInt(userId) && r.youth === id);
             return {
               ...youth,
@@ -133,7 +151,6 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
     }
   }
   
-  // If we have relationships from the API but no youth_members, use relationships
   if (connectedYouth.length === 0 && relationships.length > 0) {
     connectedYouth = relationships.map((rel: any) => {
       const youthId = rel.youth || rel.youth_id;
@@ -149,7 +166,6 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
           created_at: rel.created_at,
         };
       }
-      // If youth not in list, use data from relationship serializer
       return {
         id: youthId,
         first_name: rel.youth_first_name || 'Unknown',
@@ -165,315 +181,368 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
       };
     });
   }
-  
-  // Debug logging
-  console.log('Guardian user:', user);
-  console.log('youth_members:', user.youth_members);
-  console.log('relationships:', relationships);
-  console.log('connectedYouth:', connectedYouth);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'VERIFIED': return 'bg-green-50 text-[#10B981] border-[#10B981]/30';
-      case 'PENDING': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
-      case 'UNVERIFIED': return 'bg-gray-50 text-gray-700 border-gray-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
 
   return (
-    <div className="space-y-6">
-      {/* Header with Back Button */}
-      <div className="flex items-center justify-between">
-        <Link href={buildUrlWithParams(basePath)}>
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="h-4 w-4" />
-            Back to List
-          </Button>
+    <div className="space-y-0 sm:space-y-6">
+      {/* Navigation Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
+        <Link 
+          href={buildUrlWithParams(basePath)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to List
         </Link>
-        
-        {/* Action Buttons - Desktop */}
-        <div className="hidden md:flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+        <div className="flex flex-wrap gap-2">
+          <button 
             onClick={handleSendMessage}
-            className="gap-2 text-gray-700 hover:text-[#4D4DA4] hover:border-[#4D4DA4]"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
             <MessageSquare className="h-4 w-4" />
-            Message
-          </Button>
-          <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}>
-            <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white">
-              <Edit className="h-4 w-4" />
-              Edit Profile
-            </Button>
+            <span className="hidden sm:inline">Message</span>
+          </button>
+          <Link 
+            href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
+          >
+            <Edit className="h-4 w-4" /> Edit
           </Link>
         </div>
-
-        {/* Action Menu - Mobile */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="md:hidden bg-[#4D4DA4] hover:bg-[#4D4DA4]/80 border-[#4D4DA4] text-white hover:text-white/80 transition-colors">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 bg-white border border-gray-200 shadow-lg">
-            <DropdownMenuItem onClick={handleSendMessage} className="cursor-pointer text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] transition-colors rounded-sm">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Message
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} className="flex items-center cursor-pointer text-[#4D4DA4] hover:bg-[#4D4DA4] hover:text-white transition-colors rounded-sm font-medium">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
-      {/* Profile Header Card */}
-      <Card className="border border-gray-100 shadow-sm overflow-hidden bg-gradient-to-br from-[#EBEBFE] via-[#EBEBFE]/50 to-white !py-0 !gap-0">
-        {/* Cover Image */}
+      {/* Hero Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        {/* Header Banner with Background Image */}
         <div 
-          className="h-48 md:h-64 bg-gradient-to-r from-[#4D4DA4] via-[#4D4DA4]/80 to-[#FF5485] relative w-full"
+          className="relative h-36 sm:h-48 bg-gradient-to-br from-[var(--brand-purple)]/30 via-[var(--dark-700)] to-[var(--brand-primary)]/20"
           style={{
             backgroundImage: user.background_image ? `url(${getMediaUrl(user.background_image)})` : undefined,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
         >
-          <div className="absolute inset-0 bg-black/10"></div>
-        </div>
+          {/* Overlay for background images */}
+          {user.background_image && <div className="absolute inset-0 bg-[var(--dark-900)]/50" />}
+          
+          {/* Decorative elements (only show if no background image) */}
+          {!user.background_image && (
+            <div className="absolute inset-0 opacity-30">
+              <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
+              <div className="absolute bottom-4 left-4 w-24 h-24 rounded-full bg-[var(--brand-purple)]/20 blur-2xl" />
+            </div>
+          )}
+          
+          {/* Verification Status Badge - Top Right */}
+          <div className={`absolute top-4 right-4 px-4 py-2 rounded-xl backdrop-blur-sm border flex items-center gap-2 ${getStatusBadgeClasses(user.verification_status)}`}>
+            {user.verification_status === 'VERIFIED' && <ShieldCheck className="w-4 h-4" />}
+            <span className="text-sm font-semibold">{user.verification_status}</span>
+          </div>
 
-        <CardContent className="p-6 sm:p-10 pt-6 sm:pt-10 bg-gradient-to-br from-[#EBEBFE] via-[#EBEBFE]/50 to-white">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 -mt-20 sm:-mt-24">
-            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-white shadow-lg bg-[#4D4DA4] flex-shrink-0">
-              <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
-              <AvatarFallback className="text-4xl font-bold text-white bg-[#4D4DA4] rounded-full">
-                {getInitials(user.first_name, user.last_name)}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="text-center sm:text-left flex-1 space-y-3 pt-4 sm:pt-0">
-              <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-lg inline-block">
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#121213]">
-                  {user.first_name} {user.last_name}
-                </h1>
-                <p className="text-gray-700 mt-1 flex items-center justify-center sm:justify-start gap-2 flex-wrap font-medium">
-                  <Mail className="h-4 w-4 flex-shrink-0 text-gray-500" />
-                  <span className="break-all">{user.email}</span>
-                </p>
-              </div>
-              
-              {/* Badges */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <Badge variant="outline" className={getStatusBadge(user.verification_status)}>
-                  {user.verification_status}
-                </Badge>
+          {/* Role Badge - Top Left */}
+          <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-sm bg-[var(--dark-800)]/80 border border-[var(--dark-500)]">
+            <span className="text-sm text-[var(--brand-light)] font-medium flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[var(--brand-primary)]" />
+              Guardian
+            </span>
+          </div>
+        </div>
+        
+        {/* Avatar & Title Section */}
+        <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-14 sm:-mt-16">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
+            {/* Avatar */}
+            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
+              {user.avatar ? (
+                <img 
+                  src={getMediaUrl(user.avatar) || ''} 
+                  alt={`${user.first_name} ${user.last_name}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                  <span className="text-3xl sm:text-4xl font-bold text-white">
+                    {getInitials(user.first_name, user.last_name)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Title & Info */}
+            <div className="flex-1 space-y-2 pt-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                {user.first_name} {user.last_name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-[var(--brand-light)]/50 text-sm">
+                  <Mail className="h-4 w-4" />
+                  <span>{user.email}</span>
+                </div>
                 {user.phone_number && (
-                  <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">
-                    <Phone className="h-3 w-3 mr-1" />
-                    {user.phone_number}
-                  </Badge>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-third)]/20 text-[var(--brand-third)]">
+                    <Phone className="w-3 h-3" /> {user.phone_number}
+                  </span>
                 )}
                 {user.legal_gender && (
-                  <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
-                    <User className="h-3 w-3 mr-1" />
-                    {user.legal_gender}
-                  </Badge>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
+                    <User className="w-3 h-3" /> {user.legal_gender}
+                  </span>
                 )}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6 px-0 sm:px-0">
         
         {/* Main Column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-0 sm:space-y-6">
           
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="border border-gray-100 shadow-sm bg-[#EBEBFE]/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center flex-shrink-0">
-                    <Users className="h-6 w-6 text-[#4D4DA4]" />
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Stats</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center mx-auto mb-2">
+                    <Users className="w-5 h-5 text-[var(--brand-purple)]" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-gray-500 font-semibold">Connected Youth</p>
-                    <p className="text-2xl font-bold text-[#4D4DA4]">{connectedYouth.length}</p>
-                  </div>
+                  <div className="text-2xl font-bold text-[var(--brand-light)]">{connectedYouth.length}</div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">Youth</div>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-gray-100 shadow-sm bg-[#EBEBFE]/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center flex-shrink-0">
-                    <CalendarIcon className="h-6 w-6 text-[#4D4DA4]" />
+                <div className="text-center p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center mx-auto mb-2">
+                    <Clock className="w-5 h-5 text-[var(--brand-blue)]" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-gray-500 font-semibold">Last Login</p>
-                    <p className="text-lg font-bold text-[#4D4DA4]">
-                      {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
-                    </p>
+                  <div className="text-sm font-bold text-[var(--brand-light)]">
+                    {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
                   </div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">Last Login</div>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-gray-100 shadow-sm bg-[#EBEBFE]/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-[#4D4DA4]/10 flex items-center justify-center flex-shrink-0">
-                    <CalendarIcon className="h-6 w-6 text-[#4D4DA4]" />
+                <div className="text-center p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center mx-auto mb-2">
+                    <CalendarIcon className="w-5 h-5 text-[var(--brand-primary)]" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-gray-500 font-semibold">Date Joined</p>
-                    <p className="text-lg font-bold text-[#4D4DA4]">
-                      {new Date(user.date_joined).toLocaleDateString()}
-                    </p>
+                  <div className="text-sm font-bold text-[var(--brand-light)]">
+                    {new Date(user.date_joined).toLocaleDateString()}
                   </div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">Joined</div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* About Section */}
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-[#121213]">About</CardTitle>
-            </CardHeader>
-            <Separator />
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Phone Number</label>
-                    <p className="text-gray-900 font-medium flex items-center gap-2 flex-wrap">
-                      {user.phone_number ? (
-                        <>
-                          <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="break-all">{user.phone_number}</span>
-                        </>
-                      ) : (
-                        <span className="text-gray-400">Not provided</span>
-                      )}
-                    </p>
+          {/* Contact Information Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact Information</h2>
+            </div>
+            <div className="p-6 space-y-3">
+              {/* Email */}
+              <a 
+                href={`mailto:${user.email}`}
+                className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-4 h-4 text-[var(--brand-blue)]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Email</div>
+                  <div className="text-sm text-[var(--brand-light)] truncate">{user.email}</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] transition-colors" />
+              </a>
+
+              {/* Phone */}
+              {user.phone_number ? (
+                <a 
+                  href={`tel:${user.phone_number}`}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Legal Gender</label>
-                    <p className="text-gray-900 font-medium">{user.legal_gender || '-'}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Phone</div>
+                    <div className="text-sm text-[var(--brand-light)]">{user.phone_number}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] transition-colors" />
+                </a>
+              ) : (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--dark-600)] flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-4 h-4 text-[var(--brand-light)]/30" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Phone</div>
+                    <div className="text-sm text-[var(--brand-light)]/40 italic">Not provided</div>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Last Login</label>
-                    <p className="text-gray-900 font-medium flex items-center gap-2">
-                      {user.last_login ? (
-                        <>
-                          <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          {new Date(user.last_login).toLocaleString()}
-                        </>
-                      ) : (
-                        <span className="text-gray-400">Never</span>
-                      )}
-                    </p>
+              )}
+            </div>
+          </div>
+
+          {/* Personal Details Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Personal Details</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Legal Gender */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Legal Gender</div>
+                  <div className="text-sm text-[var(--brand-light)] font-medium">
+                    {user.legal_gender === 'MALE' ? 'Male' : user.legal_gender === 'FEMALE' ? 'Female' : user.legal_gender || <span className="text-[var(--brand-light)]/40 italic">Not set</span>}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Date Joined</label>
-                    <p className="text-gray-900 font-medium flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                      {new Date(user.date_joined).toLocaleDateString()}
-                    </p>
+                </div>
+
+                {/* Last Login */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Last Login
+                  </div>
+                  <div className="text-sm text-[var(--brand-light)] font-medium">
+                    {user.last_login ? new Date(user.last_login).toLocaleString() : <span className="text-[var(--brand-light)]/40 italic">Never</span>}
+                  </div>
+                </div>
+
+                {/* Date Joined */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 flex items-center gap-1">
+                    <CalendarIcon className="w-3 h-3" /> Date Joined
+                  </div>
+                  <div className="text-sm text-[var(--brand-light)] font-medium">
+                    {new Date(user.date_joined).toLocaleDateString()}
+                  </div>
+                </div>
+
+                {/* Verification Status */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> Verification
+                  </div>
+                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
+                    {user.verification_status === 'VERIFIED' && <ShieldCheck className="w-3 h-3" />}
+                    {user.verification_status}
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Custom Fields */}
-          <CustomFieldsDisplay userId={user.id} targetRole="GUARDIAN" context="USER_PROFILE" />
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Additional Information</h2>
+            </div>
+            <div className="p-6">
+              <CustomFieldsDisplay userId={user.id} targetRole="GUARDIAN" context="USER_PROFILE" />
+            </div>
+          </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
+        {/* Sidebar Column */}
+        <div className="space-y-0 sm:space-y-6">
           
-          {/* Connected Youth Card with Relationship Management */}
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold text-[#121213] flex items-center gap-2">
-                <Users className="h-5 w-5 text-[#4D4DA4]" />
+          {/* Connected Youth Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <Users className="h-5 w-5 text-[var(--brand-purple)]" />
                 Connected Youth
-                <span className="ml-auto text-sm font-normal text-gray-500">({connectedYouth.length})</span>
-              </CardTitle>
-            </CardHeader>
-            <Separator />
-            <CardContent className="pt-6">
+                <span className="ml-auto text-sm font-normal text-[var(--brand-light)]/50">({connectedYouth.length})</span>
+              </h2>
+            </div>
+            <div className="p-6 space-y-3">
               {connectedYouth.length > 0 ? (
-                <div className="space-y-3">
-                  {connectedYouth.map((y: any) => {
-                    const relationshipId = y.relationship_id;
-                    const status = y.status || 'PENDING';
-                    const relationshipType = y.relationship_type || 'GUARDIAN';
-                    const isPrimary = y.is_primary_guardian || false;
-                    
-                    return (
-                      <div 
-                        key={y.id} 
-                        className="p-4 rounded-lg bg-[#EBEBFE]/30 border border-[#4D4DA4]/20 hover:bg-[#EBEBFE]/50 transition-colors"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <p className="font-semibold text-[#121213] mb-1 break-words">{y.first_name} {y.last_name}</p>
-                            <p className="text-sm text-gray-600 flex items-center gap-1.5 mb-2">
-                              <Mail className="h-4 w-4 flex-shrink-0" />
-                              <span className="break-all">{y.email}</span>
-                            </p>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 text-xs">
-                                {relationshipType.toLowerCase()}
-                              </Badge>
-                              {isPrimary && (
-                                <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs">
-                                  Primary
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className={`text-xs ${
-                                status === 'ACTIVE' ? 'bg-green-50 text-[#10B981] border-[#10B981]/30' :
-                                status === 'REJECTED' ? 'bg-red-50 text-[#EF4444] border-red-200' :
-                                'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30'
-                              }`}>
-                                {status}
-                              </Badge>
-                            </div>
-                            {y.grade && (
-                              <Badge variant="outline" className="bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs">
-                                <User className="h-3 w-3 mr-1" />
-                                Grade {y.grade}
-                              </Badge>
-                            )}
-                          </div>
+                connectedYouth.map((y: any) => {
+                  const relationshipId = y.relationship_id;
+                  const status = y.status || 'PENDING';
+                  const relationshipType = y.relationship_type || 'GUARDIAN';
+                  const isPrimary = y.is_primary_guardian || false;
+                  
+                  return (
+                    <div 
+                      key={y.id} 
+                      className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/30 transition-colors"
+                    >
+                      <div className="flex items-start gap-3 mb-3">
+                        {/* Avatar */}
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-bold text-white">
+                            {getInitials(y.first_name, y.last_name)}
+                          </span>
                         </div>
-                        {relationshipId && (
-                          <RelationshipActions relationshipId={relationshipId} currentStatus={status} onUpdate={() => window.location.reload()} />
+                        
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-[var(--brand-light)] text-sm truncate">{y.first_name} {y.last_name}</p>
+                          <p className="text-xs text-[var(--brand-light)]/50 truncate flex items-center gap-1 mt-0.5">
+                            <Mail className="w-3 h-3" /> {y.email}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Badges */}
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30 capitalize">
+                          {relationshipType.toLowerCase()}
+                        </span>
+                        {isPrimary && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
+                            Primary
+                          </span>
+                        )}
+                        <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium border ${getRelationshipStatusClasses(status)}`}>
+                          {status}
+                        </span>
+                        {y.grade && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30">
+                            <User className="w-3 h-3" /> Grade {y.grade}
+                          </span>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
+                      
+                      {/* Relationship Actions */}
+                      {relationshipId && (
+                        <RelationshipActions 
+                          relationshipId={relationshipId} 
+                          currentStatus={status} 
+                          onUpdate={() => window.location.reload()} 
+                        />
+                      )}
+                    </div>
+                  );
+                })
               ) : (
-                <p className="text-sm text-gray-400 italic">No youth connected.</p>
+                <div className="text-center py-6 text-[var(--brand-light)]/40">
+                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm italic">No youth connected</p>
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          {/* Verification Status Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Verification Status</h2>
+            </div>
+            <div className="p-6">
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
+                {user.verification_status === 'VERIFIED' && <ShieldCheck className="w-4 h-4" />}
+                {user.verification_status}
+              </div>
+              <p className="text-xs text-[var(--brand-light)]/50 mt-3">
+                {user.verification_status === 'VERIFIED' && 'This guardian has been verified.'}
+                {user.verification_status === 'PENDING' && 'Verification is pending review.'}
+                {user.verification_status === 'UNVERIFIED' && 'This guardian has not been verified yet.'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -566,58 +635,50 @@ function RelationshipActions({ relationshipId, currentStatus, onUpdate }: { rela
 
   return (
     <>
-      <div className="flex gap-2 mt-3 pt-3 border-t border-[#4D4DA4]/20">
+      <div className="flex gap-2 pt-3 border-t border-[var(--dark-500)]">
         {currentStatus === 'PENDING' && (
           <>
-            <Button
+            <button
               onClick={handleVerify}
               disabled={loading}
-              size="sm"
-              className="flex-1 bg-[#10B981] hover:bg-[#059669] text-white text-xs"
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--brand-green)] hover:bg-[var(--brand-green)]/80 text-white transition-colors disabled:opacity-50"
             >
               {loading ? 'Processing...' : 'Verify'}
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={handleReject}
               disabled={loading}
-              size="sm"
-              variant="destructive"
-              className="flex-1 bg-[#EF4444] hover:bg-[#DC2626] text-white text-xs"
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--brand-red)] hover:bg-[var(--brand-red)]/80 text-white transition-colors disabled:opacity-50"
             >
               {loading ? 'Processing...' : 'Reject'}
-            </Button>
+            </button>
           </>
         )}
         {currentStatus === 'ACTIVE' && (
-          <Button
+          <button
             onClick={handleResetClick}
             disabled={loading}
-            size="sm"
-            variant="outline"
-            className="flex-1 bg-blue-50 hover:bg-blue-100 text-[#0EA5E9] border-[#0EA5E9]/30 text-xs"
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--brand-blue)]/20 hover:bg-[var(--brand-blue)]/30 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30 transition-colors disabled:opacity-50"
           >
             {loading ? 'Processing...' : 'Reset to Pending'}
-          </Button>
+          </button>
         )}
         {currentStatus === 'REJECTED' && (
           <>
-            <Button
+            <button
               onClick={handleVerify}
               disabled={loading}
-              size="sm"
-              className="flex-1 bg-[#10B981] hover:bg-[#059669] text-white text-xs"
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--brand-green)] hover:bg-[var(--brand-green)]/80 text-white transition-colors disabled:opacity-50"
             >
               {loading ? 'Processing...' : 'Approve'}
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={handleResetClick}
               disabled={loading}
-              size="sm"
-              variant="outline"
-              className="flex-1 text-xs"
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] transition-colors disabled:opacity-50"
             >
               {loading ? 'Processing...' : 'Reset'}
-            </Button>
+            </button>
           </>
         )}
       </div>

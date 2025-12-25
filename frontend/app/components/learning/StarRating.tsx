@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface StarRatingProps {
     value: number; // 0-5
@@ -62,31 +61,27 @@ export default function StarRating({
                             onClick={() => handleClick(star)}
                             onMouseEnter={() => handleMouseEnter(star)}
                             disabled={readOnly}
-                            className={cn(
-                                "transition-all duration-150",
-                                !readOnly && "cursor-pointer hover:scale-110",
-                                readOnly && "cursor-default"
-                            )}
+                            className={`transition-all duration-150 ${!readOnly ? 'cursor-pointer hover:scale-110' : 'cursor-default'}`}
                         >
                             <Star
-                                className={cn(
-                                    sizeClasses[size],
-                                    isFilled
-                                        ? "text-yellow-500 fill-yellow-500"
-                                        : "text-gray-300",
-                                    !readOnly && isFilled && "hover:text-yellow-600 hover:fill-yellow-600"
-                                )}
+                                className={`
+                                    ${sizeClasses[size]}
+                                    ${isFilled
+                                        ? 'text-[var(--brand-peach)] fill-[var(--brand-peach)]'
+                                        : 'text-[var(--dark-500)]'
+                                    }
+                                    ${!readOnly && isFilled ? 'hover:text-[var(--brand-peach)] hover:fill-[var(--brand-peach)]' : ''}
+                                `}
                             />
                         </button>
                     );
                 })}
             </div>
             {showLabel && value > 0 && (
-                <span className="text-sm text-gray-600 font-medium">
+                <span className="text-sm text-[var(--brand-light)]/60 font-medium">
                     {value.toFixed(1)}
                 </span>
             )}
         </div>
     );
 }
-

@@ -4,20 +4,153 @@ import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import { formatDistanceToNow, format } from 'date-fns';
 import BookingDetailModal from './BookingDetailModal';
-import { Users, ChevronLeft, ChevronRight, Search, X, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Users, ChevronLeft, ChevronRight, Search, X, Eye, 
+  BarChart3, ChevronUp, ChevronDown, Clock, CalendarCheck, Trash2
+} from 'lucide-react';
 import { getMediaUrl, getInitials } from '@/app/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function BookingCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        </div>
+        <Skeleton className="h-8 w-8 rounded-xl flex-shrink-0" />
+      </div>
+    </div>
+  );
+}
+
+function BookingTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+          <div className="space-y-1">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-36" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-4 w-28" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-4 w-12" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+      <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-8 rounded-xl ml-auto" /></td>
+    </tr>
+  );
+}
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  onView?: () => void;
+}
+
+function SwipeableCard({ children, onClick, onView }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    setCurrentX(Math.max(0, Math.min(diff, 80)));
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (currentX > 40) {
+      setIsOpen(true);
+      setCurrentX(80);
+    } else {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const closeSwipe = () => {
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* View Action */}
+      <div 
+        className="absolute right-0 top-0 bottom-0 w-20 bg-[var(--brand-primary)] flex items-center justify-center"
+        onClick={(e) => {
+          e.stopPropagation();
+          onView?.();
+          closeSwipe();
+        }}
+      >
+        <Eye className="w-5 h-5 text-[var(--dark-900)]" />
+      </div>
+      
+      {/* Main Content */}
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out"
+        style={{ transform: `translateX(-${isOpen ? 80 : currentX}px)` }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => {
+          if (isOpen) {
+            closeSwipe();
+          } else {
+            onClick?.();
+          }
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 // Accept scope prop
 export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICIPALITY' | 'SUPER' }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
   // Filter State
   const [clubs, setClubs] = useState<any[]>([]);
@@ -47,6 +180,9 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
 
   const fetchRequests = async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+    
     try {
       const params = new URLSearchParams();
       params.set('status', 'PENDING');
@@ -77,7 +213,13 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
       setTotalCount(0);
       setTotalPages(1);
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
   };
 
@@ -100,323 +242,376 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
     setSelectedResource('');
   };
 
+  const hasFilters = selectedClub || selectedResource;
+
   return (
-    <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
-      {/* Header */}
-      <CardHeader className="border-b border-gray-100 bg-gray-50/50">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-lg sm:text-xl font-bold text-[#121213]">Pending Requests</CardTitle>
-            <Badge className="bg-[#EBEBFE] text-[#4D4DA4] text-xs font-semibold">
-              {totalCount}
-            </Badge>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            {/* Resource Filter */}
-            <select 
-              className="flex h-9 rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4] min-w-[180px]"
-              value={selectedResource}
-              onChange={e => setSelectedResource(e.target.value)}
-            >
-              <option value="">All Resources</option>
-              {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
-
-            {/* Club Filter for High-Level Admins */}
-            {(scope === 'MUNICIPALITY' || scope === 'SUPER') && (
-              <select 
-                className="flex h-9 rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4] min-w-[150px]"
-                value={selectedClub}
-                onChange={e => setSelectedClub(e.target.value)}
-              >
-                <option value="">All Clubs</option>
-                {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+    <div className="space-y-6">
+      {/* Analytics Dashboard */}
+      {!showSkeleton && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+              </div>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+            </div>
+            {analyticsExpanded ? (
+              <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-[var(--brand-light)]/50" />
             )}
+          </button>
+          
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+              
+              {/* Pending Requests */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-primary)] flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Pending</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{totalCount}</div>
+              </div>
 
-            {/* Clear Filters Button */}
-            {(selectedClub || selectedResource) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-              >
-                <X className="h-4 w-4" /> Clear
-              </Button>
-            )}
+              {/* Resources */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                    <CalendarCheck className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Resources</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-purple)]">{resources.length}</div>
+              </div>
+
+              {/* Clubs (for higher scopes) */}
+              {(scope === 'MUNICIPALITY' || scope === 'SUPER') && (
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all col-span-2 sm:col-span-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
+                      <Users className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Clubs</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{clubs.length}</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </CardHeader>
+      )}
 
-      {/* Table */}
-      <CardContent className="p-0">
-        {loading && requests.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">Loading requests...</div>
-        ) : requests.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">No pending requests 🎉</div>
-        ) : (
-          <>
-            {/* Mobile: Cards */}
-            <div className="block md:hidden divide-y divide-gray-100">
-              {requests.map((req: any) => {
-                const startDate = new Date(req.start_time);
-                const endDate = new Date(req.end_time);
-                const participantCount = getParticipantCount(req.participants || []);
-                
-                return (
-                  <div
-                    key={req.id}
-                    className="p-4 space-y-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => setSelectedBooking(req)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
-                          <AvatarImage src={req.user_detail?.avatar ? getMediaUrl(req.user_detail.avatar) : undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+      {/* Filters */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Resource Filter */}
+          <div className="w-full sm:w-[200px]">
+            <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Resource</label>
+            <div className="relative">
+              <select 
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={selectedResource}
+                onChange={e => setSelectedResource(e.target.value)}
+              >
+                <option value="">All Resources</option>
+                {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Club Filter for High-Level Admins */}
+          {(scope === 'MUNICIPALITY' || scope === 'SUPER') && (
+            <div className="w-full sm:w-[180px]">
+              <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Club</label>
+              <div className="relative">
+                <select 
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={selectedClub}
+                  onChange={e => setSelectedClub(e.target.value)}
+                >
+                  <option value="">All Clubs</option>
+                  {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40 pointer-events-none" />
+              </div>
+            </div>
+          )}
+
+          {/* Clear Filters Button */}
+          {hasFilters && (
+            <div className="flex items-end">
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 h-10 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
+              >
+                <X className="h-4 w-4" /> Clear
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      {!showSkeleton && requests.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{requests.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> pending {totalCount === 1 ? 'request' : 'requests'}
+          </p>
+        </div>
+      )}
+
+      {/* Content */}
+      {showSkeleton ? (
+        <>
+          {/* Mobile Cards Skeleton */}
+          <div className="flex flex-col md:hidden">
+            {[...Array(4)].map((_, i) => (
+              <BookingCardSkeleton key={i} />
+            ))}
+          </div>
+
+          {/* Desktop Table Skeleton */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Resource</th>
+                  {scope !== 'CLUB' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>}
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Guests</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Requested</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, i) => (
+                  <BookingTableRowSkeleton key={i} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : requests.length === 0 ? (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+            <CalendarCheck className="w-8 h-8 text-[var(--brand-light)]/30" />
+          </div>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No pending requests 🎉</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm">All booking requests have been processed.</p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile: Swipeable Cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {requests.map((req: any) => {
+              const startDate = new Date(req.start_time);
+              const endDate = new Date(req.end_time);
+              const participantCount = getParticipantCount(req.participants || []);
+              
+              return (
+                <SwipeableCard
+                  key={req.id}
+                  onClick={() => setSelectedBooking(req)}
+                  onView={() => setSelectedBooking(req)}
+                >
+                  <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-[var(--dark-600)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {req.user_detail?.avatar ? (
+                          <img 
+                            src={getMediaUrl(req.user_detail.avatar)} 
+                            alt="" 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <span className="text-sm font-bold text-[var(--brand-primary)]">
                             {getInitials(req.user_detail?.first_name, req.user_detail?.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold text-[#121213] truncate">
-                            {req.user_detail?.first_name} {req.user_detail?.last_name}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-[var(--brand-light)] truncate">
+                          {req.user_detail?.first_name} {req.user_detail?.last_name}
+                        </div>
+                        <div className="text-xs text-[var(--brand-light)]/50 truncate mb-2">
+                          {req.user_detail?.email}
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-[var(--brand-light)]/50">Resource:</span>
+                            <span className="font-medium text-[var(--brand-primary)]">{req.resource_name}</span>
                           </div>
-                          <div className="text-xs text-gray-500 truncate">
-                            {req.user_detail?.email}
+                          {scope !== 'CLUB' && req.club_name && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-[var(--brand-light)]/50">Club:</span>
+                              <span className="font-medium text-[var(--brand-light)]">{req.club_name}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-[var(--brand-light)]/50">Date:</span>
+                            <span className="font-medium text-[var(--brand-light)]">{format(startDate, 'MMM d, yyyy')}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-[var(--brand-light)]/50">Time:</span>
+                            <span className="font-medium text-[var(--brand-light)]">
+                              {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Users className="w-4 h-4 text-[var(--brand-light)]/40" />
+                            <span className="text-[var(--brand-light)]/50">Guests:</span>
+                            <span className="font-medium text-[var(--brand-light)]">{participantCount}</span>
                           </div>
                         </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedBooking(req);
-                        }}
-                        className="h-8 w-8 p-0 text-[#4D4DA4] hover:text-[#FF5485] hover:bg-[#EBEBFE] flex-shrink-0"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="space-y-2 pl-13">
-                      <div className="text-sm">
-                        <span className="text-gray-500">Resource: </span>
-                        <span className="font-medium text-[#121213]">{req.resource_name}</span>
-                      </div>
-                      {scope !== 'CLUB' && req.club_name && (
-                        <div className="text-sm">
-                          <span className="text-gray-500">Club: </span>
-                          <span className="font-medium text-[#121213]">{req.club_name}</span>
+                        
+                        <div className="text-xs text-[var(--brand-light)]/40 mt-2">
+                          Requested {formatDistanceToNow(new Date(req.created_at))} ago
                         </div>
-                      )}
-                      <div className="text-sm">
-                        <span className="text-gray-500">Date: </span>
-                        <span className="font-medium text-[#121213]">{format(startDate, 'MMM d, yyyy')}</span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gray-500">Time: </span>
-                        <span className="font-medium text-[#121213]">
-                          {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-500">Guests: </span>
-                        <span className="font-medium text-[#121213]">{participantCount}</span>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Requested {formatDistanceToNow(new Date(req.created_at))} ago
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </SwipeableCard>
+              );
+            })}
+          </div>
 
-            {/* Desktop: Table */}
-            <Table className="hidden md:table">
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Resource</TableHead>
-                  {scope !== 'CLUB' && (
-                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club</TableHead>
-                  )}
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Time</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Guests</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Requested</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          {/* Desktop: Table */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Resource</th>
+                  {scope !== 'CLUB' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>}
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Guests</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Requested</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                 {requests.map((req: any) => {
                   const startDate = new Date(req.start_time);
                   const endDate = new Date(req.end_time);
                   const participantCount = getParticipantCount(req.participants || []);
                   
                   return (
-                    <TableRow
+                    <tr
                       key={req.id}
-                      className="hover:bg-gray-50/50 cursor-pointer transition-colors"
+                      className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/30 cursor-pointer transition-colors"
                       onClick={() => setSelectedBooking(req)}
                     >
-                      <TableCell className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8 rounded-full border border-gray-200 bg-gray-50">
-                            <AvatarImage src={req.user_detail?.avatar ? getMediaUrl(req.user_detail.avatar) : undefined} className="object-cover" />
-                            <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                              {getInitials(req.user_detail?.first_name, req.user_detail?.last_name)}
-                            </AvatarFallback>
-                          </Avatar>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-[var(--dark-600)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {req.user_detail?.avatar ? (
+                              <img 
+                                src={getMediaUrl(req.user_detail.avatar)} 
+                                alt="" 
+                                className="w-full h-full object-cover" 
+                              />
+                            ) : (
+                              <span className="text-xs font-bold text-[var(--brand-primary)]">
+                                {getInitials(req.user_detail?.first_name, req.user_detail?.last_name)}
+                              </span>
+                            )}
+                          </div>
                           <div>
-                            <div className="text-sm font-semibold text-[#121213]">
+                            <div className="text-sm font-semibold text-[var(--brand-light)]">
                               {req.user_detail?.first_name} {req.user_detail?.last_name}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-[var(--brand-light)]/50">
                               {req.user_detail?.email}
                             </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <div className="text-sm font-medium text-[#121213]">{req.resource_name}</div>
-                      </TableCell>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-medium text-[var(--brand-primary)]">{req.resource_name}</span>
+                      </td>
                       {scope !== 'CLUB' && (
-                        <TableCell className="py-4 px-6">
+                        <td className="px-6 py-4">
                           {req.club_name ? (
-                            <span className="text-sm text-[#121213]">{req.club_name}</span>
+                            <span className="text-sm text-[var(--brand-light)]">{req.club_name}</span>
                           ) : (
-                            <span className="text-sm text-gray-400">—</span>
+                            <span className="text-sm text-[var(--brand-light)]/40">—</span>
                           )}
-                        </TableCell>
+                        </td>
                       )}
-                      <TableCell className="py-4 px-6">
-                        <div className="text-sm text-[#121213]">{format(startDate, 'MMM d, yyyy')}</div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <div className="text-sm text-[#121213]">
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-[var(--brand-light)]">{format(startDate, 'MMM d, yyyy')}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-[var(--brand-light)]">
                           {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <div className="flex items-center gap-1.5 text-sm text-[#121213]">
-                          <Users className="w-4 h-4 text-gray-400" />
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1.5 text-sm text-[var(--brand-light)]">
+                          <Users className="w-4 h-4 text-[var(--brand-light)]/40" />
                           <span>{participantCount}</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <div className="text-xs text-gray-500">
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs text-[var(--brand-light)]/50">
                           {formatDistanceToNow(new Date(req.created_at))} ago
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedBooking(req);
                           }}
-                          className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                          className="w-9 h-9 rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-colors inline-flex items-center justify-center"
                         >
                           <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                        </button>
+                      </td>
+                    </tr>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </>
-        )}
-      </CardContent>
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-          <div className="flex flex-1 justify-between sm:hidden">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="gap-2"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="gap-2"
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+      {/* Pagination */}
+      {!showSkeleton && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+          <button 
+            disabled={currentPage === 1} 
+            onClick={() => setCurrentPage(currentPage - 1)}
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <div className="text-sm text-[var(--brand-light)]/50">
+            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
           </div>
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
-                <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of{' '}
-                <span className="font-medium">{totalCount}</span> results
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="gap-2"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              {/* Page Numbers */}
-              {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={pageNum === currentPage ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={pageNum === currentPage 
-                      ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' 
-                      : ''}
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-                className="gap-2"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <button 
+            disabled={currentPage >= totalPages} 
+            onClick={() => setCurrentPage(currentPage + 1)}
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
         </div>
       )}
 
@@ -425,9 +620,9 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
           booking={selectedBooking} 
           onClose={() => setSelectedBooking(null)}
           onUpdate={fetchRequests}
+          darkMode={true}
         />
       )}
-    </Card>
+    </div>
   );
 }
-

@@ -3,13 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Course, CourseChapter, ContentItem, ContentItemFormData } from '@/types/learning';
 import { learningApi } from '@/lib/learning-api';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit2, Trash2, GripVertical, FileText, Video, Download, Clock } from 'lucide-react';
+import { Plus, Trash2, FileText, Video, Download, BookOpen, Layers } from 'lucide-react';
 import ContentItemFormModal from './ContentItemFormModal';
 import SortableItem from './SortableItem';
-import { Input } from '@/components/ui/input';
-import toast from 'react-hot-toast';
+import Toast from '../Toast';
 import {
     DndContext,
     closestCenter,
@@ -33,6 +30,7 @@ interface Props {
 export default function CurriculumBuilder({ course }: Props) {
     const [chapters, setChapters] = useState<CourseChapter[]>([]);
     const [loading, setLoading] = useState(true);
+    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
     
     // Modal State
     const [showItemModal, setShowItemModal] = useState(false);
@@ -49,8 +47,6 @@ export default function CurriculumBuilder({ course }: Props) {
 
     const loadChapters = async () => {
         try {
-            // NOTE: You'll need to create this endpoint in your backend or use getCourse
-            // For now, let's assume getCourse returns the updated chapters data
             const res = await learningApi.getCourse(course.slug);
             // @ts-ignore - Assuming response includes chapters structure
             if (res.data.chapters) setChapters(res.data.chapters);
@@ -71,9 +67,9 @@ export default function CurriculumBuilder({ course }: Props) {
             });
             setNewChapterTitle('');
             loadChapters();
-            toast.success('Chapter added');
+            setToast({ message: 'Chapter added successfully!', type: 'success', isVisible: true });
         } catch (error) {
-            toast.error('Failed to add chapter');
+            setToast({ message: 'Failed to add chapter', type: 'error', isVisible: true });
         }
     };
 
@@ -82,9 +78,9 @@ export default function CurriculumBuilder({ course }: Props) {
         try {
             await learningApi.deleteChapter(id);
             setChapters(prev => prev.filter(c => c.id !== id));
-            toast.success('Chapter deleted');
+            setToast({ message: 'Chapter deleted', type: 'success', isVisible: true });
         } catch (error) {
-            toast.error('Failed to delete');
+            setToast({ message: 'Failed to delete chapter', type: 'error', isVisible: true });
         }
     };
 
@@ -97,13 +93,12 @@ export default function CurriculumBuilder({ course }: Props) {
                 await learningApi.createItem(data);
             }
             await loadChapters();
-            toast.success('Lesson saved');
+            setToast({ message: 'Lesson saved successfully!', type: 'success', isVisible: true });
             setShowItemModal(false);
             setEditingItem(undefined);
         } catch (error: any) {
             console.error('Save item error:', error);
             
-            // Extract error message from response
             let errorMessage = 'Failed to save lesson';
             if (error.response?.data) {
                 if (typeof error.response.data === 'string') {
@@ -113,7 +108,6 @@ export default function CurriculumBuilder({ course }: Props) {
                 } else if (error.response.data.error) {
                     errorMessage = error.response.data.error;
                 } else {
-                    // Try to get field-specific errors
                     const fieldErrors = Object.entries(error.response.data)
                         .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
                         .join('; ');
@@ -123,7 +117,7 @@ export default function CurriculumBuilder({ course }: Props) {
                 }
             }
             
-            toast.error(errorMessage);
+            setToast({ message: errorMessage, type: 'error', isVisible: true });
         } finally {
             setIsSubmitting(false);
         }
@@ -134,8 +128,9 @@ export default function CurriculumBuilder({ course }: Props) {
         try {
             await learningApi.deleteItem(id);
             loadChapters();
+            setToast({ message: 'Lesson deleted', type: 'success', isVisible: true });
         } catch (error) {
-            toast.error('Failed to delete');
+            setToast({ message: 'Failed to delete lesson', type: 'error', isVisible: true });
         }
     };
 
@@ -165,7 +160,6 @@ export default function CurriculumBuilder({ course }: Props) {
             return;
         }
 
-        // Find which chapter contains the dragged item
         let targetChapter: CourseChapter | null = null;
         let itemIndex = -1;
 
@@ -189,7 +183,6 @@ export default function CurriculumBuilder({ course }: Props) {
             return;
         }
 
-        // Update local state optimistically
         const newItems = arrayMove(targetChapter.items, oldIndex, newIndex);
         setChapters(prevChapters =>
             prevChapters.map(chapter =>
@@ -199,84 +192,104 @@ export default function CurriculumBuilder({ course }: Props) {
             )
         );
 
-        // Update order on backend
         try {
             const orderedIds = newItems.map(item => item.id);
             await learningApi.reorderItems(targetChapter.id, orderedIds);
-            toast.success('Lesson order updated');
+            setToast({ message: 'Lesson order updated', type: 'success', isVisible: true });
         } catch (error) {
             console.error('Failed to reorder items', error);
-            toast.error('Failed to update lesson order');
-            // Reload chapters to revert optimistic update
+            setToast({ message: 'Failed to update lesson order', type: 'error', isVisible: true });
             loadChapters();
         }
     };
 
+    if (loading) {
+        return (
+            <div className="space-y-6">
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-6 animate-pulse">
+                    <div className="h-11 bg-[var(--dark-600)] rounded-xl" />
+                </div>
+                {[1, 2].map(i => (
+                    <div key={i} className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-6 animate-pulse">
+                        <div className="h-16 bg-[var(--dark-600)] rounded-xl" />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-8">
-            {/* Add Chapter Section */}
-            <Card className="border border-gray-200 shadow-sm bg-white">
-                <CardContent className="p-6">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <Input 
+        <div className="space-y-6">
+            {/* Header Card */}
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <Layers className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Course Curriculum</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Organize your course into chapters and lessons</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <input 
+                            type="text"
                             placeholder="Enter chapter title (e.g., Introduction, Module 1, etc.)" 
                             value={newChapterTitle}
                             onChange={(e) => setNewChapterTitle(e.target.value)}
-                            className="bg-white border-gray-200 flex-1"
+                            className="flex-1 h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none focus:border-[var(--brand-primary)] transition-all"
                             onKeyDown={(e) => e.key === 'Enter' && handleAddChapter()}
                         />
-                        <Button 
+                        <button 
                             onClick={handleAddChapter} 
                             disabled={!newChapterTitle.trim()}
-                            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white whitespace-nowrap"
+                            className="px-6 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
                         >
-                            <Plus className="w-4 h-4 mr-2" /> Add Chapter
-                        </Button>
+                            <Plus className="w-4 h-4" /> Add Chapter
+                        </button>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Chapters List */}
-            <div className="space-y-8">
+            <div className="space-y-6">
                 {chapters.length === 0 && (
-                    <Card className="border border-gray-200 shadow-sm bg-white">
-                        <CardContent className="py-16 text-center">
-                            <div className="max-w-md mx-auto">
-                                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                                    <FileText className="w-8 h-8 text-gray-400" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">No chapters yet</h3>
-                                <p className="text-sm text-gray-500 mb-6">
-                                    Create your first chapter to start building your course curriculum.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                            <BookOpen className="w-8 h-8 text-[var(--brand-light)]/30" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No chapters yet</h3>
+                        <p className="text-sm text-[var(--brand-light)]/50 mb-6 max-w-md mx-auto">
+                            Create your first chapter to start building your course curriculum.
+                        </p>
+                    </div>
                 )}
                 
                 {chapters.map((chapter, chapterIndex) => (
-                    <div key={chapter.id} className="space-y-4">
+                    <div key={chapter.id} className="space-y-3">
                         {/* Chapter Header */}
-                        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#4D4DA4]/10 text-[#4D4DA4] font-bold text-lg">
+                                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-bold text-lg">
                                     {chapterIndex + 1}
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-[#121213] mb-1">{chapter.title}</h3>
-                                    <p className="text-sm text-gray-500">
+                                    <h3 className="text-lg font-semibold text-[var(--brand-light)]">{chapter.title}</h3>
+                                    <p className="text-sm text-[var(--brand-light)]/50">
                                         {chapter.items?.length || 0} {chapter.items?.length === 1 ? 'lesson' : 'lessons'}
                                     </p>
                                 </div>
                             </div>
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
+                            <button 
                                 onClick={() => handleDeleteChapter(chapter.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="px-4 py-2 rounded-xl text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all flex items-center gap-2 text-sm font-medium"
                             >
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete Chapter
-                            </Button>
+                                <Trash2 className="w-4 h-4" /> Delete
+                            </button>
                         </div>
 
                         {/* Items List */}
@@ -285,21 +298,17 @@ export default function CurriculumBuilder({ course }: Props) {
                             collisionDetection={closestCenter}
                             onDragEnd={handleDragEnd}
                         >
-                            <div className="space-y-3 ml-14">
+                            <div className="space-y-2 sm:ml-14">
                                 {chapter.items?.length === 0 && (
-                                    <Card className="border border-dashed border-gray-300 bg-gray-50/50">
-                                        <CardContent className="py-8 text-center">
-                                            <p className="text-sm text-gray-500 mb-4">No lessons in this chapter yet</p>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm"
-                                                onClick={() => openAddModal(chapter.id)}
-                                                className="border-[#4D4DA4] text-[#4D4DA4] hover:bg-[#4D4DA4] hover:text-white"
-                                            >
-                                                <Plus className="w-4 h-4 mr-2" /> Add First Lesson
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
+                                    <div className="bg-[var(--dark-700)] rounded-none sm:rounded-xl border-y sm:border border-dashed border-[var(--dark-500)] py-8 text-center">
+                                        <p className="text-sm text-[var(--brand-light)]/50 mb-4">No lessons in this chapter yet</p>
+                                        <button 
+                                            onClick={() => openAddModal(chapter.id)}
+                                            className="px-4 py-2 rounded-xl border-2 border-[var(--brand-primary)] text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] transition-all text-sm font-medium flex items-center gap-2 mx-auto"
+                                        >
+                                            <Plus className="w-4 h-4" /> Add First Lesson
+                                        </button>
+                                    </div>
                                 )}
                                 
                                 {chapter.items && chapter.items.length > 0 && (
@@ -321,14 +330,12 @@ export default function CurriculumBuilder({ course }: Props) {
                                 
                                 {/* Add Content Button */}
                                 {chapter.items && chapter.items.length > 0 && (
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm" 
+                                    <button 
                                         onClick={() => openAddModal(chapter.id)}
-                                        className="w-full border-dashed border-gray-300 hover:bg-gray-50 hover:border-[#4D4DA4] hover:text-[#4D4DA4] text-gray-600"
+                                        className="w-full py-3 rounded-none sm:rounded-xl border-y sm:border border-dashed border-[var(--dark-500)] hover:border-[var(--brand-primary)] text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] transition-all flex items-center justify-center gap-2 text-sm font-medium"
                                     >
-                                        <Plus className="w-4 h-4 mr-2" /> Add Lesson to This Chapter
-                                    </Button>
+                                        <Plus className="w-4 h-4" /> Add Lesson to This Chapter
+                                    </button>
                                 )}
                             </div>
                         </DndContext>
@@ -347,6 +354,8 @@ export default function CurriculumBuilder({ course }: Props) {
                     isSubmitting={isSubmitting}
                 />
             )}
+
+            <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
         </div>
     );
 }

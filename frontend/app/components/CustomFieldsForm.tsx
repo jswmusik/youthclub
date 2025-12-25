@@ -320,16 +320,26 @@ export default function CustomFieldsForm({
   }
 
   if (loading) {
-    return <div className="text-sm text-gray-500">Loading custom fields...</div>;
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="flex items-center gap-3 text-[var(--brand-light)]/50">
+          <div className="w-5 h-5 border-2 border-[var(--brand-primary)]/30 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span className="text-sm">Loading custom fields...</span>
+        </div>
+      </div>
+    );
   }
 
   if (fields.length === 0) {
-    return null;
+    return (
+      <div className="text-center py-6">
+        <p className="text-sm text-[var(--brand-light)]/50">No custom fields available for this configuration.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4 border-t pt-4 mt-4">
-      <h3 className="text-lg font-bold text-gray-800">Additional Information</h3>
+    <div className="space-y-5">
       {fields.map((field) => {
         // Prioritize values prop (which gets updated when user types) over field.value (from API)
         // This ensures the input is controlled by the parent state, not the API response
@@ -344,48 +354,67 @@ export default function CustomFieldsForm({
         const isRequired = field.required;
 
         return (
-          <div key={field.id} className="space-y-1">
-            <label className="block text-sm font-semibold text-gray-700">
+          <div key={field.id} className="space-y-2">
+            <label className="block text-sm font-medium text-[var(--brand-light)]">
               {field.name}
-              {isRequired && <span className="text-red-500 ml-1">*</span>}
+              {isRequired && <span className="text-[var(--brand-red)] ml-1">*</span>}
             </label>
             {field.help_text && (
-              <p className="text-xs text-gray-500 mb-1">{field.help_text}</p>
+              <p className="text-xs text-[var(--brand-light)]/50 mb-2">{field.help_text}</p>
             )}
 
             {field.field_type === 'TEXT' && (
               <input
                 type="text"
-                className="w-full border rounded-lg p-2 text-sm"
+                className="w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)]"
                 value={fieldValue}
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                 required={isRequired}
+                placeholder={`Enter ${field.name.toLowerCase()}...`}
               />
             )}
 
             {field.field_type === 'SINGLE_SELECT' && (
-              <select
-                className="w-full border rounded-lg p-2 text-sm"
-                value={fieldValue}
-                onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                required={isRequired}
-              >
-                <option value="">Select...</option>
-                {field.options.map((option, idx) => (
-                  <option key={idx} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  className="w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] appearance-none cursor-pointer"
+                  value={fieldValue}
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  required={isRequired}
+                >
+                  <option value="" className="bg-[var(--dark-700)] text-[var(--brand-light)]/50">Select an option...</option>
+                  {field.options.map((option, idx) => (
+                    <option key={idx} value={option} className="bg-[var(--dark-700)] text-[var(--brand-light)]">
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-4 h-4 text-[var(--brand-light)]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             )}
 
             {field.field_type === 'MULTI_SELECT' && (
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)]">
                 {field.options.map((option, idx) => {
                   const selectedValues = Array.isArray(fieldValue) ? fieldValue : [];
                   const isChecked = selectedValues.includes(option);
                   return (
-                    <label key={idx} className="flex items-center gap-2 cursor-pointer">
+                    <label key={idx} className="flex items-center gap-3 cursor-pointer group py-1">
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                        isChecked 
+                          ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' 
+                          : 'border-[var(--dark-500)] group-hover:border-[var(--brand-primary)]/50'
+                      }`}>
+                        {isChecked && (
+                          <svg className="w-3 h-3 text-[var(--dark-900)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -395,9 +424,11 @@ export default function CustomFieldsForm({
                             : selectedValues.filter((v) => v !== option);
                           handleFieldChange(field.id, newValues);
                         }}
-                        className="w-4 h-4 text-blue-600"
+                        className="sr-only"
                       />
-                      <span className="text-sm text-gray-700">{option}</span>
+                      <span className={`text-sm transition-colors ${isChecked ? 'text-[var(--brand-light)]' : 'text-[var(--brand-light)]/70 group-hover:text-[var(--brand-light)]'}`}>
+                        {option}
+                      </span>
                     </label>
                   );
                 })}
@@ -405,14 +436,25 @@ export default function CustomFieldsForm({
             )}
 
             {field.field_type === 'BOOLEAN' && (
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className={`w-12 h-7 rounded-full p-1 transition-all ${
+                  fieldValue 
+                    ? 'bg-[var(--brand-primary)]' 
+                    : 'bg-[var(--dark-600)] group-hover:bg-[var(--dark-500)]'
+                }`}>
+                  <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                    fieldValue ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </div>
                 <input
                   type="checkbox"
                   checked={!!fieldValue}
                   onChange={(e) => handleFieldChange(field.id, e.target.checked)}
-                  className="w-4 h-4 text-blue-600"
+                  className="sr-only"
                 />
-                <span className="text-sm text-gray-700">Yes</span>
+                <span className={`text-sm transition-colors ${fieldValue ? 'text-[var(--brand-light)]' : 'text-[var(--brand-light)]/70'}`}>
+                  {fieldValue ? 'Yes' : 'No'}
+                </span>
               </label>
             )}
           </div>

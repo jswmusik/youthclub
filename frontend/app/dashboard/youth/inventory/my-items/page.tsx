@@ -1,22 +1,26 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { inventoryApi, ItemCategory } from '@/lib/inventory-api';
 import ActiveTicket from '@/app/components/inventory/ActiveTicket';
-import { PackageOpen, History, Package, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { PackageOpen, History, Package, Clock, CheckCircle, AlertTriangle, X } from 'lucide-react';
 import Link from 'next/link';
 import NavBar from '@/app/components/NavBar';
+import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { getMediaUrl } from '@/app/utils';
 import { differenceInMinutes, parseISO } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 
 export default function MyItemsPage() {
+  const pathname = usePathname();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -61,9 +65,38 @@ export default function MyItemsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <NavBar />
-      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+      
+      {/* Mobile Sidebar Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/70 z-40 md:hidden transition-opacity duration-300 ${
+          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      
+      {/* Mobile Sidebar */}
+      <aside 
+        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+          <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
+          <YouthSidebar activePath={pathname} darkMode />
+        </div>
+      </aside>
+      
+      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 pt-16 sm:pt-20">
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* --- SIDEBAR FILTERS (Sticky) --- */}

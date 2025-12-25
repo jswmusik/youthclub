@@ -1,17 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { inventoryApi, Item, ClubOption, ItemCategory } from '@/lib/inventory-api';
 import ItemTable from '@/app/components/inventory/ItemTable';
-import { Package, TrendingUp, Calendar, Clock, ChevronUp, BarChart3, Search, X, Plus, History } from 'lucide-react';
+import { Package, TrendingUp, Calendar, Clock, ChevronUp, ChevronDown, BarChart3, Search, X, Plus, History } from 'lucide-react';
 import Toast from '@/app/components/Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function AnalyticsCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)]">
+      <div className="flex items-center gap-3 mb-3">
+        <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+      <Skeleton className="h-8 w-16" />
+    </div>
+  );
+}
 
 interface Analytics {
   total_items: number;
@@ -29,19 +53,35 @@ export default function MuniInventoryPage() {
   const [clubs, setClubs] = useState<ClubOption[]>([]);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
   
-  // Get filter values from URL
-  const search = searchParams.get('search') || '';
-  const selectedClub = searchParams.get('club') || '';
-  const selectedCategory = searchParams.get('category') ? Number(searchParams.get('category')) : null;
-  const selectedStatus = searchParams.get('status') || '';
+  // Filter state
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [selectedClub, setSelectedClub] = useState(searchParams.get('club') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [selectedStatus, setSelectedStatus] = useState(searchParams.get('status') || '');
+  
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = 10;
+
+  // Debounced filter update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchInput) params.set('search', searchInput); else params.delete('search');
+      if (selectedClub) params.set('club', selectedClub); else params.delete('club');
+      if (selectedCategory) params.set('category', selectedCategory); else params.delete('category');
+      if (selectedStatus) params.set('status', selectedStatus); else params.delete('status');
+      params.set('page', '1');
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, selectedClub, selectedCategory, selectedStatus]);
 
   useEffect(() => {
     loadClubs();
@@ -78,7 +118,6 @@ export default function MuniInventoryPage() {
   const loadAnalytics = async () => {
     try {
       setAnalyticsLoading(true);
-      // If club is selected, pass clubId; otherwise pass undefined for aggregated results
       const clubId = selectedClub ? Number(selectedClub) : undefined;
       const data = await inventoryApi.getAnalytics(clubId);
       setAnalytics(data);
@@ -90,29 +129,29 @@ export default function MuniInventoryPage() {
     }
   };
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
+    setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+    
     try {
-      setLoading(true);
-      const params = new URLSearchParams();
+      const search = searchParams.get('search') || '';
+      const club = searchParams.get('club') || '';
+      const category = searchParams.get('category') || '';
+      const status = searchParams.get('status') || '';
+      const page = searchParams.get('page') || '1';
       
-      // Add filters from URL
-      if (selectedClub) params.append('club', selectedClub);
-      if (search) params.append('search', search);
-      if (selectedCategory) params.append('category', String(selectedCategory));
-      
-      // Add pagination
-      params.append('page', String(currentPage));
-      params.append('page_size', String(pageSize));
+      const categoryId = category ? Number(category) : undefined;
+      const clubId = club ? Number(club) : undefined;
       
       const response = await inventoryApi.getItems(
-        selectedClub || undefined, 
+        clubId, 
         search, 
-        selectedCategory || undefined, 
-        currentPage, 
+        categoryId, 
+        Number(page), 
         pageSize
       );
       
-      // Handle paginated response (results) or direct array
       let itemsList: Item[] = [];
       let total = 0;
       
@@ -125,8 +164,8 @@ export default function MuniInventoryPage() {
       }
       
       // Apply status filter on frontend (backend doesn't support status filter yet)
-      if (selectedStatus) {
-        itemsList = itemsList.filter((item: Item) => item.status === selectedStatus);
+      if (status) {
+        itemsList = itemsList.filter((item: Item) => item.status === status);
       }
       
       setItems(itemsList);
@@ -136,23 +175,15 @@ export default function MuniInventoryPage() {
       setItems([]);
       setTotalCount(0);
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
-  };
-
-  const updateUrl = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-    // Reset page to 1 when filters change (except when changing page itself)
-    if (key !== 'page') {
-      params.set('page', '1');
-    }
-    router.push(`${pathname}?${params.toString()}`);
-  };
+  }, [searchParams, pageSize]);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -173,6 +204,10 @@ export default function MuniInventoryPage() {
   };
 
   const clearFilters = () => {
+    setSearchInput('');
+    setSelectedClub('');
+    setSelectedCategory('');
+    setSelectedStatus('');
     router.push(pathname);
   };
 
@@ -193,185 +228,178 @@ export default function MuniInventoryPage() {
     });
   };
 
+  const handlePageChange = (p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', p.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const hasFilters = searchInput || selectedClub || selectedCategory || selectedStatus;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return (
-    <div className="p-8 space-y-6">
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-6 md:py-8 px-0 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 md:px-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Municipality Inventory</h1>
-          <p className="text-gray-500 mt-1">Manage items across all your clubs.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <Package className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Municipality Inventory</h1>
+          </div>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage items across all your clubs.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 pl-[52px] sm:pl-0">
           <Link href="/admin/municipality/inventory/history">
-            <Button variant="outline" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all">
               View History
-            </Button>
+            </button>
           </Link>
           <Link href="/admin/municipality/inventory/borrowed">
-            <Button variant="outline" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all">
               Currently Borrowed
-            </Button>
+            </button>
           </Link>
           <Link href="/admin/municipality/inventory/create">
-            <Button className="gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+            <button className="flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-4 py-2.5 transition-all text-sm">
               <Plus className="h-4 w-4" /> Add Item
-            </Button>
+            </button>
           </Link>
         </div>
       </div>
 
-      {/* Analytics */}
-      <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <Card className="border-0 shadow-sm bg-gray-900">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                Analytics Dashboard
-              </h3>
+      {/* Analytics Dashboard */}
+      {!analyticsLoading && analytics && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+              </div>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
               {selectedClub && (
-                <span className="text-xs text-gray-400 ml-2">
+                <span className="text-xs text-[var(--brand-light)]/50 ml-2">
                   ({clubs.find(c => String(c.id) === selectedClub)?.name || 'Selected Club'})
                 </span>
               )}
               {!selectedClub && (
-                <span className="text-xs text-gray-400 ml-2">
+                <span className="text-xs text-[var(--brand-light)]/50 ml-2">
                   (All Clubs)
                 </span>
               )}
             </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                <ChevronUp className={cn(
-                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                  analyticsExpanded ? "rotate-0" : "rotate-180"
-                )} />
-                <span className="sr-only">Toggle Analytics</span>
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent className="transition-all duration-500 ease-in-out">
-            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-              {analyticsLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Card key={i} className="bg-white/5 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-lg animate-pulse">
-                      <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                        <div className="flex items-center gap-2 justify-center">
-                          <div className="w-10 h-10 rounded-xl bg-gray-700"></div>
-                          <div className="h-4 bg-gray-700 rounded w-24"></div>
-                        </div>
-                        <div className="h-8 bg-gray-700 rounded w-16"></div>
-                      </div>
-                    </Card>
-                  ))}
+            {analyticsExpanded ? (
+              <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-[var(--brand-light)]/50" />
+            )}
+          </button>
+          
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {/* Total Items */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <Package className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
                 </div>
-              ) : analytics ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {/* Total Items */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <Package className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Total Items</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_items}</div>
-                    </div>
-                  </Card>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_items}</div>
+              </div>
 
-                  {/* Borrowings Last 7 Days */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                          }}>
-                          <Calendar className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Last 7 Days</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_7d}</div>
-                    </div>
-                  </Card>
-
-                  {/* Borrowings Last 30 Days */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                          }}>
-                          <TrendingUp className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Last 30 Days</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_30d}</div>
-                    </div>
-                  </Card>
-
-                  {/* All Time Borrowings */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
-                          }}>
-                          <History className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">All Time</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.borrowings_all_time}</div>
-                    </div>
-                  </Card>
+              {/* Borrowings Last 7 Days */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last 7 Days</span>
                 </div>
-              ) : null}
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.borrowings_7d}</div>
+              </div>
 
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          {/* Main Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            {/* Search - Takes more space on larger screens */}
-            <div className="relative md:col-span-4 lg:col-span-3">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search by name or tag..." 
-                className="pl-9 bg-gray-50 border-0"
-                value={search}
-                onChange={e => updateUrl('search', e.target.value)}
-              />
+              {/* Borrowings Last 30 Days */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                    <TrendingUp className="h-5 w-5 text-[var(--dark-900)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last 30 Days</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.borrowings_30d}</div>
+              </div>
+
+              {/* All Time Borrowings */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                    <History className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">All Time</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.borrowings_all_time}</div>
+              </div>
             </div>
-            
-            {/* Club Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
+          </div>
+        </div>
+      )}
+
+      {/* Analytics Loading Skeleton */}
+      {analyticsLoading && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-4 sm:px-6 py-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <AnalyticsCardSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search & Filters */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex flex-col gap-3">
+          {/* Search Row */}
+          <div className="flex items-center gap-3">
+            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+            <input 
+              type="text"
+              placeholder="Search by name or tag..." 
+              className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+            />
+            {searchInput && (
+              <button 
+                onClick={() => setSearchInput('')}
+                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          
+          {/* Filters Row */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="w-full sm:w-[160px]">
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={selectedClub} 
-                onChange={e => updateUrl('club', e.target.value)}
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={selectedClub}
+                onChange={e => setSelectedClub(e.target.value)}
+                style={selectArrowStyle}
               >
                 <option value="">All Clubs</option>
                 {clubs.map((club) => (
@@ -382,12 +410,12 @@ export default function MuniInventoryPage() {
               </select>
             </div>
             
-            {/* Category Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
+            <div className="w-full sm:w-[180px]">
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={selectedCategory || ''} 
-                onChange={e => updateUrl('category', e.target.value)}
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={selectedCategory}
+                onChange={e => setSelectedCategory(e.target.value)}
+                style={selectArrowStyle}
               >
                 <option value="">All Categories</option>
                 {categories.length > 0 ? (
@@ -402,12 +430,12 @@ export default function MuniInventoryPage() {
               </select>
             </div>
             
-            {/* Status Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
+            <div className="w-full sm:w-[180px]">
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={selectedStatus} 
-                onChange={e => updateUrl('status', e.target.value)}
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={selectedStatus}
+                onChange={e => setSelectedStatus(e.target.value)}
+                style={selectArrowStyle}
               >
                 <option value="">All Statuses</option>
                 <option value="AVAILABLE">Available</option>
@@ -418,65 +446,120 @@ export default function MuniInventoryPage() {
               </select>
             </div>
             
-            {/* Clear Button */}
-            <div className="md:col-span-2 lg:col-span-1">
-              <Button
-                variant="ghost"
-                size="sm"
+            {hasFilters && (
+              <button
                 onClick={clearFilters}
-                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+                className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
               >
                 <X className="h-4 w-4" /> Clear
-              </Button>
-            </div>
+              </button>
+            )}
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* Stats Bar */}
+      {!showSkeleton && items.length > 0 && (
+        <div className="px-4 sm:px-6 md:px-8">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{items.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'item' : 'items'}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
+      {showSkeleton ? (
+        <div className="px-4 sm:px-6 md:px-8">
+          <div className="flex flex-col gap-3 md:hidden">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-36" />
+                    <Skeleton className="h-4 w-24" />
+                    <div className="flex items-center gap-2 mt-2">
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Category</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Queue</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, i) => (
+                  <tr key={i} className="border-b border-[var(--dark-600)]/50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-40" />
+                          <Skeleton className="h-3 w-28" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Skeleton className="w-9 h-9 rounded-lg" />
+                        <Skeleton className="w-9 h-9 rounded-lg" />
+                        <Skeleton className="w-9 h-9 rounded-lg" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
-        <ItemTable 
-          items={items} 
-          basePath="/admin/municipality/inventory" 
-          onDelete={handleDeleteSuccess}
-          onDeleteError={handleDeleteError}
-          buildUrlWithParams={buildUrlWithParams}
-        />
+        <div className="px-4 sm:px-6 md:px-8">
+          <ItemTable 
+            items={items} 
+            basePath="/admin/municipality/inventory" 
+            onDelete={handleDeleteSuccess}
+            onDeleteError={handleDeleteError}
+            buildUrlWithParams={buildUrlWithParams}
+          />
+        </div>
       )}
 
       {/* Pagination */}
-      {(() => {
-        const totalPages = Math.ceil(totalCount / pageSize);
-        if (totalPages <= 1) return null;
-        
-        return (
-          <div className="flex items-center justify-center gap-2 py-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={currentPage === 1} 
-              onClick={() => updateUrl('page', (currentPage - 1).toString())}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-            >
-              Prev
-            </Button>
-            <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={currentPage >= totalPages} 
-              onClick={() => updateUrl('page', (currentPage + 1).toString())}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-            >
-              Next
-            </Button>
+      {!showSkeleton && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-6 md:px-8">
+          <button 
+            disabled={currentPage === 1} 
+            onClick={() => handlePageChange(currentPage - 1)}
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <div className="text-sm text-[var(--brand-light)]/50">
+            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
           </div>
-        );
-      })()}
+          <button 
+            disabled={currentPage >= totalPages} 
+            onClick={() => handlePageChange(currentPage + 1)}
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {/* Toast Notification */}
       <Toast 
@@ -484,8 +567,9 @@ export default function MuniInventoryPage() {
         type={toast.type} 
         isVisible={toast.isVisible} 
         onClose={() => setToast({ ...toast, isVisible: false })} 
+        darkMode
+        duration={1250}
       />
     </div>
   );
 }
-

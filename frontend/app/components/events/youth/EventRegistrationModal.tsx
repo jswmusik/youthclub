@@ -3,19 +3,32 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+
 import api from '@/lib/api';
 import { Event } from '@/types/event';
-import { CheckCircle, AlertTriangle, Clock, X, Calendar, ExternalLink } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Clock, X, Calendar, ExternalLink, MapPin, Send } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
+
 
 interface ModalProps {
     event: Event;
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    darkMode?: boolean;
 }
 
-export default function EventRegistrationModal({ event, isOpen, onClose, onSuccess }: ModalProps) {
+// Helper function to strip inline color styles from HTML (for pasted Word content)
+function stripInlineColors(html: string): string {
+    if (!html) return '';
+    return html
+        .replace(/color\s*:\s*[^;"}]+;?/gi, '')
+        .replace(/background-color\s*:\s*[^;"}]+;?/gi, '')
+        .replace(/background\s*:\s*[^;"}]+;?/gi, '')
+        .replace(/style\s*=\s*""/gi, '');
+}
+
+export default function EventRegistrationModal({ event, isOpen, onClose, onSuccess, darkMode = false }: ModalProps) {
     const router = useRouter();
     const [step, setStep] = useState<'CONFIRM' | 'PROCESSING' | 'RESULT' | 'CANCELLING'>('CONFIRM');
     const [result, setResult] = useState<{ status: string; message?: string } | null>(null);
@@ -83,59 +96,50 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
     // --- Render Result View ---
     if (step === 'RESULT' && result) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center animate-in fade-in zoom-in-95 duration-200">
-                    <div className="flex justify-center mb-4">
-                        {result.status === 'APPROVED' && <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center"><CheckCircle className="w-8 h-8 text-green-600" /></div>}
-                        {result.status === 'WAITLIST' && <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center"><Clock className="w-8 h-8 text-orange-600" /></div>}
-                        {result.status === 'PENDING' && <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center"><AlertTriangle className="w-8 h-8 text-yellow-600" /></div>}
-                        {result.status === 'CANCELLED' && <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center"><X className="w-8 h-8 text-gray-600" /></div>}
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+                <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md text-center animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
+                    <div className="flex justify-center mb-3">
+                        {result.status === 'APPROVED' && <div className="w-16 h-16 bg-[var(--brand-green)] rounded-xl flex items-center justify-center"><CheckCircle className="w-8 h-8 text-[var(--dark-900)]" /></div>}
+                        {result.status === 'WAITLIST' && <div className="w-16 h-16 bg-[var(--brand-primary)] rounded-xl flex items-center justify-center"><Clock className="w-8 h-8 text-[var(--dark-900)]" /></div>}
+                        {result.status === 'PENDING' && (
+                            <div className="w-16 h-16 bg-[var(--brand-green)] rounded-xl flex items-center justify-center overflow-hidden">
+                                <Send className="w-8 h-8 text-[var(--dark-900)] animate-[sendSlide_1.2s_ease-in-out_infinite]" />
+                            </div>
+                        )}
+                        {result.status === 'CANCELLED' && <div className="w-16 h-16 bg-[var(--dark-600)] rounded-xl flex items-center justify-center"><X className="w-8 h-8 text-[var(--brand-light)]" /></div>}
                     </div>
                     
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-2 font-heading`}>
                         {result.status === 'APPROVED' ? 'You are going!' : 
                          result.status === 'WAITLIST' ? 'Waitlist Joined' : 
-                         result.status === 'CANCELLED' ? 'Registration Cancelled' :
+                         result.status === 'CANCELLED' ? 'Cancelled' :
                          'Request Sent'}
                     </h3>
                     
-                    {/* Event Cover Image */}
-                    {event.cover_image && (
-                        <div className="mb-4 rounded-lg overflow-hidden">
-                            <img 
-                                src={getMediaUrl(event.cover_image)} 
-                                alt={event.title}
-                                className="w-full h-48 object-cover"
-                            />
-                        </div>
-                    )}
+                    <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'} mb-4`}>{result.message}</p>
                     
-                    {/* Event Title */}
-                    <div className="mb-4">
-                        <h4 className="font-semibold text-gray-900 mb-1">{event.title}</h4>
-                        {event.description && (
-                            <p className="text-sm text-gray-600 line-clamp-3">{event.description.replace(/<[^>]*>/g, '')}</p>
-                        )}
+                    {/* Event Title - Compact */}
+                    <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3 mb-4 text-left`}>
+                        <h4 className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading line-clamp-1`}>{event.title}</h4>
+                        <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
+                            <Calendar className="w-3 h-3" />
+                            {new Date(event.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </div>
                         <Link 
                             href={`/dashboard/youth/events/${event.id}`}
                             onClick={onClose}
-                            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
+                            className="inline-flex items-center gap-1 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-bold mt-2 transition-colors"
                         >
-                            View full details
+                            View details
                             <ExternalLink className="w-3 h-3" />
                         </Link>
                     </div>
                     
-                    <p className="text-gray-600 mb-6">{result.message}</p>
-                    
                     <button 
-                        onClick={() => { 
-                            onClose(); 
-                            router.push('/dashboard/youth/events');
-                        }}
-                        className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800"
+                        onClick={onClose}
+                        className="w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-2.5 text-sm rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all"
                     >
-                        View My Events
+                        Close
                     </button>
                 </div>
             </div>
@@ -145,98 +149,61 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
     // --- Render Already Approved View ---
     if (isApproved) {
         return (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4">
-                <div className="bg-white rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-gray-900">You're Confirmed!</h3>
-                        <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X className="w-4 h-4" /></button>
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+                <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>You're Confirmed!</h3>
+                        <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                     </div>
 
-                    <div className="space-y-4 mb-8">
-                        {/* Event Cover Image */}
-                        {event.cover_image && (
-                            <div className="rounded-lg overflow-hidden">
-                                <img 
-                                    src={getMediaUrl(event.cover_image)} 
-                                    alt={event.title}
-                                    className="w-full h-48 object-cover"
-                                />
+                    <div className="space-y-3 mb-5">
+                        {/* Event Title & Date - Compact */}
+                        <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3`}>
+                            <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
+                            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
+                                <Calendar className="w-3.5 h-3.5" />
+                                {new Date(event.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </div>
-                        )}
-
-                        {/* Event Title & Description */}
-                        <div className="border-b border-gray-200 pb-4">
-                            <h4 className="text-lg font-bold text-gray-900 mb-2">{event.title}</h4>
-                            {event.description && (
-                                <div className="text-sm text-gray-600 line-clamp-4" dangerouslySetInnerHTML={{ __html: event.description }} />
+                            {event.location_name && (
+                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {event.location_name}
+                                </div>
                             )}
                             <Link 
                                 href={`/dashboard/youth/events/${event.id}`}
                                 onClick={onClose}
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
+                                className="inline-flex items-center gap-1 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-bold mt-2 transition-colors"
                             >
                                 View full details
                                 <ExternalLink className="w-3 h-3" />
                             </Link>
                         </div>
 
-                        <div className="bg-green-50 border border-green-200 p-4 rounded-lg flex items-start gap-3">
-                            <CheckCircle className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
-                            <div>
-                                <p className="font-bold text-green-900 mb-1">You are confirmed for this event</p>
-                                <p className="text-sm text-green-700">
-                                    You have a confirmed seat. We look forward to seeing you there!
-                                </p>
-                            </div>
+                        <div className={`${darkMode ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' : 'bg-emerald-50 border-emerald-200'} border p-3 rounded-xl flex items-center gap-3`}>
+                            <CheckCircle className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-600'} shrink-0`} />
+                            <p className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-700'}`}>You have a confirmed seat!</p>
                         </div>
 
-                        {/* Event Details */}
-                        <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2 text-gray-600">
-                                <Calendar className="w-4 h-4 text-gray-400" />
-                                <span>{new Date(event.start_date).toLocaleDateString('en-US', { 
-                                    weekday: 'long', 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-gray-600">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <span>{event.location_name}</span>
-                            </div>
-                        </div>
-
-                        {error && <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>}
+                        {error && <div className={`text-xs p-2 rounded ${darkMode ? 'text-[var(--brand-red)] bg-[var(--brand-red)]/10' : 'text-red-600 bg-red-50'}`}>{error}</div>}
                     </div>
 
                     <div className="flex gap-3">
                         <button 
                             onClick={onClose} 
-                            className="flex-1 py-3 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200"
+                            className={`flex-1 py-2.5 text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}
                         >
                             Close
                         </button>
                         <button 
                             onClick={handleCancelRegistration} 
                             disabled={step === 'CANCELLING'}
-                            className="flex-1 py-3 font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50 flex justify-center items-center gap-2"
+                            className="flex-1 py-2.5 text-sm font-bold text-white bg-[var(--brand-red)] rounded-xl hover:bg-[var(--brand-red)]/90 disabled:opacity-50 flex justify-center items-center gap-2 transition-all"
                         >
                             {step === 'CANCELLING' ? (
-                                <>
-                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Cancelling...
-                                </>
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                                <>
-                                    <X className="w-4 h-4" />
-                                    Cancel Registration
-                                </>
+                                'Cancel'
                             )}
                         </button>
                     </div>
@@ -248,148 +215,92 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
     // --- Render Pending View ---
     if (isPending) {
         const getPendingMessage = () => {
-            if (userStatus === 'PENDING_GUARDIAN') {
-                return {
-                    title: 'Waiting for Guardian Approval',
-                    message: 'Your registration has been submitted and is waiting for your guardian\'s approval. Once approved, you\'ll be confirmed for this event.',
-                    icon: AlertTriangle,
-                    bgClass: 'bg-yellow-50',
-                    borderClass: 'border-yellow-200',
-                    iconClass: 'text-yellow-600',
-                    titleClass: 'text-yellow-900',
-                    textClass: 'text-yellow-700'
-                };
-            } else if (userStatus === 'PENDING_ADMIN') {
-                return {
-                    title: 'Waiting for Admin Approval',
-                    message: 'Your registration has been submitted and is waiting for admin review. You\'ll be notified once a decision is made.',
-                    icon: Clock,
-                    bgClass: 'bg-orange-50',
-                    borderClass: 'border-orange-200',
-                    iconClass: 'text-orange-600',
-                    titleClass: 'text-orange-900',
-                    textClass: 'text-orange-700'
-                };
-            } else if (userStatus === 'WAITLIST') {
-                return {
-                    title: 'You\'re on the Waitlist',
-                    message: 'The event is currently full, but you\'ve been added to the waitlist. If a spot becomes available, you\'ll be automatically confirmed.',
-                    icon: Clock,
-                    bgClass: 'bg-orange-50',
-                    borderClass: 'border-orange-200',
-                    iconClass: 'text-orange-600',
-                    titleClass: 'text-orange-900',
-                    textClass: 'text-orange-700'
-                };
-            }
-            return {
-                title: 'Registration Pending',
-                message: 'Your registration is being processed.',
-                icon: Clock,
-                bgClass: 'bg-orange-50',
-                borderClass: 'border-orange-200',
-                iconClass: 'text-orange-600',
-                titleClass: 'text-orange-900',
-                textClass: 'text-orange-700'
+            const baseColors = darkMode ? {
+                bgClass: 'bg-[var(--brand-third)]/10',
+                borderClass: 'border-[var(--brand-third)]/30',
+                iconClass: 'text-[var(--brand-third)]',
+                titleClass: 'text-[var(--brand-third)]',
+                textClass: 'text-[var(--brand-light)]/70'
+            } : {
+                bgClass: 'bg-[#FF5485]/10',
+                borderClass: 'border-[#FF5485]/30',
+                iconClass: 'text-[#FF5485]',
+                titleClass: 'text-[#FF5485]',
+                textClass: 'text-gray-700'
             };
+
+            if (userStatus === 'PENDING_GUARDIAN') {
+                return { ...baseColors, title: 'Waiting for Guardian Approval', message: 'Your registration has been submitted and is waiting for your guardian\'s approval. Once approved, you\'ll be confirmed for this event.', icon: AlertTriangle };
+            } else if (userStatus === 'PENDING_ADMIN') {
+                return { ...baseColors, title: 'Waiting for Admin Approval', message: 'Your registration has been submitted and is waiting for admin review. You\'ll be notified once a decision is made.', icon: Clock };
+            } else if (userStatus === 'WAITLIST') {
+                return { ...baseColors, title: 'You\'re on the Waitlist', message: 'The event is currently full, but you\'ve been added to the waitlist. If a spot becomes available, you\'ll be automatically confirmed.', icon: Clock };
+            }
+            return { ...baseColors, title: 'Registration Pending', message: 'Your registration is being processed.', icon: Clock };
         };
 
         const pendingInfo = getPendingMessage();
         const IconComponent = pendingInfo.icon;
 
         return (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4">
-                <div className="bg-white rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-gray-900">Registration Status</h3>
-                        <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X className="w-4 h-4" /></button>
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+                <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>Registration Status</h3>
+                        <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                     </div>
 
-                    <div className="space-y-4 mb-8">
-                        {/* Event Cover Image */}
-                        {event.cover_image && (
-                            <div className="rounded-lg overflow-hidden">
-                                <img 
-                                    src={getMediaUrl(event.cover_image)} 
-                                    alt={event.title}
-                                    className="w-full h-48 object-cover"
-                                />
+                    <div className="space-y-3 mb-5">
+                        {/* Event Title & Date - Compact */}
+                        <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3`}>
+                            <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
+                            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
+                                <Calendar className="w-3.5 h-3.5" />
+                                {new Date(event.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </div>
-                        )}
-
-                        {/* Event Title & Description */}
-                        <div className="border-b border-gray-200 pb-4">
-                            <h4 className="text-lg font-bold text-gray-900 mb-2">{event.title}</h4>
-                            {event.description && (
-                                <div className="text-sm text-gray-600 line-clamp-4" dangerouslySetInnerHTML={{ __html: event.description }} />
+                            {event.location_name && (
+                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {event.location_name}
+                                </div>
                             )}
                             <Link 
                                 href={`/dashboard/youth/events/${event.id}`}
                                 onClick={onClose}
-                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
+                                className="inline-flex items-center gap-1 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-bold mt-2 transition-colors"
                             >
                                 View full details
                                 <ExternalLink className="w-3 h-3" />
                             </Link>
                         </div>
 
-                        <div className={`${pendingInfo.bgClass} border ${pendingInfo.borderClass} p-4 rounded-lg flex items-start gap-3`}>
-                            <IconComponent className={`w-6 h-6 ${pendingInfo.iconClass} shrink-0 mt-0.5`} />
+                        <div className={`${pendingInfo.bgClass} border ${pendingInfo.borderClass} p-3 rounded-xl flex items-start gap-3`}>
+                            <IconComponent className={`w-5 h-5 ${pendingInfo.iconClass} shrink-0 mt-0.5`} />
                             <div>
-                                <p className={`font-bold ${pendingInfo.titleClass} mb-1`}>{pendingInfo.title}</p>
-                                <p className={`text-sm ${pendingInfo.textClass}`}>
-                                    {pendingInfo.message}
-                                </p>
+                                <p className={`text-sm font-bold ${pendingInfo.titleClass}`}>{pendingInfo.title}</p>
+                                <p className={`text-xs ${pendingInfo.textClass} mt-0.5`}>{pendingInfo.message}</p>
                             </div>
                         </div>
 
-                        {/* Event Details */}
-                        <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2 text-gray-600">
-                                <Calendar className="w-4 h-4 text-gray-400" />
-                                <span>{new Date(event.start_date).toLocaleDateString('en-US', { 
-                                    weekday: 'long', 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-gray-600">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <span>{event.location_name}</span>
-                            </div>
-                        </div>
-
-                        {error && <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>}
+                        {error && <div className={`text-xs p-2 rounded ${darkMode ? 'text-[var(--brand-red)] bg-[var(--brand-red)]/10' : 'text-red-600 bg-red-50'}`}>{error}</div>}
                     </div>
 
                     <div className="flex gap-3">
                         <button 
                             onClick={onClose} 
-                            className="flex-1 py-3 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200"
+                            className={`flex-1 py-2.5 text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}
                         >
                             Close
                         </button>
                         <button 
                             onClick={handleCancelRegistration} 
                             disabled={step === 'CANCELLING'}
-                            className="flex-1 py-3 font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50 flex justify-center items-center gap-2"
+                            className="flex-1 py-2.5 text-sm font-bold text-white bg-[var(--brand-red)] rounded-xl hover:bg-[var(--brand-red)]/90 disabled:opacity-50 flex justify-center items-center gap-2 transition-all"
                         >
                             {step === 'CANCELLING' ? (
-                                <>
-                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Cancelling...
-                                </>
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                                <>
-                                    <X className="w-4 h-4" />
-                                    Cancel Registration
-                                </>
+                                'Cancel'
                             )}
                         </button>
                     </div>
@@ -400,89 +311,77 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
 
     // --- Render Confirmation View ---
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4">
-            <div className="bg-white rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-gray-900">Confirm Registration</h3>
-                    <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X className="w-4 h-4" /></button>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+            <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>Confirm Registration</h3>
+                    <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                 </div>
 
-                <div className="space-y-4 mb-8">
-                    {/* Event Cover Image */}
-                    {event.cover_image && (
-                        <div className="rounded-lg overflow-hidden">
-                            <img 
-                                src={getMediaUrl(event.cover_image)} 
-                                alt={event.title}
-                                className="w-full h-48 object-cover"
-                            />
+                <div className="space-y-3 mb-5">
+                    {/* Event Title & Date - Compact */}
+                    <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3`}>
+                        <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
+                        <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
+                            <Calendar className="w-3.5 h-3.5" />
+                            {new Date(event.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </div>
-                    )}
-
-                    {/* Event Title & Description */}
-                    <div className="border-b border-gray-200 pb-4">
-                        <h4 className="text-lg font-bold text-gray-900 mb-2">{event.title}</h4>
-                        {event.description && (
-                            <div className="text-sm text-gray-600 line-clamp-4" dangerouslySetInnerHTML={{ __html: event.description }} />
+                        {event.location_name && (
+                            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
+                                <MapPin className="w-3.5 h-3.5" />
+                                {event.location_name}
+                            </div>
                         )}
                         <Link 
                             href={`/dashboard/youth/events/${event.id}`}
                             onClick={onClose}
-                            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
+                            className="inline-flex items-center gap-1 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-bold mt-2 transition-colors"
                         >
                             View full details
                             <ExternalLink className="w-3 h-3" />
                         </Link>
                     </div>
 
-                    <p className="text-gray-600 text-sm">
-                        You are about to register for this event.
-                    </p>
-
                     {/* Registration Closed Warning */}
                     {isRegistrationClosed && (
-                        <div className="bg-red-50 border border-red-100 p-3 rounded-lg flex gap-3 text-sm text-red-800">
-                            <AlertTriangle className="w-5 h-5 shrink-0" />
-                            <div>
-                                <span className="font-bold block">Registration is closed.</span>
-                                The registration deadline has passed.
-                            </div>
+                        <div className="bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30 p-2.5 rounded-lg flex gap-2 text-xs text-[var(--brand-red)]">
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            <span className="font-bold">Registration is closed.</span>
                         </div>
                     )}
 
                     {/* Warnings / Info */}
                     {event.requires_guardian_approval && (
-                        <div className="bg-yellow-50 border border-yellow-100 p-3 rounded-lg flex gap-3 text-sm text-yellow-800">
-                            <AlertTriangle className="w-5 h-5 shrink-0" />
-                            <div>
-                                <span className="font-bold block">Guardian Approval Required</span>
-                                Your registration will be paused until your guardian approves it.
-                            </div>
+                        <div className="bg-[var(--brand-third)]/10 border border-[var(--brand-third)]/30 p-2.5 rounded-lg flex gap-2 text-xs text-[var(--brand-third)]">
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            <span className="font-bold">Guardian approval required</span>
                         </div>
                     )}
                     
                     {event.cost && parseFloat(event.cost) > 0 && (
-                        <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg flex justify-between items-center text-blue-900">
-                            <span className="font-bold">Cost</span>
-                            <span className="font-bold text-lg">{event.cost} SEK</span>
+                        <div className="bg-[var(--brand-sky)]/10 border border-[var(--brand-sky)]/30 p-2.5 rounded-lg flex justify-between items-center text-[var(--brand-sky)]">
+                            <span className="font-bold text-xs">Cost</span>
+                            <span className="font-bold">{event.cost} SEK</span>
                         </div>
                     )}
 
-                    {error && <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>}
+                    {error && <div className="text-[var(--brand-red)] text-xs bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30 p-2.5 rounded-lg">{error}</div>}
                 </div>
 
                 <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200">
+                    <button onClick={onClose} className={`flex-1 py-2.5 px-4 font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}>
                         Cancel
                     </button>
                     <button 
                         onClick={handleRegister} 
                         disabled={step === 'PROCESSING' || isRegistrationClosed}
-                        className="flex-1 py-3 font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
+                        className="flex-1 py-2.5 px-4 font-bold text-sm text-[var(--dark-900)] bg-[var(--brand-primary)] rounded-xl hover:bg-[var(--brand-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2"
                     >
                         {step === 'PROCESSING' ? (
-                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : 'Confirm'}
+                            <span className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                        ) : (
+                            <span>Register</span>
+                        )}
                     </button>
                 </div>
             </div>

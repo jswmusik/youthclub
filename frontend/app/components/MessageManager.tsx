@@ -1,19 +1,210 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Trash2, X, MessageSquare, Info, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Plus, Search, BarChart3, ChevronUp, Trash2, X, MessageSquare, Info, AlertTriangle, AlertCircle, ChevronLeft, Calendar, Users } from 'lucide-react';
 import api from '../../lib/api';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import Toast from './Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onDelete: () => void;
+  onClick: () => void;
+}
+
+function SwipeableCard({ children, onDelete, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 70;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleDeleteClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function MessageCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-10 h-10 rounded-lg flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MessageTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-full" /></td>
+      <td className="px-6 py-4">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-full" /></td>
+      <td className="px-6 py-4"><div className="flex justify-end"><Skeleton className="w-9 h-9 rounded-lg" /></div></td>
+    </tr>
+  );
+}
+
+function MessagePageSkeleton() {
+  return (
+    <>
+      {/* Mobile Cards Skeleton */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {[...Array(4)].map((_, i) => (
+          <MessageCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Content</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Audience</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(5)].map((_, i) => (
+              <MessageTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 interface MessageManagerProps {
   basePath: string;
@@ -28,7 +219,13 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
   const [allMessagesForAnalytics, setAllMessagesForAnalytics] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
+  
+  // Filter State
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [typeFilter, setTypeFilter] = useState(searchParams.get('message_type') || '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<any>(null);
@@ -38,13 +235,25 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
     fetchAllMessagesForAnalytics();
   }, []);
 
+  // Debounced Search/Filter Update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchInput) params.set('search', searchInput); else params.delete('search');
+      if (typeFilter) params.set('message_type', typeFilter); else params.delete('message_type');
+      if (statusFilter) params.set('status', statusFilter); else params.delete('status');
+      params.set('page', '1');
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, typeFilter, statusFilter]);
+
   useEffect(() => {
     fetchMessages();
   }, [searchParams]);
 
   const fetchAllMessagesForAnalytics = async () => {
     try {
-      // Fetch all messages for analytics calculation
       let allMessages: any[] = [];
       let page = 1;
       let totalCount = 0;
@@ -59,9 +268,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
         const res: any = await api.get(`/messages/?${params.toString()}`);
         const responseData: any = res?.data;
         
-        if (!responseData) {
-          break;
-        }
+        if (!responseData) break;
         
         let pageMessages: any[] = [];
         
@@ -81,10 +288,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
           const hasAllResults = totalCount > 0 && allMessages.length >= totalCount;
           const gotEmptyPage = pageMessages.length === 0;
           
-          if (!hasNext || hasAllResults || gotEmptyPage) {
-            break;
-          }
-          
+          if (!hasNext || hasAllResults || gotEmptyPage) break;
           page++;
         } else {
           break;
@@ -100,20 +304,20 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
 
   const fetchMessages = async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+
     try {
       const page = searchParams.get('page') || '1';
       const search = searchParams.get('search') || '';
       const messageType = searchParams.get('message_type') || '';
       const status = searchParams.get('status') || '';
       
-      // If any filter is active, fetch all messages for client-side filtering
-      // Otherwise use server-side pagination
       const hasFilters = search || messageType || status;
       
       let allMessages: any[] = [];
       
       if (hasFilters) {
-        // Fetch all messages when filters are active
         let currentPage = 1;
         const pageSize = 100;
         const maxPages = 100;
@@ -147,7 +351,6 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
           }
         }
       } else {
-        // Use server-side pagination when no filters
         const params = new URLSearchParams();
         params.set('page', page);
         params.set('page_size', '10');
@@ -160,14 +363,12 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
       
       let messagesData = allMessages;
       
-      // Apply message_type filter (client-side)
+      // Apply message_type filter
       if (messageType) {
-        messagesData = messagesData.filter((msg: any) => {
-          return msg.message_type === messageType;
-        });
+        messagesData = messagesData.filter((msg: any) => msg.message_type === messageType);
       }
       
-      // Apply client-side filtering
+      // Apply search filter
       if (search) {
         const searchLower = search.toLowerCase();
         messagesData = messagesData.filter((msg: any) => {
@@ -177,7 +378,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
         });
       }
       
-      // Apply status filter (active/expired)
+      // Apply status filter
       if (status) {
         const now = new Date();
         messagesData = messagesData.filter((msg: any) => {
@@ -192,10 +393,8 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
         });
       }
       
-      // Get total count before pagination
       const totalFiltered = messagesData.length;
       
-      // Apply client-side pagination when filters are active
       if (hasFilters) {
         const pageSize = 10;
         const startIndex = (Number(page) - 1) * pageSize;
@@ -208,15 +407,21 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
   };
 
-  const updateUrl = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value); else params.delete(key);
-    if (key !== 'page') params.set('page', '1');
-    router.replace(`${pathname}?${params.toString()}`);
+  const clearFilters = () => {
+    setSearchInput('');
+    setTypeFilter('');
+    setStatusFilter('');
+    router.push(pathname);
   };
 
   const handleDelete = async () => {
@@ -233,7 +438,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
     }
   };
 
-  // Calculate analytics from allMessagesForAnalytics
+  // Calculate analytics
   const analytics = {
     total: allMessagesForAnalytics.length,
     info: allMessagesForAnalytics.filter((m: any) => m.message_type === 'INFO').length,
@@ -241,12 +446,33 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
     warning: allMessagesForAnalytics.filter((m: any) => m.message_type === 'WARNING').length,
   };
 
-  const getBadgeStyle = (type: string) => {
+  const getTypeIcon = (type: string) => {
     switch(type) {
-        case 'INFO': return 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30';
-        case 'IMPORTANT': return 'bg-orange-50 text-[#F59E0B] border-[#F59E0B]/30';
-        case 'WARNING': return 'bg-red-50 text-[#EF4444] border-[#EF4444]/30';
-        default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'INFO': return <Info className="w-5 h-5 text-white" />;
+      case 'IMPORTANT': return <AlertCircle className="w-5 h-5 text-white" />;
+      case 'WARNING': return <AlertTriangle className="w-5 h-5 text-white" />;
+      default: return <MessageSquare className="w-5 h-5 text-white" />;
+    }
+  };
+
+  const getTypeStyle = (type: string) => {
+    switch(type) {
+      case 'INFO': return {
+        badge: 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30',
+        icon: 'from-[var(--brand-blue)] to-[var(--brand-purple)]'
+      };
+      case 'IMPORTANT': return {
+        badge: 'bg-[var(--brand-yellow)]/20 text-[var(--brand-yellow)] border-[var(--brand-yellow)]/30',
+        icon: 'from-[var(--brand-yellow)] to-[var(--brand-peach)]'
+      };
+      case 'WARNING': return {
+        badge: 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30',
+        icon: 'from-[var(--brand-red)] to-[var(--brand-peach)]'
+      };
+      default: return {
+        badge: 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30',
+        icon: 'from-[var(--brand-primary)] to-[var(--brand-purple)]'
+      };
     }
   };
 
@@ -263,10 +489,12 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
   };
 
   const formatTargetRoles = (roles: string[]) => {
-    if (roles.includes("ALL")) {
-      return "All Users";
-    }
+    if (roles.includes("ALL")) return "All Users";
     return roles.map(role => getRoleLabel(role)).join(", ");
+  };
+
+  const isExpired = (expiresAt: string) => {
+    return new Date(expiresAt) <= new Date();
   };
 
   // Pagination logic
@@ -274,356 +502,365 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
   const pageSize = 10;
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  // Get paginated messages for display
-  const paginatedMessages = messages;
+  const handlePageChange = (p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', p.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const hasFilters = searchInput || typeFilter || statusFilter;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#121213]">System Messages</h1>
-          <p className="text-sm sm:text-base text-gray-500 mt-1">Create and manage system-wide messages.</p>
-        </div>
-        <Link href={`${basePath}/create`} className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
-            <Plus className="h-4 w-4" /> Create Message
-          </Button>
-        </Link>
-      </div>
-
-      {/* Analytics */}
-      {!loading && (
-        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border-0 shadow-sm bg-gray-900">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                  Analytics Dashboard
-                </h3>
+    <div className="min-h-screen bg-[var(--dark-900)] p-4 sm:p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                  )} />
-                  <span className="sr-only">Toggle Analytics</span>
-                </Button>
-              </CollapsibleTrigger>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">System Messages</h1>
             </div>
-            <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {/* Card 1: Total Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <MessageSquare className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Total Messages</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
-                    </div>
-                  </Card>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Create and manage system-wide messages.</p>
+          </div>
+          <Link href={`${basePath}/create`}>
+            <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all text-sm">
+              <Plus className="h-4 w-4" /> Create Message
+            </button>
+          </Link>
+        </div>
 
-                  {/* Card 2: Information Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
-                          }}>
-                          <Info className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Information</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.info}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 3: Important Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#F59E0B]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#F97316] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.3)',
-                          }}>
-                          <AlertCircle className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Important</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.important}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 4: Warning Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#EF4444]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#DC2626] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.3)',
-                          }}>
-                          <AlertTriangle className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Warning</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.warning}</div>
-                    </div>
-                  </Card>
+        {/* Analytics Dashboard */}
+        {!showSkeleton && (
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <button 
+              onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+              className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                  <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                 </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-      )}
+                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              </div>
+              <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+            </button>
+            
+            <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                
+                {/* Total Messages */}
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-all">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                      <MessageSquare className="h-5 w-5 text-[var(--dark-900)]" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
+                </div>
 
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          {/* Main Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 items-end">
-            {/* Search - Takes more space on larger screens */}
-            <div className="relative md:col-span-4 lg:col-span-3">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input 
+                {/* Information */}
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-blue)] hover:border-[var(--brand-blue)] transition-all">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                      <Info className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Information</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.info}</div>
+                </div>
+
+                {/* Important */}
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[#F59E0B] hover:border-[#F59E0B] transition-all">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#F59E0B] flex items-center justify-center">
+                      <AlertCircle className="h-5 w-5 text-[var(--dark-900)]" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Important</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[#F59E0B]">{analytics.important}</div>
+                </div>
+
+                {/* Warning */}
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-red)] hover:border-[var(--brand-red)] transition-all">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)] flex items-center justify-center">
+                      <AlertTriangle className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Warning</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.warning}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search & Filters */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+          <div className="flex flex-col gap-3">
+            {/* Search Row */}
+            <div className="flex items-center gap-3">
+              <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+              <input 
+                type="text"
                 placeholder="Search by title or message..." 
-                className="pl-9 bg-gray-50 border-0"
-                value={searchParams.get('search') || ''}
-                onChange={e => updateUrl('search', e.target.value)}
+                className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
               />
+              {searchInput && (
+                <button 
+                  onClick={() => setSearchInput('')}
+                  className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+                >
+                  ×
+                </button>
+              )}
             </div>
             
-            {/* Message Type Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
-              <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('message_type') || ''} 
-                onChange={e => updateUrl('message_type', e.target.value)}
-              >
-                <option value="">All Types</option>
-                <option value="INFO">Information</option>
-                <option value="IMPORTANT">Important</option>
-                <option value="WARNING">Warning</option>
-              </select>
-            </div>
-            
-            {/* Status Filter */}
-            <div className="md:col-span-2 lg:col-span-2">
-              <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('status') || ''} 
-                onChange={e => updateUrl('status', e.target.value)}
-              >
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="expired">Expired</option>
-              </select>
-            </div>
-            
-            {/* Clear Button */}
-            <div className="md:col-span-2 lg:col-span-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(pathname)}
-                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-              >
-                <X className="h-4 w-4" /> Clear
-              </Button>
+            {/* Filters Row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="w-full sm:w-[160px]">
+                <select 
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={typeFilter}
+                  onChange={e => setTypeFilter(e.target.value)}
+                  style={selectArrowStyle}
+                >
+                  <option value="">All Types</option>
+                  <option value="INFO">Information</option>
+                  <option value="IMPORTANT">Important</option>
+                  <option value="WARNING">Warning</option>
+                </select>
+              </div>
+              <div className="w-full sm:w-[160px]">
+                <select 
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                  style={selectArrowStyle}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+              {hasFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
+                >
+                  Clear All
+                </button>
+              )}
             </div>
           </div>
         </div>
-      </Card>
 
-      {/* Content */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
-      ) : paginatedMessages.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">No messages found.</p>
-          </div>
-        </Card>
-      ) : (
-        <>
-          {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {paginatedMessages.map(msg => (
-              <Card key={msg.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline" className={cn("text-xs font-semibold", getBadgeStyle(msg.message_type))}>
-                        {msg.message_type}
-                      </Badge>
-                      {msg.is_sticky && (
-                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
-                          Sticky
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-base font-semibold text-[#121213] break-words">
-                      {msg.title}
-                    </CardTitle>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2 break-words">{msg.message}</p>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Audience</span>
-                      <span className="text-xs text-gray-700">{formatTargetRoles(msg.target_roles)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Expires</span>
-                      {(() => {
-                        const expiresAt = new Date(msg.expires_at);
-                        const now = new Date();
-                        const isExpired = expiresAt <= now;
-                        return (
-                          <Badge variant={isExpired ? 'destructive' : 'default'} className="text-xs">
-                            {expiresAt.toLocaleDateString()}
-                          </Badge>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  {/* Action Button */}
-                  <div className="pt-2 border-t border-gray-100">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="w-full justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => setItemToDelete(msg)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        {/* Stats Bar */}
+        {!showSkeleton && messages.length > 0 && (
+          <p className="text-sm text-[var(--brand-light)]/50 px-4 sm:px-0">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{messages.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'message' : 'messages'}
+          </p>
+        )}
 
-          {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Content</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Audience</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Expires</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedMessages.map(msg => (
-                  <TableRow key={msg.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4 px-6">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={cn("text-xs font-semibold", getBadgeStyle(msg.message_type))}>
-                          {msg.message_type}
-                        </Badge>
-                        {msg.is_sticky && (
-                          <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
-                            Sticky
-                          </Badge>
-                        )}
+        {/* Content */}
+        {showSkeleton ? (
+          <MessagePageSkeleton />
+        ) : messages.length === 0 ? (
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="w-8 h-8 text-[var(--brand-light)]/30" />
+            </div>
+            <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No messages found</h3>
+            <p className="text-[var(--brand-light)]/50 text-sm mb-6">
+              {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by creating your first message.'}
+            </p>
+            {!hasFilters && (
+              <Link href={`${basePath}/create`}>
+                <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
+                  <Plus className="h-4 w-4" /> Create Message
+                </button>
+              </Link>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Mobile Cards */}
+            <div className="flex flex-col gap-3 md:hidden">
+              {messages.map((msg) => {
+                const typeStyle = getTypeStyle(msg.message_type);
+                const expired = isExpired(msg.expires_at);
+                
+                return (
+                  <SwipeableCard
+                    key={msg.id}
+                    onClick={() => router.push(`${basePath}/${msg.id}`)}
+                    onDelete={() => setItemToDelete(msg)}
+                  >
+                    <div className="border-y border-[var(--dark-600)] p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${typeStyle.icon} flex items-center justify-center flex-shrink-0`}>
+                          {getTypeIcon(msg.message_type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
+                            {msg.title}
+                          </h3>
+                          <p className="text-xs text-[var(--brand-light)]/50 line-clamp-2 mt-0.5">{msg.message}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${typeStyle.badge}`}>
+                              {msg.message_type}
+                            </span>
+                            {msg.is_sticky && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+                                Sticky
+                              </span>
+                            )}
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                              expired 
+                                ? 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30'
+                                : 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30'
+                            }`}>
+                              {expired ? 'Expired' : 'Active'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-[var(--brand-light)]/40">
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {formatTargetRoles(msg.target_roles)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(msg.expires_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <div className="font-semibold text-[#121213]">{msg.title}</div>
-                      <div className="text-sm text-gray-500 max-w-md truncate">{msg.message}</div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-sm text-gray-600">
-                      {formatTargetRoles(msg.target_roles)}
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      {(() => {
-                        const expiresAt = new Date(msg.expires_at);
-                        const now = new Date();
-                        const isExpired = expiresAt <= now;
-                        return (
-                          <Badge variant={isExpired ? 'destructive' : 'default'} className="text-xs">
-                            {expiresAt.toLocaleDateString()}
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => setItemToDelete(msg)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={currentPage === 1} 
-                onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              >
-                Prev
-              </Button>
-              <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={currentPage >= totalPages} 
-                onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              >
-                Next
-              </Button>
+                    </div>
+                  </SwipeableCard>
+                );
+              })}
             </div>
-          )}
-        </>
-      )}
+
+            {/* Desktop Table */}
+            <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[var(--dark-600)]">
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Content</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Audience</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {messages.map(msg => {
+                    const typeStyle = getTypeStyle(msg.message_type);
+                    const expired = isExpired(msg.expires_at);
+                    
+                    return (
+                      <tr key={msg.id} className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/30 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${typeStyle.badge}`}>
+                              {msg.message_type}
+                            </span>
+                            {msg.is_sticky && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+                                Sticky
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-semibold text-[var(--brand-light)]">{msg.title}</div>
+                          <div className="text-sm text-[var(--brand-light)]/50 max-w-md truncate">{msg.message}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/70">
+                            <Users className="w-4 h-4" />
+                            {formatTargetRoles(msg.target_roles)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex items-center w-fit px-2.5 py-1 rounded-full text-xs font-medium border ${
+                              expired 
+                                ? 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30'
+                                : 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30'
+                            }`}>
+                              {expired ? 'Expired' : 'Active'}
+                            </span>
+                            <span className="text-xs text-[var(--brand-light)]/40 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(msg.expires_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-1">
+                            <button 
+                              onClick={() => setItemToDelete(msg)}
+                              className="w-9 h-9 rounded-lg hover:bg-[var(--brand-red)]/20 text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] flex items-center justify-center transition-all"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 py-4">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+              className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Prev
+            </button>
+            <span className="text-sm text-[var(--brand-light)]/50 px-2">
+              Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+            </span>
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+              className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
 
       <DeleteConfirmationModal 
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
         itemName={itemToDelete?.title}
+        message={`Are you sure you want to delete "${itemToDelete?.title}"? This action cannot be undone.`}
+        darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode duration={1250} />
     </div>
   );
 }

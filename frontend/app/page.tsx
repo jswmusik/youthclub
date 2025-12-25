@@ -14,7 +14,7 @@ export default function Home() {
   const { user, logout, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/clubs/')
+    fetch('http://192.168.50.44:8000/api/clubs/')
       .then((res) => res.json())
       .then((data) => {
         // Handle both paginated and non-paginated responses

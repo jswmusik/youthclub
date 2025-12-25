@@ -7,10 +7,7 @@ import { EventRegistration, RegistrationStatus } from '@/types/event';
 import Toast from '../Toast';
 import ConfirmationModal from '../ConfirmationModal';
 import { getMediaUrl } from '@/app/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { CheckCircle, XCircle, Clock, Users, ChevronLeft, ChevronRight, User } from 'lucide-react';
 
 interface ParticipantManagerProps {
     eventId: number;
@@ -45,7 +42,6 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
         } else {
             params.delete(key);
         }
-        // Reset to page 1 when filter changes (but not when changing page itself)
         if (key !== 'page') {
             params.set('page', '1');
         }
@@ -57,17 +53,13 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
             setLoading(true);
             const params = new URLSearchParams();
             
-            // Get filters from URL
             const page = searchParams.get('page') || '1';
             const statusFilter = searchParams.get('status') || '';
             const currentFilter = statusFilter || 'ALL';
             
             params.set('event', eventId.toString());
             
-            // For ALL and PENDING filters, fetch all registrations (for client-side filtering/pagination)
-            // For specific status filters, use server-side pagination
             if (currentFilter === 'ALL' || currentFilter === '') {
-                // Fetch all registrations for ALL filter
                 let allRegistrations: any[] = [];
                 let pageNum = 1;
                 const pageSize = 100;
@@ -108,7 +100,6 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                 
                 setRegistrations(allRegistrations);
             } else {
-                // Server-side pagination for specific status filters
                 params.set('page', page);
                 params.set('page_size', '10');
                 params.set('status', statusFilter);
@@ -142,7 +133,6 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
         fetchRegistrations();
     }, [fetchRegistrations]);
 
-    // Sync filter with URL params
     useEffect(() => {
         const urlFilter = searchParams.get('status') || 'ALL';
         if (urlFilter !== filter && urlFilter !== '') {
@@ -177,14 +167,12 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
 
         try {
             const response = await api.patch(`/registrations/${confirmationModal.registration.id}/`, { status: newStatus });
-            console.log('Update response:', response.data);
             setToast({ 
                 message: `Registration ${confirmationModal.action === 'approve' ? 'approved' : 'rejected'} successfully`, 
                 type: 'success', 
                 isVisible: true 
             });
             
-            // Close modal
             setConfirmationModal({
                 isVisible: false,
                 action: null,
@@ -192,13 +180,10 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                 isLoading: false,
             });
             
-            // Refresh list after a short delay to ensure backend has processed
-            // Preserve current page when refreshing
             setTimeout(() => {
                 fetchRegistrations();
             }, 500);
         } catch (error: any) {
-            console.error('Update error:', error);
             const errorMessage = error.response?.data?.error || error.response?.data?.detail || error.message || "Update failed";
             setToast({ message: errorMessage, type: 'error', isVisible: true });
             setConfirmationModal(prev => ({ ...prev, isLoading: false }));
@@ -214,59 +199,53 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
         });
     };
 
-    // Handle filter changes
     const handleFilterChange = (newFilter: string) => {
         setFilter(newFilter);
         if (newFilter === 'ALL') {
             updateUrl('status', '');
         } else if (newFilter === 'PENDING') {
-            // For PENDING, we'll filter client-side since backend doesn't support multiple statuses
-            // Don't set status in URL, we'll filter client-side
             updateUrl('status', '');
-            updateUrl('page', '1'); // Reset to page 1
+            updateUrl('page', '1');
         } else {
             updateUrl('status', newFilter);
         }
     };
 
-    // Derived state for filtering (client-side for PENDING filter)
     const filteredList = registrations.filter(r => {
         if (filter === 'ALL') return true;
         if (filter === 'PENDING') return r.status === 'PENDING_GUARDIAN' || r.status === 'PENDING_ADMIN';
         return r.status === filter;
     });
 
-    // Pagination logic
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
     
-    // For PENDING and ALL filters, we need client-side pagination since we filter client-side
-    // For other filters, use server-side pagination count
     const effectiveTotal = filter === 'PENDING' || filter === 'ALL' 
         ? filteredList.length 
         : totalCount;
     const totalPages = Math.ceil(effectiveTotal / pageSize);
     
-    // Client-side pagination for PENDING and ALL filters
     const paginatedRegistrations = (filter === 'PENDING' || filter === 'ALL')
         ? filteredList.slice((currentPage - 1) * pageSize, currentPage * pageSize)
         : filteredList;
 
     const getStatusBadge = (status: string) => {
-        const styles: Record<string, string> = {
-            APPROVED: 'bg-green-50 text-[#10B981] border-[#10B981]/30',
-            WAITLIST: 'bg-orange-50 text-orange-700 border-orange-200',
-            PENDING_GUARDIAN: 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30',
-            PENDING_ADMIN: 'bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30',
-            REJECTED: 'bg-red-50 text-[#EF4444] border-red-200',
-            CANCELLED: 'bg-gray-50 text-gray-700 border-gray-200',
-            ATTENDED: 'bg-green-50 text-[#10B981] border-[#10B981]/30',
+        const styles: Record<string, { bg: string; text: string; border: string }> = {
+            APPROVED: { bg: 'bg-[var(--brand-green)]/20', text: 'text-[var(--brand-green)]', border: 'border-[var(--brand-green)]/30' },
+            WAITLIST: { bg: 'bg-[var(--brand-peach)]/20', text: 'text-[var(--brand-peach)]', border: 'border-[var(--brand-peach)]/30' },
+            PENDING_GUARDIAN: { bg: 'bg-[var(--brand-blue)]/20', text: 'text-[var(--brand-blue)]', border: 'border-[var(--brand-blue)]/30' },
+            PENDING_ADMIN: { bg: 'bg-[var(--brand-purple)]/20', text: 'text-[var(--brand-purple)]', border: 'border-[var(--brand-purple)]/30' },
+            REJECTED: { bg: 'bg-[var(--brand-red)]/20', text: 'text-[var(--brand-red)]', border: 'border-[var(--brand-red)]/30' },
+            CANCELLED: { bg: 'bg-[var(--dark-600)]', text: 'text-[var(--brand-light)]/50', border: 'border-[var(--dark-500)]' },
+            ATTENDED: { bg: 'bg-[var(--brand-green)]/20', text: 'text-[var(--brand-green)]', border: 'border-[var(--brand-green)]/30' },
         };
 
+        const style = styles[status] || { bg: 'bg-[var(--dark-600)]', text: 'text-[var(--brand-light)]/50', border: 'border-[var(--dark-500)]' };
+
         return (
-            <Badge variant="outline" className={`${styles[status] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${style.bg} ${style.text} ${style.border}`}>
                 {status.replace('_', ' ')}
-            </Badge>
+            </span>
         );
     };
 
@@ -276,182 +255,256 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
         return firstInitial + lastInitial || '?';
     };
 
-    if (loading) return <div className="p-8 text-center">Loading...</div>;
+    if (loading) {
+        return (
+            <div className="py-12 text-center">
+                <div className="w-10 h-10 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-[var(--brand-light)]/50">Loading participants...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">
             {/* Filter Toolbar */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 border-b flex flex-wrap gap-2 items-center justify-between bg-gray-50">
-                    <div className="flex gap-2">
-                        {['ALL', 'APPROVED', 'WAITLIST', 'PENDING'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => handleFilterChange(f)}
-                                className={`px-3 py-1 text-sm rounded-lg font-medium transition ${
-                                    filter === f ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                            >
-                                {f.charAt(0) + f.slice(1).toLowerCase()}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                        Total: <span className="font-bold text-gray-900">{totalCount}</span>
-                    </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex flex-wrap gap-2">
+                    {['ALL', 'APPROVED', 'WAITLIST', 'PENDING'].map(f => (
+                        <button
+                            key={f}
+                            onClick={() => handleFilterChange(f)}
+                            className={`px-4 py-2 text-sm rounded-xl font-medium transition-all ${
+                                filter === f 
+                                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] shadow-lg shadow-[var(--brand-primary)]/20' 
+                                    : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 hover:text-[var(--brand-light)]'
+                            }`}
+                        >
+                            {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/50">
+                    <Users className="w-4 h-4" />
+                    <span>Total: <span className="font-bold text-[var(--brand-light)]">{totalCount}</span></span>
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-                            <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {paginatedRegistrations.map((reg) => (
-                            <TableRow key={reg.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                <TableCell className="py-4 px-6">
+            {/* Desktop Table */}
+            <div className="hidden sm:block bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] overflow-hidden">
+                <table className="w-full">
+                    <thead>
+                        <tr className="border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30">
+                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">User</th>
+                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">Date</th>
+                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">Status</th>
+                            <th className="text-right px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {paginatedRegistrations.map((reg, index) => (
+                            <tr 
+                                key={reg.id} 
+                                className={`border-b border-[var(--dark-500)]/50 hover:bg-[var(--dark-600)]/30 transition-colors ${
+                                    index === paginatedRegistrations.length - 1 ? 'border-b-0' : ''
+                                }`}
+                            >
+                                <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <Avatar className="h-10 w-10 rounded-full">
-                                            <AvatarImage src={getMediaUrl(reg.user_detail?.avatar) || undefined} />
-                                            <AvatarFallback className="rounded-full bg-[#EBEBFE] text-[#4D4DA4] font-bold text-sm">
-                                                {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
-                                            </AvatarFallback>
-                                        </Avatar>
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                            {reg.user_detail?.avatar ? (
+                                                <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-white font-bold text-sm">
+                                                    {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
+                                                </span>
+                                            )}
+                                        </div>
                                         <div>
-                                            <div className="font-semibold text-gray-900">
+                                            <div className="font-semibold text-[var(--brand-light)]">
                                                 {reg.user_detail?.first_name} {reg.user_detail?.last_name}
                                             </div>
-                                            <div className="text-xs text-gray-500">{reg.user_detail?.email}</div>
+                                            <div className="text-xs text-[var(--brand-light)]/50">{reg.user_detail?.email}</div>
                                         </div>
                                     </div>
-                                </TableCell>
-                                <TableCell className="px-6">
-                                    <div className="text-sm text-gray-900">
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="text-sm text-[var(--brand-light)]">
                                         {new Date(reg.created_at).toLocaleDateString()}
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-[var(--brand-light)]/50">
                                         {new Date(reg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                     </div>
-                                </TableCell>
-                                <TableCell className="px-6">
+                                </td>
+                                <td className="px-6 py-4">
                                     {getStatusBadge(reg.status)}
-                                </TableCell>
-                                <TableCell className="px-6 text-right">
+                                </td>
+                                <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                         {(reg.status === 'PENDING_ADMIN' || reg.status === 'WAITLIST') && (
-                                            <Button
+                                            <button
                                                 onClick={() => handleApproveClick(reg)}
-                                                size="sm"
-                                                className="h-8 px-3 text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-white"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30 hover:bg-[var(--brand-green)]/30 transition-colors"
                                             >
-                                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
+                                                <CheckCircle className="w-3.5 h-3.5" />
                                                 Approve
-                                            </Button>
+                                            </button>
                                         )}
                                         {(reg.status === 'PENDING_GUARDIAN') && (
-                                            <span className="text-xs text-gray-400 italic">Waiting for parent</span>
+                                            <span className="text-xs text-[var(--brand-light)]/40 italic flex items-center gap-1">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                Waiting for parent
+                                            </span>
                                         )}
                                         {reg.status !== 'REJECTED' && reg.status !== 'CANCELLED' && reg.status !== 'ATTENDED' && (
-                                            <Button
+                                            <button
                                                 onClick={() => handleRejectClick(reg)}
-                                                size="sm"
-                                                variant="outline"
-                                                className="h-8 px-3 text-xs font-semibold text-[#EF4444] bg-red-50 hover:bg-red-100 border-red-200"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30 hover:bg-[var(--brand-red)]/30 transition-colors"
                                             >
-                                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
+                                                <XCircle className="w-3.5 h-3.5" />
                                                 Reject
-                                            </Button>
+                                            </button>
                                         )}
                                     </div>
-                                </TableCell>
-                            </TableRow>
+                                </td>
+                            </tr>
                         ))}
                         {paginatedRegistrations.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={4} className="p-8 text-center text-gray-500">
-                                    No participants found in this category.
-                                </TableCell>
-                            </TableRow>
+                            <tr>
+                                <td colSpan={4} className="px-6 py-16 text-center">
+                                    <User className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
+                                    <p className="text-[var(--brand-light)]/50">No participants found in this category.</p>
+                                </td>
+                            </tr>
                         )}
-                    </TableBody>
-                </Table>
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="sm:hidden space-y-3">
+                {paginatedRegistrations.map((reg) => (
+                    <div 
+                        key={reg.id} 
+                        className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] p-4"
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                {reg.user_detail?.avatar ? (
+                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-white font-bold">
+                                        {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div className="font-semibold text-[var(--brand-light)]">
+                                            {reg.user_detail?.first_name} {reg.user_detail?.last_name}
+                                        </div>
+                                        <div className="text-xs text-[var(--brand-light)]/50 truncate">{reg.user_detail?.email}</div>
+                                    </div>
+                                    {getStatusBadge(reg.status)}
+                                </div>
+                                <div className="mt-2 text-xs text-[var(--brand-light)]/40">
+                                    Registered: {new Date(reg.created_at).toLocaleDateString()} at {new Date(reg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </div>
+                                
+                                {/* Actions */}
+                                <div className="mt-3 flex items-center gap-2">
+                                    {(reg.status === 'PENDING_ADMIN' || reg.status === 'WAITLIST') && (
+                                        <button
+                                            onClick={() => handleApproveClick(reg)}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30"
+                                        >
+                                            <CheckCircle className="w-3.5 h-3.5" />
+                                            Approve
+                                        </button>
+                                    )}
+                                    {(reg.status === 'PENDING_GUARDIAN') && (
+                                        <span className="text-xs text-[var(--brand-light)]/40 italic flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            Waiting for parent
+                                        </span>
+                                    )}
+                                    {reg.status !== 'REJECTED' && reg.status !== 'CANCELLED' && reg.status !== 'ATTENDED' && (
+                                        <button
+                                            onClick={() => handleRejectClick(reg)}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30"
+                                        >
+                                            <XCircle className="w-3.5 h-3.5" />
+                                            Reject
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                {paginatedRegistrations.length === 0 && (
+                    <div className="py-16 text-center">
+                        <User className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
+                        <p className="text-[var(--brand-light)]/50">No participants found in this category.</p>
+                    </div>
+                )}
             </div>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
-                    <div className="flex flex-1 justify-between sm:hidden">
-                        <button 
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                    <div className="text-sm text-[var(--brand-light)]/50">
+                        Page <span className="font-semibold text-[var(--brand-light)]">{currentPage}</span> of <span className="font-semibold text-[var(--brand-light)]">{totalPages}</span>
+                        <span className="ml-2 text-[var(--brand-light)]/30">({effectiveTotal} total)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
                             disabled={currentPage === 1}
                             onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 hover:text-[var(--brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                         >
-                            Previous
+                            <ChevronLeft className="w-4 h-4" />
+                            <span className="hidden sm:inline">Prev</span>
                         </button>
-                        <button 
+                        
+                        {/* Page Numbers */}
+                        <div className="hidden sm:flex items-center gap-1">
+                            {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                                let pageNum: number;
+                                if (totalPages <= 5) {
+                                    pageNum = i + 1;
+                                } else if (currentPage <= 3) {
+                                    pageNum = i + 1;
+                                } else if (currentPage >= totalPages - 2) {
+                                    pageNum = totalPages - 4 + i;
+                                } else {
+                                    pageNum = currentPage - 2 + i;
+                                }
+                                
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => updateUrl('page', pageNum.toString())}
+                                        className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all ${
+                                            pageNum === currentPage 
+                                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                                                : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 hover:text-[var(--brand-light)]'
+                                        }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <button
                             disabled={currentPage >= totalPages}
                             onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 hover:text-[var(--brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                         >
-                            Next
+                            <span className="hidden sm:inline">Next</span>
+                            <ChevronRight className="w-4 h-4" />
                         </button>
-                    </div>
-                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                        <div>
-                            <p className="text-sm text-gray-700">
-                                Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                                {' '}(Total: {totalCount})
-                            </p>
-                        </div>
-                        <div>
-                            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                <button
-                                    disabled={currentPage === 1}
-                                    onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                                >
-                                    <span className="sr-only">Previous</span>
-                                    ← Prev
-                                </button>
-                                
-                                {/* Simple Pagination Numbers */}
-                                {[...Array(totalPages)].map((_, i) => {
-                                    const p = i + 1;
-                                    return (
-                                        <button
-                                            key={p}
-                                            onClick={() => updateUrl('page', p.toString())}
-                                            className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                                                ${p === currentPage 
-                                                    ? 'bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600' 
-                                                    : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
-                                        >
-                                            {p}
-                                        </button>
-                                    );
-                                })}
-
-                                <button
-                                    disabled={currentPage >= totalPages}
-                                    onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                                >
-                                    <span className="sr-only">Next</span>
-                                    Next →
-                                </button>
-                            </nav>
-                        </div>
                     </div>
                 </div>
             )}
@@ -479,10 +532,10 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                 cancelButtonText="Cancel"
                 isLoading={confirmationModal.isLoading}
                 variant={confirmationModal.action === 'reject' ? 'danger' : 'success'}
+                darkMode={true}
             />
             
-            <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+            <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
         </div>
     );
 }
-

@@ -6,14 +6,59 @@ import api from '../../../../lib/api';
 import Toast from '../../../components/Toast';
 import { useAuth } from '../../../../context/AuthContext';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
-import { BarChart3, ChevronUp, Search, X, MessageSquare, Info, AlertTriangle, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+import { BarChart3, ChevronUp, Search, X, MessageSquare, Info, AlertTriangle, AlertCircle, ChevronDown } from 'lucide-react';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function MessageCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-10 h-10 rounded-lg flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MessageTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4"><Skeleton className="h-6 w-24 rounded-full" /></td>
+      <td className="px-6 py-4">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+      <td className="px-6 py-4"><div className="flex justify-end"><Skeleton className="w-9 h-9 rounded-lg" /></div></td>
+    </tr>
+  );
+}
 
 interface SystemMessage {
   id: number;
@@ -25,21 +70,6 @@ interface SystemMessage {
   is_sticky: boolean;
   external_link?: string | null;
 }
-
-const MESSAGE_STYLES: Record<SystemMessage['message_type'], { badge: string; borderTop: string }> = {
-  INFO: {
-    badge: 'bg-blue-100 text-blue-800',
-    borderTop: 'border-t-4 border-blue-500',
-  },
-  IMPORTANT: {
-    badge: 'bg-orange-100 text-orange-800',
-    borderTop: 'border-t-4 border-orange-500',
-  },
-  WARNING: {
-    badge: 'bg-red-100 text-red-800',
-    borderTop: 'border-t-4 border-red-500',
-  },
-};
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleString(undefined, {
@@ -58,6 +88,7 @@ function MunicipalityMessageBoardContent() {
   const [messages, setMessages] = useState<SystemMessage[]>([]);
   const [filteredMessages, setFilteredMessages] = useState<SystemMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -177,6 +208,9 @@ function MunicipalityMessageBoardContent() {
 
   const fetchMessages = async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+    
     try {
       const res = await api.get('/messages/active_list/');
       const list: SystemMessage[] = Array.isArray(res.data) ? res.data : [];
@@ -187,7 +221,13 @@ function MunicipalityMessageBoardContent() {
       console.error(err);
       setToast({ message: 'Failed to load messages.', type: 'error', isVisible: true });
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
   };
 
@@ -219,145 +259,157 @@ function MunicipalityMessageBoardContent() {
     }
   };
 
+  const getTypeStyle = (type: string) => {
+    switch(type) {
+      case 'INFO': return {
+        badge: 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30',
+        iconBg: 'bg-[var(--brand-blue)]'
+      };
+      case 'IMPORTANT': return {
+        badge: 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30',
+        iconBg: 'bg-[#F59E0B]'
+      };
+      case 'WARNING': return {
+        badge: 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30',
+        iconBg: 'bg-[var(--brand-red)]'
+      };
+      default: return {
+        badge: 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30',
+        iconBg: 'bg-[var(--brand-primary)]'
+      };
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch(type) {
+      case 'INFO': return <Info className="w-5 h-5 text-white" />;
+      case 'IMPORTANT': return <AlertCircle className="w-5 h-5 text-[var(--dark-900)]" />;
+      case 'WARNING': return <AlertTriangle className="w-5 h-5 text-white" />;
+      default: return <MessageSquare className="w-5 h-5 text-white" />;
+    }
+  };
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const hasFilters = searchInput || searchParams.get('type');
+
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-6 md:py-8 px-0 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Message Board</h1>
-          <p className="text-gray-500 mt-1.5 text-sm">Manage system messages and announcements.</p>
+      <div className="px-4 sm:px-6 md:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Message Board</h1>
+            </div>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage system messages and announcements.</p>
+          </div>
+          <button
+            onClick={fetchMessages}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all"
+          >
+            Refresh
+          </button>
         </div>
-        <Button
-          onClick={fetchMessages}
-          variant="outline"
-          className="gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-        >
-          Refresh
-        </Button>
       </div>
 
-      {/* Analytics */}
-      {!loading && (
-        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border-0 shadow-sm bg-gray-900">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                  Analytics Dashboard
-                </h3>
+      {/* Analytics Dashboard */}
+      {!showSkeleton && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mx-0 sm:mx-4 md:mx-6 lg:mx-8">
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                  )} />
-                  <span className="sr-only">Toggle Analytics</span>
-                </Button>
-              </CollapsibleTrigger>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
             </div>
-            <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {/* Total Messages */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <MessageSquare className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Total Messages</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total}</div>
-                    </div>
-                  </Card>
-
-                  {/* Info */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                          }}>
-                          <Info className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Info</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.info}</div>
-                    </div>
-                  </Card>
-
-                  {/* Important */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#F59E0B]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.3), 0 0 20px rgba(251, 191, 36, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5), 0 0 20px rgba(251, 191, 36, 0.3)',
-                          }}>
-                          <AlertTriangle className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Important</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.important}</div>
-                    </div>
-                  </Card>
-
-                  {/* Warning */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#EF4444]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#F87171] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5), 0 0 20px rgba(248, 113, 113, 0.3)',
-                          }}>
-                          <AlertCircle className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Warning</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.warning}</div>
-                    </div>
-                  </Card>
+            {analyticsExpanded ? (
+              <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-[var(--brand-light)]/50" />
+            )}
+          </button>
+          
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              
+              {/* Total Messages */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-primary)] hover:border-[var(--brand-primary)] transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                    <MessageSquare className="h-5 w-5 text-[var(--dark-900)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
                 </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
+              </div>
+
+              {/* Info */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-blue)] hover:border-[var(--brand-blue)] transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                    <Info className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Info</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.info}</div>
+              </div>
+
+              {/* Important */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[#F59E0B] hover:border-[#F59E0B] transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#F59E0B] flex items-center justify-center">
+                    <AlertCircle className="h-5 w-5 text-[var(--dark-900)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Important</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[#F59E0B]">{analytics.important}</div>
+              </div>
+
+              {/* Warning */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-red)] hover:border-[var(--brand-red)] transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)] flex items-center justify-center">
+                    <AlertTriangle className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Warning</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.warning}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3 mx-0 sm:mx-4 md:mx-6 lg:mx-8">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-            <Input 
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5 z-10" />
+            <input 
               ref={searchInputRef}
+              type="text"
               placeholder="Search by title or message..." 
-              className="pl-9 bg-gray-50 border-0"
+              className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
             />
           </div>
           <div className="w-full sm:w-[200px]">
             <select 
-              className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+              className="w-full h-10 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+              style={selectArrowStyle}
               value={searchParams.get('type') || ''} 
               onChange={e => updateUrl('type', e.target.value)}
             >
@@ -367,65 +419,107 @@ function MunicipalityMessageBoardContent() {
               <option value="WARNING">Warning</option>
             </select>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push(pathname)}
-            className="w-full sm:w-auto h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-          >
-            <X className="h-4 w-4" /> Clear
-          </Button>
+          {hasFilters && (
+            <button
+              onClick={() => router.push(pathname)}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all flex items-center justify-center gap-2"
+            >
+              <X className="h-4 w-4" /> Clear
+            </button>
+          )}
         </div>
-      </Card>
+      </div>
+
+      {/* Stats Bar */}
+      {!showSkeleton && filteredMessages.length > 0 && (
+        <div className="px-4 sm:px-6 md:px-8">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{filteredMessages.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalFilteredCount}</span> {totalFilteredCount === 1 ? 'message' : 'messages'}
+          </p>
+        </div>
+      )}
 
       {/* CONTENT */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
+      {showSkeleton ? (
+        <>
+          {/* Mobile Cards Skeleton */}
+          <div className="flex flex-col gap-3 md:hidden px-4 sm:px-6 md:px-8">
+            {[...Array(4)].map((_, i) => (
+              <MessageCardSkeleton key={i} />
+            ))}
+          </div>
+
+          {/* Desktop Table Skeleton */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden mx-4 md:mx-6 lg:mx-8">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Message</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Created</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, i) => (
+                  <MessageTableRowSkeleton key={i} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : filteredMessages.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">
+        <div className="px-4 sm:px-6 md:px-8">
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="w-8 h-8 text-[var(--brand-light)]/30" />
+            </div>
+            <p className="text-[var(--brand-light)]">
               {messages.length === 0 
                 ? 'No active messages for your role right now.'
                 : 'No messages match your filters.'}
             </p>
           </div>
-        </Card>
+        </div>
       ) : (
         <>
           {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
+          <div className="grid grid-cols-1 gap-3 md:hidden px-4 sm:px-6 md:px-8">
             {filteredMessages.map((msg) => {
-              const styles = MESSAGE_STYLES[msg.message_type] || MESSAGE_STYLES.INFO;
+              const styles = getTypeStyle(msg.message_type);
               return (
-                <Card key={msg.id} className={`overflow-hidden ${styles.borderTop} shadow-sm`}>
-                  <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className={`${styles.badge} text-xs`}>{msg.message_type}</Badge>
-                        {msg.is_sticky && (
-                          <Badge variant="outline" className="text-xs border-red-300 bg-red-50 text-red-600">
-                            Sticky
-                          </Badge>
-                        )}
+                <div key={msg.id} className="bg-[var(--dark-800)] rounded-none border-y border-[var(--dark-600)] overflow-hidden">
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styles.badge}`}>
+                            {msg.message_type}
+                          </span>
+                          {msg.is_sticky && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
+                              Sticky
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-base font-semibold text-[var(--brand-light)] truncate mb-1">{msg.title}</h3>
+                        <p className="text-sm text-[var(--brand-light)]/50 line-clamp-2">{msg.message}</p>
                       </div>
-                      <CardTitle className="text-base font-semibold text-gray-900 truncate">{msg.title}</CardTitle>
-                      <CardDescription className="text-xs text-gray-500 mt-1 line-clamp-2">{msg.message}</CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3 pt-0">
-                    <div className="flex items-center justify-between text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                      <span className="text-xs uppercase font-semibold text-gray-400">Created</span>
-                      <span className="text-xs">{formatDate(msg.created_at)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                      <span className="text-xs uppercase font-semibold text-gray-400">Expires</span>
-                      <span className="text-xs">{formatDate(msg.expires_at)}</span>
+                    <div className="space-y-2 pt-2 border-t border-[var(--dark-600)]">
+                      <div className="flex items-center justify-between text-[var(--brand-light)]/60">
+                        <span className="text-xs uppercase font-semibold">Created</span>
+                        <span className="text-xs">{formatDate(msg.created_at)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[var(--brand-light)]/60">
+                        <span className="text-xs uppercase font-semibold">Expires</span>
+                        <span className="text-xs">{formatDate(msg.expires_at)}</span>
+                      </div>
                     </div>
                     {(msg.external_link || !msg.is_sticky) && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                      <div className="flex items-center gap-2 pt-2 border-t border-[var(--dark-600)]">
                         {msg.external_link && (
                           <a
                             href={msg.external_link}
@@ -433,73 +527,73 @@ function MunicipalityMessageBoardContent() {
                             rel="noopener noreferrer"
                             className="flex-1"
                           >
-                            <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            <button className="w-full px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all">
                               View more
-                            </Button>
+                            </button>
                           </a>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
                           onClick={() => handleHideClick(msg)}
                           disabled={msg.is_sticky}
-                          className={`flex-1 justify-center gap-2 ${
+                          className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                             msg.is_sticky
-                              ? 'text-gray-400 cursor-not-allowed'
-                              : 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                              ? 'text-[var(--brand-light)]/30 cursor-not-allowed bg-[var(--dark-700)] border border-[var(--dark-500)]'
+                              : 'text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30'
                           }`}
                         >
                           Hide
-                        </Button>
+                        </button>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </div>
 
           {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Title</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Message</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Created</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Expires</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden mx-4 md:mx-6 lg:mx-8">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Message</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Created</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                 {filteredMessages.map((msg) => {
-                  const styles = MESSAGE_STYLES[msg.message_type] || MESSAGE_STYLES.INFO;
+                  const styles = getTypeStyle(msg.message_type);
                   return (
-                    <TableRow key={msg.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <TableCell className="py-4 px-6">
+                    <tr key={msg.id} className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/30 transition-colors">
+                      <td className="py-4 px-6">
                         <div className="flex items-center gap-2">
-                          <Badge className={`${styles.badge} text-xs`}>{msg.message_type}</Badge>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styles.badge}`}>
+                            {msg.message_type}
+                          </span>
                           {msg.is_sticky && (
-                            <Badge variant="outline" className="text-xs border-red-300 bg-red-50 text-red-600">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
                               Sticky
-                            </Badge>
+                            </span>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell className="px-6">
-                        <span className="font-semibold text-gray-900">{msg.title}</span>
-                      </TableCell>
-                      <TableCell className="px-6">
-                        <span className="text-gray-600 line-clamp-2">{msg.message}</span>
-                      </TableCell>
-                      <TableCell className="px-6 text-gray-600">
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-semibold text-[var(--brand-light)]">{msg.title}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[var(--brand-light)]/70 line-clamp-2">{msg.message}</span>
+                      </td>
+                      <td className="px-6 py-4 text-[var(--brand-light)]/60">
                         <span className="text-sm">{formatDate(msg.created_at)}</span>
-                      </TableCell>
-                      <TableCell className="px-6 text-gray-600">
+                      </td>
+                      <td className="px-6 py-4 text-[var(--brand-light)]/60">
                         <span className="text-sm">{formatDate(msg.expires_at)}</span>
-                      </TableCell>
-                      <TableCell className="px-6 text-right">
+                      </td>
+                      <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {msg.external_link && (
                             <a
@@ -507,59 +601,55 @@ function MunicipalityMessageBoardContent() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                              <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
                                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
-                              </Button>
+                              </button>
                             </a>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
                             onClick={() => handleHideClick(msg)}
                             disabled={msg.is_sticky}
-                            className={`h-8 w-8 p-0 ${
+                            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all ${
                               msg.is_sticky
-                                ? 'text-gray-400 cursor-not-allowed'
-                                : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                                ? 'text-[var(--brand-light)]/30 cursor-not-allowed'
+                                : 'text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10'
                             }`}
                           >
                             <X className="h-4 w-4" />
-                          </Button>
+                          </button>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </Card>
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (() => {
             const currentPage = Number(searchParams.get('page')) || 1;
             return (
-              <div className="flex items-center justify-center gap-2 py-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+              <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-6 md:px-8">
+                <button 
                   disabled={currentPage === 1} 
                   onClick={() => handlePageChange(currentPage - 1)}
-                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Prev
-                </Button>
-                <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                  Previous
+                </button>
+                <div className="text-sm text-[var(--brand-light)]/50">
+                  Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                </div>
+                <button 
                   disabled={currentPage >= totalPages} 
                   onClick={() => handlePageChange(currentPage + 1)}
-                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
-                </Button>
+                </button>
               </div>
             );
           })()}
@@ -581,6 +671,7 @@ function MunicipalityMessageBoardContent() {
         message={messageToHide ? `Are you sure you want to hide "${messageToHide.title}"? You can refresh the page to see it again.` : undefined}
         confirmButtonText="Hide"
         isLoading={isHiding}
+        darkMode
       />
 
       <Toast
@@ -588,6 +679,8 @@ function MunicipalityMessageBoardContent() {
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={() => setToast({ ...toast, isVisible: false })}
+        darkMode
+        duration={1250}
       />
     </div>
   );
@@ -595,8 +688,15 @@ function MunicipalityMessageBoardContent() {
 
 export default function MunicipalityMessageBoardPage() {
   return (
-    <div className="p-8">
-      <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading message board…</div>}>
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <Suspense fallback={
+        <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+            <MessageSquare className="w-6 h-6 text-white" />
+          </div>
+          <div className="text-[var(--brand-light)]/60 animate-pulse">Loading message board…</div>
+        </div>
+      }>
         <MunicipalityMessageBoardContent />
       </Suspense>
     </div>

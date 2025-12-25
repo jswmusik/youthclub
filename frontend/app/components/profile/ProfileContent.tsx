@@ -9,12 +9,12 @@ import ClubsAndGroups from './tabs/ClubsAndGroups';
 import WalletGrid from './tabs/WalletGrid';
 import YouthGuardianManager from '../youth/guardians/YouthGuardianManager';
 import { inventoryApi } from '@/lib/inventory-api';
-import { Package, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Package, Clock, CheckCircle, AlertCircle, Building2, GraduationCap, Calendar, CalendarDays, Activity } from 'lucide-react';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
 const VALID_TABS = ['overview', 'clubs', 'guardians', 'wallet', 'timeline', 'inventory'];
 
-export default function ProfileContent({ user }: { user: any }) {
+export default function ProfileContent({ user, darkMode = false, isCheckedIn = false }: { user: any; darkMode?: boolean; isCheckedIn?: boolean }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -61,7 +61,8 @@ export default function ProfileContent({ user }: { user: any }) {
       
       const scrollY = window.scrollY;
       const initialTop = tabsInitialTopRef.current;
-      const navbarHeight = 56; // Navbar height
+      // Navbar height: h-12 (48px) on mobile, h-14 (56px) on desktop (sm and up)
+      const navbarHeight = window.innerWidth >= 640 ? 56 : 48;
       
       // Should stick when: scrolled past the point where tabs top would be at navbar height
       // Should unstick when: scrolled back up before that point
@@ -89,18 +90,18 @@ export default function ProfileContent({ user }: { user: any }) {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab user={user} getAge={getAge} onSwitchTab={handleTabChange} />;
+        return <OverviewTab user={user} getAge={getAge} onSwitchTab={handleTabChange} darkMode={darkMode} />;
       case 'clubs':
-        return <ClubsAndGroups user={user} />;
+        return <ClubsAndGroups user={user} darkMode={darkMode} />;
       case 'inventory':
-        return <InventoryTab />;
+        return <InventoryTab darkMode={darkMode} />;
       case 'guardians':
-        return <YouthGuardianManager />;
+        return <YouthGuardianManager darkMode={darkMode} />;
       case 'wallet':
-        return <WalletGrid user={user} />;
+        return <WalletGrid user={user} darkMode={darkMode} />;
       case 'timeline':
         // Reuse the same feed component for the dedicated tab
-        return <ActivityFeed />;
+        return <ActivityFeed darkMode={darkMode} />;
       default:
         return null;
     }
@@ -110,14 +111,14 @@ export default function ProfileContent({ user }: { user: any }) {
     <>
       {/* 1. The Navigation Bar */}
       <div ref={tabsRef}>
-        <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} isSticky={isTabsSticky} />
+        <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} isSticky={isTabsSticky} darkMode={darkMode} isCheckedIn={isCheckedIn} />
       </div>
       
       {/* Spacer to maintain layout when tabs are sticky */}
-      {isTabsSticky && <div className="h-[57px]"></div>}
+      {isTabsSticky && <div className="h-[49px] sm:h-[57px]"></div>}
 
       {/* 2. The Content Area */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 py-6">
         {renderTabContent()}
       </div>
     </>
@@ -126,7 +127,7 @@ export default function ProfileContent({ user }: { user: any }) {
 
 // --- SUB-COMPONENTS (We can move these to separate files later) ---
 
-function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: string) => number | null, onSwitchTab: (t: string) => void }) {
+function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: any, getAge: (d: string) => number | null, onSwitchTab: (t: string) => void, darkMode?: boolean }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       
@@ -134,45 +135,85 @@ function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: str
       <div className="md:col-span-1 space-y-6 md:sticky md:top-[120px] md:self-start md:max-h-[calc(100vh-120px)] md:overflow-y-auto">
         
         {/* About Card */}
-        <div className="bg-[#050505] rounded-xl shadow-sm p-6 border border-[#262626]">
-          <h3 className="font-bold text-gray-200 mb-4">About</h3>
+        <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border ${
+          darkMode 
+            ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
+            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
+        }`}>
+          <h3 className={`text-xl font-bold mb-5 flex items-center gap-3 font-heading font-bold ${
+            darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+          }`}>
+            <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[#4D4DA4]'}`}></span>
+            About
+          </h3>
           
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center text-gray-300">
-              <svg className="w-5 h-5 mr-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-              <span>Member of <strong className="text-gray-200">{user.preferred_club?.name || 'No Club'}</strong></span>
+          <div className="space-y-4 text-sm">
+            <div className={`flex items-center p-3 rounded-xl border ${
+              darkMode 
+                ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+            }`}>
+              <Building2 className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
+              <span>Member of <strong className={darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}>{user.preferred_club?.name || 'No Club'}</strong></span>
             </div>
             
             {user.grade && (
-              <div className="flex items-center text-gray-300">
-                <svg className="w-5 h-5 mr-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                <span>Grade {user.grade}</span>
+              <div className={`flex items-center p-3 rounded-xl border ${
+                darkMode 
+                  ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                  : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+              }`}>
+                <GraduationCap className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+                <span>Grade <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{user.grade}</strong></span>
               </div>
             )}
 
             {user.date_of_birth && (
-              <div className="flex items-center text-gray-300">
-                <svg className="w-5 h-5 mr-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z" /></svg>
-                <span>{getAge(user.date_of_birth)} years old</span>
+              <div className={`flex items-center p-3 rounded-xl border ${
+                darkMode 
+                  ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                  : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+              }`}>
+                <Calendar className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
+                <span><strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{getAge(user.date_of_birth)}</strong> years old</span>
               </div>
             )}
             
-            <div className="flex items-center text-gray-300">
-              <svg className="w-5 h-5 mr-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              <span>Joined {new Date(user.date_joined).toLocaleDateString()}</span>
+            <div className={`flex items-center p-3 rounded-xl border ${
+              darkMode 
+                ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+            }`}>
+              <CalendarDays className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+              <span>Joined <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{new Date(user.date_joined).toLocaleDateString()}</strong></span>
             </div>
           </div>
         </div>
 
         {/* Interests Card */}
-        <div className="bg-[#050505] rounded-xl shadow-sm p-6 border border-[#262626]">
-           <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-gray-200">Interests</h3>
-              <span className="text-xs text-[#6D6DD4] cursor-pointer hover:underline">Edit</span>
+        <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border ${
+          darkMode 
+            ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
+            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
+        }`}>
+           <div className="flex justify-between items-center mb-5">
+              <h3 className={`text-xl font-bold flex items-center gap-3 font-heading font-bold ${
+                darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+              }`}>
+                <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[#FF5485]'}`}></span>
+                Interests
+              </h3>
+              <span className={`text-xs font-bold cursor-pointer transition-colors ${
+                darkMode ? 'text-[var(--brand-primary)] hover:text-[var(--brand-purple)]' : 'text-[#FF5485] hover:text-[#4D4DA4]'
+              }`}>Edit</span>
            </div>
            <div className="flex flex-wrap gap-2">
               {(!user.interests || user.interests.length === 0) && (
-                <p className="text-sm text-gray-500 italic">No interests added yet.</p>
+                <p className={`text-sm italic p-3 rounded-xl w-full border ${
+                  darkMode 
+                    ? 'text-[var(--brand-light)]/50 bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                    : 'text-gray-600 bg-white border-gray-200'
+                }`}>No interests added yet.</p>
               )}
               {/* Render interest chips - interests should now come as objects with name property */}
               {user.interests && user.interests.map((interest: any) => {
@@ -181,7 +222,11 @@ function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: str
                 const interestName = typeof interest === 'object' ? interest.name : null;
                 
                 return (
-                  <span key={interestId} className="px-3 py-1 bg-[#0a0a0a] text-gray-300 border border-[#262626] rounded-full text-xs font-medium">
+                  <span key={interestId} className={`px-4 py-2 border-2 rounded-xl text-xs font-bold transition-colors ${
+                    darkMode 
+                      ? 'bg-[var(--dark-700)] text-[var(--brand-purple)] border-[var(--dark-500)] hover:bg-[var(--dark-600)]' 
+                      : 'bg-white text-[#4D4DA4] border-[#4D4DA4]/20 shadow-sm hover:bg-[#EBEBFE]'
+                  }`}>
                     {interestName || `Interest ${interestId}`}
                   </span>
                 );
@@ -190,13 +235,24 @@ function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: str
         </div>
 
         {/* Guardians Card */}
-        <div className="bg-[#050505] rounded-xl shadow-sm p-6 border border-[#262626]">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-gray-200">My Guardians</h3>
+        <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border ${
+          darkMode 
+            ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
+            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
+        }`}>
+          <div className="flex justify-between items-center mb-5">
+            <h3 className={`text-xl font-bold flex items-center gap-3 font-heading font-bold ${
+              darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+            }`}>
+              <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-third)]' : 'bg-[#10B981]'}`}></span>
+              My Guardians
+            </h3>
             {/* Manage Button */}
             <button 
                 onClick={() => onSwitchTab('guardians')}
-                className="text-xs text-[#6D6DD4] hover:text-[#FF5485] font-medium hover:underline"
+                className={`text-xs font-bold transition-colors ${
+                  darkMode ? 'text-[var(--brand-primary)] hover:text-[var(--brand-purple)]' : 'text-[#FF5485] hover:text-[#4D4DA4]'
+                }`}
             >
                 Manage
             </button>
@@ -205,11 +261,19 @@ function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: str
           <div className="space-y-3">
             {/* We map guardians here. If none, show placeholder */}
             {(!user.guardians || user.guardians.length === 0) ? (
-               <div className="text-center py-4 bg-[#0a0a0a] rounded-lg border border-dashed border-[#262626]">
-                  <p className="text-sm text-gray-400 mb-2">No guardians linked.</p>
+               <div className={`text-center py-6 rounded-xl border-2 border-dashed ${
+                 darkMode 
+                   ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                   : 'bg-white border-[#4D4DA4]/30'
+               }`}>
+                  <p className={`text-sm mb-3 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>No guardians linked.</p>
                   <button 
                     onClick={() => onSwitchTab('guardians')}
-                    className="text-xs bg-[#050505] border border-[#262626] px-3 py-1 rounded-md text-gray-300 hover:bg-[#0a0a0a]"
+                    className={`text-xs px-4 py-2 rounded-xl font-bold transition-all ${
+                      darkMode 
+                        ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/80' 
+                        : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md hover:shadow-lg'
+                    }`}
                   >
                     Add Guardian
                   </button>
@@ -233,17 +297,27 @@ function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: str
                  const fullName = firstName && lastName ? `${firstName} ${lastName}` : `Guardian #${guardianId}`;
                  
                  return (
-                   <div key={guardianId} className="flex items-center space-x-3 p-3 border border-[#262626] rounded-lg hover:bg-[#0a0a0a] transition">
+                   <div key={guardianId} className={`flex items-center space-x-3 p-4 border-2 rounded-xl transition-all ${
+                     darkMode 
+                       ? 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/40' 
+                       : 'bg-white border-[#4D4DA4]/20 hover:border-[#4D4DA4]/40 hover:shadow-md'
+                   }`}>
                      {avatar ? (
-                       <img src={getMediaUrl(avatar) || ''} alt={fullName} className="w-10 h-10 rounded-full object-cover" />
+                       <img src={getMediaUrl(avatar) || ''} alt={fullName} className={`w-12 h-12 rounded-xl object-cover border-2 ${
+                         darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/20'
+                       }`} />
                      ) : (
-                       <div className="w-10 h-10 bg-[#4D4DA4]/20 rounded-full flex items-center justify-center text-[#6D6DD4] font-bold text-sm">
+                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm ${
+                         darkMode 
+                           ? 'bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-primary)]' 
+                           : 'bg-gradient-to-br from-[#4D4DA4] to-[#6D6DD4] shadow-md'
+                       }`}>
                          {initials}
                        </div>
                      )}
                      <div>
-                       <p className="text-sm font-medium text-gray-200">{fullName}</p>
-                       <p className="text-xs text-gray-400">Parent/Guardian</p>
+                       <p className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`}>{fullName}</p>
+                       <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Parent/Guardian</p>
                      </div>
                    </div>
                  );
@@ -256,7 +330,7 @@ function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: str
       {/* Right Column: Activity Feed */}
       <div className="md:col-span-2">
         {/* Added the dynamic Feed */}
-        <ActivityFeed showTimeFilter={false} />
+        <ActivityFeed showTimeFilter={false} darkMode={darkMode} />
       </div>
     </div>
   );
@@ -264,7 +338,7 @@ function OverviewTab({ user, getAge, onSwitchTab }: { user: any, getAge: (d: str
 
 type TimeFilter = 'day' | 'week' | 'month' | 'forever';
 
-function InventoryTab() {
+function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]); // Store all sessions for filtering
   const [loading, setLoading] = useState(true);
@@ -486,13 +560,15 @@ function InventoryTab() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar skeleton */}
         <div className="lg:col-span-1">
-          <div className="bg-[#050505] rounded-xl p-5 shadow-sm border border-[#262626] animate-pulse">
-            <div className="h-6 w-32 bg-[#0a0a0a] rounded mb-4"></div>
-            <div className="h-10 bg-[#0a0a0a] rounded mb-6"></div>
-            <div className="h-6 w-32 bg-[#0a0a0a] rounded mb-4"></div>
+          <div className={`rounded-none sm:rounded-xl p-5 border-y sm:border animate-pulse ${
+            darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-gray-200'
+          }`}>
+            <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+            <div className={`h-10 rounded mb-6 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+            <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 bg-[#0a0a0a] rounded"></div>
+                <div key={i} className={`h-10 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
               ))}
             </div>
           </div>
@@ -500,15 +576,17 @@ function InventoryTab() {
         {/* Content skeleton */}
         <div className="lg:col-span-3 space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] p-5 animate-pulse">
+            <div key={i} className={`rounded-none sm:rounded-xl border-y sm:border p-5 animate-pulse ${
+              darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-gray-200'
+            }`}>
               <div className="flex items-start gap-4">
-                <div className="h-12 w-12 bg-[#0a0a0a] rounded-lg"></div>
+                <div className={`h-12 w-12 rounded-lg ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
                 <div className="flex-1 space-y-2">
-                  <div className="h-5 w-48 bg-[#0a0a0a] rounded"></div>
-                  <div className="h-4 w-32 bg-[#0a0a0a] rounded"></div>
-                  <div className="h-4 w-24 bg-[#0a0a0a] rounded"></div>
+                  <div className={`h-5 w-48 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                  <div className={`h-4 w-32 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                  <div className={`h-4 w-24 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
                 </div>
-                <div className="h-6 w-16 bg-[#0a0a0a] rounded-full"></div>
+                <div className={`h-6 w-16 rounded-full ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
               </div>
             </div>
           ))}
@@ -519,8 +597,12 @@ function InventoryTab() {
 
   if (allSessions.length === 0) {
     return (
-      <div className="text-center py-12 bg-[#050505] rounded-xl border border-dashed border-[#262626]">
-        <p className="text-gray-400 mb-2">You haven't borrowed any items yet.</p>
+      <div className={`text-center py-12 rounded-none sm:rounded-xl border-y sm:border border-dashed ${
+        darkMode 
+          ? 'bg-[var(--dark-800)] border-[var(--dark-500)] text-[var(--brand-light)]/60' 
+          : 'bg-white border-gray-300 text-gray-600'
+      }`}>
+        <p className="mb-2">You haven't borrowed any items yet.</p>
       </div>
     );
   }
@@ -529,21 +611,38 @@ function InventoryTab() {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Left Sidebar - Time Filter */}
       <div className="lg:col-span-1">
-        <div className="bg-[#050505] rounded-xl p-5 shadow-sm border border-[#262626] sticky top-[120px] z-30 space-y-6">
+        <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border sticky top-[120px] z-30 space-y-6 ${
+          darkMode 
+            ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
+            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-sm border-[#4D4DA4]/10'
+        }`}>
           {/* Date Search */}
           <div>
-            <h3 className="text-sm font-bold text-gray-300 uppercase mb-3">Search by Date</h3>
+            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 font-heading font-bold ${
+              darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+            }`}>
+              <Calendar className="w-5 h-5" />
+              Search by Date
+            </h3>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => handleDateChange(e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-[#262626] bg-[#0a0a0a] text-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4] transition-all"
+              className={`w-full px-4 py-3 border-2 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                darkMode 
+                  ? 'border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)]' 
+                  : 'border-[#4D4DA4]/20 bg-white text-gray-800 focus:ring-[#4D4DA4] focus:border-[#4D4DA4] shadow-sm'
+              }`}
               max={new Date().toISOString().split('T')[0]} // Don't allow future dates
             />
             {selectedDate && (
               <button
                 onClick={() => handleDateChange('')}
-                className="mt-2 w-full text-xs text-gray-400 hover:text-gray-300 underline"
+                className={`mt-3 w-full px-3 py-2 text-xs font-medium border rounded-lg transition-all ${
+                  darkMode 
+                    ? 'text-[var(--brand-primary)] hover:text-[var(--brand-light)] bg-[var(--dark-700)] hover:bg-[var(--dark-600)] border-[var(--dark-500)]' 
+                    : 'text-[#4D4DA4] hover:text-[#FF5485] bg-white hover:bg-[#EBEBFE] border-[#4D4DA4]/20'
+                }`}
               >
                 Clear date filter
               </button>
@@ -552,19 +651,30 @@ function InventoryTab() {
 
           {/* Time Period Filter */}
           <div>
-            <h3 className="text-sm font-bold text-gray-300 uppercase mb-3">Time Period</h3>
+            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 font-heading font-bold ${
+              darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+            }`}>
+              <Clock className="w-5 h-5" />
+              Time Period
+            </h3>
             <div className="space-y-2">
               {timeFilterOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleTimeFilterChange(option.value)}
                   disabled={!!selectedDate}
-                  className={`w-full text-left px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                  className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
                     selectedDate
-                      ? 'bg-[#0a0a0a] text-gray-500 cursor-not-allowed border-2 border-transparent'
+                      ? darkMode 
+                        ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/30 cursor-not-allowed'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : timeFilter === option.value
-                      ? 'bg-[#4D4DA4]/20 text-[#6D6DD4] border-2 border-[#4D4DA4]/40'
-                      : 'bg-[#0a0a0a] text-gray-300 border-2 border-transparent hover:bg-[#121212] hover:border-[#262626]'
+                      ? darkMode
+                        ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                        : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md shadow-[#4D4DA4]/30'
+                      : darkMode
+                        ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] border border-[var(--dark-500)]'
+                        : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-gray-200 shadow-sm'
                   }`}
                 >
                   {option.label}
@@ -572,8 +682,10 @@ function InventoryTab() {
               ))}
             </div>
             {selectedDate && (
-              <p className="mt-2 text-xs text-gray-500 italic">
-                Select a date or clear date filter to use time period
+              <p className={`mt-3 text-xs italic p-2 rounded-lg ${
+                darkMode ? 'text-[var(--brand-light)]/40 bg-[var(--dark-700)]' : 'text-gray-500 bg-white/60'
+              }`}>
+                Clear date filter to use time period
               </p>
             )}
           </div>
@@ -583,8 +695,15 @@ function InventoryTab() {
       {/* Right Column - Inventory History */}
       <div className="lg:col-span-3">
         {sessions.length === 0 && !loading ? (
-          <div className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] p-8 text-center">
-            <p className="text-gray-400">No items found for the selected time period.</p>
+          <div className={`rounded-none sm:rounded-2xl border-y sm:border p-6 sm:p-8 text-center ${
+            darkMode 
+              ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
+              : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
+          }`}>
+            <Package className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 ${
+              darkMode ? 'text-[var(--brand-light)]/30' : 'text-[#4D4DA4]/40'
+            }`} />
+            <p className={`text-sm sm:text-base ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>No items found for the selected time period.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -598,18 +717,24 @@ function InventoryTab() {
               return (
                 <div 
                   key={session.id} 
-                  className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] overflow-hidden hover:shadow-md transition-shadow"
+                  className={`rounded-none sm:rounded-2xl border-y sm:border overflow-hidden transition-all ${
+                    darkMode 
+                      ? 'bg-[var(--dark-800)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/40' 
+                      : 'bg-white shadow-md border-2 border-[#4D4DA4]/10 hover:shadow-lg hover:border-[#4D4DA4]/30'
+                  }`}
                 >
                   {/* Card Header */}
-                  <div className="p-5 border-b border-[#262626]">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
+                  <div className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0">
+                      <div className="flex items-start gap-3 sm:gap-4 flex-1">
                         {/* Item Image */}
                         {session.item_image ? (
                           <img 
                             src={getMediaUrl(session.item_image)} 
                             alt={session.item_title}
-                            className="h-12 w-12 rounded-full object-cover border-2 border-[#262626] flex-shrink-0"
+                            className={`h-14 w-14 sm:h-16 sm:w-16 rounded-xl sm:rounded-2xl object-cover border-2 flex-shrink-0 ${
+                              darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/20 shadow-sm'
+                            }`}
                             onError={(e) => {
                               // Fallback to icon if image fails to load
                               const target = e.target as HTMLImageElement;
@@ -620,22 +745,30 @@ function InventoryTab() {
                           />
                         ) : null}
                         <div 
-                          className={`h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          className={`h-14 w-14 sm:h-16 sm:w-16 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 ${
                             isActive 
                               ? isOverdue 
-                                ? 'bg-red-500/20 text-red-400' 
-                                : 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-[#4D4DA4]/20 text-[#6D6DD4]'
+                                ? 'bg-gradient-to-br from-[var(--brand-red)] to-red-600 text-white' 
+                                : darkMode 
+                                  ? 'bg-gradient-to-br from-[var(--brand-third)] to-emerald-500 text-[var(--dark-900)]'
+                                  : 'bg-gradient-to-br from-emerald-400 to-emerald-500 text-white'
+                              : darkMode
+                                ? 'bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-primary)] text-[var(--dark-900)]'
+                                : 'bg-gradient-to-br from-[#4D4DA4] to-[#6D6DD4] text-white shadow-sm'
                           }`}
                           style={{ display: session.item_image ? 'none' : 'flex' }}
                         >
-                          <Package className="w-6 h-6" />
+                          <Package className="w-7 h-7 sm:w-8 sm:h-8" />
                         </div>
                         
                         {/* Item Info */}
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-gray-200 text-lg mb-1">{session.item_title}</h3>
-                          <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                          <h3 className={`font-bold text-lg sm:text-xl mb-1 sm:mb-2 font-heading font-bold ${
+                            darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+                          }`}>{session.item_title}</h3>
+                          <div className={`flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-xs mb-2 ${
+                            darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                          }`}>
                             <span>{borrowedDate.toLocaleDateString('en-US', { 
                               weekday: 'short', 
                               year: 'numeric', 
@@ -646,8 +779,10 @@ function InventoryTab() {
                             <span>{borrowedDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             {session.is_guest && (
                               <>
-                                <span>•</span>
-                                <span className="text-[#FF5485] font-medium">Guest Visit</span>
+                                <span className="hidden sm:inline">•</span>
+                                <span className={`font-medium w-full sm:w-auto ${
+                                  darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+                                }`}>Guest Visit</span>
                               </>
                             )}
                           </div>
@@ -657,10 +792,10 @@ function InventoryTab() {
                             <div className="mt-2 flex items-center gap-2">
                               <span className={`flex items-center gap-1.5 text-sm font-semibold ${
                                 isOverdue 
-                                  ? 'text-red-400' 
+                                  ? 'text-[var(--brand-red)]' 
                                   : timeLeft < 15 
-                                  ? 'text-orange-400' 
-                                  : 'text-emerald-400'
+                                  ? 'text-[var(--brand-peach)]' 
+                                  : darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-400'
                               }`}>
                                 <Clock size={14} /> 
                                 {isOverdue ? (
@@ -674,11 +809,11 @@ function InventoryTab() {
                             </div>
                           )}
                           
-                          {/* Return Now Label */}
+                                          {/* Return Now Label */}
                           {isActive && isOverdue && (
-                            <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-red-500/20 border border-red-500/30 rounded-lg w-fit">
-                              <AlertCircle size={16} className="text-red-400" />
-                              <span className="text-red-400 font-bold text-xs uppercase tracking-wide">
+                            <div className="mt-2 sm:mt-3 flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-[var(--brand-red)] to-red-600 rounded-lg sm:rounded-xl w-fit">
+                              <AlertCircle size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
+                              <span className="text-white font-bold text-xs sm:text-sm uppercase tracking-wide">
                                 Return Now!
                               </span>
                             </div>
@@ -686,25 +821,35 @@ function InventoryTab() {
                           
                           {/* Returned info */}
                           {returnedDate && (
-                            <div className="mt-2 text-xs text-gray-400">
-                              Returned: {returnedDate.toLocaleDateString()} at {returnedDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            <div className={`mt-2 text-xs px-2 py-1 rounded-lg inline-block ${
+                              darkMode 
+                                ? 'text-[var(--brand-light)]/60 bg-[var(--dark-700)]' 
+                                : 'text-gray-600 bg-white/60'
+                            }`}>
+                              <span className="font-semibold">Returned:</span> {returnedDate.toLocaleDateString()} at {returnedDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             </div>
                           )}
                         </div>
                       </div>
                       
                       {/* Status Badge */}
-                      <div className="flex-shrink-0 ml-4">
+                      <div className="flex-shrink-0 sm:ml-4 self-start sm:self-auto">
                         {isActive ? (
-                          <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold ${
+                          <span className={`inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold ${
                             isOverdue 
-                              ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              ? 'bg-gradient-to-r from-[var(--brand-red)] to-red-600 text-white' 
+                              : darkMode
+                                ? 'bg-[var(--brand-third)] text-[var(--dark-900)]'
+                                : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md'
                           }`}>
                             {isOverdue ? 'Overdue' : 'Active'}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-[#0a0a0a] text-gray-400 border border-[#262626]">
+                          <span className={`inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold ${
+                            darkMode 
+                              ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/70' 
+                              : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 shadow-sm'
+                          }`}>
                             Returned
                           </span>
                         )}
@@ -719,13 +864,15 @@ function InventoryTab() {
             {!selectedDate && timeFilter === 'forever' && (
               <div ref={observerTarget} className="h-10 flex items-center justify-center py-4">
                 {loadingMore && (
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#4D4DA4]"></div>
+                  <div className={`flex items-center gap-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                    <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${
+                      darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'
+                    }`}></div>
                     <span className="text-sm">Loading more items...</span>
                   </div>
                 )}
                 {!hasMore && sessions.length > 0 && (
-                  <p className="text-sm text-gray-500 text-center">
+                  <p className={`text-sm text-center ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
                     No more items to load
                   </p>
                 )}

@@ -3,13 +3,9 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import api from '@/lib/api';
 import IndividualHistory from '@/app/components/questionnaires/IndividualHistory';
-import { ArrowLeft, BarChart3, ChevronUp, Search, X, FileText, Gift } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+import { ArrowLeft, BarChart3, ChevronUp, Search, X, FileText, Gift, ClipboardList } from 'lucide-react';
 
 function QuestionnairesPageContent() {
   const { id } = useParams() as { id: string };
@@ -17,9 +13,23 @@ function QuestionnairesPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
+  const [user, setUser] = useState<any>(null);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   const [analytics, setAnalytics] = useState({ total_questionnaires: 0, total_rewards_earned: 0 });
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await api.get(`/users/${id}/`);
+        setUser(res.data);
+      } catch (err) {
+        console.error('Failed to fetch user:', err);
+      }
+    };
+    if (id) fetchUser();
+  }, [id]);
 
   // Sync searchQuery with URL params
   useEffect(() => {
@@ -35,7 +45,7 @@ function QuestionnairesPageContent() {
     } else {
       params.delete('search');
     }
-    params.set('page', '1'); // Reset to page 1 when searching
+    params.set('page', '1');
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -47,115 +57,94 @@ function QuestionnairesPageContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4 px-4 sm:px-0">
         <Link 
           href={`/admin/municipality/youth/${id}`}
-          className="text-sm text-gray-500 hover:text-[#4D4DA4] flex items-center gap-1 w-fit transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] transition-colors w-fit"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Profile
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Questionnaires</h1>
-          <p className="text-gray-500 mt-1">View all questionnaires answered by this user</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center">
+              <ClipboardList className="w-5 h-5 text-[var(--brand-purple)]" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                Questionnaires
+              </h1>
+              <p className="text-sm text-[var(--brand-light)]/50">
+                {user ? `${user.first_name} ${user.last_name}` : 'Loading...'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Analytics */}
-      <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <Card className="border-0 shadow-sm bg-gray-900">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                Analytics Dashboard
-              </h3>
+      {/* Analytics Dashboard */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <button 
+          onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+          className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+              <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
             </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                <ChevronUp className={cn(
-                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                  analyticsExpanded ? "rotate-0" : "rotate-180"
-                )} />
-                <span className="sr-only">Toggle Analytics</span>
-              </Button>
-            </CollapsibleTrigger>
+            <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
           </div>
-          <CollapsibleContent className="transition-all duration-500 ease-in-out">
-            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
-                {/* Card 1: Total Questionnaires */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                        }}>
-                        <FileText className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Total Questionnaires</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_questionnaires}</div>
-                  </div>
-                </Card>
-
-                {/* Card 2: Total Rewards Earned */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
-                        }}>
-                        <Gift className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Rewards Earned</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_rewards_earned}</div>
-                  </div>
-                </Card>
+          <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+        </button>
+        
+        <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+          <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
+            {/* Total Questionnaires */}
+            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-[var(--brand-purple)]" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
               </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            {/* Search */}
-            <div className="relative md:col-span-10 lg:col-span-10">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search by questionnaire title..." 
-                className="pl-9 bg-gray-50 border-0"
-                value={searchQuery}
-                onChange={e => updateSearch(e.target.value)}
-              />
+              <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_questionnaires}</div>
             </div>
-            
-            {/* Clear Button */}
-            <div className="md:col-span-2 lg:col-span-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-              >
-                <X className="h-4 w-4" /> Clear
-              </Button>
+
+            {/* Rewards Earned */}
+            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)]/20 flex items-center justify-center">
+                  <Gift className="h-5 w-5 text-[var(--brand-peach)]" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Rewards</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{analytics.total_rewards_earned}</div>
             </div>
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 sm:px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+          <input 
+            type="text"
+            placeholder="Search by questionnaire title..." 
+            className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+            value={searchQuery}
+            onChange={e => updateSearch(e.target.value)}
+          />
+          {searchQuery && (
+            <button 
+              onClick={clearFilters}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-lg transition-all"
+            >
+              <X className="h-4 w-4" /> Clear
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Questionnaires List */}
       <IndividualHistory userId={id} onAnalyticsUpdate={setAnalytics} />
@@ -165,11 +154,19 @@ function QuestionnairesPageContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-8">Loading...</div>}>
-      <div className="p-8">
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <ClipboardList className="w-6 h-6 text-[var(--brand-purple)]" />
+          </div>
+          <p className="text-[var(--brand-light)]/60">Loading questionnaires...</p>
+        </div>
+      </div>
+    }>
+      <div className="py-4 sm:py-6 md:py-8 px-0">
         <QuestionnairesPageContent />
       </div>
     </Suspense>
   );
 }
-

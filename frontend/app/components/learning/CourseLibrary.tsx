@@ -4,12 +4,7 @@ import { useState, useEffect } from 'react';
 import { learningApi } from '@/lib/learning-api';
 import { Course, LearningCategory, CourseChapter } from '@/types/learning';
 import CourseCard from './CourseCard';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Search, Filter, X, Video, FileText, Download } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Filter, X, Video, FileText, Download, BookOpen } from 'lucide-react';
 
 interface Props {
     basePath: string; // e.g. "/admin/club/knowledge/courses"
@@ -111,135 +106,144 @@ export default function CourseLibrary({ basePath }: Props) {
         setSelectedType('ALL');
     };
 
+    const selectArrowStyle = {
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 0.75rem center',
+        backgroundSize: '1rem'
+    };
+
     return (
-        <div className="space-y-6">
-            {/* Stunning Filter Section */}
-            <Card className="border-none shadow-lg bg-gradient-to-br from-white via-[#EBEBFE]/30 to-white overflow-hidden">
-                <CardContent className="p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] rounded-lg">
-                            <Filter className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-[#121213]">Find Your Perfect Course</h2>
-                            <p className="text-sm text-gray-500">Filter by name, category, or content type</p>
+        <div className="py-4 sm:py-6 md:py-8 px-0 space-y-6">
+            {/* Header */}
+            <div className="px-4 sm:px-6 md:px-8">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                        <BookOpen className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">All Courses</h1>
+                        <p className="text-[var(--brand-light)]/50 text-sm mt-1">Browse and discover all available learning resources</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter Section */}
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mx-0 sm:mx-4 md:mx-6 lg:mx-8">
+                <div className="p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                <Filter className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-[var(--brand-light)]">Find Your Perfect Course</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">Filter by name, category, or content type</p>
+                            </div>
                         </div>
                         {hasActiveFilters && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
+                            <button
                                 onClick={clearFilters}
-                                className="ml-auto text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+                                className="ml-auto px-4 py-2 rounded-xl text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all flex items-center gap-2"
                             >
                                 <X className="h-4 w-4" />
                                 Clear filters
-                            </Button>
+                            </button>
                         )}
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-4 items-end">
                         {/* Search */}
                         <div className="relative w-full md:flex-[2] lg:flex-[2.5]">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
-                            <Input 
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5 z-10" />
+                            <input 
+                                type="text"
                                 placeholder="Search courses by name..." 
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10 h-12 py-3 bg-white border-2 border-gray-200 focus:border-[#4D4DA4] focus:ring-2 focus:ring-[#4D4DA4]/20 rounded-xl transition-all w-full"
+                                className="w-full h-12 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
                             />
                         </div>
 
                         {/* Category Filter */}
                         <div className="w-full md:flex-1">
-                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                                <SelectTrigger className="h-12 min-h-12 py-3 px-4 bg-white border-2 border-gray-200 focus:border-[#4D4DA4] focus:ring-2 focus:ring-[#4D4DA4]/20 rounded-xl data-[size=default]:h-12 w-full">
-                                    <SelectValue placeholder="All Categories" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ALL">All Categories</SelectItem>
-                                    {categories.map(cat => (
-                                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                                            {cat.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <select 
+                                value={selectedCategory} 
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                className="w-full h-12 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                style={selectArrowStyle}
+                            >
+                                <option value="ALL">All Categories</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id.toString()}>
+                                        {cat.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         {/* Type Filter */}
                         <div className="w-full md:flex-1">
-                            <Select value={selectedType} onValueChange={setSelectedType}>
-                                <SelectTrigger className="h-12 min-h-12 py-3 px-4 bg-white border-2 border-gray-200 focus:border-[#4D4DA4] focus:ring-2 focus:ring-[#4D4DA4]/20 rounded-xl data-[size=default]:h-12 w-full">
-                                    <SelectValue placeholder="All Types" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ALL">All Types</SelectItem>
-                                    <SelectItem value="VIDEO">
-                                        <div className="flex items-center gap-2">
-                                            <Video className="w-4 h-4 text-blue-600" />
-                                            <span>Video Courses</span>
-                                        </div>
-                                    </SelectItem>
-                                    <SelectItem value="TEXT">
-                                        <div className="flex items-center gap-2">
-                                            <FileText className="w-4 h-4 text-purple-600" />
-                                            <span>Text Courses</span>
-                                        </div>
-                                    </SelectItem>
-                                    <SelectItem value="FILE">
-                                        <div className="flex items-center gap-2">
-                                            <Download className="w-4 h-4 text-green-600" />
-                                            <span>File Resources</span>
-                                        </div>
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <select 
+                                value={selectedType} 
+                                onChange={(e) => setSelectedType(e.target.value)}
+                                className="w-full h-12 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                style={selectArrowStyle}
+                            >
+                                <option value="ALL">All Types</option>
+                                <option value="VIDEO">Video Courses</option>
+                                <option value="TEXT">Text Courses</option>
+                                <option value="FILE">File Resources</option>
+                            </select>
                         </div>
 
                         {/* Results Count */}
                         <div className="flex items-center justify-start md:justify-end md:flex-shrink-0">
-                            <Badge variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/20 px-4 py-2 text-sm font-semibold">
+                            <span className="px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
                                 {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'}
-                            </Badge>
+                            </span>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Grid */}
             {loading ? (
-                <div className="py-20 text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4D4DA4] mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading courses...</p>
+                <div className="px-4 sm:px-6 md:px-8 py-20 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
+                        <BookOpen className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-[var(--brand-light)]/60">Loading courses...</p>
                 </div>
             ) : filteredCourses.length === 0 ? (
-                <Card className="border-2 border-dashed border-gray-200">
-                    <CardContent className="py-16 text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Search className="w-8 h-8 text-gray-400" />
+                <div className="px-4 sm:px-6 md:px-8">
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                            <Search className="w-8 h-8 text-[var(--brand-light)]/30" />
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-700 mb-2">No courses found</h3>
-                        <p className="text-gray-500 mb-4">Try adjusting your search or filters.</p>
+                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No courses found</h3>
+                        <p className="text-[var(--brand-light)]/50 mb-4">Try adjusting your search or filters.</p>
                         {hasActiveFilters && (
-                            <Button
-                                variant="outline"
+                            <button
                                 onClick={clearFilters}
-                                className="mt-2"
+                                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all"
                             >
                                 Clear all filters
-                            </Button>
+                            </button>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {filteredCourses.map(course => (
-                        <CourseCard 
-                            key={course.id} 
-                            course={course} 
-                            href={`${basePath}/${course.slug}`} 
-                        />
-                    ))}
+                <div className="px-4 sm:px-6 md:px-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                        {filteredCourses.map(course => (
+                            <CourseCard 
+                                key={course.id} 
+                                course={course} 
+                                href={`${basePath}/${course.slug}`} 
+                            />
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

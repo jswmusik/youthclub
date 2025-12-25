@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import SystemAlert from "./components/SystemAlert";
@@ -10,9 +10,24 @@ const inter = Inter({
   display: "swap",
 });
 
+const poppins = Poppins({ 
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "The Youth App",
   description: "Ungdomsappen 2.0",
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -22,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="overflow-x-hidden">
-      <body className={`${inter.variable} ${inter.className} overflow-x-hidden max-w-full`}>
+      <body className={`${inter.variable} ${poppins.variable} ${inter.className} overflow-x-hidden max-w-full`}>
         <AuthProvider>
           <SystemAlert />
           <div className="min-w-0 max-w-full overflow-x-hidden">

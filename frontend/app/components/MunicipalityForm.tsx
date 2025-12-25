@@ -1,38 +1,60 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { 
+  ArrowLeft, Upload, X, MapPin, Building2, Globe, Mail, Phone, 
+  Link as LinkIcon, CheckCircle2, Lightbulb, Save, Users, Shield,
+  Facebook, Instagram, FileText
+} from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import Toast from './Toast';
-
-// Shadcn
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { queueToastForNavigation } from './ToastProvider';
 
 interface MunicipalityFormProps {
   initialData?: any;
   redirectPath: string;
 }
 
+interface FormData {
+  name: string;
+  country: string;
+  municipality_code: string;
+  description: string;
+  terms_and_conditions: string;
+  email: string;
+  phone: string;
+  website_link: string;
+  allow_self_registration: boolean;
+  require_guardian_at_registration: boolean;
+  facebook: string;
+  instagram: string;
+}
+
 export default function MunicipalityForm({ initialData, redirectPath }: MunicipalityFormProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [countries, setCountries] = useState<any[]>([]);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
-
-  // Refs for file inputs
+  const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
   const heroRef = useRef<HTMLInputElement>(null);
+  
+  const [loading, setLoading] = useState(false);
+  const [countries, setCountries] = useState<any[]>([]);
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error'|'info'|'warning', isVisible: false, title: '' });
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isProgressFixed, setIsProgressFixed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Track component mount for portal
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: initialData?.name || '',
     country: String(initialData?.country?.id ?? initialData?.country ?? ''),
     municipality_code: initialData?.municipality_code || '',
@@ -112,223 +134,613 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
       
       if (initialData) {
         await api.patch(`/municipalities/${initialData.id}/`, data, config);
-        setToast({ message: 'Saved successfully!', type: 'success', isVisible: true });
+        queueToastForNavigation(
+          `${formData.name} has been updated with your changes.`,
+          'success',
+          'Municipality Updated!',
+          2500
+        );
       } else {
         await api.post('/municipalities/', data, config);
-        setToast({ message: 'Created successfully!', type: 'success', isVisible: true });
+        queueToastForNavigation(
+          `${formData.name} has been added to your platform.`,
+          'success',
+          'Municipality Created!',
+          2500
+        );
       }
-      setTimeout(() => router.push(redirectPath), 1000);
+      router.push(redirectPath);
     } catch (err: any) {
       console.error(err);
-      setToast({ message: 'Failed to save. Check inputs.', type: 'error', isVisible: true });
+      setToast({ 
+        message: 'Something went wrong. Please check your input and try again.', 
+        type: 'error', 
+        isVisible: true,
+        title: 'Operation Failed'
+      });
       setLoading(false);
     }
   };
 
+  const inputClasses = (fieldName: string) => `
+    w-full px-4 py-3.5 
+    bg-[var(--dark-700)] 
+    border-2 ${focusedField === fieldName ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    rounded-xl 
+    text-[var(--brand-light)] 
+    placeholder-[var(--brand-light)]/40 
+    focus:ring-0 focus:border-[var(--brand-primary)] 
+    outline-none 
+    transition-all duration-200
+    text-base
+  `;
+
+  const labelClasses = "block text-sm font-semibold text-[var(--brand-light)]/80 mb-2";
+
+  // Calculate form completion percentage
+  const requiredFields = ['name', 'country'];
+  const filledRequired = requiredFields.filter(field => {
+    const value = formData[field as keyof FormData];
+    return typeof value === 'string' ? value.trim() : value;
+  }).length;
+  const completionPercent = Math.round((filledRequired / requiredFields.length) * 100);
+
+  // Handle scroll for sticky progress bar
+  const checkScroll = useCallback(() => {
+    if (!progressPlaceholderRef.current) return;
+    const rect = progressPlaceholderRef.current.getBoundingClientRect();
+    setIsProgressFixed(rect.top < 80);
+  }, []);
+
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (!mainElement) return;
+
+    mainElement.addEventListener('scroll', checkScroll);
+    window.addEventListener('scroll', checkScroll);
+    checkScroll();
+
+    return () => {
+      mainElement.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('scroll', checkScroll);
+    };
+  }, [checkScroll]);
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={redirectPath}>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {initialData ? 'Edit Municipality' : 'Add New Municipality'}
-          </h1>
-          <p className="text-sm text-muted-foreground">Configure details and settings for this region.</p>
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
+        
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+          <Link 
+            href={redirectPath}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+              {initialData ? 'Edit Municipality' : 'Add New Municipality'}
+            </h1>
+            <p className="text-[var(--brand-light)]/50 text-sm mt-1">
+              {initialData ? 'Update municipality information and settings' : 'Configure details and settings for this region'}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress Indicator */}
+        <div 
+          ref={progressPlaceholderRef}
+          className="mb-6 sm:mb-8"
+          style={{ minHeight: isProgressFixed ? 72 : 'auto' }}
+        >
+          <div 
+            className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}
+            role="region"
+            aria-label="Form completion progress"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+            </div>
+            <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${completionPercent}%` }}
+              />
+            </div>
+            {completionPercent === 100 && (
+              <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm font-medium">All required fields completed!</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Fixed Progress Indicator - rendered via portal */}
+        {isMounted && createPortal(
+          <div 
+            className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}
+            role="region"
+            aria-label="Form completion progress"
+            aria-hidden={!isProgressFixed}
+          >
+            <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+              </div>
+              <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+              {completionPercent === 100 && (
+                <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-sm font-medium">All required fields completed!</span>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Main Form */}
+        <form onSubmit={handleSubmit}>
+          
+          {/* Basic Information Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            {/* Card Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Enter the core details for this municipality</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-6 space-y-6">
+              {/* Name and Country */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="name" className={labelClasses}>
+                    Name <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <input 
+                    id="name"
+                    type="text"
+                    required 
+                    placeholder="e.g. Stockholm City"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    onFocus={() => setFocusedField('name')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('name')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="country" className={labelClasses}>
+                    Country <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <select 
+                    id="country"
+                    required
+                    value={formData.country}
+                    onChange={e => setFormData({ ...formData, country: e.target.value })}
+                    onFocus={() => setFocusedField('country')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`${inputClasses('country')} appearance-none cursor-pointer`}
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 1rem center',
+                      backgroundSize: '1rem'
+                    }}
+                  >
+                    <option value="">Select Country</option>
+                    {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Municipality Code */}
+              <div>
+                <label htmlFor="municipality_code" className={labelClasses}>
+                  <Building2 className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-purple)]" />
+                  Municipality Code
+                </label>
+                <input 
+                  id="municipality_code"
+                  type="text"
+                  placeholder="e.g. STHM"
+                  maxLength={10}
+                  value={formData.municipality_code}
+                  onChange={e => setFormData({ ...formData, municipality_code: e.target.value.toUpperCase() })}
+                  onFocus={() => setFocusedField('municipality_code')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`${inputClasses('municipality_code')} uppercase font-mono tracking-wider`}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className={labelClasses}>
+                  Description
+                </label>
+                <textarea 
+                  id="description"
+                  rows={4} 
+                  placeholder="Describe this municipality..."
+                  value={formData.description}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  onFocus={() => setFocusedField('description')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`${inputClasses('description')} resize-none`}
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Images */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Logo / Avatar */}
+                <div>
+                  <label className={labelClasses}>Logo / Avatar</label>
+                  <div className="flex items-start gap-4">
+                    <div 
+                      className="relative group w-24 h-18 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => avatarRef.current?.click()}
+                    >
+                      {avatarPreview ? (
+                        <>
+                          <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Upload className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
+                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => avatarRef.current?.click()}
+                          className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
+                        >
+                          Choose File
+                        </button>
+                        {avatarPreview && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveImage('avatar')}
+                            className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
+                          >
+                            <X className="h-3 w-3" /> Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--brand-light)]/40">400x300px (JPG, PNG)</p>
+                    </div>
+                    <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'avatar')} />
+                  </div>
+                </div>
+
+                {/* Hero Image */}
+                <div>
+                  <label className={labelClasses}>Hero Image</label>
+                  <div className="flex items-start gap-4">
+                    <div 
+                      className="relative group w-24 h-18 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => heroRef.current?.click()}
+                    >
+                      {heroPreview ? (
+                        <>
+                          <img src={heroPreview} alt="Hero preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Upload className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
+                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => heroRef.current?.click()}
+                          className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
+                        >
+                          Choose File
+                        </button>
+                        {heroPreview && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveImage('hero')}
+                            className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
+                          >
+                            <X className="h-3 w-3" /> Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--brand-light)]/40">1200x400px (JPG, PNG)</p>
+                    </div>
+                    <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'hero')} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact & Socials Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            {/* Card Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact & Socials</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Contact information and social media links</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="email" className={labelClasses}>
+                    <Mail className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
+                    Email
+                  </label>
+                  <input 
+                    id="email"
+                    type="email"
+                    placeholder="contact@city.se"
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('email')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="phone" className={labelClasses}>
+                    <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
+                    Phone
+                  </label>
+                  <input 
+                    id="phone"
+                    type="tel"
+                    placeholder="+46..."
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('phone')}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="website_link" className={labelClasses}>
+                  <LinkIcon className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
+                  Website
+                </label>
+                <input 
+                  id="website_link"
+                  type="url"
+                  placeholder="https://..."
+                  value={formData.website_link}
+                  onChange={e => setFormData({ ...formData, website_link: e.target.value })}
+                  onFocus={() => setFocusedField('website_link')}
+                  onBlur={() => setFocusedField(null)}
+                  className={inputClasses('website_link')}
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Social Media Header */}
+              <div className="flex items-center gap-2 text-[var(--brand-light)]/70">
+                <Globe className="w-4 h-4 text-[var(--brand-purple)]" />
+                <span className="text-sm font-medium">Social Media</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="facebook" className={labelClasses}>
+                    <Facebook className="w-3.5 h-3.5 inline mr-1.5 text-[#1877F2]" />
+                    Facebook URL
+                  </label>
+                  <input 
+                    id="facebook"
+                    type="url"
+                    placeholder="https://facebook.com/..."
+                    value={formData.facebook}
+                    onChange={e => setFormData({ ...formData, facebook: e.target.value })}
+                    onFocus={() => setFocusedField('facebook')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('facebook')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="instagram" className={labelClasses}>
+                    <Instagram className="w-3.5 h-3.5 inline mr-1.5 text-[#E4405F]" />
+                    Instagram URL
+                  </label>
+                  <input 
+                    id="instagram"
+                    type="url"
+                    placeholder="https://instagram.com/..."
+                    value={formData.instagram}
+                    onChange={e => setFormData({ ...formData, instagram: e.target.value })}
+                    onFocus={() => setFocusedField('instagram')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('instagram')}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Settings Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            {/* Card Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-[var(--dark-900)]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Settings</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Registration rules and legal requirements</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-6 space-y-4">
+              {/* Self Registration Toggle */}
+              <div className="flex items-center justify-between p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-[var(--brand-third)]" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-[var(--brand-light)]">Self Registration</div>
+                    <div className="text-sm text-[var(--brand-light)]/50">Allow users to register freely via the app</div>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer"
+                    checked={formData.allow_self_registration}
+                    onChange={e => setFormData({...formData, allow_self_registration: e.target.checked})}
+                  />
+                  <div className="w-11 h-6 bg-[var(--dark-500)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand-third)]"></div>
+                </label>
+              </div>
+
+              {/* Require Guardian Toggle */}
+              <div className="flex items-center justify-between p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-[var(--brand-peach)]" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-[var(--brand-light)]">Require Guardian</div>
+                    <div className="text-sm text-[var(--brand-light)]/50">Youths must link a guardian upon registration</div>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer"
+                    checked={formData.require_guardian_at_registration}
+                    onChange={e => setFormData({...formData, require_guardian_at_registration: e.target.checked})}
+                  />
+                  <div className="w-11 h-6 bg-[var(--dark-500)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand-peach)]"></div>
+                </label>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)] my-2" />
+
+              {/* Terms & Conditions */}
+              <div>
+                <label htmlFor="terms_and_conditions" className={labelClasses}>
+                  <FileText className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-light)]/50" />
+                  Terms & Conditions
+                </label>
+                <textarea 
+                  id="terms_and_conditions"
+                  rows={6} 
+                  placeholder="Legal text shown to users during registration..."
+                  value={formData.terms_and_conditions}
+                  onChange={e => setFormData({ ...formData, terms_and_conditions: e.target.value })}
+                  onFocus={() => setFocusedField('terms_and_conditions')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`${inputClasses('terms_and_conditions')} resize-none`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-5 flex flex-col sm:flex-row justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={() => router.push(redirectPath)} 
+                className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={loading || completionPercent < 100}
+                className="px-8 py-3 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-[var(--dark-900)]/20 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    {initialData ? 'Save Changes' : 'Create Municipality'}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {/* Helper Tips */}
+        <div className="mt-6 p-4 bg-[var(--dark-800)]/50 rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
+          <h3 className="text-sm font-semibold text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
+            Quick Tips
+          </h3>
+          <ul className="text-sm text-[var(--brand-light)]/50 space-y-1.5">
+            <li>• Municipality codes should be unique and easy to remember (e.g., STHM for Stockholm)</li>
+            <li>• Enable self-registration to allow users to sign up without admin approval</li>
+            <li>• Guardian requirements help ensure youth safety and parental involvement</li>
+          </ul>
         </div>
       </div>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        
-        {/* Basic Info Card */}
-        <Card className="border-none shadow-sm">
-            <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
-            <Separator />
-            <CardContent className="pt-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label>Name <span className="text-red-500">*</span></Label>
-                        <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Stockholm City" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Country <span className="text-red-500">*</span></Label>
-                        <select 
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            required 
-                            value={formData.country} 
-                            onChange={e => setFormData({...formData, country: e.target.value})}
-                        >
-                            <option value="">Select Country</option>
-                            {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                    </div>
-                </div>
-                
-                <div className="space-y-2">
-                    <Label>Municipality Code</Label>
-                    <Input value={formData.municipality_code} onChange={e => setFormData({...formData, municipality_code: e.target.value})} placeholder="e.g. STHM" maxLength={10} />
-                </div>
-                
-                <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea rows={4} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Describe this municipality..." />
-                </div>
-
-                {/* Images */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                    <div className="space-y-2">
-                        <Label>Logo / Avatar</Label>
-                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                            <div className="relative group w-32 h-24 border-2 border-dashed border-input rounded-xl bg-muted/30 flex items-center justify-center overflow-hidden hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => avatarRef.current?.click()}>
-                                {avatarPreview ? (
-                                    <>
-                                        <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Upload className="h-5 w-5 text-white" />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-center p-2">
-                                        <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                                        <span className="text-[10px] text-muted-foreground">Click to upload</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-2 flex-1">
-                                <div className="flex gap-2">
-                                    <Button type="button" variant="secondary" size="sm" onClick={() => avatarRef.current?.click()}>Choose File</Button>
-                                    {avatarPreview && (
-                                        <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleRemoveImage('avatar')}>
-                                            <X className="h-4 w-4 mr-1" />
-                                            Remove
-                                        </Button>
-                                    )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">Recommended: 400x300px (JPG, PNG)</p>
-                            </div>
-                            <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'avatar')} />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Hero Image</Label>
-                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                            <div className="relative group w-32 h-24 border-2 border-dashed border-input rounded-xl bg-muted/30 flex items-center justify-center overflow-hidden hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => heroRef.current?.click()}>
-                                {heroPreview ? (
-                                    <>
-                                        <img src={heroPreview} alt="Hero preview" className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Upload className="h-5 w-5 text-white" />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-center p-2">
-                                        <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                                        <span className="text-[10px] text-muted-foreground">Click to upload</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-2 flex-1">
-                                <div className="flex gap-2">
-                                    <Button type="button" variant="secondary" size="sm" onClick={() => heroRef.current?.click()}>Choose File</Button>
-                                    {heroPreview && (
-                                        <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleRemoveImage('hero')}>
-                                            <X className="h-4 w-4 mr-1" />
-                                            Remove
-                                        </Button>
-                                    )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">Recommended: 1200x400px (JPG, PNG)</p>
-                            </div>
-                            <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'hero')} />
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
-        {/* Contact & Socials */}
-        <Card className="border-none shadow-sm">
-            <CardHeader><CardTitle>Contact & Socials</CardTitle></CardHeader>
-            <Separator />
-            <CardContent className="pt-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label>Email</Label>
-                        <Input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="contact@city.se" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Phone</Label>
-                        <Input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+46..." />
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <Label>Website</Label>
-                    <Input type="url" value={formData.website_link} onChange={e => setFormData({...formData, website_link: e.target.value})} placeholder="https://..." />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    <div className="space-y-2">
-                        <Label>Facebook URL</Label>
-                        <Input value={formData.facebook} onChange={e => setFormData({...formData, facebook: e.target.value})} placeholder="https://facebook.com/..." />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Instagram URL</Label>
-                        <Input value={formData.instagram} onChange={e => setFormData({...formData, instagram: e.target.value})} placeholder="https://instagram.com/..." />
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
-        {/* Settings */}
-        <Card className="border-none shadow-sm">
-            <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
-            <Separator />
-            <CardContent className="pt-6 space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50/50">
-                    <div>
-                        <div className="font-medium">Self Registration</div>
-                        <div className="text-sm text-muted-foreground">Allow users to register freely via the app.</div>
-                    </div>
-                    <input 
-                        type="checkbox" 
-                        className="h-5 w-5 rounded border-gray-300 text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                        checked={formData.allow_self_registration}
-                        onChange={e => setFormData({...formData, allow_self_registration: e.target.checked})}
-                    />
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50/50">
-                    <div>
-                        <div className="font-medium">Require Guardian</div>
-                        <div className="text-sm text-muted-foreground">Youths must link a guardian immediately upon registration.</div>
-                    </div>
-                    <input 
-                        type="checkbox" 
-                        className="h-5 w-5 rounded border-gray-300 text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                        checked={formData.require_guardian_at_registration}
-                        onChange={e => setFormData({...formData, require_guardian_at_registration: e.target.checked})}
-                    />
-                </div>
-                
-                <div className="space-y-2 pt-2">
-                    <Label>Terms & Conditions</Label>
-                    <Textarea rows={6} value={formData.terms_and_conditions} onChange={e => setFormData({...formData, terms_and_conditions: e.target.value})} placeholder="Legal text shown to users..." />
-                </div>
-            </CardContent>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 pb-10">
-            <Button type="button" variant="ghost" onClick={() => router.push(redirectPath)} className="w-full sm:w-auto">Cancel</Button>
-            <Button type="submit" disabled={loading} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px] w-full sm:w-auto">
-                {loading ? 'Saving...' : 'Save Municipality'}
-            </Button>
-        </div>
-
-      </form>
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      
+      <Toast 
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        title={toast.title}
+        onClose={() => setToast({...toast, isVisible: false})} 
+        darkMode 
+      />
     </div>
   );
 }

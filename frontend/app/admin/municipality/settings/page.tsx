@@ -6,11 +6,9 @@ import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import { Building2, Code, FileText, Mail, Phone, Globe, Facebook, Instagram, Settings, Camera, Image as ImageIcon, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 
 export default function MyMunicipalityPage() {
   const { user, loading } = useAuth();
@@ -171,83 +169,99 @@ export default function MyMunicipalityPage() {
     }
   };
 
-  if (loading || isLoading) return <div className="p-8 text-center text-gray-500">Loading...</div>;
-  if (!muniData) return <div className="p-8 text-center text-gray-500">No Municipality Assigned. Contact Super Admin.</div>;
+  if (loading || isLoading) return (
+    <div className="py-20 text-center">
+      <div className="inline-flex flex-col items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+          <Building2 className="w-6 h-6 text-white" />
+        </div>
+        <span className="text-[var(--brand-light)]/60 animate-pulse">Loading...</span>
+      </div>
+    </div>
+  );
+  
+  if (!muniData) return (
+    <div className="py-20 text-center">
+      <div className="inline-flex flex-col items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-[var(--dark-700)] flex items-center justify-center">
+          <Building2 className="w-6 h-6 text-[var(--brand-light)]/30" />
+        </div>
+        <span className="text-[var(--brand-light)]/60">No Municipality Assigned. Contact Super Admin.</span>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="py-4 sm:py-6 md:py-8 px-0 space-y-6">
       {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Badge className="bg-purple-50 text-purple-600 border-purple-200 px-3 py-1 text-xs font-semibold uppercase">
-            Municipality Admin
-          </Badge>
+      <div className="px-4 sm:px-6 md:px-8 space-y-2">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+            <Settings className="w-5 h-5 text-[var(--dark-900)]" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Municipality Settings</h1>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Municipality Settings</h1>
-        <p className="text-gray-500 mt-1">Keep your municipality profile up to date. Changes are instantly reflected in the Youth App.</p>
+        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Keep your municipality profile up to date. Changes are instantly reflected in the Youth App.</p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-[#4D4DA4]/10 rounded-lg">
-                <Building2 className="h-6 w-6 text-[#4D4DA4]" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Municipality</p>
-                <p className="text-xl font-bold text-[#121213]">{formData.name || '—'}</p>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 md:px-4 md:px-6 md:px-8">
+        <div className="bg-[var(--dark-800)] rounded-none md:rounded-xl border-y md:border border-[var(--dark-600)] p-4 sm:p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-[var(--brand-primary)]" />
             </div>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-[#4D4DA4]/10 rounded-lg">
-                <Code className="h-6 w-6 text-[#4D4DA4]" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Code</p>
-                <p className="text-xl font-bold text-[#121213]">{formData.municipality_code || '—'}</p>
-              </div>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-[var(--brand-light)]/50 font-semibold">Municipality</p>
+              <p className="text-xl font-bold text-[var(--brand-light)]">{formData.name || '—'}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+        <div className="bg-[var(--dark-800)] rounded-none md:rounded-xl border-y md:border border-[var(--dark-600)] p-4 sm:p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center">
+              <Code className="h-5 w-5 text-[var(--brand-purple)]" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-[var(--brand-light)]/50 font-semibold">Code</p>
+              <p className="text-xl font-bold text-[var(--brand-light)]">{formData.municipality_code || '—'}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Branding Section */}
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
-              <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
-                <ImageIcon className="h-5 w-5 text-[#4D4DA4]" />
-                Branding
-              </CardTitle>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                <ImageIcon className="h-5 w-5 text-[var(--brand-primary)]" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[var(--brand-light)]">Branding</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">Update your municipality logo and hero banner.</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Update your municipality logo and hero banner.</p>
-          </CardHeader>
-          <CardContent className="space-y-6">
+          </div>
+          <div className="px-4 sm:px-6 py-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Camera className="h-4 w-4 text-[#4D4DA4]" />
+                <Label className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Camera className="h-4 w-4 text-[var(--brand-primary)]" />
                   Logo / Avatar
                 </Label>
                 <div className="relative">
-                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-[#4D4DA4] transition-colors">
+                  <div className="bg-[var(--dark-700)] border-2 border-dashed border-[var(--dark-500)] rounded-none sm:rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-[var(--brand-primary)] transition-colors">
                     {avatarPreview ? (
-                      <img src={avatarPreview} className="w-24 h-24 object-contain bg-white rounded-xl shadow-lg" alt="Avatar" />
+                      <img src={avatarPreview} className="w-24 h-24 object-contain bg-[var(--dark-600)] rounded-xl" alt="Avatar" />
                     ) : (
-                      <div className="w-24 h-24 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
+                      <div className="w-24 h-24 bg-[var(--dark-600)] rounded-xl flex items-center justify-center text-[var(--brand-light)]/30">
                         <Camera className="h-8 w-8" />
                       </div>
                     )}
                     <label className="cursor-pointer">
-                      <span className="text-sm text-[#4D4DA4] font-semibold hover:text-[#FF5485] transition-colors">
+                      <span className="text-sm text-[var(--brand-primary)] font-semibold hover:text-[var(--brand-purple)] transition-colors">
                         {avatarPreview ? 'Change Logo' : 'Upload Logo'}
                       </span>
                       <input
@@ -262,21 +276,21 @@ export default function MyMunicipalityPage() {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-[#4D4DA4]" />
+                <Label className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-[var(--brand-primary)]" />
                   Hero Banner
                 </Label>
                 <div className="relative">
-                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-[#4D4DA4] transition-colors">
+                  <div className="bg-[var(--dark-700)] border-2 border-dashed border-[var(--dark-500)] rounded-none sm:rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-[var(--brand-primary)] transition-colors">
                     {heroPreview ? (
-                      <img src={heroPreview} className="w-full h-40 object-cover rounded-xl shadow-lg" alt="Hero" />
+                      <img src={heroPreview} className="w-full h-40 object-cover rounded-none sm:rounded-xl" alt="Hero" />
                     ) : (
-                      <div className="w-full h-40 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
+                      <div className="w-full h-40 bg-[var(--dark-600)] rounded-none sm:rounded-xl flex items-center justify-center text-[var(--brand-light)]/30">
                         <ImageIcon className="h-8 w-8" />
                       </div>
                     )}
                     <label className="cursor-pointer">
-                      <span className="text-sm text-[#4D4DA4] font-semibold hover:text-[#FF5485] transition-colors">
+                      <span className="text-sm text-[var(--brand-primary)] font-semibold hover:text-[var(--brand-purple)] transition-colors">
                         {heroPreview ? 'Change Banner' : 'Upload Banner'}
                       </span>
                       <input
@@ -290,116 +304,118 @@ export default function MyMunicipalityPage() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Basic Details Section */}
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#4D4DA4] rounded-full"></div>
-              <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-[#4D4DA4]" />
-                Basic Details
-              </CardTitle>
+        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-[var(--brand-purple)]" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[var(--brand-light)]">Basic Details</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">General information visible across the app.</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">General information visible across the app.</p>
-          </CardHeader>
-          <CardContent className="space-y-6">
+          </div>
+          <div className="px-4 sm:px-6 py-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-[#4D4DA4]" />
+                <Label htmlFor="name" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-[var(--brand-primary)]" />
                   Municipality Name
                 </Label>
                 <Input
                   id="name"
                   type="text"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="municipality_code" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Code className="h-4 w-4 text-[#4D4DA4]" />
+                <Label htmlFor="municipality_code" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Code className="h-4 w-4 text-[var(--brand-primary)]" />
                   Municipality Code
                 </Label>
                 <Input
                   id="municipality_code"
                   type="text"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                   value={formData.municipality_code}
                   onChange={e => setFormData({...formData, municipality_code: e.target.value})}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[#4D4DA4]" />
+              <Label htmlFor="description" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[var(--brand-primary)]" />
                 Description
               </Label>
               <textarea
                 id="description"
                 rows={3}
-                className="flex w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                className="flex w-full rounded-none sm:rounded-md border border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand-primary)] focus-visible:border-[var(--brand-primary)]"
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Contact & Socials Section */}
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#0EA5E9] rounded-full"></div>
-              <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
-                <Mail className="h-5 w-5 text-[#0EA5E9]" />
-                Contact & Socials
-              </CardTitle>
+        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)]/20 flex items-center justify-center">
+                <Mail className="h-5 w-5 text-[var(--brand-blue)]" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[var(--brand-light)]">Contact & Socials</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">How users can reach your municipality.</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">How users can reach your municipality.</p>
-          </CardHeader>
-          <CardContent className="space-y-6">
+          </div>
+          <div className="px-4 sm:px-6 py-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-[#4D4DA4]" />
+                <Label htmlFor="email" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-[var(--brand-blue)]" />
                   Email
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-[#4D4DA4]" />
+                <Label htmlFor="phone" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-[var(--brand-third)]" />
                   Phone
                 </Label>
                 <Input
                   id="phone"
                   type="text"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                   value={formData.phone}
                   onChange={e => setFormData({...formData, phone: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="website_link" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-[#4D4DA4]" />
+                <Label htmlFor="website_link" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-[var(--brand-primary)]" />
                   Website
                 </Label>
                 <Input
                   id="website_link"
                   type="url"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                   value={formData.website_link}
                   onChange={e => setFormData({...formData, website_link: e.target.value})}
                 />
@@ -407,86 +423,89 @@ export default function MyMunicipalityPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="facebook" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Facebook className="h-4 w-4 text-[#4D4DA4]" />
+                <Label htmlFor="facebook" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Facebook className="h-4 w-4 text-[var(--brand-primary)]" />
                   Facebook URL
                 </Label>
                 <Input
                   id="facebook"
                   type="text"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                   value={formData.facebook}
                   onChange={e => setFormData({...formData, facebook: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="instagram" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Instagram className="h-4 w-4 text-[#4D4DA4]" />
+                <Label htmlFor="instagram" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                  <Instagram className="h-4 w-4 text-[var(--brand-primary)]" />
                   Instagram URL
                 </Label>
                 <Input
                   id="instagram"
                   type="text"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
+                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                   value={formData.instagram}
                   onChange={e => setFormData({...formData, instagram: e.target.value})}
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Settings Section */}
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#10B981] rounded-full"></div>
-              <CardTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
-                <Settings className="h-5 w-5 text-[#10B981]" />
-                Settings
-              </CardTitle>
+        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)]/20 flex items-center justify-center">
+                <Settings className="h-5 w-5 text-[var(--brand-green)]" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[var(--brand-light)]">Settings</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">Control member registration and policies.</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Control member registration and policies.</p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center gap-3 p-4 bg-[#EBEBFE]/30 rounded-xl border border-[#4D4DA4]/20">
+          </div>
+          <div className="px-4 sm:px-6 py-6 space-y-6">
+            <div className="flex items-center gap-3 p-4 bg-[var(--dark-700)] rounded-none sm:rounded-xl border border-[var(--dark-500)]">
               <input
                 id="selfReg"
                 type="checkbox"
-                className="h-4 w-4 text-[#4D4DA4] border-gray-300 rounded focus:ring-[#4D4DA4]"
+                className="h-4 w-4 text-[var(--brand-primary)] border-[var(--dark-500)] rounded focus:ring-[var(--brand-primary)] bg-[var(--dark-600)]"
                 checked={formData.allow_self_registration}
                 onChange={e => setFormData({...formData, allow_self_registration: e.target.checked})}
               />
-              <label htmlFor="selfReg" className="text-sm text-gray-700 cursor-pointer flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-[#4D4DA4]" />
+              <label htmlFor="selfReg" className="text-sm text-[var(--brand-light)] cursor-pointer flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-[var(--brand-primary)]" />
                 Allow youth/guardians to self-register for verification
               </label>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="terms_and_conditions" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[#4D4DA4]" />
+              <Label htmlFor="terms_and_conditions" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[var(--brand-primary)]" />
                 Terms & Conditions
               </Label>
               <textarea
                 id="terms_and_conditions"
                 rows={4}
-                className="flex w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                className="flex w-full rounded-none sm:rounded-md border border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand-primary)] focus-visible:border-[var(--brand-primary)]"
                 value={formData.terms_and_conditions}
                 onChange={e => setFormData({...formData, terms_and_conditions: e.target.value})}
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end pt-4 border-t border-gray-100">
-          <Button
-            type="submit"
-            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white px-8 py-2 rounded-full transition-colors disabled:opacity-50"
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </Button>
+        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
+          <div className="flex justify-end pt-4 border-t border-[var(--dark-600)] px-4 sm:px-6 md:px-8 pb-4 sm:pb-6 md:pb-8">
+            <Button
+              type="submit"
+              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold px-8 py-3 rounded-xl transition-colors disabled:opacity-50"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
       </form>
 
@@ -495,6 +514,7 @@ export default function MyMunicipalityPage() {
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={() => setToast({ ...toast, isVisible: false })}
+        darkMode
       />
     </div>
   );

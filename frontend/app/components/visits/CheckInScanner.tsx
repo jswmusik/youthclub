@@ -9,12 +9,15 @@ import ConfirmationModal from '../ConfirmationModal'; // Import the modal
 
 interface CheckInScannerProps {
   onSuccess?: () => void;
+  darkMode?: boolean;
 }
 
-export default function CheckInScanner({ onSuccess }: CheckInScannerProps) {
+export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInScannerProps) {
   const router = useRouter();
   const [scanning, setScanning] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scannerInstance, setScannerInstance] = useState<Html5QrcodeScanner | null>(null);
   
   // Modal State
   const [showClosedModal, setShowClosedModal] = useState(false);
@@ -25,28 +28,102 @@ export default function CheckInScanner({ onSuccess }: CheckInScannerProps) {
   const [invalidQRMessage, setInvalidQRMessage] = useState<string>('');
 
   useEffect(() => {
-    // Initialize Scanner
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      /* verbose= */ false
-    );
+    let scanner: Html5QrcodeScanner | null = null;
+    
+    // Initialize Scanner with mobile-friendly configuration
+    const config = {
+      fps: 10,
+      qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
+        // Responsive QR box size
+        const minEdgePercentage = 0.7; // 70% of the smaller edge
+        const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+        const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+        return {
+          width: qrboxSize,
+          height: qrboxSize
+        };
+      },
+      aspectRatio: 1.0,
+      // Mobile-specific settings - enable both camera and file upload
+      supportedScanTypes: [0, 1], // 0 = camera, 1 = file upload
+      // Better mobile camera configuration
+      videoConstraints: {
+        facingMode: "environment", // Use back camera on mobile
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
 
-    scanner.render(onScanSuccess, onScanFailure);
+    try {
+      scanner = new Html5QrcodeScanner(
+        "reader",
+        config,
+        /* verbose= */ false
+      );
 
-    function onScanSuccess(decodedText: string) {
-      // 1. Stop scanning immediately to prevent double-calls
-      scanner.clear(); 
+      setScannerInstance(scanner);
+
+      scanner.render(
+        onScanSuccess,
+        onScanFailure,
+        (errorMessage: string, error: any) => {
+          // Handle camera permission errors
+          console.error('Scanner error:', errorMessage, error);
+          
+          // Check for specific error types
+          const errorStr = errorMessage?.toLowerCase() || '';
+          const errorObj = error?.name || error?.message || '';
+          const errorObjStr = errorObj?.toLowerCase() || '';
+          
+          if (errorStr.includes('permission') || errorStr.includes('notallowed') || 
+              errorObjStr.includes('notallowederror') || errorStr.includes('camera access denied')) {
+            setCameraError('Camera access denied. Please allow camera permissions in your browser settings. On iOS Safari, tap the "AA" icon in the address bar and enable Camera access.');
+          } else if (errorStr.includes('notfound') || errorStr.includes('no camera') || 
+                     errorObjStr.includes('notfounderror') || errorStr.includes('no devices found')) {
+            setCameraError('No camera found. Please use a device with a camera or use the file upload option.');
+          } else if (errorStr.includes('notreadable') || errorObjStr.includes('notreadableerror')) {
+            setCameraError('Camera is already in use by another application. Please close other apps using the camera and try again.');
+          } else {
+            setCameraError(`Unable to access camera: ${errorMessage || 'Unknown error'}. Please check your browser settings and try again.`);
+          }
+          setScanning(false);
+        }
+      );
+
+      function onScanSuccess(decodedText: string) {
+        // 1. Stop scanning immediately to prevent double-calls
+        if (scanner) {
+          try {
+            scanner.clear(); 
+          } catch (e) {
+            console.error('Error clearing scanner:', e);
+          }
+        }
+        setScanning(false);
+        handleCheckIn(decodedText);
+      }
+
+      function onScanFailure(error: any) {
+        // Keeps scanning, just ignores noise
+        // Only log actual errors, not scanning failures (NotFoundException is normal)
+        if (error && typeof error === 'string' && !error.includes('NotFoundException')) {
+          console.log('Scan failure (normal):', error);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error initializing scanner:', error);
+      setCameraError('Failed to initialize scanner. Please refresh the page and try again.');
       setScanning(false);
-      handleCheckIn(decodedText);
-    }
-
-    function onScanFailure(error: any) {
-      // Keeps scanning, just ignores noise
     }
 
     return () => {
-      try { scanner.clear(); } catch (e) { /* ignore cleanup errors */ }
+      try { 
+        if (scanner) {
+          scanner.clear(); 
+        }
+      } catch (e) { 
+        console.error('Error cleaning up scanner:', e);
+      }
     };
   }, []);
 
@@ -167,19 +244,59 @@ export default function CheckInScanner({ onSuccess }: CheckInScannerProps) {
 
   return (
     <>
-      <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="p-4 bg-slate-800 text-white text-center">
-          <h3 className="font-bold text-lg">Scan Kiosk Code</h3>
+      <div className={`w-full max-w-md mx-auto overflow-hidden border ${
+        darkMode 
+          ? 'bg-[var(--dark-800)] border-[var(--dark-600)] rounded-none sm:rounded-2xl' 
+          : 'bg-white border-gray-200 rounded-xl shadow-lg'
+      }`}>
+        <div className={`p-4 text-center ${
+          darkMode 
+            ? 'bg-[var(--brand-purple)] text-[var(--brand-light)]' 
+            : 'bg-[#4D4DA4] text-white'
+        }`}>
+          <h3 className="font-bold text-lg font-heading">Scan Kiosk Code</h3>
         </div>
         
         <div className="p-4">
           {processing ? (
             <div className="h-64 flex flex-col items-center justify-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
-              <p className="text-slate-600">Verifying check-in...</p>
+              <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
+                darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'
+              }`}></div>
+              <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}>Verifying check-in...</p>
+            </div>
+          ) : cameraError ? (
+            <div className="h-64 flex flex-col items-center justify-center space-y-4 p-4 text-center">
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-2 ${
+                darkMode ? 'bg-[var(--brand-red)]/20' : 'bg-red-100'
+              }`}>
+                <svg className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-red)]' : 'text-red-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <p className={`font-medium text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{cameraError}</p>
+              <div className="flex flex-col gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    setCameraError(null);
+                    setScanning(true);
+                    window.location.reload();
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+                    darkMode 
+                      ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)]' 
+                      : 'bg-[#4D4DA4] hover:bg-[#6D6DD4] text-white'
+                  }`}
+                >
+                  Try Again
+                </button>
+                <p className={`text-xs mt-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
+                  Tip: Make sure you're using Safari on iOS, and allow camera access when prompted.
+                </p>
+              </div>
             </div>
           ) : (
-            <div id="reader" className="w-full"></div>
+            <div id="reader" className={`w-full ${darkMode ? 'qr-scanner-dark' : ''}`}></div>
           )}
         </div>
       </div>
@@ -195,6 +312,7 @@ export default function CheckInScanner({ onSuccess }: CheckInScannerProps) {
           confirmButtonText="OK, Got it"
           cancelButtonText="Close"
           variant="warning"
+          darkMode={darkMode}
         />
       )}
 
@@ -208,7 +326,8 @@ export default function CheckInScanner({ onSuccess }: CheckInScannerProps) {
           message={`You have successfully checked in to ${clubName}. Enjoy your visit!`}
           confirmButtonText="Great!"
           cancelButtonText="Close"
-          variant="info"
+          variant="success"
+          darkMode={darkMode}
         />
       )}
 
@@ -223,6 +342,7 @@ export default function CheckInScanner({ onSuccess }: CheckInScannerProps) {
           confirmButtonText="OK, Try Again"
           cancelButtonText="Close"
           variant="danger"
+          darkMode={darkMode}
         />
       )}
     </>

@@ -4,7 +4,7 @@ import GuardianForm from '@/app/components/GuardianForm';
 
 export default function Page() {
   return (
-    <div className="p-8">
+    <div>
       <GuardianForm redirectPath="/admin/super/guardians" scope="SUPER" />
     </div>
   );

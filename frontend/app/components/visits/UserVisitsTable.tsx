@@ -2,11 +2,7 @@
 
 import { VisitSession } from '@/types/visit';
 import { getMediaUrl } from '@/app/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { MapPin, Clock, LogIn, LogOut } from 'lucide-react';
 
 interface Props {
   visits: VisitSession[];
@@ -17,6 +13,63 @@ interface Props {
   onPageChange: (newPage: number) => void;
 }
 
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function VisitCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-800)] border-b sm:border sm:rounded-xl border-[var(--dark-600)] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1">
+          <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+        <Skeleton className="h-6 w-20 rounded-full" />
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <Skeleton className="h-12 rounded-lg" />
+        <Skeleton className="h-12 rounded-lg" />
+        <Skeleton className="h-12 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+function VisitTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-28" />
+            <Skeleton className="h-4 w-16 rounded-full" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-14" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+    </tr>
+  );
+}
+
 export default function UserVisitsTable({ 
   visits, 
   preferredClubId, 
@@ -25,7 +78,6 @@ export default function UserVisitsTable({
   totalCount,
   onPageChange 
 }: Props) {
-  // Pagination logic
   const pageSize = 10;
   const totalPages = Math.ceil(totalCount / pageSize);
   
@@ -52,188 +104,229 @@ export default function UserVisitsTable({
 
   if (loading) {
     return (
-      <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
-        <div className="p-8 text-center text-gray-400 animate-pulse">Loading visits...</div>
-      </Card>
+      <>
+        {/* Mobile Skeleton */}
+        <div className="grid grid-cols-1 gap-0 sm:gap-4 md:hidden">
+          {[...Array(4)].map((_, i) => (
+            <VisitCardSkeleton key={i} />
+          ))}
+        </div>
+        
+        {/* Desktop Skeleton */}
+        <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[var(--dark-600)]">
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Check In</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Check Out</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Duration</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, i) => (
+                <VisitTableRowSkeleton key={i} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    );
+  }
+
+  if (visits.length === 0) {
+    return (
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+          <MapPin className="w-8 h-8 text-[var(--brand-light)]/30" />
+        </div>
+        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No visits found</h3>
+        <p className="text-[var(--brand-light)]/50 text-sm">
+          Try adjusting your date filters or check back later.
+        </p>
+      </div>
     );
   }
 
   return (
     <>
       {/* Desktop Table */}
-      <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b border-gray-100 hover:bg-transparent">
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Club</TableHead>
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Check In</TableHead>
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Check Out</TableHead>
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Duration</TableHead>
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visits.map((visit) => {
-              // Highlight Logic: If visited club != preferred club
-              // Only apply if preferredClubId is known (not null)
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Check In</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Check Out</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Duration</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visits.map((visit, index) => {
               const isGuestVisit = preferredClubId && visit.club !== preferredClubId;
               
               return (
-                <TableRow 
+                <tr 
                   key={visit.id} 
-                  className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${isGuestVisit ? 'bg-orange-50/50 hover:bg-orange-50' : ''}`}
+                  className={`${index !== visits.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors ${isGuestVisit ? 'bg-[var(--brand-peach)]/5' : ''}`}
                 >
-                  <TableCell className="py-4 px-6">
+                  <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {visit.club_avatar && (
-                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
-                          <AvatarImage src={getMediaUrl(visit.club_avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                        <div className="w-9 h-9 rounded-full border border-[var(--dark-500)] bg-[var(--dark-700)] flex items-center justify-center overflow-hidden">
+                          <img src={getMediaUrl(visit.club_avatar) || undefined} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      {!visit.club_avatar && (
+                        <div className="w-9 h-9 rounded-full border border-[var(--dark-500)] bg-[var(--dark-700)] flex items-center justify-center">
+                          <span className="text-xs font-bold text-[var(--brand-primary)]">
                             {visit.club_name?.charAt(0)?.toUpperCase() || 'C'}
-                          </AvatarFallback>
-                        </Avatar>
+                          </span>
+                        </div>
                       )}
                       <div>
-                        <div className={`font-semibold ${isGuestVisit ? 'text-orange-700' : 'text-[#121213]'}`}>
+                        <div className={`font-semibold ${isGuestVisit ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]'}`}>
                           {visit.club_name}
                         </div>
                         {isGuestVisit && (
-                          <Badge variant="outline" className="text-xs bg-pink-50 text-[#FF5485] border-[#FF5485]/30 mt-1">
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] mt-1">
                             Guest Visit
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="py-4 px-6">
-                    <div className="font-semibold text-[#121213]">{formatDate(visit.check_in_at)}</div>
-                  </TableCell>
-                  <TableCell className="py-4 px-6 text-gray-600">
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-[var(--brand-light)]">{formatDate(visit.check_in_at)}</div>
+                  </td>
+                  <td className="px-6 py-4 text-[var(--brand-light)]/70">
                     {formatTime(visit.check_in_at)}
-                  </TableCell>
-                  <TableCell className="py-4 px-6 text-gray-600">
-                    {visit.check_out_at ? formatTime(visit.check_out_at) : '-'}
-                  </TableCell>
-                  <TableCell className="py-4 px-6 text-gray-600">
+                  </td>
+                  <td className="px-6 py-4 text-[var(--brand-light)]/70">
+                    {visit.check_out_at ? formatTime(visit.check_out_at) : '—'}
+                  </td>
+                  <td className="px-6 py-4 text-[var(--brand-light)]/70">
                     {calculateDuration(visit.check_in_at, visit.check_out_at)}
-                  </TableCell>
-                  <TableCell className="py-4 px-6">
+                  </td>
+                  <td className="px-6 py-4">
                     {visit.check_out_at ? (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                      <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
                         Completed
-                      </Badge>
+                      </span>
                     ) : (
-                      <Badge variant="outline" className="bg-green-50 text-[#10B981] border-[#10B981]/30">
+                      <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
                         Active
-                      </Badge>
+                      </span>
                     )}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               );
             })}
-            {visits.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-8 px-6 text-center text-gray-500">
-                  No visits found for this period.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+          </tbody>
+        </table>
+      </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden space-y-3">
-        {visits.map((visit) => {
+      <div className="grid grid-cols-1 gap-0 sm:gap-4 md:hidden">
+        {visits.map((visit, index) => {
           const isGuestVisit = preferredClubId && visit.club !== preferredClubId;
           
           return (
-            <Card key={visit.id} className={`border border-gray-100 shadow-sm ${isGuestVisit ? 'bg-orange-50/50' : 'bg-white'}`}>
-              <div className="p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {visit.club_avatar && (
-                        <Avatar className="h-8 w-8 rounded-full border border-gray-200 bg-gray-50">
-                          <AvatarImage src={getMediaUrl(visit.club_avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                            {visit.club_name?.charAt(0)?.toUpperCase() || 'C'}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div>
-                        <div className={`font-semibold text-sm ${isGuestVisit ? 'text-orange-700' : 'text-[#121213]'}`}>
-                          {visit.club_name}
-                        </div>
-                        {isGuestVisit && (
-                          <Badge variant="outline" className="text-xs bg-pink-50 text-[#FF5485] border-[#FF5485]/30 mt-1">
-                            Guest Visit
-                          </Badge>
-                        )}
-                      </div>
+            <div 
+              key={visit.id} 
+              className={`bg-[var(--dark-800)] ${index === 0 ? 'border-t' : ''} border-b sm:border sm:rounded-xl border-[var(--dark-600)] p-4 ${isGuestVisit ? 'border-l-4 border-l-[var(--brand-peach)]' : ''}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {visit.club_avatar ? (
+                    <div className="w-10 h-10 rounded-full border border-[var(--dark-500)] bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <img src={getMediaUrl(visit.club_avatar) || undefined} alt="" className="w-full h-full object-cover" />
                     </div>
-                    <div className="font-semibold text-[#121213] text-sm">{formatDate(visit.check_in_at)}</div>
-                  </div>
-                  <div>
-                    {visit.check_out_at ? (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                        Completed
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-green-50 text-[#10B981] border-[#10B981]/30">
-                        Active
-                      </Badge>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full border border-[var(--dark-500)] bg-[var(--dark-700)] flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-[var(--brand-primary)]">
+                        {visit.club_name?.charAt(0)?.toUpperCase() || 'C'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className={`font-semibold truncate ${isGuestVisit ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]'}`}>
+                      {visit.club_name}
+                    </div>
+                    <div className="text-sm text-[var(--brand-light)]/50">{formatDate(visit.check_in_at)}</div>
+                    {isGuestVisit && (
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] mt-1">
+                        Guest Visit
+                      </span>
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-                  <div>
-                    <div className="text-xs text-gray-500 uppercase font-semibold">Check In</div>
-                    <div className="text-sm text-gray-700">{formatTime(visit.check_in_at)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500 uppercase font-semibold">Check Out</div>
-                    <div className="text-sm text-gray-700">{visit.check_out_at ? formatTime(visit.check_out_at) : '-'}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-xs text-gray-500 uppercase font-semibold">Duration</div>
-                    <div className="text-sm text-gray-700">{calculateDuration(visit.check_in_at, visit.check_out_at)}</div>
-                  </div>
+                <div>
+                  {visit.check_out_at ? (
+                    <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
+                      Completed
+                    </span>
+                  ) : (
+                    <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
+                      Active
+                    </span>
+                  )}
                 </div>
               </div>
-            </Card>
+              
+              {/* Time Details */}
+              <div className="mt-4 grid grid-cols-3 gap-2 pt-3 border-t border-[var(--dark-600)]">
+                <div className="text-center p-2 rounded-lg bg-[var(--dark-700)]">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <LogIn className="w-3 h-3 text-[var(--brand-light)]/40" />
+                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">In</span>
+                  </div>
+                  <div className="text-sm font-semibold text-[var(--brand-light)]">{formatTime(visit.check_in_at)}</div>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-[var(--dark-700)]">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <LogOut className="w-3 h-3 text-[var(--brand-light)]/40" />
+                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">Out</span>
+                  </div>
+                  <div className="text-sm font-semibold text-[var(--brand-light)]">{visit.check_out_at ? formatTime(visit.check_out_at) : '—'}</div>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-[var(--dark-700)]">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Clock className="w-3 h-3 text-[var(--brand-light)]/40" />
+                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">Time</span>
+                  </div>
+                  <div className="text-sm font-semibold text-[var(--brand-primary)]">{calculateDuration(visit.check_in_at, visit.check_out_at)}</div>
+                </div>
+              </div>
+            </div>
           );
         })}
-        {visits.length === 0 && (
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <div className="p-8 text-center text-gray-500">No visits found for this period.</div>
-          </Card>
-        )}
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 py-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
+        <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+          <button 
             disabled={page === 1} 
             onClick={() => onPageChange(page - 1)}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Prev
-          </Button>
-          <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+            Previous
+          </button>
+          <div className="text-sm text-[var(--brand-light)]/50">
+            Page <span className="text-[var(--brand-primary)] font-semibold">{page}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+          </div>
+          <button 
             disabled={page >= totalPages} 
             onClick={() => onPageChange(page + 1)}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next
-          </Button>
+          </button>
         </div>
       )}
     </>

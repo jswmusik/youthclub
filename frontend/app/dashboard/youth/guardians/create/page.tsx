@@ -1,15 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+
 import NavBar from '@/app/components/NavBar';
+import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { inviteGuardian } from '@/lib/api';
 import Toast from '@/app/components/Toast';
 import SuccessModal from '@/app/components/SuccessModal';
+import { ArrowLeft, Mail, User, Phone, Users, Shield, CheckCircle, X } from 'lucide-react';
+
 
 export default function AddGuardianPage() {
     const router = useRouter();
+    const pathname = usePathname();
     const [loading, setLoading] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [toast, setToast] = useState({ message: '', type: 'success' as const, isVisible: false });
     const [successModal, setSuccessModal] = useState({ isVisible: false, message: '', title: '' });
 
@@ -85,87 +91,128 @@ export default function AddGuardianPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 pb-20">
-            <NavBar />
-            <div className="max-w-2xl mx-auto p-4 lg:p-8">
+        <div className="min-h-screen bg-[var(--dark-900)] pb-20">
+            <NavBar showBackButton={true} darkMode={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+            
+            {/* Mobile Sidebar Overlay */}
+            <div 
+                className={`fixed inset-0 bg-black/70 z-40 md:hidden transition-opacity duration-300 ${
+                    isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={() => setIsSidebarOpen(false)}
+            />
+            
+            {/* Mobile Sidebar */}
+            <aside 
+                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+                    <button
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
+                    <YouthSidebar activePath={pathname} darkMode />
+                </div>
+            </aside>
+
+            <div className="max-w-3xl mx-auto px-0 sm:px-6 lg:px-8 pt-16 sm:pt-20">
                 
                 {/* Header */}
-                <div className="mb-8">
-                    <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 text-sm font-medium mb-4 flex items-center gap-1">
-                        ← Back
-                    </button>
-                    <h1 className="text-2xl font-bold text-gray-900">Add Guardian</h1>
-                    <p className="text-gray-500 mt-1">
+                <div className="mb-6 sm:mb-8 text-center px-4 sm:px-0 pt-4 sm:pt-6">
+                    <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-primary)] rounded-xl sm:rounded-2xl mb-4">
+                        <Users className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--brand-light)] mb-2 sm:mb-3 font-heading">Add Guardian</h1>
+                    <p className="text-[var(--brand-light)]/60 text-sm sm:text-base max-w-xl mx-auto">
                         Enter their details below. If they already have an account, we will link them. 
                         Otherwise, we will send them an invite.
                     </p>
                 </div>
 
                 {/* Form */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-500)] p-5 sm:p-6 md:p-10">
+                    <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                         
                         {/* Email */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
+                            <label className="block text-sm font-bold text-[var(--brand-light)] mb-2 flex items-center gap-2">
+                                <Mail className="w-4 h-4 text-[var(--brand-primary)]" />
+                                Email Address
+                            </label>
                             <input 
                                 type="email" 
                                 required
                                 value={formData.email}
                                 onChange={e => setFormData({...formData, email: e.target.value})}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                className="w-full px-4 py-3 rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all"
                                 placeholder="guardian@example.com"
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
                             {/* First Name */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">First Name</label>
+                                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2 flex items-center gap-2">
+                                    <User className="w-4 h-4 text-[var(--brand-primary)]" />
+                                    First Name
+                                </label>
                                 <input 
                                     type="text" 
                                     required
                                     value={formData.first_name}
                                     onChange={e => setFormData({...formData, first_name: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    className="w-full px-4 py-3 rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all"
                                     placeholder="Jane"
                                 />
                             </div>
                             
                             {/* Last Name */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Last Name</label>
+                                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2 flex items-center gap-2">
+                                    <User className="w-4 h-4 text-[var(--brand-primary)]" />
+                                    Last Name
+                                </label>
                                 <input 
                                     type="text" 
                                     required
                                     value={formData.last_name}
                                     onChange={e => setFormData({...formData, last_name: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    className="w-full px-4 py-3 rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all"
                                     placeholder="Doe"
                                 />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
                             {/* Phone Number */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number</label>
+                                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2 flex items-center gap-2">
+                                    <Phone className="w-4 h-4 text-[var(--brand-primary)]" />
+                                    Phone Number
+                                </label>
                                 <input 
                                     type="tel" 
                                     value={formData.phone_number}
                                     onChange={e => setFormData({...formData, phone_number: e.target.value})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    className="w-full px-4 py-3 rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all"
                                     placeholder="+46 70 123 45 67"
                                 />
                             </div>
                             
                             {/* Gender */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Gender</label>
+                                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Gender</label>
                                 <select
                                     value={formData.legal_gender}
                                     onChange={e => setFormData({...formData, legal_gender: e.target.value as 'MALE' | 'FEMALE' | 'OTHER'})}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    className="w-full px-4 py-3 h-[50px] rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all appearance-none"
                                 >
                                     <option value="MALE">Male</option>
                                     <option value="FEMALE">Female</option>
@@ -176,17 +223,20 @@ export default function AddGuardianPage() {
 
                         {/* Relationship */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Relationship</label>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <label className="block text-sm font-bold text-[var(--brand-light)] mb-3 flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-[var(--brand-primary)]" />
+                                Relationship
+                            </label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
                                 {['MOTHER', 'FATHER', 'GUARDIAN', 'OTHER'].map(type => (
                                     <button
                                         key={type}
                                         type="button"
                                         onClick={() => setFormData({...formData, relationship_type: type as typeof formData.relationship_type})}
-                                        className={`py-3 px-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                                        className={`py-3 px-2 rounded-xl text-sm font-bold transition-all ${
                                             formData.relationship_type === type
-                                                ? 'border-blue-600 bg-blue-50 text-blue-700'
-                                                : 'border-transparent bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                                                : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] border border-[var(--dark-400)]'
                                         }`}
                                     >
                                         {type.charAt(0) + type.slice(1).toLowerCase()}
@@ -196,15 +246,16 @@ export default function AddGuardianPage() {
                         </div>
 
                         {/* Primary Checkbox */}
-                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <div className="flex items-center gap-3 p-4 sm:p-5 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
                             <input 
                                 type="checkbox"
                                 id="is_primary"
                                 checked={formData.is_primary_guardian}
                                 onChange={e => setFormData({...formData, is_primary_guardian: e.target.checked})}
-                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                                className="w-5 h-5 text-[var(--brand-primary)] bg-[var(--dark-600)] border-[var(--dark-400)] rounded focus:ring-[var(--brand-primary)] focus:ring-offset-0"
                             />
-                            <label htmlFor="is_primary" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                            <label htmlFor="is_primary" className="text-sm font-bold text-[var(--brand-light)] cursor-pointer select-none flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5 text-[var(--brand-primary)]" />
                                 This is my primary guardian
                             </label>
                         </div>
@@ -213,9 +264,19 @@ export default function AddGuardianPage() {
                         <button 
                             type="submit" 
                             disabled={loading}
-                            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-transform active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-[var(--dark-900)] font-bold py-4 rounded-xl transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                            {loading ? 'Processing...' : 'Send Invite / Link Guardian'}
+                            {loading ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--dark-900)]"></div>
+                                    Processing...
+                                </>
+                            ) : (
+                                <>
+                                    <Mail className="w-5 h-5" />
+                                    Send Invite / Link Guardian
+                                </>
+                            )}
                         </button>
 
                     </form>
@@ -230,6 +291,7 @@ export default function AddGuardianPage() {
                 title={successModal.title}
                 message={successModal.message}
                 buttonText="View Guardians"
+                darkMode={true}
             />
         </div>
     );

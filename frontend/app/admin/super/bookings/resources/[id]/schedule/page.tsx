@@ -1,31 +1,59 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Calendar } from 'lucide-react';
 import ScheduleEditor from '../../../../../../components/bookings/ScheduleEditor';
-import { Button } from '@/components/ui/button';
 
-export default function SuperResourceSchedulePage() {
+function SchedulePageContent() {
   const { id } = useParams();
-  const router = useRouter();
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-6 md:py-8 px-0">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href={`/admin/super/bookings/resources`}>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+      <div className="space-y-4 px-4 sm:px-6 mb-6">
+        {/* Back button */}
+        <Link href="/admin/super/bookings/resources">
+          <button className="flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-colors text-sm font-medium">
             <ArrowLeft className="h-4 w-4" />
-          </Button>
+            Back to Resources
+          </button>
         </Link>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-[#121213]">Manage Schedule</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Define when this resource is available for booking.</p>
+        
+        {/* Title */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+            <Calendar className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Schedule</h1>
+            <p className="text-[var(--brand-light)]/50 text-sm">Define when this resource is available for booking.</p>
+          </div>
         </div>
       </div>
-      <ScheduleEditor resourceId={Number(id)} />
+
+      {/* Content */}
+      <div className="px-4 sm:px-6">
+        <ScheduleEditor resourceId={Number(id)} />
+      </div>
     </div>
   );
 }
 
+export default function SuperResourceSchedulePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
+            <Calendar className="w-6 h-6 text-white" />
+          </div>
+          <p className="text-[var(--brand-light)]/60">Loading schedule...</p>
+        </div>
+      </div>
+    }>
+      <SchedulePageContent />
+    </Suspense>
+  );
+}

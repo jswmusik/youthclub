@@ -1,13 +1,17 @@
 import { GuardianLink } from '@/types/user';
 import { getMediaUrl } from '@/app/utils';
 
+import { X, Mail, Phone, Shield, AlertCircle, CheckCircle } from 'lucide-react';
+
+
 interface ModalProps {
     link: GuardianLink | null;
     isOpen: boolean;
     onClose: () => void;
+    darkMode?: boolean;
 }
 
-export default function GuardianDetailModal({ link, isOpen, onClose }: ModalProps) {
+export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = false }: ModalProps) {
     if (!isOpen || !link) return null;
 
     const { guardian, status } = link;
@@ -15,75 +19,130 @@ export default function GuardianDetailModal({ link, isOpen, onClose }: ModalProp
 
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" 
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm ${
+                darkMode ? 'bg-black/70' : 'bg-black/50'
+            }`}
             onClick={onClose}
             style={{ animation: 'fadeIn 0.2s ease-out' }}
         >
             <div 
-                className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl" 
+                className={`w-full max-w-md overflow-hidden ${
+                    darkMode 
+                        ? 'bg-[var(--dark-800)] rounded-xl border border-[var(--dark-500)]' 
+                        : 'bg-white rounded-3xl shadow-2xl'
+                }`}
                 onClick={e => e.stopPropagation()}
                 style={{ animation: 'slideUp 0.2s ease-out' }}
             >
                 
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white text-center relative">
-                    <button onClick={onClose} className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                <div className={`p-8 text-center relative ${
+                    darkMode 
+                        ? 'bg-gradient-to-br from-[var(--brand-secondary)] via-[var(--brand-purple)] to-[var(--brand-primary)]' 
+                        : 'bg-gradient-to-br from-[#4D4DA4] via-[#6D6DD4] to-[#FF5485]'
+                }`}>
+                    <button 
+                        onClick={onClose} 
+                        className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-2"
+                    >
+                        <X className="w-5 h-5" />
                     </button>
-                    <div className="w-24 h-24 mx-auto bg-white rounded-full p-1 shadow-lg mb-3">
+                    <div className={`w-28 h-28 mx-auto rounded-2xl p-1.5 mb-4 ${
+                        darkMode ? 'bg-[var(--dark-800)]' : 'bg-white shadow-xl'
+                    }`}>
                         {guardian.avatar ? (
                             <img 
                                 src={getMediaUrl(guardian.avatar)} 
-                                className="w-full h-full rounded-full object-cover"
+                                className="w-full h-full rounded-xl object-cover"
                                 alt="Avatar" 
                             />
                         ) : (
-                            <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-2xl">
+                            <div className={`w-full h-full rounded-xl flex items-center justify-center font-bold text-3xl ${
+                                darkMode 
+                                    ? 'bg-[var(--dark-600)] text-[var(--brand-purple)]' 
+                                    : 'bg-gradient-to-br from-[#4D4DA4]/10 to-[#FF5485]/10 text-[#4D4DA4]'
+                            }`}>
                                 {guardian.first_name?.[0] || ''}{guardian.last_name?.[0] || ''}
                             </div>
                         )}
                     </div>
-                    <h2 className="text-xl font-bold">{guardian.first_name} {guardian.last_name}</h2>
-                    <p className="text-blue-100 text-sm capitalize">{link.relationship_type.toLowerCase()}</p>
+                    <h2 className="text-2xl font-bold mb-1 font-heading text-white">{guardian.first_name} {guardian.last_name}</h2>
+                    <p className="text-white/90 text-sm font-semibold capitalize flex items-center justify-center gap-1.5">
+                        <Shield className="w-4 h-4" />
+                        {link.relationship_type.toLowerCase()}
+                    </p>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-4">
+                <div className={`p-6 space-y-5 ${darkMode ? 'bg-[var(--dark-800)]' : ''}`}>
                     {!isVerified && (
-                        <div className="bg-yellow-50 text-yellow-800 p-3 rounded-lg text-sm flex gap-2 items-start">
-                            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p>Contact details are hidden until the guardian accepts your request and verifies their account.</p>
+                        <div className={`p-4 rounded-xl text-sm flex gap-3 items-start ${
+                            darkMode 
+                                ? 'bg-[var(--brand-peach)]/10 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30' 
+                                : 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border border-amber-200'
+                        }`}>
+                            <AlertCircle className="w-5 h-5 shrink-0" />
+                            <p className="font-medium">Contact details are hidden until the guardian accepts your request and verifies their account.</p>
                         </div>
                     )}
 
-                    <div className="space-y-3">
-                        <InfoRow label="Email" value={guardian.email} />
+                    {isVerified && (
+                        <div className={`p-4 rounded-xl text-sm flex gap-3 items-center ${
+                            darkMode 
+                                ? 'bg-[var(--brand-third)]/10 text-[var(--brand-third)] border border-[var(--brand-third)]/30' 
+                                : 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-800 border border-emerald-200'
+                        }`}>
+                            <CheckCircle className="w-5 h-5 shrink-0" />
+                            <p className="font-bold">Verified Guardian</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        <InfoRow 
+                            icon={<Mail className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />} 
+                            label="Email" 
+                            value={guardian.email} 
+                            darkMode={darkMode}
+                        />
                         
                         {/* Conditional Rendering based on Verification */}
                         {isVerified ? (
                             <>
-                                <InfoRow label="Phone" value={guardian.phone_number || 'Not provided'} />
-                                {/* Add Address here if it exists in your model */}
+                                <InfoRow 
+                                    icon={<Phone className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />} 
+                                    label="Phone" 
+                                    value={guardian.phone_number || 'Not provided'} 
+                                    darkMode={darkMode}
+                                />
                             </>
                         ) : (
                             <div className="opacity-50 grayscale blur-[2px] select-none" aria-hidden="true">
-                                <InfoRow label="Phone" value="+46 70 123 45 67" />
+                                <InfoRow icon={<Phone className="w-5 h-5" />} label="Phone" value="+46 70 123 45 67" darkMode={darkMode} />
                             </div>
                         )}
                         
                         <InfoRow 
+                            icon={<Shield className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-500'}`} />}
                             label="Primary Guardian" 
                             value={link.is_primary_guardian ? 'Yes' : 'No'} 
+                            darkMode={darkMode}
                         />
                     </div>
                 </div>
 
-                <div className="p-4 border-t bg-gray-50 flex justify-end">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors">
+                <div className={`p-6 border-t flex justify-end gap-2 ${
+                    darkMode 
+                        ? 'border-[var(--dark-500)] bg-[var(--dark-700)]' 
+                        : 'border-gray-100 bg-gradient-to-br from-gray-50 to-white'
+                }`}>
+                    <button 
+                        onClick={onClose} 
+                        className={`px-6 py-3 rounded-xl font-bold transition-all ${
+                            darkMode 
+                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/80' 
+                                : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-md shadow-[#4D4DA4]/20'
+                        }`}
+                    >
                         Close
                     </button>
                 </div>
@@ -92,10 +151,17 @@ export default function GuardianDetailModal({ link, isOpen, onClose }: ModalProp
     );
 }
 
-const InfoRow = ({ label, value }: { label: string, value: string }) => (
-    <div className="flex justify-between border-b border-gray-100 pb-2 last:border-0">
-        <span className="text-gray-500 text-sm">{label}</span>
-        <span className="text-gray-900 font-medium text-sm">{value}</span>
+const InfoRow = ({ icon, label, value, darkMode = false }: { icon: React.ReactNode, label: string, value: string, darkMode?: boolean }) => (
+    <div className={`flex items-center justify-between p-4 rounded-xl ${
+        darkMode 
+            ? 'bg-[var(--dark-700)] border border-[var(--dark-500)]' 
+            : 'bg-gradient-to-r from-gray-50 to-white border border-gray-100'
+    }`}>
+        <div className="flex items-center gap-3">
+            {icon}
+            <span className={`text-sm font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{label}</span>
+        </div>
+        <span className={`font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{value}</span>
     </div>
 );
 

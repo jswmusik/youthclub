@@ -20,9 +20,10 @@ interface PreferredClubCardProps {
         avatar?: string | null;
         regular_hours?: RegularOpeningHour[];
     } | null;
+    darkMode?: boolean;
 }
 
-export default function PreferredClubCard({ club }: PreferredClubCardProps) {
+export default function PreferredClubCard({ club, darkMode }: PreferredClubCardProps) {
     const router = useRouter();
 
     if (!club) {
@@ -116,7 +117,11 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
     };
 
     return (
-        <div className="bg-[#050505] rounded-xl shadow-lg p-6 border border-[#262626] mb-6">
+        <div className={`rounded-xl p-6 mb-6 ${
+            darkMode
+                ? 'bg-[var(--dark-700)] border border-[var(--dark-500)]'
+                : 'bg-white shadow-lg border border-gray-200'
+        }`}>
             <div className="flex items-center gap-4 mb-4">
                 <button
                     onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
@@ -126,37 +131,63 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
                         <img 
                             src={getMediaUrl(club.avatar) || ''} 
                             alt={club.name}
-                            className="w-16 h-16 rounded-full object-cover border-2 border-[#262626] hover:border-[#4D4DA4] transition-colors cursor-pointer"
+                            className={`w-16 h-16 rounded-full object-cover border-2 transition-colors cursor-pointer ${
+                                darkMode
+                                    ? 'border-[var(--dark-500)] hover:border-[var(--brand-primary)]'
+                                    : 'border-gray-200 hover:border-[#4D4DA4]'
+                            }`}
                         />
                     ) : (
-                        <div className="w-16 h-16 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center border-2 border-[#262626] hover:border-[#4D4DA4] transition-colors cursor-pointer">
-                            <span className="text-[#6D6DD4] font-bold text-xl">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 transition-colors cursor-pointer ${
+                            darkMode
+                                ? 'bg-[var(--brand-secondary)]/30 border-[var(--dark-500)] hover:border-[var(--brand-primary)]'
+                                : 'bg-[#4D4DA4]/20 border-gray-200 hover:border-[#4D4DA4]'
+                        }`}>
+                            <span className={`font-bold text-xl ${
+                                darkMode ? 'text-[var(--brand-purple)]' : 'text-[#6D6DD4]'
+                            }`}>
                                 {club.name.charAt(0).toUpperCase()}
                             </span>
                         </div>
                     )}
                 </button>
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-200 text-lg truncate">{club.name}</h3>
-                    <p className="text-sm text-gray-400">My Club</p>
+                    <h3 className={`font-bold text-lg truncate ${
+                        darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'
+                    }`}>{club.name}</h3>
+                    <p className={`text-sm ${
+                        darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                    }`}>My Club</p>
                 </div>
             </div>
 
             {/* Opening Hours Status */}
             <div className="mb-4">
                 {todayHours.length === 0 ? (
-                    <div className="flex items-center gap-2 text-gray-400">
-                        <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                    <div className={`flex items-center gap-2 ${
+                        darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                    }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                            darkMode ? 'bg-[var(--brand-light)]/40' : 'bg-gray-400'
+                        }`}></div>
                         <span className="text-sm font-medium">Closed today</span>
                     </div>
                 ) : isOpen ? (
-                    <div className="flex items-center gap-2 text-emerald-400">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <div className={`flex items-center gap-2 ${
+                        darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-600'
+                    }`}>
+                        <div className={`w-2 h-2 rounded-full animate-pulse ${
+                            darkMode ? 'bg-[var(--brand-third)]' : 'bg-emerald-500'
+                        }`}></div>
                         <span className="text-sm font-semibold">Open now</span>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 text-gray-400">
-                        <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                    <div className={`flex items-center gap-2 ${
+                        darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                    }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                            darkMode ? 'bg-[var(--brand-light)]/40' : 'bg-gray-400'
+                        }`}></div>
                         <span className="text-sm font-medium">Closed</span>
                     </div>
                 )}
@@ -165,7 +196,9 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
                 {todayHours.length > 0 && (
                     <div className="mt-2 space-y-1">
                         {todayHours.map((hour, index) => (
-                            <div key={hour.id || index} className="text-sm text-gray-300">
+                            <div key={hour.id || index} className={`text-sm ${
+                                darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-700'
+                            }`}>
                                 {hour.title && (
                                     <span className="font-medium">{hour.title}: </span>
                                 )}
@@ -177,7 +210,9 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
 
                 {/* Next Opening Time */}
                 {!isOpen && nextOpening && (
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className={`mt-2 text-xs ${
+                        darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
+                    }`}>
                         Opens {nextOpening.day} at {formatTime(nextOpening.time)}
                     </div>
                 )}
@@ -186,7 +221,11 @@ export default function PreferredClubCard({ club }: PreferredClubCardProps) {
             {/* View Club Button */}
             <button
                 onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
-                className="w-full py-2 px-4 bg-[#FF5485] text-white rounded-lg font-medium hover:bg-[#FF6595] transition-colors text-sm shadow-lg shadow-[#FF5485]/30"
+                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors text-sm ${
+                    darkMode
+                        ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/80'
+                        : 'bg-[#FF5485] text-white hover:bg-[#FF6595] shadow-lg shadow-[#FF5485]/30'
+                }`}
             >
                 View Club
             </button>

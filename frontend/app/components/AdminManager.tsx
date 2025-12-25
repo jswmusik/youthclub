@@ -1,21 +1,236 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, ShieldCheck, Building, Building2 } from 'lucide-react';
+import { 
+  Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, 
+  Users, ShieldCheck, Building, Building2, Mail, ChevronLeft
+} from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+}
+
+function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleEditClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+        >
+          <Edit className="w-5 h-5" />
+          <span className="text-xs font-medium">Edit</span>
+        </button>
+        <button
+          onClick={handleDeleteClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function AdminCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-24 rounded-full" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-28 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-1">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function AdminsPageSkeleton() {
+  return (
+    <>
+      {/* Mobile Cards Skeleton */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {[...Array(4)].map((_, i) => (
+          <AdminCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Role</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Assignment</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(5)].map((_, i) => (
+              <AdminTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 interface AdminManagerProps {
   basePath: string;
@@ -31,6 +246,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
   
   const [allAdmins, setAllAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   
   // Dropdowns
@@ -44,9 +260,29 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
   const [adminToDelete, setAdminToDelete] = useState<any>(null);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
+  // Filter State
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [roleFilter, setRoleFilter] = useState(searchParams.get('role') || '');
+  const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('assigned_municipality') || '');
+  const [clubFilter, setClubFilter] = useState(searchParams.get('assigned_club') || '');
+
   useEffect(() => {
     fetchDropdowns();
   }, []);
+
+  // Debounced Search/Filter Update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchInput) params.set('search', searchInput); else params.delete('search');
+      if (roleFilter) params.set('role', roleFilter); else params.delete('role');
+      if (municipalityFilter) params.set('assigned_municipality', municipalityFilter); else params.delete('assigned_municipality');
+      if (clubFilter) params.set('assigned_club', clubFilter); else params.delete('assigned_club');
+      params.set('page', '1');
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, roleFilter, municipalityFilter, clubFilter]);
 
   useEffect(() => {
     fetchAdmins();
@@ -54,13 +290,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
 
   const fetchDropdowns = async () => {
     try {
-      // Fetch municipalities for SUPER scope (for filtering) and for displaying assignment names
-      if (scope === 'SUPER') {
-        const muniRes = await api.get('/municipalities/');
-        setMunicipalities(Array.isArray(muniRes.data) ? muniRes.data : muniRes.data.results || []);
-      } else if (scope === 'MUNICIPALITY') {
-        // For MUNICIPALITY scope, fetch municipalities to display assignment names
-        // Backend will filter to only show the current user's municipality
+      if (scope === 'SUPER' || scope === 'MUNICIPALITY') {
         const muniRes = await api.get('/municipalities/');
         setMunicipalities(Array.isArray(muniRes.data) ? muniRes.data : muniRes.data.results || []);
       }
@@ -71,29 +301,29 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
     }
   };
 
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+    
     try {
       const rolesToFetch = ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN'];
       const search = searchParams.get('search') || '';
-      const roleFilter = searchParams.get('role') || '';
-      const municipalityFilter = searchParams.get('assigned_municipality') || '';
-      const clubFilter = searchParams.get('assigned_club') || '';
+      const roleFilterParam = searchParams.get('role') || '';
+      const municipalityFilterParam = searchParams.get('assigned_municipality') || '';
+      const clubFilterParam = searchParams.get('assigned_club') || '';
       
       if (scope === 'SUPER') {
-        // For Super Admins: Fetch admin roles in parallel and combine
-        // If role filter is set, only fetch that role, otherwise fetch all
-        const rolesToFetchFiltered = roleFilter && rolesToFetch.includes(roleFilter) 
-          ? [roleFilter] 
+        const rolesToFetchFiltered = roleFilterParam && rolesToFetch.includes(roleFilterParam) 
+          ? [roleFilterParam] 
           : rolesToFetch;
         
         const params = new URLSearchParams();
         if (search) params.set('search', search);
-        if (municipalityFilter) params.set('assigned_municipality', municipalityFilter);
-        if (clubFilter) params.set('assigned_club', clubFilter);
+        if (municipalityFilterParam) params.set('assigned_municipality', municipalityFilterParam);
+        if (clubFilterParam) params.set('assigned_club', clubFilterParam);
         params.set('page_size', '1000');
         
-        // Fetch each admin role separately and combine
         const promises = rolesToFetchFiltered.map(role => {
           const roleParams = new URLSearchParams(params);
           roleParams.set('role', role);
@@ -102,7 +332,6 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
         
         const results = await Promise.all(promises);
         
-        // Combine all admin users
         let combinedAdmins: any[] = [];
         results.forEach(res => {
           const data = Array.isArray(res.data) ? res.data : res.data.results || [];
@@ -112,23 +341,20 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
         setAllAdmins(combinedAdmins);
         setTotalCount(combinedAdmins.length);
       } else {
-        // For Municipality/Club scope: Fetch admin roles explicitly
         const allowedRoles = scope === 'MUNICIPALITY' 
           ? ['MUNICIPALITY_ADMIN', 'CLUB_ADMIN']
           : ['CLUB_ADMIN'];
         
-        // If role filter is set and valid, only fetch that role
-        const rolesToFetch = roleFilter && allowedRoles.includes(roleFilter)
-          ? [roleFilter]
+        const rolesToFetch = roleFilterParam && allowedRoles.includes(roleFilterParam)
+          ? [roleFilterParam]
           : allowedRoles;
         
         const params = new URLSearchParams();
         if (search) params.set('search', search);
-        if (municipalityFilter) params.set('assigned_municipality', municipalityFilter);
-        if (clubFilter) params.set('assigned_club', clubFilter);
+        if (municipalityFilterParam) params.set('assigned_municipality', municipalityFilterParam);
+        if (clubFilterParam) params.set('assigned_club', clubFilterParam);
         params.set('page_size', '1000');
         
-        // Fetch each admin role separately and combine
         const promises = rolesToFetch.map(role => {
           const roleParams = new URLSearchParams(params);
           roleParams.set('role', role);
@@ -137,7 +363,6 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
         
         const results = await Promise.all(promises);
         
-        // Combine all admin users
         let combinedAdmins: any[] = [];
         results.forEach(res => {
           const data = Array.isArray(res.data) ? res.data : res.data.results || [];
@@ -152,16 +377,15 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
       setAllAdmins([]);
       setTotalCount(0);
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
-  };
-
-  const updateUrl = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value); else params.delete(key);
-    if (key !== 'page') params.set('page', '1');
-    router.push(`${pathname}?${params.toString()}`);
-  };
+  }, [searchParams, scope]);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -183,21 +407,21 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
     if (!adminToDelete) return;
     try {
       await api.delete(`/users/${adminToDelete.id}/`);
-      setToast({ message: 'Admin deleted.', type: 'success', isVisible: true });
+      setToast({ message: 'Admin deleted successfully.', type: 'success', isVisible: true });
       fetchAdmins();
     } catch (err) {
-      setToast({ message: 'Failed to delete.', type: 'error', isVisible: true });
+      setToast({ message: 'Failed to delete admin.', type: 'error', isVisible: true });
     } finally {
       setAdminToDelete(null);
     }
   };
 
-  const getRoleBadge = (role: string) => {
+  const getRoleBadgeClasses = (role: string) => {
     switch (role) {
-      case 'SUPER_ADMIN': return 'bg-red-50 text-[#EF4444] border-red-200';
-      case 'MUNICIPALITY_ADMIN': return 'bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30';
-      case 'CLUB_ADMIN': return 'bg-blue-50 text-[#0EA5E9] border-blue-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'SUPER_ADMIN': return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+      case 'MUNICIPALITY_ADMIN': return 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30';
+      case 'CLUB_ADMIN': return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
+      default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
     }
   };
 
@@ -205,6 +429,30 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
     const firstInitial = first?.charAt(0)?.toUpperCase() || '';
     const lastInitial = last?.charAt(0)?.toUpperCase() || '';
     return firstInitial + lastInitial || '?';
+  };
+
+  const getAssignment = (user: any) => {
+    if (user.role === 'CLUB_ADMIN' && user.assigned_club) {
+      const clubId = typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club;
+      const club = clubs.find(c => c.id === clubId);
+      return club?.name || 'Club Assigned';
+    }
+    if (user.role === 'MUNICIPALITY_ADMIN' && user.assigned_municipality) {
+      const muniId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
+      const municipality = municipalities.find(m => m.id === muniId);
+      return municipality?.name || 'Municipality Assigned';
+    }
+    if (user.assigned_municipality) {
+      const muniId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
+      const municipality = municipalities.find(m => m.id === muniId);
+      return municipality?.name || 'Municipality Assigned';
+    }
+    if (user.assigned_club) {
+      const clubId = typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club;
+      const club = clubs.find(c => c.id === clubId);
+      return club?.name || 'Club Assigned';
+    }
+    return 'Global';
   };
 
   // Calculate analytics from allAdmins
@@ -223,425 +471,373 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
   const endIndex = startIndex + pageSize;
   const paginatedAdmins = allAdmins.slice(startIndex, endIndex);
 
+  const handlePageChange = (p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', p.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const clearFilters = () => {
+    setSearchInput('');
+    setRoleFilter('');
+    setMunicipalityFilter('');
+    setClubFilter('');
+    router.push(pathname);
+  };
+
+  const hasFilters = searchInput || roleFilter || municipalityFilter || clubFilter;
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Manage Administrators</h1>
-          <p className="text-gray-500 mt-1">Manage admin users and their permissions.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Administrators</h1>
+          </div>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Admin users and their permissions across the platform.</p>
         </div>
         <Link href={`${basePath}/create`}>
-          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
+          <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> Add Admin
-          </Button>
+          </button>
         </Link>
       </div>
 
-      {/* Analytics */}
-      {!loading && (
-        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border-0 shadow-sm bg-gray-900">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                  Analytics Dashboard
-                </h3>
+      {/* Analytics Dashboard */}
+      {!showSkeleton && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          {/* Header */}
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                  )} />
-                  <span className="sr-only">Toggle Analytics</span>
-                </Button>
-              </CollapsibleTrigger>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
             </div>
-            <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                <div className={`grid grid-cols-1 sm:grid-cols-2 ${
-                  scope === 'SUPER' ? 'lg:grid-cols-4' : 
-                  scope === 'MUNICIPALITY' ? 'lg:grid-cols-3' : 
-                  'lg:grid-cols-2'
-                } gap-3 sm:gap-4`}>
-                  {/* Card 1: Total Admins */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                          }}>
-                          <Users className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Total Admins</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_admins}</div>
-                    </div>
-                  </Card>
-
-                  {/* Card 2: Super Admins - Only show for SUPER scope */}
-                  {scope === 'SUPER' && (
-                    <Card className="bg-white/5 backdrop-blur-sm border border-[#EF4444]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                      style={{
-                        boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2)',
-                      }}>
-                      <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                        <div className="flex items-center gap-2 justify-center">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#DC2626] flex items-center justify-center shadow-lg"
-                            style={{
-                              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.3)',
-                            }}>
-                            <ShieldCheck className="h-5 w-5 text-white" />
-                          </div>
-                          <CardTitle className="text-sm font-medium text-white/90">Super Admins</CardTitle>
-                        </div>
-                        <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.super_admins}</div>
-                      </div>
-                    </Card>
-                  )}
-
-                  {/* Card 3: Municipality Admins - Hide for CLUB scope */}
-                  {scope !== 'CLUB' && (
-                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                      style={{
-                        boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(14, 165, 233, 0.2)',
-                      }}>
-                      <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                        <div className="flex items-center gap-2 justify-center">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                            style={{
-                              boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3)',
-                            }}>
-                            <Building className="h-5 w-5 text-white" />
-                          </div>
-                          <CardTitle className="text-sm font-medium text-white/90">Municipality Admins</CardTitle>
-                        </div>
-                        <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.municipality_admins}</div>
-                      </div>
-                    </Card>
-                  )}
-
-                  {/* Card 4: Club Admins */}
-                  <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                    style={{
-                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.2)',
-                    }}>
-                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                          style={{
-                            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
-                          }}>
-                          <Building2 className="h-5 w-5 text-white" />
-                        </div>
-                        <CardTitle className="text-sm font-medium text-white/90">Club Admins</CardTitle>
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.club_admins}</div>
-                    </div>
-                  </Card>
+            <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+          </button>
+          
+          {/* Content */}
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className={`px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 ${
+              scope === 'SUPER' ? 'sm:grid-cols-4' : 
+              scope === 'MUNICIPALITY' ? 'sm:grid-cols-3' : 
+              'sm:grid-cols-2'
+            } gap-3 sm:gap-4`}>
+              
+              {/* Total Admins */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
                 </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_admins}</div>
+              </div>
+
+              {/* Super Admins - Only show for SUPER scope */}
+              {scope === 'SUPER' && (
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-red)]/50 transition-all">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-red)] to-[var(--brand-peach)] flex items-center justify-center">
+                      <ShieldCheck className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Super</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.super_admins}</div>
+                </div>
+              )}
+
+              {/* Municipality Admins - Hide for CLUB scope */}
+              {scope !== 'CLUB' && (
+                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                      <Building className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Municipality</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.municipality_admins}</div>
+                </div>
+              )}
+
+              {/* Club Admins */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-third)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-[var(--dark-900)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Club</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-third)]">{analytics.club_admins}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-            <Input 
+      {/* Search & Filters */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex flex-col gap-3">
+          {/* Search Row */}
+          <div className="flex items-center gap-3">
+            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+            <input 
+              type="text"
               placeholder="Search by name or email..." 
-              className="pl-9 bg-gray-50 border-0"
-              value={searchParams.get('search') || ''}
-              onChange={e => updateUrl('search', e.target.value)}
+              className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
             />
-          </div>
-          {(scope === 'SUPER' || scope === 'MUNICIPALITY') && (
-            <div className="w-full sm:w-[180px]">
-              <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('role') || ''} 
-                onChange={(e) => updateUrl('role', e.target.value)}
+            {searchInput && (
+              <button 
+                onClick={() => setSearchInput('')}
+                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
               >
-                <option value="">All Roles</option>
-                {scope === 'SUPER' && <option value="SUPER_ADMIN">Super Admin</option>}
-                <option value="MUNICIPALITY_ADMIN">Municipality Admin</option>
-                <option value="CLUB_ADMIN">Club Admin</option>
-              </select>
-            </div>
-          )}
-          {scope === 'SUPER' && (
+                ×
+              </button>
+            )}
+          </div>
+          
+          {/* Filters Row */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {(scope === 'SUPER' || scope === 'MUNICIPALITY') && (
+              <div className="w-full sm:w-[180px]">
+                <select 
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={roleFilter}
+                  onChange={e => setRoleFilter(e.target.value)}
+                  style={selectArrowStyle}
+                >
+                  <option value="">All Roles</option>
+                  {scope === 'SUPER' && <option value="SUPER_ADMIN">Super Admin</option>}
+                  <option value="MUNICIPALITY_ADMIN">Municipality Admin</option>
+                  <option value="CLUB_ADMIN">Club Admin</option>
+                </select>
+              </div>
+            )}
+            {scope === 'SUPER' && (
+              <div className="w-full sm:w-[200px]">
+                <select 
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={municipalityFilter}
+                  onChange={e => {
+                    setMunicipalityFilter(e.target.value);
+                    setClubFilter('');
+                  }}
+                  style={selectArrowStyle}
+                >
+                  <option value="">All Municipalities</option>
+                  {municipalities.map(m => (
+                    <option key={m.id} value={m.id.toString()}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="w-full sm:w-[200px]">
               <select 
-                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                value={searchParams.get('assigned_municipality') || ''} 
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const params = new URLSearchParams(searchParams.toString());
-                  if (value) {
-                    params.set('assigned_municipality', value);
-                  } else {
-                    params.delete('assigned_municipality');
-                  }
-                  params.delete('assigned_club');
-                  params.set('page', '1');
-                  router.push(`${pathname}?${params.toString()}`);
-                }}
+                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                value={clubFilter}
+                onChange={e => setClubFilter(e.target.value)}
+                style={selectArrowStyle}
               >
-                <option value="">All Municipalities</option>
-                {municipalities.map(m => (
-                  <option key={m.id} value={m.id.toString()}>{m.name}</option>
+                <option value="">All Clubs</option>
+                {clubs.map(c => (
+                  <option key={c.id} value={c.id.toString()}>{c.name}</option>
                 ))}
               </select>
             </div>
-          )}
-          <div className="w-full sm:w-[200px]">
-            <select 
-              className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-              value={searchParams.get('assigned_club') || ''} 
-              onChange={(e) => updateUrl('assigned_club', e.target.value)}
-            >
-              <option value="">All Clubs</option>
-              {clubs.map(c => (
-                <option key={c.id} value={c.id.toString()}>{c.name}</option>
-              ))}
-            </select>
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
+              >
+                Clear All
+              </button>
+            )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push(pathname)}
-            className="text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-          >
-            <X className="h-4 w-4" /> Clear
-          </Button>
         </div>
-      </Card>
+      </div>
+
+      {/* Stats Bar */}
+      {!showSkeleton && paginatedAdmins.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedAdmins.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'admin' : 'admins'}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
+      {showSkeleton ? (
+        <AdminsPageSkeleton />
       ) : paginatedAdmins.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">No admins found.</p>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-        </Card>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No administrators found</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm mb-6">
+            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by adding your first admin.'}
+          </p>
+          {!hasFilters && (
+            <Link href={`${basePath}/create`}>
+              <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
+                <Plus className="h-4 w-4" /> Add Admin
+              </button>
+            </Link>
+          )}
+        </div>
       ) : (
         <>
-          {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {paginatedAdmins.map(user => {
-              const assignment = (() => {
-                if (user.role === 'CLUB_ADMIN' && user.assigned_club) {
-                  const clubId = typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club;
-                  const club = clubs.find(c => c.id === clubId);
-                  return club?.name || 'Club Assigned';
-                }
-                if (user.role === 'MUNICIPALITY_ADMIN' && user.assigned_municipality) {
-                  const muniId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
-                  const municipality = municipalities.find(m => m.id === muniId);
-                  return municipality?.name || 'Municipality Assigned';
-                }
-                if (user.assigned_municipality) {
-                  const muniId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
-                  const municipality = municipalities.find(m => m.id === muniId);
-                  return municipality?.name || 'Municipality Assigned';
-                }
-                if (user.assigned_club) {
-                  const clubId = typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club;
-                  const club = clubs.find(c => c.id === clubId);
-                  return club?.name || 'Club Assigned';
-                }
-                return 'Global';
-              })();
-
-              return (
-                <Card key={user.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                  <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
-                        <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
-                        <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+          {/* Mobile Cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {paginatedAdmins.map((user, index) => (
+              <SwipeableCard
+                key={user.id}
+                onClick={() => router.push(buildUrlWithParams(`${basePath}/${user.id}`))}
+                onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${user.id}`))}
+                onDelete={() => setAdminToDelete(user)}
+              >
+                <div className="border-y border-[var(--dark-600)] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-full bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {user.avatar ? (
+                        <img src={getMediaUrl(user.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-[var(--brand-primary)]">
                           {getInitials(user.first_name, user.last_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base font-semibold text-[#121213] truncate">
-                          {user.first_name} {user.last_name}
-                        </CardTitle>
-                        <CardDescription className="text-xs text-gray-500 truncate">{user.email}</CardDescription>
-                      </div>
+                        </span>
+                      )}
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3 pt-0">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-xs text-gray-500 uppercase font-semibold">Role</span>
-                        <Badge variant="outline" className={getRoleBadge(user.role)}>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
+                        {user.first_name} {user.last_name}
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Mail className="w-3 h-3 text-[var(--brand-light)]/40" />
+                        <p className="text-xs text-[var(--brand-light)]/50 truncate">{user.email}</p>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${getRoleBadgeClasses(user.role)}`}>
                           {user.role.replace(/_/g, ' ')}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-xs text-gray-500 uppercase font-semibold">Assignment</span>
-                        <span className="text-gray-600 font-medium">{assignment}</span>
+                        </span>
+                        <span className="text-xs text-[var(--brand-light)]/50">{getAssignment(user)}</span>
                       </div>
                     </div>
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                      <Link href={buildUrlWithParams(`${basePath}/${user.id}`)} className="flex-1">
-                        <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Button>
-                      </Link>
-                      <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)} className="flex-1">
-                        <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                          <Edit className="h-4 w-4" />
-                          Edit
-                        </Button>
-                      </Link>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => setAdminToDelete(user)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </div>
+                </div>
+              </SwipeableCard>
+            ))}
           </div>
 
-          {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Role</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Assignment</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedAdmins.map(user => {
-                  const assignment = (() => {
-                    if (user.role === 'CLUB_ADMIN' && user.assigned_club) {
-                      const clubId = typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club;
-                      const club = clubs.find(c => c.id === clubId);
-                      return club?.name || 'Club Assigned';
-                    }
-                    if (user.role === 'MUNICIPALITY_ADMIN' && user.assigned_municipality) {
-                      const muniId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
-                      const municipality = municipalities.find(m => m.id === muniId);
-                      return municipality?.name || 'Municipality Assigned';
-                    }
-                    if (user.assigned_municipality) {
-                      const muniId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
-                      const municipality = municipalities.find(m => m.id === muniId);
-                      return municipality?.name || 'Municipality Assigned';
-                    }
-                    if (user.assigned_club) {
-                      const clubId = typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club;
-                      const club = clubs.find(c => c.id === clubId);
-                      return club?.name || 'Club Assigned';
-                    }
-                    return 'Global';
-                  })();
-
-                  return (
-                    <TableRow key={user.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <TableCell className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
-                            <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
-                            <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Role</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Assignment</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedAdmins.map((user, index) => (
+                  <tr 
+                    key={user.id} 
+                    className={`${index !== paginatedAdmins.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors`}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center overflow-hidden">
+                          {user.avatar ? (
+                            <img src={getMediaUrl(user.avatar)} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-[var(--brand-primary)]">
                               {getInitials(user.first_name, user.last_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-semibold text-[#121213]">{user.first_name} {user.last_name}</div>
-                            <div className="text-xs text-gray-500">{user.email}</div>
-                          </div>
+                            </span>
+                          )}
                         </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <Badge variant="outline" className={getRoleBadge(user.role)}>
-                          {user.role.replace(/_/g, ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-4 px-6 text-gray-600">{assignment}</TableCell>
-                      <TableCell className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Link href={buildUrlWithParams(`${basePath}/${user.id}`)}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => setAdminToDelete(user)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        <div>
+                          <div className="font-semibold text-[var(--brand-light)]">{user.first_name} {user.last_name}</div>
+                          <div className="text-xs text-[var(--brand-light)]/50">{user.email}</div>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </Card>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${getRoleBadgeClasses(user.role)}`}>
+                        {user.role.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-[var(--brand-light)]/60">{getAssignment(user)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={buildUrlWithParams(`${basePath}/${user.id}`)}>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </Link>
+                        <Link href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </Link>
+                        <button 
+                          onClick={() => setAdminToDelete(user)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
+            <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+              <button 
                 disabled={currentPage === 1} 
-                onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Prev
-              </Button>
-              <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
+                Previous
+              </button>
+              <div className="text-sm text-[var(--brand-light)]/50">
+                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+              </div>
+              <button 
                 disabled={currentPage >= totalPages} 
-                onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Next
-              </Button>
+              </button>
             </div>
           )}
         </>
       )}
 
+      {/* Modals */}
       <ConfirmationModal 
         isVisible={!!adminToDelete}
         onClose={() => setAdminToDelete(null)}
@@ -651,8 +847,9 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
         confirmButtonText="Delete"
         cancelButtonText="Cancel"
         variant="danger"
+        darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
     </div>
   );
 }

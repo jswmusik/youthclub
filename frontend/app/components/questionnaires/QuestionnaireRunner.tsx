@@ -3,14 +3,18 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
 import { useRouter } from 'next/navigation';
+
 import { questionnaireApi } from '../../../lib/questionnaire-api';
+import { CheckCircle, AlertTriangle } from 'lucide-react';
+
 
 interface Props {
   questionnaireId: string;
   onDataLoaded?: () => void;
+  darkMode?: boolean;
 }
 
-export default function QuestionnaireRunner({ questionnaireId, onDataLoaded }: Props) {
+export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, darkMode = false }: Props) {
   const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -276,20 +280,46 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded }: P
 
   // --- Render Helpers ---
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className={`w-12 h-12 border-4 rounded-full animate-spin ${
+          darkMode 
+            ? 'border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)]' 
+            : 'border-[#4D4DA4]/20 border-t-[#4D4DA4]'
+        }`} />
+      </div>
+    );
+  }
   
   // Show error message if questionnaire doesn't exist
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto pb-20">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-red-200 text-center">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Questionnaire Not Found</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <p className="text-sm text-gray-500 mb-6">Redirecting you back to notifications...</p>
+      <div className="max-w-2xl mx-auto pb-20 px-4 sm:px-0">
+        <div className={`p-8 rounded-xl sm:rounded-2xl text-center border ${
+          darkMode 
+            ? 'bg-[var(--dark-800)] border-[var(--brand-red)]/30' 
+            : 'bg-white shadow-lg border-2 border-red-200'
+        }`}>
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
+            darkMode 
+              ? 'bg-[var(--brand-red)]/20' 
+              : 'bg-gradient-to-br from-red-100 to-red-200'
+          }`}>
+            <AlertTriangle className={`w-10 h-10 ${darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'}`} />
+          </div>
+          <h2 className={`text-2xl font-bold mb-2 font-heading ${
+            darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+          }`}>Questionnaire Not Found</h2>
+          <p className={`mb-6 font-semibold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>{error}</p>
+          <p className={`text-sm mb-6 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Redirecting you back to notifications...</p>
           <button
             onClick={() => router.push('/dashboard/youth/notifications')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            className={`px-6 py-3 rounded-xl font-bold transition-all active:scale-95 ${
+              darkMode 
+                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-lg'
+            }`}
           >
             Go to Notifications
           </button>
@@ -298,12 +328,12 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded }: P
     );
   }
   
-  if (isFinished) return <SuccessScreen rewardMessage={rewardMessage} router={router} />;
+  if (isFinished) return <SuccessScreen rewardMessage={rewardMessage} router={router} darkMode={darkMode} />;
   
   // Safety check: Don't render if no data
   if (!data) {
     return (
-      <div className="p-8 text-center text-gray-500">
+      <div className={`p-8 text-center ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
         No questions available.
       </div>
     );
@@ -312,7 +342,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded }: P
   // For completed questionnaires, we show all questions, so skip visibleQuestions check
   if (!isCompleted && visibleQuestions.length === 0) {
     return (
-      <div className="p-8 text-center text-gray-500">
+      <div className={`p-8 text-center ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
         No questions available.
       </div>
     );
@@ -324,41 +354,67 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded }: P
     const allQuestions = data.questions || [];
     
     return (
-      <div className="max-w-2xl mx-auto pb-20">
-        <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+      <div className="max-w-2xl mx-auto pb-20 px-4 sm:px-0">
+        <div className={`rounded-xl sm:rounded-2xl p-6 mb-6 border ${
+          darkMode 
+            ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' 
+            : 'bg-gradient-to-r from-[#10B981]/10 to-[#10B981]/5 border-2 border-[#10B981]/30 shadow-md'
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              darkMode 
+                ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
+                : 'bg-gradient-to-br from-[#10B981] to-[#059669] shadow-lg'
+            }`}>
+              <CheckCircle className={`w-7 h-7 ${darkMode ? '' : 'text-white'}`} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Questionnaire Completed</h2>
-              <p className="text-sm text-gray-600">You have already completed this questionnaire. Your answers are shown below.</p>
+              <h2 className={`text-xl font-bold font-heading ${
+                darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+              }`}>Questionnaire Completed</h2>
+              <p className={`text-sm font-semibold ${
+                darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-700'
+              }`}>You have already completed this questionnaire. Your answers are shown below.</p>
             </div>
           </div>
         </div>
 
         {/* Show all questions and answers */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {allQuestions.map((q: any, index: number) => {
             const answer = answers[q.id];
             return (
-              <div key={q.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm">
+              <div key={q.id} className={`p-5 sm:p-6 rounded-xl sm:rounded-2xl border transition-all ${
+                darkMode 
+                  ? 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30' 
+                  : 'bg-white shadow-md border-2 border-[#4D4DA4]/10 hover:border-[#4D4DA4]/30'
+              }`}>
+                <div className="flex items-start gap-3 sm:gap-4 mb-4">
+                  <div className={`flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-bold text-sm ${
+                    darkMode 
+                      ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                      : 'bg-gradient-to-br from-[#4D4DA4] to-[#6D6DD4] text-white shadow-sm'
+                  }`}>
                     {index + 1}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">{q.text}</h3>
-                    {q.description && <p className="text-sm text-gray-500 mb-4">{q.description}</p>}
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`text-lg sm:text-xl font-bold mb-2 font-heading ${
+                      darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+                    }`}>{q.text}</h3>
+                    {q.description && <p className={`text-sm mb-4 font-medium ${
+                      darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                    }`}>{q.description}</p>}
                     
                     {/* Answer Display */}
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className={`mt-4 p-4 rounded-xl border ${
+                      darkMode 
+                        ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' 
+                        : 'bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200'
+                    }`}>
                       {answer ? (
-                        <ReadOnlyAnswer question={q} answer={answer} />
+                        <ReadOnlyAnswer question={q} answer={answer} darkMode={darkMode} />
                       ) : (
-                        <p className="text-gray-400 italic">No answer provided</p>
+                        <p className={`italic font-medium ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>No answer provided</p>
                       )}
                     </div>
                   </div>
@@ -376,49 +432,78 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded }: P
   const progress = ((currentStepIndex) / visibleQuestions.length) * 100;
 
   return (
-    <div className="max-w-2xl mx-auto pb-20">
+    <div className="max-w-2xl mx-auto pb-20 px-4 sm:px-0">
       {/* Header / Progress */}
-      <div className="mb-8">
-        <div className="flex justify-between text-xs text-gray-500 mb-2">
+      <div className="mb-6 sm:mb-8">
+        <div className={`flex justify-between text-xs sm:text-sm font-bold mb-3 ${
+          darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+        }`}>
             <span>Question {currentStepIndex + 1} of {visibleQuestions.length}</span>
-            <span>{Math.round(progress)}% Completed</span>
+            <span className={darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}>{Math.round(progress)}% Completed</span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${progress}%` }}></div>
+        <div className={`h-3 rounded-full overflow-hidden ${
+          darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-200 shadow-inner'
+        }`}>
+            <div className={`h-full transition-all duration-300 rounded-full ${
+              darkMode 
+                ? 'bg-[var(--brand-primary)]' 
+                : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] shadow-sm'
+            }`} style={{ width: `${progress}%` }}></div>
         </div>
       </div>
 
       {/* Question Card */}
-      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 min-h-[400px] flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className={`p-6 md:p-8 rounded-xl sm:rounded-2xl border min-h-[400px] flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+        darkMode 
+          ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+          : 'bg-white shadow-lg border-2 border-[#4D4DA4]/10'
+      }`}>
         
-        <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{currentQ.text}</h2>
-        {currentQ.description && <p className="text-gray-500 mb-6">{currentQ.description}</p>}
+        <h2 className={`text-xl md:text-2xl font-bold mb-3 font-heading ${
+          darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+        }`}>{currentQ.text}</h2>
+        {currentQ.description && <p className={`mb-6 font-medium ${
+          darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+        }`}>{currentQ.description}</p>}
 
 
         <div className="flex-1 mt-4">
             <QuestionInput 
                 question={currentQ} 
                 value={answers[currentQ.id]} 
-                onChange={(val) => handleAnswerChange(currentQ.id, val)} 
+                onChange={(val) => handleAnswerChange(currentQ.id, val)}
+                darkMode={darkMode}
             />
         </div>
 
       </div>
 
       {/* Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 md:static md:bg-transparent md:border-0 md:mt-8">
-        <div className="max-w-2xl mx-auto flex gap-4">
+      <div className={`fixed bottom-0 left-0 right-0 p-4 border-t md:static md:bg-transparent md:border-0 md:mt-6 z-[60] ${
+        darkMode 
+          ? 'bg-[var(--dark-800)] border-[var(--dark-600)] md:shadow-none' 
+          : 'bg-white border-gray-200 shadow-lg md:shadow-none'
+      }`}>
+        <div className="max-w-2xl mx-auto flex gap-3">
             <button 
                 onClick={handleBack}
                 disabled={currentStepIndex === 0}
-                className="flex-1 py-3 px-6 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-0 transition-opacity"
+                className={`flex-1 py-3 px-6 rounded-xl font-bold disabled:opacity-0 transition-all active:scale-95 ${
+                  darkMode 
+                    ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/80 hover:border-[var(--brand-primary)] hover:text-[var(--brand-light)]' 
+                    : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
+                }`}
             >
                 Back
             </button>
             <button 
                 onClick={handleNext}
                 disabled={!answers[currentQ.id]} // Force answer? (Optional validation)
-                className="flex-1 py-3 px-6 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
+                className={`flex-1 py-3 px-6 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 ${
+                  darkMode 
+                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                    : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-lg hover:shadow-xl'
+                }`}
             >
                 {currentStepIndex === visibleQuestions.length - 1 ? (submitting ? 'Sending...' : 'Finish') : 'Next'}
             </button>
@@ -430,16 +515,16 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded }: P
 
 // --- Sub-components ---
 
-function ReadOnlyAnswer({ question, answer }: { question: any, answer: any }) {
+function ReadOnlyAnswer({ question, answer, darkMode = false }: { question: any, answer: any, darkMode?: boolean }) {
   if (question.question_type === 'RATING' && answer.rating_answer) {
     return (
       <div className="flex items-center gap-3">
-        <span className="text-2xl font-bold text-blue-600">{answer.rating_answer}</span>
+        <span className={`text-2xl font-bold ${darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'}`}>{answer.rating_answer}</span>
         <div className="flex gap-1">
           {[...Array(5)].map((_, idx) => (
             <svg 
               key={idx}
-              className={`w-5 h-5 ${idx < answer.rating_answer ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+              className={`w-5 h-5 ${idx < answer.rating_answer ? 'text-yellow-400 fill-current' : darkMode ? 'text-[var(--dark-500)]' : 'text-gray-300'}`}
               fill="currentColor" 
               viewBox="0 0 20 20"
             >
@@ -457,23 +542,27 @@ function ReadOnlyAnswer({ question, answer }: { question: any, answer: any }) {
       const selectedTexts = question.options
         ?.filter((opt: any) => answer.selected_options.includes(opt.id))
         .map((opt: any) => opt.text) || answer.selected_options;
-      return <p className="text-gray-800 font-medium">{Array.isArray(selectedTexts) ? selectedTexts.join(', ') : selectedTexts}</p>;
+      return <p className={`font-medium ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{Array.isArray(selectedTexts) ? selectedTexts.join(', ') : selectedTexts}</p>;
     }
   }
   
   if (answer.text_answer) {
-    return <p className="text-gray-800 whitespace-pre-wrap">{answer.text_answer}</p>;
+    return <p className={`whitespace-pre-wrap ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{answer.text_answer}</p>;
   }
   
-  return <p className="text-gray-400 italic">No answer provided</p>;
+  return <p className={`italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>No answer provided</p>;
 }
 
-function QuestionInput({ question, value, onChange }: { question: any, value: any, onChange: (v: any) => void }) {
+function QuestionInput({ question, value, onChange, darkMode = false }: { question: any, value: any, onChange: (v: any) => void, darkMode?: boolean }) {
     
     if (question.question_type === 'FREE_TEXT') {
         return (
             <textarea 
-                className="w-full h-40 border border-gray-300 rounded-xl p-4 text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                className={`w-full h-40 rounded-xl p-4 text-lg outline-none resize-none transition-all ${
+                  darkMode 
+                    ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)]' 
+                    : 'border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                }`}
                 placeholder="Type your answer here..."
                 value={value?.text_answer || ''}
                 onChange={(e) => onChange({ text_answer: e.target.value })}
@@ -489,7 +578,9 @@ function QuestionInput({ question, value, onChange }: { question: any, value: an
                         key={star}
                         onClick={() => onChange({ rating_answer: star })}
                         className={`text-4xl transition-transform hover:scale-110 ${
-                            (value?.rating_answer || 0) >= star ? 'text-yellow-400' : 'text-gray-200'
+                            (value?.rating_answer || 0) >= star 
+                              ? 'text-yellow-400' 
+                              : darkMode ? 'text-[var(--dark-500)]' : 'text-gray-200'
                         }`}
                     >
                         ★
@@ -525,17 +616,27 @@ function QuestionInput({ question, value, onChange }: { question: any, value: an
                         <button
                             key={opt.id}
                             onClick={() => toggleOption(opt.id)}
-                            className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${
+                            className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group active:scale-95 ${
                                 isSelected 
-                                    ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                                    : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'
+                                    ? darkMode
+                                      ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 text-[var(--brand-light)]' 
+                                      : 'border-[#4D4DA4] bg-gradient-to-r from-[#4D4DA4]/10 to-[#4D4DA4]/5 text-[#4D4DA4] shadow-md'
+                                    : darkMode
+                                      ? 'border-[var(--dark-500)] text-[var(--brand-light)]/80 hover:border-[var(--brand-primary)]/50 hover:bg-[var(--dark-600)]' 
+                                      : 'border-gray-200 hover:border-[#4D4DA4]/50 hover:bg-gray-50'
                             }`}
                         >
-                            <span className="font-medium text-lg">{opt.text}</span>
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                                isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                            <span className="font-bold text-base sm:text-lg">{opt.text}</span>
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                isSelected 
+                                  ? darkMode
+                                    ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]' 
+                                    : 'border-[#4D4DA4] bg-[#4D4DA4] shadow-sm'
+                                  : darkMode
+                                    ? 'border-[var(--dark-400)]' 
+                                    : 'border-gray-300'
                             }`}>
-                                {isSelected && <span className="text-white text-xs">✓</span>}
+                                {isSelected && <span className={`text-xs font-bold ${darkMode ? 'text-[var(--dark-900)]' : 'text-white'}`}>✓</span>}
                             </div>
                         </button>
                     );
@@ -547,32 +648,51 @@ function QuestionInput({ question, value, onChange }: { question: any, value: an
     return <div>Unknown Question Type</div>;
 }
 
-function SuccessScreen({ rewardMessage, router }: { rewardMessage: string | null, router: any }) {
+function SuccessScreen({ rewardMessage, router, darkMode = false }: { rewardMessage: string | null, router: any, darkMode?: boolean }) {
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 text-4xl">
+            <div className={`w-24 h-24 rounded-2xl flex items-center justify-center mb-6 text-5xl animate-bounce ${
+              darkMode 
+                ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
+                : 'bg-gradient-to-br from-[#10B981] to-[#059669] shadow-xl'
+            }`}>
                 🎉
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Thank you!</h1>
-            <p className="text-gray-600 mb-8 max-w-md">
+            <h1 className={`text-3xl sm:text-4xl font-bold mb-3 font-heading ${
+              darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+            }`}>Thank you!</h1>
+            <p className={`mb-8 max-w-md font-semibold text-base sm:text-lg ${
+              darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-700'
+            }`}>
                 Your answers have been submitted successfully. Your feedback helps us make the club better for everyone.
             </p>
 
             {rewardMessage && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8 max-w-md w-full animate-bounce-short">
-                    <h3 className="font-bold text-yellow-800 mb-1">🎁 Reward Earned!</h3>
-                    <p className="text-yellow-700">{rewardMessage}</p>
-                    <p className="text-xs text-yellow-600 mt-2">Check your profile wallet to redeem.</p>
+                <div className={`rounded-2xl p-6 mb-8 max-w-md w-full border animate-bounce ${
+                  darkMode 
+                    ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' 
+                    : 'bg-gradient-to-r from-[#FF5485]/10 to-[#FF5485]/5 border-2 border-[#FF5485]/30 shadow-lg'
+                }`}>
+                    <h3 className={`font-bold mb-2 text-xl flex items-center justify-center gap-2 font-heading ${
+                      darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+                    }`}>
+                        <span className="text-2xl">🎁</span> Reward Earned!
+                    </h3>
+                    <p className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{rewardMessage}</p>
+                    <p className={`text-xs mt-2 font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Check your profile wallet to redeem.</p>
                 </div>
             )}
 
             <button 
                 onClick={() => router.push('/dashboard/youth/questionnaires')}
-                className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-colors"
+                className={`px-8 py-3.5 rounded-xl font-bold transition-all active:scale-95 ${
+                  darkMode 
+                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                    : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-lg hover:shadow-xl'
+                }`}
             >
-                Back to Dashboard
+                Back to Questionnaires
             </button>
         </div>
     );
 }
-

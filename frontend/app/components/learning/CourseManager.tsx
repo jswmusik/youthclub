@@ -1,19 +1,153 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { learningApi } from '@/lib/learning-api';
 import { Course, CourseChapter, LearningCategory } from '@/types/learning';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Edit, Trash2, FolderOpen, Eye, BarChart3, ChevronUp, BookOpen, Video, FileText, Download, X, Clock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+import { Plus, Search, Edit, Trash2, FolderOpen, Eye, BarChart3, ChevronUp, ChevronDown, BookOpen, Video, FileText, Download, X, Clock } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import Link from 'next/link';
+import ConfirmationModal from '../ConfirmationModal';
+import Toast from '../Toast';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function CourseCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CourseTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+          <div className="space-y-1">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-1">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// SwipeableCard Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}
+
+function SwipeableCard({ children, onClick, onEdit, onDelete }: SwipeableCardProps) {
+  const [translateX, setTranslateX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const currentXRef = useRef(0);
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startXRef.current = e.touches[0].clientX;
+    currentXRef.current = translateX;
+    setIsDragging(true);
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = e.touches[0].clientX - startXRef.current;
+    const newTranslate = Math.max(-120, Math.min(0, currentXRef.current + diff));
+    setTranslateX(newTranslate);
+  };
+  
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (translateX < -60) {
+      setTranslateX(-120);
+    } else {
+      setTranslateX(0);
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Action buttons behind */}
+      <div className="absolute right-0 top-0 bottom-0 flex items-stretch">
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="w-[60px] bg-[var(--brand-primary)] flex items-center justify-center text-[var(--dark-900)]"
+          >
+            <Edit className="w-5 h-5" />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className="w-[60px] bg-[var(--brand-red)] flex items-center justify-center text-white"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+      
+      {/* Main content */}
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ transform: `translateX(${translateX}px)` }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => {
+          if (translateX === 0 && onClick) {
+            onClick();
+          }
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function CourseManager() {
     const router = useRouter();
@@ -24,13 +158,29 @@ export default function CourseManager() {
     const [coursesWithDetails, setCoursesWithDetails] = useState<any[]>([]);
     const [categories, setCategories] = useState<LearningCategory[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showSkeleton, setShowSkeleton] = useState(true);
     const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
+    const [itemToDelete, setItemToDelete] = useState<Course | null>(null);
+    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
     
-    // Get filter values from URL
-    const searchTerm = searchParams.get('search') || '';
-    const filterType = searchParams.get('type') || '';
-    const filterCategory = searchParams.get('category') || '';
+    // Filter state
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+    const [filterType, setFilterType] = useState(searchParams.get('type') || '');
+    const [filterCategory, setFilterCategory] = useState(searchParams.get('category') || '');
+
+    // Debounced filter update
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (searchInput) params.set('search', searchInput); else params.delete('search');
+            if (filterType) params.set('type', filterType); else params.delete('type');
+            if (filterCategory) params.set('category', filterCategory); else params.delete('category');
+            params.set('page', '1');
+            router.replace(`${pathname}?${params.toString()}`);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchInput, filterType, filterCategory]);
 
     useEffect(() => {
         fetchCategories();
@@ -53,11 +203,12 @@ export default function CourseManager() {
     };
 
     const fetchCourses = async () => {
+        setLoading(true);
+        setShowSkeleton(true);
+        const startTime = Date.now();
+        
         try {
-            setLoading(true);
-            const currentPage = Number(searchParams.get('page')) || 1;
             const res = await learningApi.getAllCourses();
-            // Handle paginated response (DRF returns {results: [...]}) or direct array
             const data = res.data as any;
             const coursesData = Array.isArray(data) ? data : (data?.results || []);
             const count = data?.count || coursesData.length;
@@ -75,29 +226,20 @@ export default function CourseManager() {
         } catch (error: any) {
             console.error("Failed to fetch courses", error);
         } finally {
-            setLoading(false);
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+            
+            setTimeout(() => {
+                setLoading(false);
+                setShowSkeleton(false);
+            }, remaining);
         }
-    };
-
-    const updateUrl = (key: string, value: string) => {
-        const params = new URLSearchParams(searchParams.toString());
-        if (value) {
-            params.set(key, value);
-        } else {
-            params.delete(key);
-        }
-        // Reset to page 1 when filters change
-        if (key !== 'page') {
-            params.delete('page');
-        }
-        router.push(`${pathname}?${params.toString()}`);
     };
 
     // Helper function to determine primary content type of a course
     const getPrimaryContentType = (course: any): 'VIDEO' | 'TEXT' | 'FILE' | null => {
         if (!course?.chapters) return null;
         
-        // Collect all content items from all chapters
         const allItems: any[] = [];
         course.chapters.forEach((chapter: CourseChapter) => {
             if (chapter.items && Array.isArray(chapter.items)) {
@@ -107,14 +249,12 @@ export default function CourseManager() {
         
         if (allItems.length === 0) return null;
         
-        // Count items by type
         const typeCounts = {
             VIDEO: allItems.filter((item: any) => item.type === 'VIDEO').length,
             TEXT: allItems.filter((item: any) => item.type === 'TEXT').length,
             FILE: allItems.filter((item: any) => item.type === 'FILE').length,
         };
         
-        // Determine primary type (whichever has the most items)
         const maxCount = Math.max(typeCounts.VIDEO, typeCounts.TEXT, typeCounts.FILE);
         if (maxCount === 0) return null;
         
@@ -133,13 +273,15 @@ export default function CourseManager() {
         file_resources: coursesWithDetails.filter((course: any) => getPrimaryContentType(course) === 'FILE').length,
     };
 
-    const handleDelete = async (slug: string) => {
-        if (!confirm("Are you sure you want to delete this course? This cannot be undone.")) return;
+    const handleDelete = async () => {
+        if (!itemToDelete) return;
         try {
-            await learningApi.deleteCourse(slug);
-            setCourses(prev => prev.filter(c => c.slug !== slug));
+            await learningApi.deleteCourse(itemToDelete.slug);
+            setCourses(prev => prev.filter(c => c.slug !== itemToDelete.slug));
+            setToast({ message: 'Course deleted successfully!', type: 'success', isVisible: true });
+            setItemToDelete(null);
         } catch (error) {
-            alert("Failed to delete course");
+            setToast({ message: 'Failed to delete course', type: 'error', isVisible: true });
         }
     };
 
@@ -150,7 +292,7 @@ export default function CourseManager() {
         return getPrimaryContentType(courseDetail);
     };
 
-    // Format scheduled date/time compactly (e.g., "15/12 14:30")
+    // Format scheduled date/time compactly
     const formatScheduledDate = (dateString?: string | null): string => {
         if (!dateString) return '';
         try {
@@ -165,11 +307,15 @@ export default function CourseManager() {
         }
     };
 
-    // Filter courses based on search, type, and category
+    // Filter courses
     const filteredCourses = Array.isArray(courses) ? courses.filter(c => {
+        const searchTerm = searchParams.get('search') || '';
+        const type = searchParams.get('type') || '';
+        const category = searchParams.get('category') || '';
+        
         const matchesSearch = !searchTerm || c.title.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !filterCategory || c.category?.toString() === filterCategory;
-        const matchesType = !filterType || getCoursePrimaryType(c) === filterType;
+        const matchesCategory = !category || c.category?.toString() === category;
+        const matchesType = !type || getCoursePrimaryType(c) === type;
         return matchesSearch && matchesCategory && matchesType;
     }) : [];
 
@@ -181,438 +327,450 @@ export default function CourseManager() {
     const endIndex = startIndex + pageSize;
     const paginatedCourses = filteredCourses.slice(startIndex, endIndex);
 
+    const clearFilters = () => {
+        setSearchInput('');
+        setFilterType('');
+        setFilterCategory('');
+        router.push(pathname);
+    };
+
+    const handlePageChange = (p: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', p.toString());
+        router.push(`${pathname}?${params.toString()}`);
+    };
+
+    // Determine base path from pathname
+    const getBasePath = () => {
+        if (pathname.includes('/admin/super/')) return '/admin/super/knowledge';
+        if (pathname.includes('/admin/municipality/')) return '/admin/municipality/knowledge';
+        if (pathname.includes('/admin/club/')) return '/admin/club/knowledge';
+        return '/admin/super/knowledge';
+    };
+
+    const basePath = getBasePath();
+
+    const selectArrowStyle = {
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 0.75rem center',
+        backgroundSize: '1rem'
+    };
+
+    const hasFilters = searchInput || filterType || filterCategory;
+
+    // Type badge component
+    const TypeBadge = ({ type }: { type: 'VIDEO' | 'TEXT' | 'FILE' | null }) => {
+        if (!type) return <span className="text-sm text-[var(--brand-light)]/40">-</span>;
+        
+        const config = {
+            VIDEO: { icon: Video, bg: 'bg-[var(--brand-blue)]/20', text: 'text-[var(--brand-blue)]', border: 'border-[var(--brand-blue)]/30', label: 'Video' },
+            TEXT: { icon: FileText, bg: 'bg-[var(--brand-purple)]/20', text: 'text-[var(--brand-purple)]', border: 'border-[var(--brand-purple)]/30', label: 'Text' },
+            FILE: { icon: Download, bg: 'bg-[var(--brand-green)]/20', text: 'text-[var(--brand-green)]', border: 'border-[var(--brand-green)]/30', label: 'File' },
+        };
+        
+        const { icon: Icon, bg, text, border, label } = config[type];
+        
+        return (
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${bg} ${text} border ${border}`}>
+                <Icon className="w-3 h-3" /> {label}
+            </span>
+        );
+    };
+
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Knowledge Center Management</h1>
-                    <p className="text-gray-500 mt-1">Manage courses, tutorials, and resources for system administrators.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => router.push('/admin/super/knowledge/categories')}>
-                        <FolderOpen className="w-4 h-4 mr-2" />
-                        Manage Categories
-                    </Button>
-                    <Button onClick={() => router.push('/admin/super/knowledge/courses/create')} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create New Course
-                    </Button>
-                </div>
-            </div>
-
-            {/* Analytics Dashboard */}
-            {!loading && (
-                <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                    <Card className="border-0 shadow-sm bg-gray-900">
-                        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-                            <div className="flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 text-gray-400" />
-                                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                                    Analytics Dashboard
-                                </h3>
+        <div className="min-h-screen bg-[var(--dark-900)]">
+            <div className="py-4 sm:py-8 px-0 space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                <BookOpen className="w-5 h-5 text-white" />
                             </div>
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                                    <ChevronUp className={cn(
-                                        "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                        analyticsExpanded ? "rotate-0" : "rotate-180"
-                                    )} />
-                                    <span className="sr-only">Toggle Analytics</span>
-                                </Button>
-                            </CollapsibleTrigger>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Knowledge Center</h1>
                         </div>
-                        <CollapsibleContent className="transition-all duration-500 ease-in-out">
-                            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                                    {/* Total Courses */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                                                    }}>
-                                                    <BookOpen className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Total Courses</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_courses}</div>
-                                        </div>
-                                    </Card>
+                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage courses, tutorials, and resources.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 px-4 sm:px-0">
+                        <Link href={`${basePath}/categories`}>
+                            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
+                                <FolderOpen className="h-4 w-4" /> Categories
+                            </button>
+                        </Link>
+                        <Link href={`${basePath}/courses/create`}>
+                            <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2 transition-all">
+                                <Plus className="h-4 w-4" /> New Course
+                            </button>
+                        </Link>
+                    </div>
+                </div>
 
-                                    {/* Video Courses */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                                                    }}>
-                                                    <Video className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Video Courses</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.video_courses}</div>
-                                        </div>
-                                    </Card>
-
-                                    {/* Text Courses */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
-                                                    }}>
-                                                    <FileText className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Text Courses</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.text_courses}</div>
-                                        </div>
-                                    </Card>
-
-                                    {/* File Resources */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                                                    }}>
-                                                    <Download className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">File Resources</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.file_resources}</div>
-                                        </div>
-                                    </Card>
+                {/* Analytics Dashboard */}
+                {!showSkeleton && (
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                        <button 
+                            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+                            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                                    <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                                 </div>
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Card>
-                </Collapsible>
-            )}
+                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                            </div>
+                            {analyticsExpanded ? (
+                                <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
+                            ) : (
+                                <ChevronDown className="h-4 w-4 text-[var(--brand-light)]/50" />
+                            )}
+                        </button>
+                        
+                        <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+                            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                                
+                                {/* Total Courses */}
+                                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                            <BookOpen className="h-5 w-5 text-white" />
+                                        </div>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                                    </div>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_courses}</div>
+                                </div>
 
-            {/* Filters */}
-            <Card className="border border-gray-100 shadow-sm bg-white">
-                <div className="px-6 py-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                        {/* Search */}
-                        <div className="relative md:col-span-4 lg:col-span-3">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                            <Input 
+                                {/* Video Courses */}
+                                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
+                                            <Video className="h-5 w-5 text-white" />
+                                        </div>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Video</span>
+                                    </div>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.video_courses}</div>
+                                </div>
+
+                                {/* Text Courses */}
+                                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[#A78BFA] flex items-center justify-center">
+                                            <FileText className="h-5 w-5 text-white" />
+                                        </div>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Text</span>
+                                    </div>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-purple)]">{analytics.text_courses}</div>
+                                </div>
+
+                                {/* File Resources */}
+                                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                                            <Download className="h-5 w-5 text-[var(--dark-900)]" />
+                                        </div>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Files</span>
+                                    </div>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.file_resources}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Search & Filters */}
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+                    <div className="flex flex-col gap-3">
+                        {/* Search Row */}
+                        <div className="flex items-center gap-3">
+                            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+                            <input 
+                                type="text"
                                 placeholder="Search courses..." 
-                                className="pl-9 bg-gray-50 border-0"
-                                value={searchTerm}
-                                onChange={e => updateUrl('search', e.target.value)}
+                                className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+                                value={searchInput}
+                                onChange={e => setSearchInput(e.target.value)}
                             />
+                            {searchInput && (
+                                <button 
+                                    onClick={() => setSearchInput('')}
+                                    className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+                                >
+                                    ×
+                                </button>
+                            )}
                         </div>
                         
-                        {/* Type Filter */}
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <select 
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                                value={filterType} 
-                                onChange={e => updateUrl('type', e.target.value)}
-                            >
-                                <option value="">All Types</option>
-                                <option value="VIDEO">Video</option>
-                                <option value="TEXT">Text</option>
-                                <option value="FILE">File</option>
-                            </select>
-                        </div>
-                        
-                        {/* Category Filter */}
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <select 
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                                value={filterCategory} 
-                                onChange={e => updateUrl('category', e.target.value)}
-                            >
-                                <option value="">All Categories</option>
-                                {categories.map(cat => (
-                                    <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        
-                        {/* Clear Button */}
-                        <div className="md:col-span-2 lg:col-span-1">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => router.push(pathname)}
-                                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-                            >
-                                <X className="h-4 w-4" /> Clear
-                            </Button>
+                        {/* Filters Row */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="w-full sm:w-[140px]">
+                                <select 
+                                    className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                    value={filterType}
+                                    onChange={e => setFilterType(e.target.value)}
+                                    style={selectArrowStyle}
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="VIDEO">Video</option>
+                                    <option value="TEXT">Text</option>
+                                    <option value="FILE">File</option>
+                                </select>
+                            </div>
+                            <div className="w-full sm:w-[180px]">
+                                <select 
+                                    className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                    value={filterCategory}
+                                    onChange={e => setFilterCategory(e.target.value)}
+                                    style={selectArrowStyle}
+                                >
+                                    <option value="">All Categories</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {hasFilters && (
+                                <button
+                                    onClick={clearFilters}
+                                    className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
+                                >
+                                    <X className="h-4 w-4" /> Clear All
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
-            </Card>
 
-            {/* Content */}
-            {loading ? (
-                <div className="py-20 flex justify-center text-gray-400">
-                    <div className="animate-pulse">Loading...</div>
-                </div>
-            ) : paginatedCourses.length === 0 ? (
-                <Card className="border border-gray-100 shadow-sm">
-                    <div className="py-20 text-center">
-                        <p className="text-gray-500">No courses found.</p>
+                {/* Stats Bar */}
+                {!showSkeleton && paginatedCourses.length > 0 && (
+                    <div className="px-4 sm:px-0">
+                        <p className="text-sm text-[var(--brand-light)]/50">
+                            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedCourses.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{filteredCourses.length}</span> {filteredCourses.length === 1 ? 'course' : 'courses'}
+                        </p>
                     </div>
-                </Card>
-            ) : (
-                <>
-                    {/* MOBILE: Cards */}
-                    <div className="grid grid-cols-1 gap-3 md:hidden">
-                        {paginatedCourses.map((course) => {
-                            const primaryType = getCoursePrimaryType(course);
-                            return (
-                                <Card key={course.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            {course.cover_image && (
-                                                <img 
-                                                    src={course.cover_image} 
-                                                    alt="" 
-                                                    className="w-10 h-10 rounded-full object-cover bg-gray-100 flex-shrink-0"
-                                                />
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <CardTitle className="text-base font-semibold text-[#121213] truncate">
-                                                    {course.title}
-                                                </CardTitle>
-                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                    {course.category_name && (
-                                                        <span className="text-xs text-gray-500">{course.category_name}</span>
-                                                    )}
-                                                    {primaryType === 'VIDEO' && (
-                                                        <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 inline-flex items-center gap-1">
-                                                            <Video className="w-3 h-3" /> Video
-                                                        </Badge>
-                                                    )}
-                                                    {primaryType === 'TEXT' && (
-                                                        <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 inline-flex items-center gap-1">
-                                                            <FileText className="w-3 h-3" /> Text
-                                                        </Badge>
-                                                    )}
-                                                    {primaryType === 'FILE' && (
-                                                        <Badge variant="outline" className="text-xs bg-green-50 text-[#10B981] border-[#10B981]/30 inline-flex items-center gap-1">
-                                                            <Download className="w-3 h-3" /> File
-                                                        </Badge>
-                                                    )}
+                )}
+
+                {/* Content */}
+                {showSkeleton ? (
+                    <>
+                        {/* Mobile Cards Skeleton */}
+                        <div className="flex flex-col md:hidden">
+                            {[...Array(4)].map((_, i) => (
+                                <CourseCardSkeleton key={i} />
+                            ))}
+                        </div>
+
+                        {/* Desktop Table Skeleton */}
+                        <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-[var(--dark-600)]">
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Category</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Scheduled</th>
+                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {[...Array(5)].map((_, i) => (
+                                        <CourseTableRowSkeleton key={i} />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                ) : paginatedCourses.length === 0 ? (
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-20 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center">
+                            <BookOpen className="w-8 h-8 text-[var(--brand-light)]/30" />
+                        </div>
+                        <p className="text-[var(--brand-light)]/50 mb-2">No courses found</p>
+                        <p className="text-[var(--brand-light)]/30 text-sm">
+                            {hasFilters ? 'Try adjusting your filters' : 'Create your first course to get started'}
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Mobile Cards */}
+                        <div className="flex flex-col gap-3 md:hidden">
+                            {paginatedCourses.map((course) => {
+                                const primaryType = getCoursePrimaryType(course);
+                                return (
+                                    <SwipeableCard 
+                                        key={course.id}
+                                        onClick={() => router.push(`${basePath}/courses/${course.slug}`)}
+                                        onEdit={() => router.push(`${basePath}/courses/${course.slug}/edit`)}
+                                        onDelete={() => setItemToDelete(course)}
+                                    >
+                                        <div className="border-y border-[var(--dark-600)] p-4">
+                                            <div className="flex items-start gap-3">
+                                                {/* Image */}
+                                                {course.cover_image ? (
+                                                    <img 
+                                                        src={course.cover_image} 
+                                                        alt={course.title}
+                                                        className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                                                    />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
+                                                        <BookOpen className="h-6 w-6 text-white" />
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-semibold text-[var(--brand-light)] truncate">{course.title}</h3>
+                                                    <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">
+                                                        {course.category_name || 'Uncategorized'}
+                                                    </p>
+                                                    
+                                                    {/* Badges */}
+                                                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                                        <TypeBadge type={primaryType} />
+                                                        <StatusBadge status={course.status} />
+                                                        {course.status === 'SCHEDULED' && course.published_at && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+                                                                <Clock className="w-3 h-3" /> {formatScheduledDate(course.published_at)}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3 pt-0">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <StatusBadge status={course.status} />
-                                            {course.visible_to_roles.length > 0 ? (
-                                                <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
-                                                    {course.visible_to_roles.length} Roles
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-xs bg-green-50 text-[#10B981] border-[#10B981]/30">
-                                                    All Admins
-                                                </Badge>
-                                            )}
-                                            {course.status === 'SCHEDULED' && course.published_at && (
-                                                <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                                                    <Clock className="w-3 h-3 text-gray-400" />
-                                                    <span className="font-medium">{formatScheduledDate(course.published_at)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="sm"
-                                                className="h-8 px-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                                                onClick={() => window.open(`/admin/super/knowledge/courses/${course.slug}`, '_blank')}
-                                            >
-                                                <Eye className="w-4 h-4 mr-1.5" />
-                                                Preview
-                                            </Button>
-                                            <Link href={`/admin/super/knowledge/courses/${course.slug}/edit`}>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm"
-                                                    className="h-8 px-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                                                >
-                                                    <Edit className="w-4 h-4 mr-1.5" />
-                                                    Edit
-                                                </Button>
-                                            </Link>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="sm"
-                                                className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                onClick={() => handleDelete(course.slug)}
-                                            >
-                                                <Trash2 className="w-4 h-4 mr-1.5" />
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
-                    </div>
-
-                    {/* DESKTOP: Table */}
-                    <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Title</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Type</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Category</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Roles</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-                                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Scheduled</TableHead>
-                                    <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {paginatedCourses.map((course) => {
-                                    const primaryType = getCoursePrimaryType(course);
-                                    return (
-                                        <TableRow key={course.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                            <TableCell className="py-4 px-6">
-                                                <div className="flex items-center gap-3">
-                                                    {course.cover_image && (
-                                                        <img 
-                                                            src={course.cover_image} 
-                                                            alt="" 
-                                                            className="w-9 h-9 rounded-full object-cover bg-gray-100"
-                                                        />
-                                                    )}
-                                                    <div>
-                                                        <div className="font-semibold text-[#121213]">{course.title}</div>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-4 px-6">
-                                                {primaryType === 'VIDEO' && (
-                                                    <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30 inline-flex items-center gap-1">
-                                                        <Video className="w-3 h-3" /> Video
-                                                    </Badge>
-                                                )}
-                                                {primaryType === 'TEXT' && (
-                                                    <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30 inline-flex items-center gap-1">
-                                                        <FileText className="w-3 h-3" /> Text
-                                                    </Badge>
-                                                )}
-                                                {primaryType === 'FILE' && (
-                                                    <Badge variant="outline" className="text-xs bg-green-50 text-[#10B981] border-[#10B981]/30 inline-flex items-center gap-1">
-                                                        <Download className="w-3 h-3" /> File
-                                                    </Badge>
-                                                )}
-                                                {!primaryType && (
-                                                    <span className="text-sm text-gray-400">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="py-4 px-6">
-                                                <span className="text-sm text-[#121213]">{course.category_name || '-'}</span>
-                                            </TableCell>
-                                            <TableCell className="py-4 px-6">
-                                                {course.visible_to_roles.length > 0 
-                                                    ? <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">{course.visible_to_roles.length} Roles</Badge>
-                                                    : <Badge variant="outline" className="text-xs bg-green-50 text-[#10B981] border-[#10B981]/30">All Admins</Badge>
-                                                }
-                                            </TableCell>
-                                            <TableCell className="py-4 px-6">
-                                                <StatusBadge status={course.status} />
-                                            </TableCell>
-                                            <TableCell className="py-4 px-6">
-                                                {course.status === 'SCHEDULED' && course.published_at ? (
-                                                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                                                        <Clock className="w-3 h-3 text-gray-400" />
-                                                        <span className="font-medium">{formatScheduledDate(course.published_at)}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-sm text-gray-400">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="py-4 px-6 text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                                                        onClick={() => window.open(`/admin/super/knowledge/courses/${course.slug}`, '_blank')}
-                                                        title="Preview course"
-                                                    >
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                    <Link href={`/admin/super/knowledge/courses/${course.slug}/edit`}>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="sm"
-                                                            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                    </Link>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
-                                                        onClick={() => handleDelete(course.slug)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
-                    </Card>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-center gap-2 py-4">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                disabled={currentPage === 1} 
-                                onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                            >
-                                Prev
-                            </Button>
-                            <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                disabled={currentPage >= totalPages} 
-                                onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                                className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                            >
-                                Next
-                            </Button>
+                                    </SwipeableCard>
+                                );
+                            })}
                         </div>
-                    )}
-                </>
-            )}
+
+                        {/* Desktop Table */}
+                        <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-[var(--dark-600)]">
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Category</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Scheduled</th>
+                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginatedCourses.map((course) => {
+                                        const primaryType = getCoursePrimaryType(course);
+                                        return (
+                                            <tr key={course.id} className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/30 transition-colors">
+                                                <td className="py-4 px-6">
+                                                    <div className="flex items-center gap-3">
+                                                        {course.cover_image ? (
+                                                            <img 
+                                                                src={course.cover_image} 
+                                                                alt={course.title}
+                                                                className="w-10 h-10 rounded-xl object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                                                <BookOpen className="h-5 w-5 text-white" />
+                                                            </div>
+                                                        )}
+                                                        <div className="font-semibold text-[var(--brand-light)]">{course.title}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <TypeBadge type={primaryType} />
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <span className="text-sm text-[var(--brand-light)]/70">{course.category_name || '-'}</span>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <StatusBadge status={course.status} />
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    {course.status === 'SCHEDULED' && course.published_at ? (
+                                                        <span className="inline-flex items-center gap-1 text-xs text-[var(--brand-peach)]">
+                                                            <Clock className="w-3 h-3" /> {formatScheduledDate(course.published_at)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-sm text-[var(--brand-light)]/40">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-6 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <button 
+                                                            className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/20 transition-all flex items-center justify-center"
+                                                            onClick={() => window.open(`${basePath}/courses/${course.slug}`, '_blank')}
+                                                            title="Preview course"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </button>
+                                                        <Link href={`${basePath}/courses/${course.slug}/edit`}>
+                                                            <button className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-all flex items-center justify-center">
+                                                                <Edit className="h-4 w-4" />
+                                                            </button>
+                                                        </Link>
+                                                        <button 
+                                                            className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 transition-all flex items-center justify-center"
+                                                            onClick={() => setItemToDelete(course)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
+
+                {/* Pagination */}
+                {!showSkeleton && totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+                        <button 
+                            disabled={currentPage === 1} 
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        <div className="text-sm text-[var(--brand-light)]/50">
+                            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                        </div>
+                        <button 
+                            disabled={currentPage >= totalPages} 
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
+
+                {/* Delete Confirmation Modal */}
+                <ConfirmationModal 
+                    isVisible={!!itemToDelete} 
+                    onClose={() => setItemToDelete(null)} 
+                    onConfirm={handleDelete} 
+                    title="Delete Course"
+                    message={`Are you sure you want to delete "${itemToDelete?.title}"? This action cannot be undone.`}
+                    confirmButtonText="Delete"
+                    cancelButtonText="Cancel"
+                    variant="danger"
+                    darkMode
+                />
+
+                {/* Toast Notification */}
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    isVisible={toast.isVisible} 
+                    onClose={() => setToast({ ...toast, isVisible: false })}
+                    darkMode
+                />
+            </div>
         </div>
     );
 }

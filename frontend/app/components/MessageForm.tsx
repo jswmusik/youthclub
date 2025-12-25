@@ -2,17 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Info, AlertCircle, AlertTriangle, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Info, AlertCircle, AlertTriangle, Link as LinkIcon, MessageSquare, Settings, Users, Clock, Pin } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import Toast from './Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 
 interface MessageFormProps {
   redirectPath: string;
@@ -30,6 +23,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -42,6 +36,15 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
     is_sticky: false,
     external_link: ''
   });
+
+  // Calculate progress
+  const calculateProgress = () => {
+    let filled = 0;
+    let total = 2; // title and message are required
+    if (formData.title.trim()) filled++;
+    if (formData.message.trim()) filled++;
+    return Math.round((filled / total) * 100);
+  };
 
   const toggleRole = (role: string) => {
     setFormData(prev => {
@@ -56,14 +59,12 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
     e.preventDefault();
     setLoading(true);
     
-    // Validate that at least one role is selected if not targeting all
     if (!formData.target_all && formData.selected_roles.length === 0) {
       setToast({ message: 'Please select at least one role or select "All Roles".', type: 'error', isVisible: true });
       setLoading(false);
       return;
     }
     
-    // Calculate Expiration
     const expires = new Date();
     expires.setDate(expires.getDate() + parseInt(formData.days_active.toString()));
 
@@ -76,7 +77,6 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
       expires_at: expires.toISOString()
     };
 
-    // Only include external_link if it has a value (don't send null or empty string)
     if (formData.external_link && formData.external_link.trim()) {
       payload.external_link = formData.external_link.trim();
     }
@@ -87,8 +87,6 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
       setTimeout(() => router.push(redirectPath), 1000);
     } catch (err: any) {
       console.error('Error creating message:', err);
-      console.error('Error response:', err?.response?.data);
-      console.error('Payload sent:', payload);
       const errorMessage = err?.response?.data?.message || 
                           err?.response?.data?.detail || 
                           (typeof err?.response?.data === 'object' ? JSON.stringify(err.response.data) : 'Failed to create message.');
@@ -99,236 +97,374 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
 
   const getMessageTypeIcon = (type: string) => {
     switch(type) {
-      case 'INFO': return <Info className="h-4 w-4" />;
-      case 'IMPORTANT': return <AlertCircle className="h-4 w-4" />;
-      case 'WARNING': return <AlertTriangle className="h-4 w-4" />;
-      default: return <Info className="h-4 w-4" />;
+      case 'INFO': return <Info className="h-5 w-5" />;
+      case 'IMPORTANT': return <AlertCircle className="h-5 w-5" />;
+      case 'WARNING': return <AlertTriangle className="h-5 w-5" />;
+      default: return <Info className="h-5 w-5" />;
     }
   };
 
-  const getMessageTypeColor = (type: string) => {
+  const getMessageTypeStyle = (type: string) => {
     switch(type) {
-      case 'INFO': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'IMPORTANT': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'WARNING': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'INFO': return {
+        bg: 'bg-[var(--brand-blue)]',
+        text: 'text-[var(--brand-blue)]',
+        border: 'border-[var(--brand-blue)]'
+      };
+      case 'IMPORTANT': return {
+        bg: 'bg-[#F59E0B]',
+        text: 'text-[#F59E0B]',
+        border: 'border-[#F59E0B]'
+      };
+      case 'WARNING': return {
+        bg: 'bg-[var(--brand-red)]',
+        text: 'text-[var(--brand-red)]',
+        border: 'border-[var(--brand-red)]'
+      };
+      default: return {
+        bg: 'bg-[var(--brand-blue)]',
+        text: 'text-[var(--brand-blue)]',
+        border: 'border-[var(--brand-blue)]'
+      };
     }
   };
+
+  const inputClasses = (field: string) => `
+    w-full h-12 px-4 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const progress = calculateProgress();
+  const typeStyle = getMessageTypeStyle(formData.message_type);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={redirectPath}>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Create System Message</h1>
-          <p className="text-sm text-muted-foreground">Create and send a system-wide message to users.</p>
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
+        {/* Header */}
+        <div className="flex items-center gap-4 px-4 sm:px-0 mb-6">
+          <Link href={redirectPath}>
+            <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </Link>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Create System Message</h1>
+            <p className="text-sm text-[var(--brand-light)]/50">Create and send a system-wide message to users</p>
+          </div>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        
-        {/* Message Details */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Message Details</CardTitle>
-            <CardDescription>Enter the message title and content.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">
-                Title <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="title"
-                required
-                type="text"
-                placeholder="Enter message title..."
-                value={formData.title}
-                onChange={e => setFormData({...formData, title: e.target.value})}
-                className="focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
-              />
-            </div>
+        {/* Progress Bar */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] px-4 sm:px-6 py-4 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-[var(--brand-light)]/50">Required fields</span>
+            <span className="text-sm font-bold text-[var(--brand-primary)]">{progress}%</span>
+          </div>
+          <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="message">
-                Message Body <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="message"
-                required
-                rows={4}
-                placeholder="Enter your message..."
-                value={formData.message}
-                onChange={e => setFormData({...formData, message: e.target.value})}
-                className="focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="external_link">
-                External Link (Optional)
-              </Label>
-              <div className="relative">
-                <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="external_link"
-                  type="url"
-                  placeholder="https://..."
-                  value={formData.external_link}
-                  onChange={e => setFormData({...formData, external_link: e.target.value})}
-                  className="pl-9 focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
-                />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Message Details Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            {/* Card Header */}
+            <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <MessageSquare className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-[var(--brand-light)]">Message Details</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Enter the message title and content</p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Message Settings */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Message Settings</CardTitle>
-            <CardDescription>Configure message type, duration, and visibility.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="message_type">Message Type</Label>
-                <select
-                  id="message_type"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2 focus-visible:border-[#4D4DA4] pr-10"
-                  value={formData.message_type}
-                  onChange={e => setFormData({...formData, message_type: e.target.value})}
-                >
-                  <option value="INFO">Information (Blue)</option>
-                  <option value="IMPORTANT">Important (Orange)</option>
-                  <option value="WARNING">Warning (Red)</option>
-                </select>
-                <div className="mt-2 flex items-center gap-2">
-                  <Badge variant="outline" className={getMessageTypeColor(formData.message_type)}>
-                    <span className="flex items-center gap-1.5">
+            {/* Card Content */}
+            <div className="px-4 sm:px-6 py-6 space-y-6">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                  Title <span className="text-[var(--brand-red)]">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter message title..."
+                  value={formData.title}
+                  onChange={e => setFormData({...formData, title: e.target.value})}
+                  onFocus={() => setFocusedField('title')}
+                  onBlur={() => setFocusedField(null)}
+                  className={inputClasses('title')}
+                />
+              </div>
+
+              {/* Message Body */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                  Message Body <span className="text-[var(--brand-red)]">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Enter your message..."
+                  value={formData.message}
+                  onChange={e => setFormData({...formData, message: e.target.value})}
+                  onFocus={() => setFocusedField('message')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full px-4 py-3 rounded-xl bg-[var(--dark-700)] border-2 ${focusedField === 'message' ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'} text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all resize-none hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20`}
+                />
+              </div>
+
+              {/* External Link */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                  External Link (Optional)
+                </label>
+                <div className="relative">
+                  <LinkIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={formData.external_link}
+                    onChange={e => setFormData({...formData, external_link: e.target.value})}
+                    onFocus={() => setFocusedField('external_link')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`${inputClasses('external_link')} pl-11`}
+                  />
+                </div>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">
+                  Add an optional link for users to learn more
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Message Settings Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            {/* Card Header */}
+            <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                  <Settings className="w-5 h-5 text-[var(--dark-900)]" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-[var(--brand-light)]">Message Settings</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Configure message type, duration, and visibility</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="px-4 sm:px-6 py-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Message Type */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                    Message Type
+                  </label>
+                  <select
+                    value={formData.message_type}
+                    onChange={e => setFormData({...formData, message_type: e.target.value})}
+                    className="w-full h-12 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all appearance-none cursor-pointer hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)]"
+                    style={selectArrowStyle}
+                  >
+                    <option value="INFO">Information (Blue)</option>
+                    <option value="IMPORTANT">Important (Orange)</option>
+                    <option value="WARNING">Warning (Red)</option>
+                  </select>
+                  
+                  {/* Type Preview */}
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-lg ${typeStyle.bg} flex items-center justify-center`}>
                       {getMessageTypeIcon(formData.message_type)}
+                      <span className="text-white">{/* Icon renders here */}</span>
+                    </div>
+                    <span className={`text-sm font-medium ${typeStyle.text}`}>
                       {formData.message_type}
                     </span>
-                  </Badge>
+                  </div>
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                    Duration (Days) <span className="text-[var(--brand-red)]">*</span>
+                  </label>
+                  <div className="relative">
+                    <Clock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      required
+                      value={formData.days_active}
+                      onChange={e => setFormData({...formData, days_active: parseInt(e.target.value) || 7})}
+                      onFocus={() => setFocusedField('days_active')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`${inputClasses('days_active')} pl-11`}
+                    />
+                  </div>
+                  <p className="text-xs text-[var(--brand-light)]/40 mt-2">
+                    Message will expire after this many days
+                  </p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="days_active">
-                  Duration (Days) <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="days_active"
-                  type="number"
-                  min="1"
-                  max="365"
-                  required
-                  value={formData.days_active}
-                  onChange={e => setFormData({...formData, days_active: parseInt(e.target.value) || 7})}
-                  className="focus:ring-[#4D4DA4] focus:border-[#4D4DA4]"
-                />
-                <p className="text-xs text-muted-foreground">Message will expire after this many days</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 rounded-lg border border-input bg-muted/30">
-              <input
-                type="checkbox"
-                id="is_sticky"
-                checked={formData.is_sticky}
-                onChange={e => setFormData({...formData, is_sticky: e.target.checked})}
-                className="w-5 h-5 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded mt-0.5 flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <Label htmlFor="is_sticky" className="font-semibold text-foreground cursor-pointer block">
-                  Sticky Message
-                </Label>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Reappears on refresh even if closed by user.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Target Audience */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Target Audience</CardTitle>
-            <CardDescription>Select which user roles should receive this message.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="flex items-start gap-3 p-4 rounded-lg border border-input bg-muted/30">
-              <input
-                type="checkbox"
-                id="target_all"
-                checked={formData.target_all}
-                onChange={e => setFormData({...formData, target_all: e.target.checked, selected_roles: e.target.checked ? [] : formData.selected_roles})}
-                className="w-5 h-5 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded mt-0.5 flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <Label htmlFor="target_all" className="font-semibold text-foreground cursor-pointer block">
-                  All Roles
-                </Label>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Send this message to all users regardless of their role.
-                </p>
-              </div>
-            </div>
-
-            {!formData.target_all && (
-              <div className="space-y-2">
-                <Label>Select Specific Roles</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-lg border border-input bg-muted/30">
-                  {ROLES.map(role => (
-                    <label
-                      key={role.id}
-                      className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded"
-                        checked={formData.selected_roles.includes(role.id)}
-                        onChange={() => toggleRole(role.id)}
-                      />
-                      <span className="text-sm font-medium text-foreground">{role.label}</span>
-                    </label>
-                  ))}
+              {/* Sticky Message Toggle */}
+              <div 
+                className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  formData.is_sticky 
+                    ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' 
+                    : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
+                }`}
+                onClick={() => setFormData({...formData, is_sticky: !formData.is_sticky})}
+              >
+                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                  formData.is_sticky 
+                    ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' 
+                    : 'border-[var(--dark-400)] bg-transparent'
+                }`}>
+                  {formData.is_sticky && (
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Pin className="w-4 h-4 text-[var(--brand-primary)]" />
+                    <span className="font-semibold text-[var(--brand-light)]">Sticky Message</span>
+                  </div>
+                  <p className="text-sm text-[var(--brand-light)]/50 mt-1">
+                    Reappears on refresh even if closed by user
+                  </p>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push(redirectPath)}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full transition-colors"
-          >
-            {loading ? 'Sending...' : 'Send Message'}
-          </Button>
-        </div>
+          {/* Target Audience Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            {/* Card Header */}
+            <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-[var(--brand-light)]">Target Audience</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Select which user roles should receive this message</p>
+                </div>
+              </div>
+            </div>
 
-      </form>
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+            {/* Card Content */}
+            <div className="px-4 sm:px-6 py-6 space-y-6">
+              {/* All Roles Toggle */}
+              <div 
+                className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  formData.target_all 
+                    ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' 
+                    : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
+                }`}
+                onClick={() => setFormData({...formData, target_all: !formData.target_all, selected_roles: !formData.target_all ? [] : formData.selected_roles})}
+              >
+                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                  formData.target_all 
+                    ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' 
+                    : 'border-[var(--dark-400)] bg-transparent'
+                }`}>
+                  {formData.target_all && (
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <span className="font-semibold text-[var(--brand-light)]">All Roles</span>
+                  <p className="text-sm text-[var(--brand-light)]/50 mt-1">
+                    Send this message to all users regardless of their role
+                  </p>
+                </div>
+              </div>
+
+              {/* Specific Roles Selection */}
+              {!formData.target_all && (
+                <div>
+                  <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-3">
+                    Select Specific Roles
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {ROLES.map(role => (
+                      <div
+                        key={role.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                          formData.selected_roles.includes(role.id)
+                            ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30'
+                            : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
+                        }`}
+                        onClick={() => toggleRole(role.id)}
+                      >
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                          formData.selected_roles.includes(role.id)
+                            ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]'
+                            : 'border-[var(--dark-400)] bg-transparent'
+                        }`}>
+                          {formData.selected_roles.includes(role.id) && (
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-sm font-medium text-[var(--brand-light)]">{role.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 pt-4 pb-8">
+            <button 
+              type="button"
+              onClick={() => router.push(redirectPath)}
+              disabled={loading}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading || !formData.title.trim() || !formData.message.trim()}
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Sending...' : 'Send Message'}
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
     </div>
   );
 }

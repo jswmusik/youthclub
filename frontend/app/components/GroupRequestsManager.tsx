@@ -2,50 +2,274 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Search, BarChart3, ChevronUp, X, CheckCircle2, XCircle, Users, Building, MapPin, FileText, UserPlus, Calendar } from 'lucide-react';
+import { 
+  Search, BarChart3, ChevronUp, ChevronLeft, X, CheckCircle2, XCircle, 
+  Users, Building, FileText, UserPlus, Calendar, Layers, Mail
+} from 'lucide-react';
 import api from '../../lib/api';
 import Toast from './Toast';
 import { getMediaUrl } from '../../app/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onApprove?: () => void;
+  onReject?: () => void;
+  onClick?: () => void;
+}
+
+function SwipeableCard({ children, onApprove, onReject, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      if (onClick) onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleApproveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onApprove) onApprove();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleRejectClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onReject) onReject();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      {/* Action buttons (behind the card) */}
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleApproveClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-green)] text-white transition-all active:bg-[var(--brand-green)]/80"
+        >
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Approve</span>
+        </button>
+        <button
+          onClick={handleRejectClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <XCircle className="w-5 h-5" />
+          <span className="text-xs font-medium">Reject</span>
+        </button>
+      </div>
+
+      {/* Swipeable card content */}
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {/* Swipe hint indicator */}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function RequestCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+          <div className="flex items-center gap-2 mt-2">
+            <Skeleton className="h-5 w-24 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RequestTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-28 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-2">
+          <Skeleton className="w-24 h-9 rounded-lg" />
+          <Skeleton className="w-20 h-9 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function RequestPageSkeleton() {
+  return (
+    <>
+      {/* Mobile Cards Skeleton */}
+      <div className="flex flex-col md:hidden">
+        {[...Array(4)].map((_, i) => (
+          <RequestCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applicant</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applying To</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Requested</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(5)].map((_, i) => (
+              <RequestTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 export default function GroupRequestsManager() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  // Determine admin type from pathname
   const isSuperAdmin = pathname.includes('/super');
   const isMuniAdmin = pathname.includes('/municipality');
   const isClubAdmin = pathname.includes('/club');
   
   const [requests, setRequests] = useState<any[]>([]);
-  const [allRequests, setAllRequests] = useState<any[]>([]); // Store all requests from API
-  const [allFilteredRequests, setAllFilteredRequests] = useState<any[]>([]); // Store all filtered requests for pagination
+  const [allRequests, setAllRequests] = useState<any[]>([]);
+  const [allFilteredRequests, setAllFilteredRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
-  // Dropdowns
   const [municipalities, setMunicipalities] = useState<any[]>([]);
   const [clubs, setClubs] = useState<any[]>([]);
   
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
 
-  const updateUrl = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value); else params.delete(key);
-    // Reset to page 1 when filters change (except when changing page itself)
-    if (key !== 'page') {
+  // Filter state
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('municipality') || '');
+  const [clubFilter, setClubFilter] = useState(searchParams.get('club') || '');
+
+  // Debounced filter update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchInput) params.set('search', searchInput); else params.delete('search');
+      if (municipalityFilter) params.set('municipality', municipalityFilter); else params.delete('municipality');
+      if (clubFilter) params.set('club', clubFilter); else params.delete('club');
       params.set('page', '1');
-    }
-    router.push(`${pathname}?${params.toString()}`);
-  };
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, municipalityFilter, clubFilter]);
 
   useEffect(() => {
     fetchDropdowns();
@@ -72,8 +296,10 @@ export default function GroupRequestsManager() {
 
   const fetchAllRequests = async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+    
     try {
-      // Fetch ALL requests by paginating through all pages
       let allRequestsData: any[] = [];
       let pageNum = 1;
       let totalCount = 0;
@@ -114,15 +340,21 @@ export default function GroupRequestsManager() {
       applyFilter();
     } catch (err) {
       console.error(err);
+      setToast({ message: 'Failed to load applications.', type: 'error', isVisible: true });
     } finally {
-      setLoading(false);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
   };
 
   const applyFilter = () => {
     let filtered = [...allRequests];
     
-    // Search filter (by user name, email, or group name)
     const search = searchParams.get('search') || '';
     if (search) {
       const searchLower = search.toLowerCase();
@@ -133,7 +365,6 @@ export default function GroupRequestsManager() {
       );
     }
 
-    // Municipality filter
     const municipality = searchParams.get('municipality') || '';
     if (municipality) {
       filtered = filtered.filter(req => 
@@ -141,7 +372,6 @@ export default function GroupRequestsManager() {
       );
     }
 
-    // Club filter
     const club = searchParams.get('club') || '';
     if (club) {
       filtered = filtered.filter(req => 
@@ -149,10 +379,8 @@ export default function GroupRequestsManager() {
       );
     }
     
-    // Store all filtered requests for pagination calculation
     setAllFilteredRequests(filtered);
     
-    // Apply pagination
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
     const startIndex = (currentPage - 1) * pageSize;
@@ -162,7 +390,6 @@ export default function GroupRequestsManager() {
     setRequests(paginatedRequests);
   };
 
-  // Calculate analytics from all requests
   const calculateAnalytics = () => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -201,137 +428,142 @@ export default function GroupRequestsManager() {
         type: 'success', 
         isVisible: true 
       });
-      // Refresh list - pagination state is preserved in URL, so applyFilter will maintain current page
       fetchAllRequests();
     } catch (err) {
       setToast({ message: 'Action failed.', type: 'error', isVisible: true });
     }
   };
 
-  // Pagination logic
+  const clearFilters = () => {
+    setSearchInput('');
+    setMunicipalityFilter('');
+    setClubFilter('');
+    router.push(pathname);
+  };
+
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = 10;
   const totalCount = allFilteredRequests.length;
   const totalPages = totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0;
 
+  const handlePageChange = (p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', p.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
+  const hasFilters = searchInput || municipalityFilter || clubFilter;
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Group Applications</h1>
-          <p className="text-gray-500 mt-1">Manage group membership requests and applications.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Group Applications</h1>
+          </div>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage group membership requests and applications.</p>
         </div>
       </div>
 
-      {/* Analytics */}
-      <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-        <Card className="border-0 shadow-sm bg-gray-900">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                Analytics Dashboard
-              </h3>
-            </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                <ChevronUp className={cn(
-                  "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                  analyticsExpanded ? "rotate-0" : "rotate-180"
-                )} />
-                <span className="sr-only">Toggle Analytics</span>
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent className="transition-all duration-500 ease-in-out">
-            <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {/* Card 1: Total Applications */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                        }}>
-                        <FileText className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Total Applications</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.totalApplications}</div>
-                  </div>
-                </Card>
-
-                {/* Card 2: Applications Last Week */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                        }}>
-                        <UserPlus className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Last Week</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.applicationsLastWeek}</div>
-                  </div>
-                </Card>
-
-                {/* Card 3: Applications Last 30 Days */}
-                <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                  style={{
-                    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                  }}>
-                  <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                    <div className="flex items-center gap-2 justify-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                        style={{
-                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                        }}>
-                        <Calendar className="h-5 w-5 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-medium text-white/90">Last 30 Days</CardTitle>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.applicationsLast30Days}</div>
-                  </div>
-                </Card>
+      {/* Analytics Dashboard */}
+      {!showSkeleton && (
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-
-      {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          {/* Main Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            {/* Search - Takes more space on larger screens */}
-            <div className="relative md:col-span-4 lg:col-span-3">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search by user name, email, or group name..." 
-                className="pl-9 bg-gray-50 border-0"
-                value={searchParams.get('search') || ''}
-                onChange={e => updateUrl('search', e.target.value)}
-              />
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
             </div>
-            
-            {/* Municipality Filter - Only for Super Admin */}
+            <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+          </button>
+          
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              
+              {/* Total Applications */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.totalApplications}</div>
+              </div>
+
+              {/* Last Week */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last Week</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.applicationsLastWeek}</div>
+              </div>
+
+              {/* Last 30 Days */}
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-[var(--dark-900)]" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last 30 Days</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.applicationsLast30Days}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search & Filters */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex flex-col gap-3">
+          {/* Search Row */}
+          <div className="flex items-center gap-3">
+            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+            <input 
+              type="text"
+              placeholder="Search by user name, email, or group name..." 
+              className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+            />
+            {searchInput && (
+              <button 
+                onClick={() => setSearchInput('')}
+                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          
+          {/* Filters Row */}
+          <div className="flex flex-col sm:flex-row gap-3">
             {isSuperAdmin && (
-              <div className="md:col-span-2 lg:col-span-2">
+              <div className="w-full sm:w-[200px]">
                 <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                  value={searchParams.get('municipality') || ''} 
-                  onChange={e => updateUrl('municipality', e.target.value)}
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={municipalityFilter}
+                  onChange={e => setMunicipalityFilter(e.target.value)}
+                  style={selectArrowStyle}
                 >
                   <option value="">All Municipalities</option>
                   {municipalities.map(m => (
@@ -340,14 +572,13 @@ export default function GroupRequestsManager() {
                 </select>
               </div>
             )}
-            
-            {/* Club Filter - For Super Admin and Municipality Admin */}
             {(isSuperAdmin || isMuniAdmin) && (
-              <div className={cn("md:col-span-2", isSuperAdmin ? "lg:col-span-2" : "lg:col-span-3")}>
+              <div className="w-full sm:w-[200px]">
                 <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                  value={searchParams.get('club') || ''} 
-                  onChange={e => updateUrl('club', e.target.value)}
+                  className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                  value={clubFilter}
+                  onChange={e => setClubFilter(e.target.value)}
+                  style={selectArrowStyle}
                 >
                   <option value="">All Clubs</option>
                   {clubs.map(c => (
@@ -356,196 +587,191 @@ export default function GroupRequestsManager() {
                 </select>
               </div>
             )}
-            
-            {/* Clear Button */}
-            <div className="md:col-span-2 lg:col-span-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(pathname)}
-                className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                <X className="h-4 w-4" /> Clear
-              </Button>
-            </div>
+                Clear All
+              </button>
+            )}
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* Stats Bar */}
+      {!showSkeleton && requests.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{requests.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{allFilteredRequests.length}</span> {allFilteredRequests.length === 1 ? 'application' : 'applications'}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
-        </div>
+      {showSkeleton ? (
+        <RequestPageSkeleton />
       ) : requests.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">
-              {searchParams.get('search') || searchParams.get('municipality') || searchParams.get('club')
-                ? 'No applications found matching your filters.'
-                : 'No pending applications found.'}
-            </p>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+            <UserPlus className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-        </Card>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No applications found</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm">
+            {hasFilters ? 'Try adjusting your search or filters.' : 'No pending applications at the moment.'}
+          </p>
+        </div>
       ) : (
         <>
-          {/* MOBILE: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {requests.map(req => (
-              <Card key={req.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
-                      <AvatarImage src={getMediaUrl(req.user_avatar) || undefined} className="object-cover" />
-                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                        {getInitials(req.user_first_name, req.user_last_name)}
-                      </AvatarFallback>
-                    </Avatar>
+          {/* Mobile Cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {requests.map((req) => (
+              <SwipeableCard
+                key={req.id}
+                onApprove={() => handleAction(req.id, 'approve')}
+                onReject={() => handleAction(req.id, 'reject')}
+              >
+                <div className="border-y border-[var(--dark-600)] p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Avatar */}
+                    <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                      {req.user_avatar ? (
+                        <img src={getMediaUrl(req.user_avatar) || ''} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                          <span className="text-white text-sm font-bold">
+                            {getInitials(req.user_first_name, req.user_last_name)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                      <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
                         {req.user_name || 'Unknown'}
-                      </CardTitle>
-                      <CardDescription className="text-xs text-gray-500 truncate">
-                        {req.user_email || ''}
-                      </CardDescription>
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Mail className="w-3 h-3 text-[var(--brand-light)]/40" />
+                        <p className="text-xs text-[var(--brand-light)]/50 truncate">
+                          {req.user_email || ''}
+                        </p>
+                      </div>
+                      
+                      {/* Group & Date */}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
+                          <Layers className="w-3 h-3" />
+                          {req.group_name || 'Unknown Group'}
+                        </span>
+                        <span className="text-[10px] text-[var(--brand-light)]/40">
+                          {req.joined_at ? new Date(req.joined_at).toLocaleDateString() : '-'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Group</span>
-                      <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">
-                        {req.group_name || 'Unknown Group'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-xs text-gray-500 uppercase font-semibold">Requested</span>
-                      <span className="text-sm text-gray-600">
-                        {req.joined_at ? new Date(req.joined_at).toLocaleDateString() : '-'}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex-1 justify-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                      onClick={() => handleAction(req.id, 'approve')}
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Approve
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleAction(req.id, 'reject')}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Deny
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </SwipeableCard>
             ))}
           </div>
 
-          {/* DESKTOP: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">User</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Applying To</TableHead>
-                  <TableHead className="h-12 px-6 text-gray-600 font-semibold">Requested</TableHead>
-                  <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.map(req => (
-                  <TableRow key={req.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4 px-6">
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applicant</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applying To</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Requested</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((req, index) => (
+                  <tr 
+                    key={req.id} 
+                    className={`${index !== requests.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors`}
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
-                          <AvatarImage src={getMediaUrl(req.user_avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                            {getInitials(req.user_first_name, req.user_last_name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+                          {req.user_avatar ? (
+                            <img src={getMediaUrl(req.user_avatar) || ''} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">
+                                {getInitials(req.user_first_name, req.user_last_name)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                         <div>
-                          <div className="font-semibold text-[#121213]">{req.user_name || 'Unknown'}</div>
-                          <div className="text-xs text-gray-500">{req.user_email || ''}</div>
+                          <div className="font-semibold text-[var(--brand-light)]">{req.user_name || 'Unknown'}</div>
+                          <div className="text-xs text-[var(--brand-light)]/50">{req.user_email || ''}</div>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
+                        <Layers className="w-3 h-3" />
                         {req.group_name || 'Unknown Group'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <span className="text-sm text-gray-600">
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-[var(--brand-light)]/60">
                         {req.joined_at ? new Date(req.joined_at).toLocaleDateString() : '-'}
                       </span>
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-3 text-green-600 hover:text-green-700 hover:bg-green-50"
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
                           onClick={() => handleAction(req.id, 'approve')}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] hover:bg-[var(--brand-green)]/30 transition-all"
                         >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          <CheckCircle2 className="w-4 h-4" />
                           Approve
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        </button>
+                        <button 
                           onClick={() => handleAction(req.id, 'reject')}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/30 transition-all"
                         >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Deny
-                        </Button>
+                          <XCircle className="w-4 h-4" />
+                          Reject
+                        </button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </Card>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+              <button 
+                disabled={currentPage === 1} 
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <div className="text-sm text-[var(--brand-light)]/50">
+                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+              </div>
+              <button 
+                disabled={currentPage >= totalPages} 
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 py-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            disabled={currentPage === 1} 
-            onClick={() => updateUrl('page', (currentPage - 1).toString())}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-          >
-            Prev
-          </Button>
-          <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            disabled={currentPage >= totalPages} 
-            onClick={() => updateUrl('page', (currentPage + 1).toString())}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-          >
-            Next
-          </Button>
-        </div>
-      )}
-
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
     </div>
   );
 }

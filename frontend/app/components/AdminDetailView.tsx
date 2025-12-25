@@ -3,18 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Edit, Mail, Phone, MessageSquare, User, Briefcase, Building2, Users } from 'lucide-react';
+import { 
+  ArrowLeft, Edit, Mail, Phone, MessageSquare, User, Briefcase, 
+  Building2, Building, Users, ShieldCheck, ChevronRight
+} from 'lucide-react';
 import api from '../../lib/api';
-import { messengerApi } from '../../lib/messenger-api';
 import { getMediaUrl } from '../../app/utils';
 import QuickMessageModal from './messenger/QuickMessageModal';
-
-// UI
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 
 interface AdminDetailProps {
   userId: string;
@@ -25,7 +20,7 @@ interface Option { id: number; name: string; }
 
 export default function AdminDetailView({ userId, basePath }: AdminDetailProps) {
   const router = useRouter();
-  const pathname = usePathname(); // To detect current admin scope
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [admin, setAdmin] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -61,16 +56,14 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
     return firstInitial + lastInitial || '?';
   };
 
-  // Helper to determine redirect path based on current URL
   const getInboxPath = () => {
     if (pathname.includes('/admin/super')) return '/admin/super/inbox';
     if (pathname.includes('/admin/municipality')) return '/admin/municipality/inbox';
     if (pathname.includes('/admin/club')) return '/admin/club/inbox';
-    return '/admin/super/inbox'; // Fallback
+    return '/admin/super/inbox';
   };
 
   const handleSendMessage = () => {
-    // Open modal instead of redirecting
     setShowMessageModal(true);
   };
 
@@ -90,24 +83,46 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  const getRoleBadge = (role: string) => {
+  const getRoleBadgeClasses = (role: string) => {
     switch (role) {
-      case 'SUPER_ADMIN': return 'bg-red-50 text-red-700 border-red-200';
-      case 'MUNICIPALITY_ADMIN': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'CLUB_ADMIN': return 'bg-green-50 text-green-700 border-green-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'SUPER_ADMIN': return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+      case 'MUNICIPALITY_ADMIN': return 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30';
+      case 'CLUB_ADMIN': return 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border-[var(--brand-third)]/30';
+      default: return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'SUPER_ADMIN': return <ShieldCheck className="w-4 h-4" />;
+      case 'MUNICIPALITY_ADMIN': return <Building className="w-4 h-4" />;
+      case 'CLUB_ADMIN': return <Building2 className="w-4 h-4" />;
+      default: return <User className="w-4 h-4" />;
     }
   };
 
   if (loading) {
     return (
-      <div className="py-20 text-center text-gray-400 animate-pulse">Loading details...</div>
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[var(--brand-light)]/60">Loading admin details...</p>
+        </div>
+      </div>
     );
   }
 
   if (!admin) {
     return (
-      <div className="py-20 text-center text-red-600">Admin not found.</div>
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <User className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
+          <p className="text-[var(--brand-light)] font-semibold">Admin not found</p>
+          <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
+            Return to list
+          </Link>
+        </div>
+      </div>
     );
   }
 
@@ -129,169 +144,293 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
 
   return (
     <div className="space-y-6">
-      {/* Navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <Link href={buildUrlWithParams(basePath)}>
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="h-4 w-4" /> Back to List
-          </Button>
+      {/* Navigation Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
+        <Link 
+          href={buildUrlWithParams(basePath)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to List
         </Link>
         <div className="flex flex-wrap gap-2">
-          <Button 
+          <button 
             onClick={handleSendMessage}
-            variant="outline"
-            size="sm"
-            className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
-            <MessageSquare className="h-4 w-4" /> Message
-          </Button>
-          <Link href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)}>
-            <Button size="sm" className="gap-2 bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white shadow-sm">
-              <Edit className="h-4 w-4" /> Edit
-            </Button>
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">Send Message</span>
+            <span className="sm:hidden">Message</span>
+          </button>
+          <Link 
+            href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
+          >
+            <Edit className="h-4 w-4" /> Edit Admin
           </Link>
         </div>
       </div>
 
-      {/* Profile Hero Card */}
-      <Card className="border border-gray-100 shadow-sm overflow-hidden bg-gradient-to-br from-[#EBEBFE] via-[#EBEBFE]/50 to-white">
-        <div className="p-6 sm:p-10">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
-            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 rounded-2xl border-4 border-white shadow-lg bg-white flex-shrink-0">
-              <AvatarImage src={getMediaUrl(admin.avatar) || undefined} className="object-cover" />
-              <AvatarFallback className="text-4xl font-bold text-[#4D4DA4] bg-white">
-                {getInitials(admin.first_name, admin.last_name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="text-center sm:text-left flex-1 space-y-2">
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#121213]">
+      {/* Hero Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        {/* Header Banner */}
+        <div className="relative h-36 sm:h-48 bg-gradient-to-br from-[var(--brand-purple)]/30 via-[var(--dark-700)] to-[var(--brand-primary)]/20">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
+            <div className="absolute bottom-4 left-4 w-24 h-24 rounded-full bg-[var(--brand-purple)]/20 blur-2xl" />
+          </div>
+          
+          {/* Role Badge - Top Right */}
+          <div className={`absolute top-4 right-4 px-4 py-2 rounded-xl backdrop-blur-sm border flex items-center gap-2 ${
+            admin.role === 'SUPER_ADMIN' ? 'bg-[var(--brand-red)]/20 border-[var(--brand-red)]/30' :
+            admin.role === 'MUNICIPALITY_ADMIN' ? 'bg-[var(--brand-primary)]/20 border-[var(--brand-primary)]/30' :
+            'bg-[var(--brand-third)]/20 border-[var(--brand-third)]/30'
+          }`}>
+            {getRoleIcon(admin.role)}
+            <span className={`text-sm font-semibold ${
+              admin.role === 'SUPER_ADMIN' ? 'text-[var(--brand-red)]' :
+              admin.role === 'MUNICIPALITY_ADMIN' ? 'text-[var(--brand-primary)]' :
+              'text-[var(--brand-third)]'
+            }`}>{admin.role.replace(/_/g, ' ')}</span>
+          </div>
+        </div>
+        
+        {/* Avatar & Title Section */}
+        <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-14 sm:-mt-16">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
+            {/* Avatar */}
+            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
+              {admin.avatar ? (
+                <img 
+                  src={getMediaUrl(admin.avatar) || ''} 
+                  alt={`${admin.first_name} ${admin.last_name}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                  <span className="text-3xl sm:text-4xl font-bold text-white">
+                    {getInitials(admin.first_name, admin.last_name)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Title & Info */}
+            <div className="flex-1 space-y-2 pt-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
                 {admin.first_name} {admin.last_name}
               </h1>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-                <Badge variant="outline" className={getRoleBadge(admin.role)}>
-                  {admin.role.replace(/_/g, ' ')}
-                </Badge>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-[var(--brand-light)]/50 text-sm">
+                  <Mail className="h-4 w-4" />
+                  <span>{admin.email}</span>
+                </div>
                 {municipalityName && (
-                  <Badge variant="outline" className="bg-white/80 text-gray-700 border-gray-200">
-                    <Building2 className="h-3 w-3 mr-1" /> {municipalityName}
-                  </Badge>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
+                    <Building className="w-3 h-3" /> {municipalityName}
+                  </span>
                 )}
                 {clubName && (
-                  <Badge variant="outline" className="bg-white/80 text-gray-700 border-gray-200">
-                    <Users className="h-3 w-3 mr-1" /> {clubName}
-                  </Badge>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-third)]/20 text-[var(--brand-third)]">
+                    <Building2 className="w-3 h-3" /> {clubName}
+                  </span>
                 )}
               </div>
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 sm:gap-6 px-0 sm:px-0">
         
         {/* Main Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Contact Information */}
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                <Mail className="h-5 w-5 text-[#4D4DA4]" />
-                Contact Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
-                  <Mail className="h-4 w-4" />
+        <div className="lg:col-span-2 space-y-0 sm:space-y-6">
+          
+          {/* Contact Information Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact Information</h2>
+            </div>
+            <div className="p-6 space-y-3">
+              {/* Email */}
+              <a 
+                href={`mailto:${admin.email}`}
+                className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-4 h-4 text-[var(--brand-blue)]" />
                 </div>
-                <div>
-                  <div className="text-xs text-gray-500 uppercase font-medium">Email</div>
-                  <div className="text-gray-900 font-medium">{admin.email}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Email</div>
+                  <div className="text-sm text-[var(--brand-light)] truncate">{admin.email}</div>
                 </div>
-              </div>
-              {admin.phone_number && (
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
-                    <Phone className="h-4 w-4" />
+                <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] transition-colors" />
+              </a>
+
+              {/* Phone */}
+              {admin.phone_number ? (
+                <a 
+                  href={`tel:${admin.phone_number}`}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
-                  <div>
-                    <div className="text-xs text-gray-500 uppercase font-medium">Phone</div>
-                    <div className="text-gray-900 font-medium">{admin.phone_number}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Phone</div>
+                    <div className="text-sm text-[var(--brand-light)]">{admin.phone_number}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] transition-colors" />
+                </a>
+              ) : (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--dark-600)] flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-4 h-4 text-[var(--brand-light)]/30" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Phone</div>
+                    <div className="text-sm text-[var(--brand-light)]/40 italic">Not provided</div>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Personal Details */}
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                <User className="h-5 w-5 text-[#4D4DA4]" />
-                Personal Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <div className="text-xs text-gray-500 uppercase font-medium mb-1">Gender</div>
-                  <div className="text-gray-900 font-medium">{admin.legal_gender || '-'}</div>
+          {/* Personal Details Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Personal Details</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Gender */}
+                <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Gender</div>
+                  <div className="text-sm text-[var(--brand-light)] font-medium">
+                    {admin.legal_gender === 'MALE' ? 'Male' : admin.legal_gender === 'FEMALE' ? 'Female' : admin.legal_gender || '-'}
+                  </div>
                 </div>
-                {admin.role === 'CLUB_ADMIN' && admin.nickname && (
-                  <div>
-                    <div className="text-xs text-gray-500 uppercase font-medium mb-1">Nickname</div>
-                    <div className="text-gray-900 font-medium">{admin.nickname}</div>
+
+                {/* Nickname (for Club Admin) */}
+                {admin.role === 'CLUB_ADMIN' && (
+                  <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Nickname</div>
+                    <div className="text-sm text-[var(--brand-light)] font-medium">
+                      {admin.nickname || <span className="text-[var(--brand-light)]/40 italic">Not set</span>}
+                    </div>
                   </div>
                 )}
-                {admin.role === 'CLUB_ADMIN' && admin.profession && (
-                  <div className="sm:col-span-2">
-                    <div className="text-xs text-gray-500 uppercase font-medium mb-1 flex items-center gap-1">
-                      <Briefcase className="h-3 w-3" /> Profession / Title
+
+                {/* Profession (for Club Admin) */}
+                {admin.role === 'CLUB_ADMIN' && (
+                  <div className={`p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] ${admin.nickname ? '' : 'sm:col-span-1'}`}>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 flex items-center gap-1">
+                      <Briefcase className="w-3 h-3" /> Profession / Title
                     </div>
-                    <div className="text-gray-900 font-medium">{admin.profession}</div>
+                    <div className="text-sm text-[var(--brand-light)] font-medium">
+                      {admin.profession || <span className="text-[var(--brand-light)]/40 italic">Not set</span>}
+                    </div>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Sidebar Column */}
-        <div className="space-y-6">
-          {/* Assignments */}
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold text-gray-900">Assignments</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {municipalityName && (
-                <div className="flex items-start gap-3 text-sm">
-                  <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
-                    <Building2 className="h-4 w-4" />
+        <div className="space-y-0 sm:space-y-6">
+          
+          {/* Assignments Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Assignments</h2>
+            </div>
+            <div className="p-6 space-y-3">
+              {/* Municipality Assignment */}
+              {municipalityName ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center flex-shrink-0">
+                    <Building className="w-4 h-4 text-[var(--brand-primary)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-gray-500 uppercase font-medium mb-1">Municipality</div>
-                    <div className="text-gray-900 font-medium truncate">{municipalityName}</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Municipality</div>
+                    <div className="text-sm text-[var(--brand-light)] font-medium truncate">{municipalityName}</div>
+                  </div>
+                </div>
+              ) : admin.role === 'MUNICIPALITY_ADMIN' && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--dark-600)] flex items-center justify-center flex-shrink-0">
+                    <Building className="w-4 h-4 text-[var(--brand-light)]/30" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Municipality</div>
+                    <div className="text-sm text-[var(--brand-light)]/40 italic">Not assigned</div>
                   </div>
                 </div>
               )}
-              {clubName && (
-                <div className="flex items-start gap-3 text-sm">
-                  <div className="h-10 w-10 rounded-lg bg-[#EBEBFE] flex items-center justify-center text-[#4D4DA4] flex-shrink-0">
-                    <Users className="h-4 w-4" />
+
+              {/* Club Assignment */}
+              {clubName ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center flex-shrink-0">
+                    <Building2 className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-gray-500 uppercase font-medium mb-1">Club</div>
-                    <div className="text-gray-900 font-medium truncate">{clubName}</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Club</div>
+                    <div className="text-sm text-[var(--brand-light)] font-medium truncate">{clubName}</div>
+                  </div>
+                </div>
+              ) : admin.role === 'CLUB_ADMIN' && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--dark-600)] flex items-center justify-center flex-shrink-0">
+                    <Building2 className="w-4 h-4 text-[var(--brand-light)]/30" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Club</div>
+                    <div className="text-sm text-[var(--brand-light)]/40 italic">Not assigned</div>
                   </div>
                 </div>
               )}
-              {!municipalityName && !clubName && (
-                <div className="text-sm text-gray-500 italic">No assignments</div>
+
+              {/* Super Admin - Global Access */}
+              {admin.role === 'SUPER_ADMIN' && (
+                <div className="text-center py-6">
+                  <div className="w-14 h-14 rounded-2xl bg-[var(--brand-red)]/20 flex items-center justify-center mx-auto mb-3">
+                    <ShieldCheck className="w-7 h-7 text-[var(--brand-red)]" />
+                  </div>
+                  <p className="text-sm text-[var(--brand-light)] font-medium">Global Access</p>
+                  <p className="text-xs text-[var(--brand-light)]/50 mt-1">Full platform permissions</p>
+                </div>
               )}
-            </CardContent>
-          </Card>
+
+              {/* No assignments message */}
+              {!municipalityName && !clubName && admin.role !== 'SUPER_ADMIN' && (
+                <div className="text-center py-6 text-[var(--brand-light)]/40">
+                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm italic">No assignments</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Role Info Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Role & Permissions</h2>
+            </div>
+            <div className="p-6">
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${getRoleBadgeClasses(admin.role)}`}>
+                {getRoleIcon(admin.role)}
+                {admin.role.replace(/_/g, ' ')}
+              </div>
+              <p className="text-xs text-[var(--brand-light)]/50 mt-3">
+                {admin.role === 'SUPER_ADMIN' && 'Full access to all platform features and settings.'}
+                {admin.role === 'MUNICIPALITY_ADMIN' && 'Manages clubs and users within assigned municipality.'}
+                {admin.role === 'CLUB_ADMIN' && 'Manages activities and members for assigned club.'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

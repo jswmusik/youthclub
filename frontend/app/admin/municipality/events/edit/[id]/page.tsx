@@ -1,18 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useState, useEffect, Suspense } from 'react';
+import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import EventForm from '@/app/components/events/EventForm';
 import { Event } from '@/types/event';
+import { Calendar } from 'lucide-react';
 
-export default function EditEventPage() {
-    const router = useRouter();
+function EditEventContent() {
     const params = useParams();
-    const searchParams = useSearchParams();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -21,48 +20,59 @@ export default function EditEventPage() {
                 setEvent(res.data);
             } catch (err) {
                 console.error(err);
-                alert("Failed to load event");
-                router.push('/admin/municipality/events');
+                setError(true);
             } finally {
                 setLoading(false);
             }
         };
         if (params.id) fetchEvent();
-    }, [params.id, router]);
+    }, [params.id]);
 
-    if (loading) return <div className="p-4 text-center">Loading...</div>;
-
-    return (
-        <div className="max-w-5xl mx-auto">
-            <div className="mb-6">
-                <Link 
-                    href={(() => {
-                        // Build back URL with preserved query parameters
-                        const urlParams = new URLSearchParams();
-                        const page = searchParams.get('page');
-                        const search = searchParams.get('search');
-                        const status = searchParams.get('status');
-                        const recurring = searchParams.get('recurring');
-                        const club = searchParams.get('club');
-                        
-                        // Always include page (even if it's 1) to ensure pagination state is preserved
-                        urlParams.set('page', page || '1');
-                        if (search) urlParams.set('search', search);
-                        if (status) urlParams.set('status', status);
-                        if (recurring) urlParams.set('recurring', recurring);
-                        if (club) urlParams.set('club', club);
-                        
-                        const queryString = urlParams.toString();
-                        return `/admin/municipality/events?${queryString}`;
-                    })()}
-                    className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
-                >
-                    ← Back
-                </Link>
-                <h1 className="text-2xl font-bold text-gray-900">Edit Event</h1>
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+                <div className="sm:max-w-4xl sm:mx-auto sm:px-6 px-4">
+                    <div className="flex items-center justify-center gap-3 py-20">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+                            <Calendar className="h-5 w-5 text-white" />
+                        </div>
+                        <span className="text-[var(--brand-light)]/50">Loading event...</span>
+                    </div>
+                </div>
             </div>
-            {event && <EventForm initialData={event} scope="MUNICIPALITY" />}
-        </div>
-    );
+        );
+    }
+
+    if (error || !event) {
+        return (
+            <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+                <div className="sm:max-w-4xl sm:mx-auto sm:px-6 px-4">
+                    <div className="flex items-center justify-center gap-3 py-20">
+                        <span className="text-[var(--brand-red)]">Failed to load event</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return <EventForm initialData={event} scope="MUNICIPALITY" />;
 }
 
+export default function EditEventPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+                <div className="sm:max-w-4xl sm:mx-auto sm:px-6 px-4">
+                    <div className="flex items-center justify-center gap-3 py-20">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+                            <Calendar className="h-5 w-5 text-white" />
+                        </div>
+                        <span className="text-[var(--brand-light)]/50">Loading form...</span>
+                    </div>
+                </div>
+            </div>
+        }>
+            <EditEventContent />
+        </Suspense>
+    );
+}

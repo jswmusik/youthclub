@@ -10,16 +10,12 @@ import UserVisitsAnalytics from './UserVisitsAnalytics';
 import UserVisitsFilter from './UserVisitsFilter';
 import UserVisitsTable from './UserVisitsTable';
 import Link from 'next/link';
-import { ArrowLeft, BarChart3, ChevronUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+import { ArrowLeft, BarChart3, ChevronUp, MapPin, Building } from 'lucide-react';
 
 interface Props {
   userId: string;
-  basePath: string; // e.g. /admin/super/youth
-  canFilterClubs?: boolean; // Only for Super/Municipality admins
+  basePath: string;
+  canFilterClubs?: boolean;
 }
 
 export default function UserVisitsManager({ userId, basePath, canFilterClubs = false }: Props) {
@@ -49,10 +45,7 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
         const userRes = await api.get(`/users/${userId}/`);
         setUser(userRes.data);
 
-        // If filtering by club is allowed, fetch available clubs
-        // (For brevity, fetching all clubs - in real app might want to scope this)
         if (canFilterClubs) {
-          // This endpoint depends on permission level, assuming generic list exists
           const clubsRes = await api.get('/clubs/?page_size=100'); 
           const clubsData = Array.isArray(clubsRes.data) 
             ? clubsRes.data 
@@ -71,7 +64,6 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Parallel fetch for efficiency
         const [historyRes, statsRes] = await Promise.all([
           visitsApi.getHistory({
             user_id: userId,
@@ -80,10 +72,9 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
             end_date: endDate,
             club_id: clubId
           }),
-          visitsApi.getUserStats(userId) // Note: Stats endpoint should probably accept date filters too in a future update
+          visitsApi.getUserStats(userId)
         ]);
 
-        // Handle paginated or non-paginated response
         const historyData = Array.isArray(historyRes.data) 
           ? historyRes.data 
           : (historyRes.data.results || historyRes.data || []);
@@ -91,7 +82,6 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
         setHistory(historyData);
         setHasMore(!!historyRes.data.next);
         
-        // Get total count from API response
         const count = Array.isArray(historyRes.data) 
           ? historyData.length 
           : (historyRes.data.count || historyData.length);
@@ -112,7 +102,7 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
   // Handlers
   const handleFilter = (filters: { start_date?: string; end_date?: string; club_id?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('page', '1'); // Reset to page 1 on filter
+    params.set('page', '1');
     
     if (filters.start_date) params.set('start_date', filters.start_date);
     else params.delete('start_date');
@@ -132,7 +122,7 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
     router.push(`?${params.toString()}`);
   };
 
-  // Extract preferred club ID (handle both object and number)
+  // Extract preferred club ID
   const preferredClubId = user?.preferred_club 
     ? (typeof user.preferred_club === 'object' 
         ? user.preferred_club.id 
@@ -149,67 +139,82 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4 px-4 sm:px-0">
         <Link 
           href={`${basePath}/${userId}`} 
-          className="text-sm text-gray-500 hover:text-[#4D4DA4] flex items-center gap-1 w-fit transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] transition-colors w-fit"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Profile
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">
-            Visit History: <span className="text-[#4D4DA4]">{user?.first_name} {user?.last_name}</span>
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Preferred Club: <span className="font-medium text-gray-700">{preferredClubName}</span>
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-[var(--brand-primary)]" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                Visit History
+              </h1>
+              <p className="text-sm text-[var(--brand-light)]/50">
+                {user ? `${user.first_name} ${user.last_name}` : 'Loading...'}
+              </p>
+            </div>
+          </div>
+          {preferredClubName && preferredClubName !== 'None' && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
+              <Building className="w-4 h-4 text-[var(--brand-light)]/50" />
+              <span className="text-sm text-[var(--brand-light)]/70">Preferred Club:</span>
+              <span className="text-sm font-semibold text-[var(--brand-light)]">{preferredClubName}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Analytics */}
+      {/* Analytics Dashboard */}
       {stats && !loading && (
-        <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-          <Card className="border-0 shadow-sm bg-gray-900">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                  Analytics Dashboard
-                </h3>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <button 
+            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                  <ChevronUp className={cn(
-                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                  )} />
-                  <span className="sr-only">Toggle Analytics</span>
-                </Button>
-              </CollapsibleTrigger>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
             </div>
-            <CollapsibleContent className="transition-all duration-500 ease-in-out">
-              <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                <UserVisitsAnalytics stats={stats} loading={false} />
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+            <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
+          </button>
+          
+          <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
+              <UserVisitsAnalytics stats={stats} loading={false} />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Filters */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-6 py-4 space-y-4">
-          <UserVisitsFilter 
-            onFilter={handleFilter} 
-            showClubFilter={canFilterClubs}
-            clubs={clubs}
-            initialStartDate={startDate}
-            initialEndDate={endDate}
-            initialClubId={clubId}
-          />
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 sm:px-6 py-4">
+        <UserVisitsFilter 
+          onFilter={handleFilter} 
+          showClubFilter={canFilterClubs}
+          clubs={clubs}
+          initialStartDate={startDate}
+          initialEndDate={endDate}
+          initialClubId={clubId}
+        />
+      </div>
+
+      {/* Stats Bar */}
+      {!loading && history.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{history.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'visit' : 'visits'}
+          </p>
         </div>
-      </Card>
+      )}
 
       {/* Table */}
       <UserVisitsTable 
@@ -223,4 +228,3 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
     </div>
   );
 }
-

@@ -1,14 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { visits, users } from '@/lib/api';
 import Toast from '@/app/components/Toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
-import { Search, UserPlus, X, CheckCircle2 } from 'lucide-react';
+import { Search, UserPlus, X, CheckCircle2, Loader2 } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
 
 interface Props {
@@ -22,7 +17,10 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
   const [results, setResults] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+  const [searching, setSearching] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning'; isVisible: boolean }>({
     message: '',
     type: 'success',
     isVisible: false,
@@ -35,29 +33,62 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
     return firstInitial + lastInitial || 'U';
   };
 
+  // Reset when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('');
+      setResults([]);
+      setSelectedUser(null);
+      setFocusedField(null);
+    } else {
+      // Focus search input when modal opens
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   // Debounce Search
   useEffect(() => {
+    if (!isOpen) return;
+    
     const timer = setTimeout(async () => {
       if (query.length > 2) {
+        setSearching(true);
         try {
           const res = await users.search(query);
-          setResults(res.data.results || res.data || []); // Handle pagination structure
+          setResults(res.data.results || res.data || []);
         } catch (e) {
           console.error(e);
           setResults([]);
+        } finally {
+          setSearching(false);
         }
       } else {
         setResults([]);
+        setSearching(false);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, isOpen]);
 
   const handleSubmit = async () => {
     if (!selectedUser) return;
     setLoading(true);
     try {
-      await visits.manualCheckIn({ user_id: selectedUser.id });
+      const response = await visits.manualCheckIn({ user_id: selectedUser.id });
+      
+      // Check if user is already checked in (backend returns 200 with message instead of error)
+      if (response.data?.message && (response.data.message.toLowerCase().includes('already here') || response.data.message.toLowerCase().includes('already checked'))) {
+        setToast({ 
+          message: `${selectedUser.first_name} is already checked in to this club.`, 
+          type: 'warning', 
+          isVisible: true 
+        });
+        setLoading(false);
+        return;
+      }
+      
       setToast({ message: `Checked in ${selectedUser.first_name}`, type: 'success', isVisible: true });
       setQuery('');
       setSelectedUser(null);
@@ -67,139 +98,190 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
         onClose();
       }, 1000);
     } catch (error: any) {
-      setToast({ 
-        message: error.response?.data?.error || "Failed to check in", 
-        type: 'error', 
-        isVisible: true 
-      });
+      // Also check error response for the message
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to check in";
+      if (errorMessage.includes('already here') || errorMessage.includes('already checked in')) {
+        setToast({ 
+          message: `${selectedUser.first_name} is already checked in to this club.`, 
+          type: 'warning', 
+          isVisible: true 
+        });
+      } else {
+        setToast({ 
+          message: errorMessage, 
+          type: 'error', 
+          isVisible: true 
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget && !loading) {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const inputClasses = `
+    w-full h-11 sm:h-12 px-4 pl-10 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === 'search' ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-lg border-2 border-gray-100 bg-white shadow-xl">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#4D4DA4] rounded-full"></div>
-              <DialogTitle className="text-xl font-bold text-[#121213] flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-[#4D4DA4]" />
-                Manual Check-in
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-gray-500 mt-1">
-              Search for a member by name or email to check them in.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {/* Search Input */}
-            {!selectedUser ? (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input 
-                  type="text" 
-                  className="pl-10 bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  placeholder="Type name or email (e.g. 'Alice')"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  autoFocus
-                />
-                
-                {/* Dropdown Results */}
-                {results.length > 0 && (
-                  <div className="absolute w-full bg-white border border-gray-200 rounded-lg mt-2 shadow-lg max-h-60 overflow-y-auto z-10">
-                    {results.map(user => (
-                      <button
-                        key={user.id}
-                        onClick={() => { setSelectedUser(user); setResults([]); }}
-                        className="w-full text-left p-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-50 last:border-0 transition-colors"
-                      >
-                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200">
-                          <AvatarImage src={getMediaUrl(user.avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                            {getInitials(user.first_name, user.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-[#121213] truncate">{user.first_name} {user.last_name}</div>
-                          <div className="text-xs text-gray-500 truncate">{user.email}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {query.length > 2 && results.length === 0 && (
-                  <div className="absolute w-full bg-white border border-gray-200 rounded-lg mt-2 p-3 text-sm text-gray-500 text-center shadow-lg">
-                    No members found.
-                  </div>
-                )}
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-4"
+        onClick={handleBackdropClick}
+      >
+        <div 
+          className="w-full h-full sm:h-auto sm:max-w-lg bg-[var(--dark-800)] border-y sm:border border-[var(--dark-600)] shadow-2xl rounded-none sm:rounded-2xl flex flex-col max-h-[90vh] relative overflow-visible"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 flex-shrink-0">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                <UserPlus className="w-5 h-5 text-white" />
               </div>
-            ) : (
-              // Selected User View
-              <Card className="border-2 border-[#4D4DA4]/20 bg-gradient-to-br from-[#EBEBFE]/30 to-white shadow-sm">
-                <CardContent className="p-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Manual Check-in</h2>
+            </div>
+            <p className="text-sm text-[var(--brand-light)]/50 ml-[52px]">Search for a member by name or email to check them in.</p>
+          </div>
+
+          {/* Content */}
+          <div className="p-4 sm:p-6 flex-1 min-h-0 flex flex-col relative">
+            <div className="space-y-4 overflow-y-auto flex-1 pb-20">
+              {/* Search Input */}
+              {!selectedUser ? (
+                <div className="relative z-50">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40 z-10" />
+                  <input 
+                    ref={searchInputRef}
+                    type="text" 
+                    className={inputClasses}
+                    placeholder="Type name or email (e.g. 'Alice')"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={() => setFocusedField('search')}
+                    onBlur={() => setFocusedField(null)}
+                  />
+                  
+                  {/* Loading Indicator */}
+                  {searching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+                      <Loader2 className="h-4 w-4 text-[var(--brand-primary)] animate-spin" />
+                    </div>
+                  )}
+                  
+                  {/* Dropdown Results - Positioned directly below input */}
+                  {results.length > 0 && (
+                    <div className="absolute w-full bg-[var(--dark-800)] border-2 border-[var(--dark-600)] rounded-xl mt-2 shadow-2xl max-h-60 overflow-y-auto z-[1000]">
+                      {results.map(user => (
+                        <button
+                          key={user.id}
+                          onClick={() => { setSelectedUser(user); setResults([]); }}
+                          className="w-full text-left p-3 hover:bg-[var(--dark-700)] flex items-center gap-3 border-b border-[var(--dark-600)] last:border-0 transition-colors"
+                        >
+                          <div className="w-9 h-9 rounded-xl border-2 border-[var(--dark-500)] bg-[var(--dark-700)] overflow-hidden flex-shrink-0">
+                            {user.avatar ? (
+                              <img src={getMediaUrl(user.avatar) || ''} className="w-full h-full object-cover" alt="" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)]">
+                                <span className="text-xs font-bold text-white">
+                                  {getInitials(user.first_name, user.last_name)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-[var(--brand-light)] truncate">{user.first_name} {user.last_name}</div>
+                            <div className="text-xs text-[var(--brand-light)]/50 truncate">{user.email}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {query.length > 2 && results.length === 0 && !searching && (
+                    <div className="absolute w-full bg-[var(--dark-800)] border-2 border-[var(--dark-600)] rounded-xl mt-2 p-3 text-sm text-[var(--brand-light)]/50 text-center shadow-2xl z-[1000]">
+                      No members found.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Selected User View
+                <div className="bg-[var(--dark-700)] rounded-xl border-2 border-[var(--brand-primary)]/30 p-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 rounded-lg border-2 border-[#4D4DA4]/30">
-                        <AvatarImage src={getMediaUrl(selectedUser.avatar) || undefined} className="object-cover" />
-                        <AvatarFallback className="rounded-lg font-bold text-sm bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] text-white">
-                          {getInitials(selectedUser.first_name, selectedUser.last_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-bold text-[#121213]">{selectedUser.first_name} {selectedUser.last_name}</div>
-                        <div className="text-xs text-gray-500">{selectedUser.email}</div>
-                        <div className="flex items-center gap-1 mt-1 text-xs text-[#10B981] font-medium">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-12 h-12 rounded-xl border-2 border-[var(--brand-primary)] bg-[var(--dark-700)] overflow-hidden flex-shrink-0">
+                        {selectedUser.avatar ? (
+                          <img src={getMediaUrl(selectedUser.avatar) || ''} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)]">
+                            <span className="text-sm font-bold text-white">
+                              {getInitials(selectedUser.first_name, selectedUser.last_name)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-[var(--brand-light)] truncate">{selectedUser.first_name} {selectedUser.last_name}</div>
+                        <div className="text-xs text-[var(--brand-light)]/50 truncate">{selectedUser.email}</div>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-[var(--brand-third)] font-medium">
                           <CheckCircle2 className="h-3 w-3" />
                           Ready to check in
                         </div>
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost"
-                      size="sm"
+                    <button 
                       onClick={() => { setSelectedUser(null); setQuery(''); }}
-                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                      className="w-9 h-9 rounded-xl bg-[var(--dark-600)] hover:bg-[var(--dark-500)] flex items-center justify-center transition-colors text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] flex-shrink-0 ml-3"
                     >
                       <X className="h-4 w-4" />
-                    </Button>
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
+          {/* Footer */}
+          <div className="p-4 sm:p-6 border-t border-[var(--dark-600)] bg-[var(--dark-700)]/30 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end flex-shrink-0 relative z-20">
+            <button 
               onClick={onClose}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              disabled={loading}
+              className="h-11 sm:h-12 px-4 sm:px-6 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium disabled:opacity-50"
             >
               Cancel
-            </Button>
-            <Button 
+            </button>
+            <button 
               onClick={handleSubmit}
               disabled={!selectedUser || loading}
-              className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white rounded-full px-6 transition-colors disabled:opacity-50"
+              className="h-11 sm:h-12 px-4 sm:px-6 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Checking in...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Checking in...</span>
                 </>
               ) : (
                 <>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Confirm Check-in
+                  <UserPlus className="h-4 w-4" />
+                  <span>Confirm Check-in</span>
                 </>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Toast Notification */}
       <Toast
@@ -207,6 +289,7 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={() => setToast({ ...toast, isVisible: false })}
+        darkMode
       />
     </>
   );

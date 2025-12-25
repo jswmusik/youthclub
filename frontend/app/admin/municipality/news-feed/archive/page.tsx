@@ -1,29 +1,60 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
+import { ArrowLeft, Archive } from 'lucide-react';
 import NewsArchive from '../../../../components/NewsArchive';
 
-export default function MunicipalityAdminNewsArchive() {
+function NewsArchiveContent() {
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8 flex items-center gap-4">
-        <Link 
-          href="/admin/municipality/news-feed"
-          className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-500 hover:text-blue-600 transition"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">News Archive</h1>
-          <p className="text-gray-500">Browse all published articles.</p>
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      {/* Header */}
+      <div className="bg-[var(--dark-800)] border-b border-[var(--dark-600)]">
+        <div className="sm:max-w-6xl sm:mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/admin/municipality/news-feed"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to Feed</span>
+            </Link>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                <Archive className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">News Archive</h1>
+                <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">Browse all published articles</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
-      {/* Pass the base path and publishedOnly flag so cards link correctly and filtering works */}
-      <NewsArchive basePath="/admin/municipality/news-feed" publishedOnly={true} />
+      {/* Content */}
+      <div className="sm:max-w-6xl sm:mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <NewsArchive basePath="/admin/municipality/news-feed" publishedOnly={true} />
+      </div>
     </div>
+  );
+}
+
+export default function MunicipalityAdminNewsArchive() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Archive className="w-8 h-8 text-white" />
+          </div>
+          <div className="w-8 h-8 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[var(--brand-light)]/60">Loading archive...</p>
+        </div>
+      </div>
+    }>
+      <NewsArchiveContent />
+    </Suspense>
   );
 }
 

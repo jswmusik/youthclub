@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { visits } from '@/lib/api';
 import NavBar from '@/app/components/NavBar';
+import YouthSidebar from '@/app/components/youth/YouthSidebar';
+import { X } from 'lucide-react';
 
 interface Visit {
   id: number;
@@ -17,10 +19,12 @@ interface Visit {
 type FilterType = 'all' | 'today' | 'last_week' | 'last_month' | 'custom';
 
 export default function YouthVisitsPage() {
+  const pathname = usePathname();
   const [history, setHistory] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [customDate, setCustomDate] = useState<string>('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -75,22 +79,51 @@ export default function YouthVisitsPage() {
   }, [history, filter, customDate]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <NavBar />
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+      
+      {/* Mobile Sidebar Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/70 z-40 md:hidden transition-opacity duration-300 ${
+          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      
+      {/* Mobile Sidebar */}
+      <aside 
+        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+          <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
+          <YouthSidebar activePath={pathname} darkMode />
+        </div>
+      </aside>
+      
+      <div className="max-w-7xl mx-auto px-4 py-8 pt-16 sm:pt-20">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar - Filters */}
           <aside className="w-full md:w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-20">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Filter Visits</h2>
+            <div className="bg-[var(--dark-800)] rounded-xl border border-[var(--dark-600)] p-6 sticky top-20">
+              <h2 className="text-lg font-bold text-[var(--brand-light)] mb-4">Filter Visits</h2>
               
               <div className="space-y-2">
                 <button
                   onClick={() => { setFilter('all'); setCustomDate(''); }}
                   className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-colors ${
                     filter === 'all'
-                      ? 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-200'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] font-medium border border-[var(--brand-green)]/30'
+                      : 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]'
                   }`}
                 >
                   All Visits
@@ -100,8 +133,8 @@ export default function YouthVisitsPage() {
                   onClick={() => { setFilter('today'); setCustomDate(''); }}
                   className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-colors ${
                     filter === 'today'
-                      ? 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-200'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] font-medium border border-[var(--brand-green)]/30'
+                      : 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]'
                   }`}
                 >
                   Today
@@ -111,8 +144,8 @@ export default function YouthVisitsPage() {
                   onClick={() => { setFilter('last_week'); setCustomDate(''); }}
                   className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-colors ${
                     filter === 'last_week'
-                      ? 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-200'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] font-medium border border-[var(--brand-green)]/30'
+                      : 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]'
                   }`}
                 >
                   Last Week
@@ -122,15 +155,15 @@ export default function YouthVisitsPage() {
                   onClick={() => { setFilter('last_month'); setCustomDate(''); }}
                   className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-colors ${
                     filter === 'last_month'
-                      ? 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-200'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] font-medium border border-[var(--brand-green)]/30'
+                      : 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]'
                   }`}
                 >
                   Last Month
                 </button>
                 
-                <div className="pt-2 border-t border-gray-200">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <div className="pt-2 border-t border-[var(--dark-600)]">
+                  <label className="block text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider mb-2">
                     Specific Date
                   </label>
                   <input
@@ -142,12 +175,12 @@ export default function YouthVisitsPage() {
                         setFilter('custom');
                       }
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    className="w-full px-3 py-2 border border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] outline-none"
                   />
                   {filter === 'custom' && customDate && (
                     <button
                       onClick={() => { setFilter('all'); setCustomDate(''); }}
-                      className="mt-2 text-xs text-emerald-600 hover:text-emerald-700"
+                      className="mt-2 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80"
                     >
                       Clear date filter
                     </button>
@@ -161,31 +194,31 @@ export default function YouthVisitsPage() {
           <main className="flex-1">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">My Visit History</h1>
+                <h1 className="text-2xl font-bold text-[var(--brand-light)]">My Visit History</h1>
                 {filter !== 'all' && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-[var(--brand-light)]/60 mt-1">
                     Showing {filteredHistory.length} of {history.length} visits
                   </p>
                 )}
               </div>
               <button 
                 onClick={() => router.push('/dashboard/youth/scan')}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm text-sm font-medium"
+                className="px-4 py-2 bg-[var(--brand-primary)] text-[var(--dark-900)] rounded-lg hover:bg-[var(--brand-primary)]/90 shadow-sm text-sm font-bold"
               >
                 Scan New Visit
               </button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-[var(--dark-800)] rounded-xl border border-[var(--dark-600)] overflow-hidden">
               {loading ? (
-                <div className="p-8 text-center text-gray-500">Loading history...</div>
+                <div className="p-8 text-center text-[var(--brand-light)]/60">Loading history...</div>
               ) : filteredHistory.length === 0 ? (
                 <div className="p-12 text-center">
-                  <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-2xl">📍</div>
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <div className="mx-auto w-16 h-16 bg-[var(--dark-700)] rounded-full flex items-center justify-center mb-4 text-2xl">📍</div>
+                  <h3 className="text-lg font-medium text-[var(--brand-light)]">
                     {filter === 'all' ? 'No visits yet' : 'No visits found'}
                   </h3>
-                  <p className="text-gray-500 mt-1">
+                  <p className="text-[var(--brand-light)]/60 mt-1">
                     {filter === 'all' 
                       ? 'Visit a club and scan the code to check in!'
                       : 'Try adjusting your filter to see more visits.'
@@ -193,32 +226,32 @@ export default function YouthVisitsPage() {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-[var(--dark-600)]">
                   {filteredHistory.map((visit) => {
                     const visitDate = new Date(visit.check_in_at);
                     const weekday = visitDate.toLocaleDateString('en-US', { weekday: 'long' });
                     const dateStr = visitDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                     
                     return (
-                    <div key={visit.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                    <div key={visit.id} className="p-4 flex items-center justify-between hover:bg-[var(--dark-700)]">
                       <div>
-                        <p className="font-semibold text-gray-800">
+                        <p className="font-semibold text-[var(--brand-light)]">
                           {visit.club_name || 'Club Visit'}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-[var(--brand-light)]/60">
                           {weekday}, {dateStr}
                         </p>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-medium text-emerald-600">
+                        <div className="text-sm font-medium text-[var(--brand-green)]">
                           In: {new Date(visit.check_in_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </div>
                         {visit.check_out_at ? (
-                           <div className="text-xs text-gray-500">
+                           <div className="text-xs text-[var(--brand-light)]/60">
                              Out: {new Date(visit.check_out_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                            </div>
                         ) : (
-                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--brand-green)]/20 text-[var(--brand-green)]">
                              Active Now
                            </span>
                         )}
@@ -235,4 +268,3 @@ export default function YouthVisitsPage() {
     </div>
   );
 }
-

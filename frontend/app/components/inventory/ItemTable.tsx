@@ -1,23 +1,151 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Item, inventoryApi } from '@/lib/inventory-api';
 import Link from 'next/link';
-import { Eye, Edit, Trash2, Package } from 'lucide-react';
+import { Eye, Edit, Trash2, Package, ChevronLeft, Tag, Users } from 'lucide-react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getMediaUrl } from '@/app/utils';
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onView?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onClick: () => void;
+}
+
+function SwipeableCard({ children, onView, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdit) onEdit();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      {/* Action buttons (behind the card) */}
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleEditClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+        >
+          <Edit className="w-5 h-5" />
+          <span className="text-xs font-medium">Edit</span>
+        </button>
+        <button
+          onClick={handleDeleteClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+
+      {/* Swipeable card content */}
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {/* Swipe hint indicator */}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface ItemTableProps {
   items: Item[];
-  basePath: string; // e.g. '/admin/club/inventory'
-  onDelete?: () => void; // Optional callback to refresh the list after successful delete
-  onDeleteError?: (error: string) => void; // Optional callback for delete errors
-  buildUrlWithParams?: (path: string) => string; // Function to build URLs with query params
+  basePath: string;
+  onDelete?: () => void;
+  onDeleteError?: (error: string) => void;
+  buildUrlWithParams?: (path: string) => string;
 }
 
 export default function ItemTable({ items, basePath, onDelete, onDeleteError, buildUrlWithParams }: ItemTableProps) {
@@ -25,7 +153,6 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
   const [itemToDelete, setItemToDelete] = useState<{ id: number; title: string } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   
-  // Safety check: ensure items is always an array
   const itemsArray = Array.isArray(items) ? items : [];
 
   const handleDelete = async () => {
@@ -34,7 +161,6 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
     setDeletingId(itemToDelete.id);
     try {
       await inventoryApi.deleteItem(itemToDelete.id);
-      // Refresh the page or call the callback
       if (onDelete) {
         onDelete();
       } else {
@@ -55,196 +181,202 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
   
   const getStatusBadge = (status: string, activeLoan: any) => {
     switch(status) {
-        case 'AVAILABLE':
-            return <Badge variant="outline" className="text-xs bg-green-50 text-[#10B981] border-[#10B981]/30">Available</Badge>;
-        case 'BORROWED':
-            return (
-                <div className="flex flex-col items-start gap-1">
-                    <Badge variant="outline" className="text-xs bg-blue-50 text-[#0EA5E9] border-[#0EA5E9]/30">Borrowed</Badge>
-                    {activeLoan && (
-                        <span className="text-xs text-gray-500">
-                            by {activeLoan.user_name} 
-                            {activeLoan.is_guest && <span className="text-orange-600 font-bold ml-1">(Guest)</span>}
-                        </span>
-                    )}
-                </div>
-            );
-        case 'MAINTENANCE':
-            return <Badge variant="outline" className="text-xs bg-red-50 text-[#EF4444] border-[#EF4444]/30">Broken</Badge>;
-        case 'MISSING':
-            return <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Missing</Badge>;
-        case 'HIDDEN':
-            return <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Hidden</Badge>;
-        default:
-            return <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">{status}</Badge>;
+      case 'AVAILABLE':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
+            Available
+          </span>
+        );
+      case 'BORROWED':
+        return (
+          <div className="flex flex-col items-start gap-1">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
+              Borrowed
+            </span>
+            {activeLoan && (
+              <span className="text-xs text-[var(--brand-light)]/50">
+                by {activeLoan.user_name} 
+                {activeLoan.is_guest && <span className="text-[var(--brand-peach)] font-bold ml-1">(Guest)</span>}
+              </span>
+            )}
+          </div>
+        );
+      case 'MAINTENANCE':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
+            Broken
+          </span>
+        );
+      case 'MISSING':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
+            Missing
+          </span>
+        );
+      case 'HIDDEN':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
+            Hidden
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
+            {status}
+          </span>
+        );
     }
   };
 
   if (itemsArray.length === 0) {
     return (
-      <Card className="border border-gray-100 shadow-sm">
-        <div className="py-20 text-center">
-          <p className="text-gray-500">No items found. Click "Add Item" to add some!</p>
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+          <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
         </div>
-      </Card>
+        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No items found</h3>
+        <p className="text-[var(--brand-light)]/50 text-sm">Click "Add Item" to add some!</p>
+      </div>
     );
   }
 
   return (
     <>
-      {/* MOBILE: Cards */}
-      <div className="grid grid-cols-1 gap-3 md:hidden">
+      {/* MOBILE: Swipeable Cards */}
+      <div className="flex flex-col gap-3 md:hidden">
         {itemsArray.map(item => (
-          <Card key={item.id} className="overflow-hidden border-l-4 border-l-[#4D4DA4] shadow-sm">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Avatar className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0">
-                  <AvatarImage src={item.image || undefined} className="object-cover" />
-                  <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                    <Package className="h-5 w-5" />
-                  </AvatarFallback>
-                </Avatar>
+          <SwipeableCard
+            key={item.id}
+            onClick={() => router.push(buildUrlWithParams ? buildUrlWithParams(`${basePath}/view/${item.id}`) : `${basePath}/view/${item.id}`)}
+            onEdit={() => router.push(buildUrlWithParams ? buildUrlWithParams(`${basePath}/edit/${item.id}`) : `${basePath}/edit/${item.id}`)}
+            onDelete={() => setItemToDelete({ id: item.id, title: item.title })}
+          >
+            <div className="border-y border-[var(--dark-600)] p-4">
+              <div className="flex items-start gap-3">
+                {/* Image */}
+                <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center">
+                  {item.image ? (
+                    <img src={getMediaUrl(item.image) || ''} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Package className="w-5 h-5 text-[var(--brand-primary)]" />
+                  )}
+                </div>
+                
+                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base font-semibold text-[#121213] truncate">
+                  <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
                     {item.title}
-                  </CardTitle>
-                  <CardDescription className="text-xs text-gray-500 truncate">
+                  </h3>
+                  
+                  {/* Description */}
+                  <p className="text-xs text-[var(--brand-light)]/50 truncate">
                     {item.internal_note || 'No description'}
-                  </CardDescription>
+                  </p>
+                  
+                  {/* Badges */}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {item.category_details && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
+                        <Tag className="w-3 h-3" />
+                        {item.category_details.icon} {item.category_details.name}
+                      </span>
+                    )}
+                    {getStatusBadge(item.status, item.active_loan)}
+                    {item.queue_count > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
+                        <Users className="w-3 h-3" />
+                        {item.queue_count} waiting
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-xs text-gray-500 uppercase font-semibold">Category</span>
-                  {item.category_details ? (
-                    <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
-                      {item.category_details.icon} {item.category_details.name}
-                    </Badge>
-                  ) : (
-                    <span className="text-sm text-gray-400">-</span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
-                  {getStatusBadge(item.status, item.active_loan)}
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-xs text-gray-500 uppercase font-semibold">Queue</span>
-                  {item.queue_count > 0 ? (
-                    <span className="text-sm font-medium text-purple-600">{item.queue_count} waiting</span>
-                  ) : (
-                    <span className="text-sm text-gray-400">Empty</span>
-                  )}
-                </div>
-              </div>
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/view/${item.id}`) : `${basePath}/view/${item.id}`} className="flex-1">
-                  <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                    <Eye className="h-4 w-4" />
-                    View
-                  </Button>
-                </Link>
-                <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/edit/${item.id}`) : `${basePath}/edit/${item.id}`} className="flex-1">
-                  <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </Button>
-                </Link>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="flex-1 justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => setItemToDelete({ id: item.id, title: item.title })}
-                  disabled={deletingId === item.id}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </SwipeableCard>
         ))}
       </div>
 
       {/* DESKTOP: Table */}
-      <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b border-gray-100 hover:bg-transparent">
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Item</TableHead>
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Category</TableHead>
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
-              <TableHead className="h-12 px-6 text-gray-600 font-semibold">Queue</TableHead>
-              <TableHead className="h-12 px-6 text-right text-gray-600 font-semibold">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {itemsArray.map(item => (
-              <TableRow key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                <TableCell className="py-4 px-6">
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Category</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Queue</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itemsArray.map((item, index) => (
+              <tr 
+                key={item.id} 
+                className={`${index !== itemsArray.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors`}
+              >
+                <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9 rounded-full border border-gray-200 bg-gray-50">
-                      <AvatarImage src={item.image || undefined} className="object-cover" />
-                      <AvatarFallback className="rounded-full font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                        <Package className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center">
+                      {item.image ? (
+                        <img src={getMediaUrl(item.image) || ''} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Package className="w-4 h-4 text-[var(--brand-primary)]" />
+                      )}
+                    </div>
                     <div>
-                      <div className="font-semibold text-[#121213]">{item.title}</div>
-                      <div className="text-xs text-gray-500">{item.internal_note || 'No description'}</div>
+                      <div className="font-semibold text-[var(--brand-light)]">{item.title}</div>
+                      <div className="text-xs text-[var(--brand-light)]/50 truncate max-w-[200px]">{item.internal_note || 'No description'}</div>
                     </div>
                   </div>
-                </TableCell>
-                <TableCell className="py-4 px-6">
+                </td>
+                <td className="px-6 py-4">
                   {item.category_details ? (
-                    <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
                       {item.category_details.icon} {item.category_details.name}
-                    </Badge>
+                    </span>
                   ) : (
-                    <span className="text-sm text-gray-400">-</span>
+                    <span className="text-sm text-[var(--brand-light)]/40">-</span>
                   )}
-                </TableCell>
-                <TableCell className="py-4 px-6">
+                </td>
+                <td className="px-6 py-4">
                   {getStatusBadge(item.status, item.active_loan)}
-                </TableCell>
-                <TableCell className="py-4 px-6">
+                </td>
+                <td className="px-6 py-4">
                   {item.queue_count > 0 ? (
-                    <span className="text-sm font-medium text-purple-600">{item.queue_count} waiting</span>
+                    <span className="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-peach)]">
+                      <Users className="w-3.5 h-3.5" />
+                      {item.queue_count} waiting
+                    </span>
                   ) : (
-                    <span className="text-sm text-gray-400">Empty</span>
+                    <span className="text-sm text-[var(--brand-light)]/40">Empty</span>
                   )}
-                </TableCell>
-                <TableCell className="py-4 px-6 text-right">
+                </td>
+                <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-1">
                     <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/view/${item.id}`) : `${basePath}/view/${item.id}`}>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </Link>
                     <Link href={buildUrlWithParams ? buildUrlWithParams(`${basePath}/edit/${item.id}`) : `${basePath}/edit/${item.id}`}>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                        <Edit className="w-4 h-4" />
+                      </button>
                     </Link>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                    <button 
                       onClick={() => setItemToDelete({ id: item.id, title: item.title })}
                       disabled={deletingId === item.id}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all disabled:opacity-50"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
-      </Card>
+          </tbody>
+        </table>
+      </div>
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
@@ -261,8 +393,8 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
         cancelButtonText="Cancel"
         isLoading={!!deletingId}
         variant="danger"
+        darkMode={true}
       />
     </>
   );
 }
-

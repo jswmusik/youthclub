@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import api from '@/lib/api'; 
 import GroupForm from '@/app/components/GroupForm';
+import { Layers } from 'lucide-react';
 
-export default function EditGroupPage() {
+function EditGroupContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const id = params?.id as string;
@@ -49,20 +50,54 @@ export default function EditGroupPage() {
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  if (loading) return <div className="p-12 text-center text-gray-500">Loading group settings...</div>;
-  if (error || !group) return <div className="p-12 text-center text-red-500">{error || 'Group not found'}</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+        <div className="sm:max-w-3xl sm:mx-auto sm:px-6 px-4">
+          <div className="flex items-center justify-center gap-3 py-20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+              <Layers className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-[var(--brand-light)]/50">Loading group...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !group) {
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+        <div className="sm:max-w-3xl sm:mx-auto sm:px-6 px-4">
+          <div className="py-20 text-center text-red-400">{error || 'Group not found'}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Group</h1>
-        <p className="text-gray-500">Update membership rules and settings.</p>
+    <GroupForm 
+      initialData={group} 
+      redirectPath={buildUrlWithParams("/admin/club/groups")} 
+    />
+  );
+}
+
+export default function EditGroupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+        <div className="sm:max-w-3xl sm:mx-auto sm:px-6 px-4">
+          <div className="flex items-center justify-center gap-3 py-20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+              <Layers className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-[var(--brand-light)]/50">Loading group...</span>
+          </div>
+        </div>
       </div>
-      
-      <GroupForm 
-        initialData={group} 
-        redirectPath={buildUrlWithParams("/admin/club/groups")} 
-      />
-    </div>
+    }>
+      <EditGroupContent />
+    </Suspense>
   );
 }

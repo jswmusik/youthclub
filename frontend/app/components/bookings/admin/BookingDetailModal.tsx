@@ -3,24 +3,18 @@
 import { useState } from 'react';
 import api from '../../../../lib/api';
 import { format } from 'date-fns';
-import { X, Check, AlertCircle, Clock, Calendar, User, XCircle, Users, Package } from 'lucide-react';
+import { X, Check, AlertCircle, Clock, Calendar, User, XCircle, Users, Package, CalendarDays, ArrowLeft } from 'lucide-react';
 import { getMediaUrl, getInitials } from '../../../utils';
 import Toast from '../../Toast';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 
 interface Props {
   booking: any;
   onClose: () => void;
   onUpdate: () => void;
+  darkMode?: boolean;
 }
 
-export default function BookingDetailModal({ booking, onClose, onUpdate }: Props) {
+export default function BookingDetailModal({ booking, onClose, onUpdate, darkMode = false }: Props) {
   const [notes, setNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
@@ -83,259 +77,308 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
     }
   };
 
+  // Status badge styles
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border-[var(--brand-peach)]/30';
+      case 'APPROVED':
+        return 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30';
+      case 'REJECTED':
+        return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+      case 'CANCELLED':
+        return 'bg-[var(--dark-500)]/50 text-[var(--brand-light)]/60 border-[var(--dark-500)]';
+      default:
+        return 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]';
+    }
+  };
+
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4"
       onClick={handleBackdropClick}
       style={{ animation: 'fadeIn 0.2s ease-out' }}
     >
-      <Card 
-        className="bg-white w-full max-w-2xl shadow-2xl overflow-hidden transform transition-all duration-200 max-h-[90vh] flex flex-col"
+      <div 
+        className="bg-[var(--dark-800)] w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-200 max-h-[85vh] sm:max-h-[90vh] flex flex-col border-t sm:border border-[var(--dark-600)]"
         style={{ animation: 'slideUp 0.2s ease-out' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 border-b border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-2xl font-bold text-[#121213] mb-1">Booking Details</CardTitle>
-            <p className="text-sm text-gray-500">#{booking.id} • {format(new Date(booking.created_at), 'MMM d, yyyy')}</p>
+        <div className="flex-shrink-0 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 relative">
+          {/* Mobile Drag Handle with extra top padding */}
+          <div className="flex items-center justify-center pt-4 pb-3 sm:pt-0 sm:pb-0 sm:hidden">
+            <div className="w-12 h-1 bg-[var(--dark-400)] rounded-full" />
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            disabled={processing}
-            className="h-8 w-8 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </CardHeader>
+          
+          {/* Header Content with Close Button */}
+          <div className="flex items-start justify-between px-4 sm:px-6 pt-2 pb-4 sm:py-5">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
+                <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">Booking Details</h2>
+                <p className="text-xs sm:text-sm text-[var(--brand-light)]/50">#{booking.id} • {format(new Date(booking.created_at), 'MMM d, yyyy')}</p>
+              </div>
+            </div>
+            {/* Close Button - visible on all screen sizes */}
+            <button
+              onClick={onClose}
+              disabled={processing}
+              className="w-10 h-10 rounded-xl bg-[var(--dark-600)] text-[var(--brand-light)] hover:text-white hover:bg-[var(--dark-500)] transition-colors flex items-center justify-center disabled:opacity-50 flex-shrink-0"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
 
         {/* Content */}
-        <CardContent className="p-6 space-y-6 overflow-y-auto flex-1">
-          {/* User Info */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-14 w-14 rounded-full border-2 border-[#EBEBFE] bg-gray-50">
-                  <AvatarImage src={booking.user_detail?.avatar ? getMediaUrl(booking.user_detail.avatar) : undefined} className="object-cover" />
-                  <AvatarFallback className="rounded-full font-bold text-sm bg-[#EBEBFE] text-[#4D4DA4]">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+          {/* User Info Card */}
+          <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-[var(--dark-600)] flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-[var(--brand-primary)]/30">
+                {booking.user_detail?.avatar ? (
+                  <img 
+                    src={getMediaUrl(booking.user_detail.avatar)} 
+                    alt="" 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <span className="text-lg font-bold text-[var(--brand-primary)]">
                     {getInitials(booking.user_detail?.first_name, booking.user_detail?.last_name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-lg text-[#121213]">
-                    {booking.user_detail?.first_name} {booking.user_detail?.last_name}
-                  </div>
-                  <div className="text-sm text-gray-500 truncate">{booking.user_detail?.email}</div>
-                </div>
+                  </span>
+                )}
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-lg text-[var(--brand-light)]">
+                  {booking.user_detail?.first_name} {booking.user_detail?.last_name}
+                </div>
+                <div className="text-sm text-[var(--brand-light)]/50 truncate">{booking.user_detail?.email}</div>
+              </div>
+              <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${getStatusBadge(booking.status)}`}>
+                {booking.status}
+              </span>
+            </div>
+          </div>
 
           {/* Details Grid */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#EBEBFE]/30 flex items-center justify-center flex-shrink-0">
-                  <Package className="h-5 w-5 text-[#4D4DA4]" />
+          <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] divide-y divide-[var(--dark-600)]">
+            {/* Resource */}
+            <div className="p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center flex-shrink-0">
+                <Package className="h-5 w-5 text-[var(--brand-purple)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">Resource</div>
+                <div className="text-sm font-semibold text-[var(--brand-primary)]">{booking.resource_name}</div>
+              </div>
+            </div>
+            
+            {/* Club (if available) */}
+            {booking.club_name && (
+              <div className="p-4 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)]/20 flex items-center justify-center flex-shrink-0">
+                  <Users className="h-5 w-5 text-[var(--brand-blue)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-gray-500 uppercase mb-0.5">Resource</div>
-                  <div className="text-sm font-semibold text-[#121213]">{booking.resource_name}</div>
+                  <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">Club</div>
+                  <div className="text-sm font-semibold text-[var(--brand-light)]">{booking.club_name}</div>
                 </div>
               </div>
-              
-              <Separator />
-              
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#EBEBFE]/30 flex items-center justify-center flex-shrink-0">
-                  <Clock className="h-5 w-5 text-[#4D4DA4]" />
+            )}
+            
+            {/* Date & Time */}
+            <div className="p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)]/20 flex items-center justify-center flex-shrink-0">
+                <Clock className="h-5 w-5 text-[var(--brand-peach)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">Date & Time</div>
+                <div className="text-sm font-semibold text-[var(--brand-light)]">
+                  {format(new Date(booking.start_time), 'EEEE, MMM d, yyyy')}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-gray-500 uppercase mb-0.5">Time</div>
-                  <div className="text-sm font-semibold text-[#121213]">
-                    {format(new Date(booking.start_time), 'MMM d, HH:mm')} - {format(new Date(booking.end_time), 'HH:mm')}
+                <div className="text-sm text-[var(--brand-light)]/70">
+                  {format(new Date(booking.start_time), 'HH:mm')} - {format(new Date(booking.end_time), 'HH:mm')}
+                </div>
+              </div>
+            </div>
+            
+            {/* Participants */}
+            {booking.participants?.length > 0 && (
+              <div className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)]/20 flex items-center justify-center flex-shrink-0">
+                    <Users className="h-5 w-5 text-[var(--brand-green)]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-2">Participants ({booking.participants.length + 1})</div>
+                    <div className="flex flex-wrap gap-2">
+                      {booking.participants.map((p: any) => (
+                        <span 
+                          key={p.id} 
+                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30"
+                        >
+                          {p.name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-              
-              {booking.participants?.length > 0 && (
-                <>
-                  <Separator />
-                  <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-[#EBEBFE]/30 flex items-center justify-center flex-shrink-0">
-                      <Users className="h-5 w-5 text-[#4D4DA4]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Participants</div>
-                      <div className="flex flex-wrap gap-2">
-                        {booking.participants.map((p: any) => (
-                          <Badge key={p.id} variant="outline" className="bg-[#EBEBFE] text-[#4D4DA4] border-[#EBEBFE] text-xs">
-                            {p.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+            )}
+          </div>
 
-          {/* Action Area */}
+          {/* Action Area - Pending */}
           {booking.status === 'PENDING' && (
-            <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-[#121213]">Message to User (Optional)</Label>
-                  <Textarea 
-                    className="bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl min-h-[80px]"
-                    rows={3}
-                    placeholder="Reason for rejection or extra info..."
-                    value={notes}
-                    onChange={e => setNotes(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <Button 
-                    onClick={() => handleAction('reject')}
-                    disabled={processing}
-                    variant="outline"
-                    className="flex-1 h-11 border-2 border-red-200 text-red-700 bg-red-50 hover:bg-red-100 hover:border-red-300 font-semibold rounded-full gap-2"
-                  >
-                    <X className="h-4 w-4" /> Reject
-                  </Button>
-                  <Button 
-                    onClick={() => handleAction('approve')}
-                    disabled={processing}
-                    className="flex-1 h-11 bg-[#4D4DA4] hover:bg-[#FF5485] text-white font-semibold rounded-full gap-2 transition-colors"
-                  >
-                    <Check className="h-4 w-4" /> Approve
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] p-4 space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">Message to User (Optional)</label>
+                <textarea 
+                  className="w-full min-h-[80px] px-4 py-3 bg-[var(--dark-600)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
+                  rows={3}
+                  placeholder="Reason for rejection or extra info..."
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => handleAction('reject')}
+                  disabled={processing}
+                  className="flex-1 h-12 bg-[var(--brand-red)]/10 border-2 border-[var(--brand-red)]/30 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" /> Reject
+                </button>
+                <button 
+                  onClick={() => handleAction('approve')}
+                  disabled={processing}
+                  className="flex-1 h-12 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[var(--brand-primary)]/20 disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" /> Approve
+                </button>
+              </div>
+            </div>
           )}
           
+          {/* Action Area - Approved */}
           {booking.status === 'APPROVED' && (
-            <Card className="border border-gray-100 shadow-sm bg-white">
-              <CardContent className="p-4 space-y-4">
-                <div className="p-4 rounded-xl text-center bg-green-50 border border-green-200">
-                  <div className="font-bold text-green-800 text-base">This booking is APPROVED</div>
-                  {isRecurringBooking && (
-                    <div className="text-xs text-green-700 mt-2 font-medium">
-                      🔄 This is a recurring booking
-                    </div>
-                  )}
+            <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] p-4 space-y-4">
+              {/* Approved Status Banner */}
+              <div className="p-4 rounded-xl text-center bg-[var(--brand-green)]/10 border border-[var(--brand-green)]/30">
+                <div className="font-bold text-[var(--brand-green)] text-base flex items-center justify-center gap-2">
+                  <Check className="w-5 h-5" />
+                  This booking is APPROVED
                 </div>
-                
-                {!showCancelOptions ? (
-                  <>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-[#121213]">Cancellation Note (Optional)</Label>
-                      <Textarea 
-                        className="bg-gray-50 border-2 border-gray-200 focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:border-[#4D4DA4] rounded-xl min-h-[80px]"
-                        rows={3}
-                        placeholder="Reason for cancellation..."
-                        value={notes}
-                        onChange={e => setNotes(e.target.value)}
-                      />
+                {isRecurringBooking && (
+                  <div className="text-xs text-[var(--brand-green)]/80 mt-2 font-medium">
+                    🔄 This is a recurring booking
+                  </div>
+                )}
+              </div>
+              
+              {!showCancelOptions ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">Cancellation Note (Optional)</label>
+                    <textarea 
+                      className="w-full min-h-[80px] px-4 py-3 bg-[var(--dark-600)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
+                      rows={3}
+                      placeholder="Reason for cancellation..."
+                      value={notes}
+                      onChange={e => setNotes(e.target.value)}
+                    />
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (isRecurringBooking) {
+                        setShowCancelOptions(true);
+                      } else {
+                        if (window.confirm('Are you sure you want to cancel this booking? The time slot will become available again.')) {
+                          handleAction('cancel', false);
+                        }
+                      }
+                    }}
+                    disabled={processing}
+                    className="w-full h-12 bg-[var(--brand-peach)]/10 border-2 border-[var(--brand-peach)]/30 text-[var(--brand-peach)] hover:bg-[var(--brand-peach)]/20 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <XCircle className="h-4 w-4" /> Cancel Booking
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Recurring Booking Cancel Options */}
+                  <div className="bg-[var(--dark-600)] rounded-xl border border-[var(--dark-500)] p-4 space-y-4">
+                    <div>
+                      <h4 className="font-bold text-[var(--brand-light)] mb-2 text-base">Cancel Recurring Booking</h4>
+                      <p className="text-sm text-[var(--brand-light)]/60">
+                        This booking is part of a recurring series. What would you like to cancel?
+                      </p>
                     </div>
-                    <Button 
-                      onClick={() => {
-                        if (isRecurringBooking) {
-                          setShowCancelOptions(true);
-                        } else {
-                          if (window.confirm('Are you sure you want to cancel this booking? The time slot will become available again.')) {
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Cancel only this instance? The rest of the series will remain.')) {
                             handleAction('cancel', false);
                           }
-                        }
-                      }}
-                      disabled={processing}
-                      variant="outline"
-                      className="w-full h-11 border-2 border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 hover:border-orange-300 font-semibold rounded-full gap-2"
-                    >
-                      <XCircle className="h-4 w-4" /> Cancel Booking
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Card className="bg-[#EBEBFE]/30 border border-[#EBEBFE]">
-                      <CardContent className="p-4 space-y-4">
-                        <div>
-                          <h4 className="font-bold text-[#121213] mb-2 text-base">Cancel Recurring Booking</h4>
-                          <p className="text-sm text-gray-600">
-                            This booking is part of a recurring series. What would you like to cancel?
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Button
-                            onClick={() => {
-                              if (window.confirm('Cancel only this instance? The rest of the series will remain.')) {
-                                handleAction('cancel', false);
-                              }
-                            }}
-                            disabled={processing}
-                            variant="outline"
-                            className="w-full h-auto py-3 px-4 bg-white border-2 border-[#4D4DA4] text-[#4D4DA4] hover:bg-[#EBEBFE] hover:border-[#4D4DA4] font-semibold rounded-xl text-left justify-start"
-                          >
-                            <div className="w-full">
-                              <div className="font-bold text-sm">Cancel This Instance Only</div>
-                              <div className="text-xs text-gray-600 mt-0.5 font-normal">Only this booking will be cancelled</div>
-                            </div>
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              if (window.confirm('Cancel this instance and all future instances? This cannot be undone.')) {
-                                handleAction('cancel', true);
-                              }
-                            }}
-                            disabled={processing}
-                            variant="outline"
-                            className="w-full h-auto py-3 px-4 bg-orange-50 border-2 border-orange-300 text-orange-800 hover:bg-orange-100 hover:border-orange-400 font-semibold rounded-xl text-left justify-start"
-                          >
-                            <div className="w-full">
-                              <div className="font-bold text-sm">Cancel Entire Series</div>
-                              <div className="text-xs text-orange-700 mt-0.5 font-normal">This instance and all future instances will be cancelled</div>
-                            </div>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Button
-                      onClick={() => setShowCancelOptions(false)}
-                      disabled={processing}
-                      variant="ghost"
-                      className="w-full text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                    >
-                      ← Back
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                        }}
+                        disabled={processing}
+                        className="w-full p-4 bg-[var(--dark-700)] border-2 border-[var(--brand-primary)]/50 text-[var(--brand-light)] hover:bg-[var(--dark-600)] hover:border-[var(--brand-primary)] font-semibold rounded-xl text-left transition-colors disabled:opacity-50"
+                      >
+                        <div className="font-bold text-sm text-[var(--brand-primary)]">Cancel This Instance Only</div>
+                        <div className="text-xs text-[var(--brand-light)]/60 mt-0.5 font-normal">Only this booking will be cancelled</div>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Cancel this instance and all future instances? This cannot be undone.')) {
+                            handleAction('cancel', true);
+                          }
+                        }}
+                        disabled={processing}
+                        className="w-full p-4 bg-[var(--brand-peach)]/10 border-2 border-[var(--brand-peach)]/50 text-[var(--brand-light)] hover:bg-[var(--brand-peach)]/20 hover:border-[var(--brand-peach)] font-semibold rounded-xl text-left transition-colors disabled:opacity-50"
+                      >
+                        <div className="font-bold text-sm text-[var(--brand-peach)]">Cancel Entire Series</div>
+                        <div className="text-xs text-[var(--brand-light)]/60 mt-0.5 font-normal">This instance and all future instances will be cancelled</div>
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowCancelOptions(false)}
+                    disabled={processing}
+                    className="w-full h-10 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] rounded-xl transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Back
+                  </button>
+                </>
+              )}
+            </div>
           )}
           
+          {/* Status Display - Rejected/Cancelled */}
           {booking.status !== 'PENDING' && booking.status !== 'APPROVED' && (
-            <Card className={`border shadow-sm ${
-              booking.status === 'CANCELLED' ? 'bg-gray-50 border-gray-200' : 
-              booking.status === 'REJECTED' ? 'bg-red-50 border-red-200' : 
-              'bg-gray-50 border-gray-200'
+            <div className={`rounded-xl border p-4 ${
+              booking.status === 'CANCELLED' 
+                ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' 
+                : booking.status === 'REJECTED' 
+                ? 'bg-[var(--brand-red)]/10 border-[var(--brand-red)]/30' 
+                : 'bg-[var(--dark-600)] border-[var(--dark-500)]'
             }`}>
-              <CardContent className="p-4">
-                <div className={`text-center font-bold text-base ${
-                  booking.status === 'CANCELLED' ? 'text-gray-800' : 
-                  booking.status === 'REJECTED' ? 'text-red-800' : 
-                  'text-gray-800'
-                }`}>
-                  This booking is {booking.status}
-                </div>
-              </CardContent>
-            </Card>
+              <div className={`text-center font-bold text-base flex items-center justify-center gap-2 ${
+                booking.status === 'CANCELLED' 
+                  ? 'text-[var(--brand-light)]/60' 
+                  : booking.status === 'REJECTED' 
+                  ? 'text-[var(--brand-red)]' 
+                  : 'text-[var(--brand-light)]/60'
+              }`}>
+                {booking.status === 'REJECTED' && <X className="w-5 h-5" />}
+                {booking.status === 'CANCELLED' && <XCircle className="w-5 h-5" />}
+                This booking is {booking.status}
+              </div>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
       
       {/* Toast Notification */}
       <Toast 
@@ -343,8 +386,20 @@ export default function BookingDetailModal({ booking, onClose, onUpdate }: Props
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={() => setToast({ ...toast, isVisible: false })}
+        darkMode
       />
+      
+      {/* Animation Styles */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
     </div>
   );
 }
-

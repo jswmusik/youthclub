@@ -1,23 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, X, Globe, Building, Users } from 'lucide-react';
 import Link from 'next/link';
+import { 
+    ArrowLeft, Upload, X, Globe, Building, Users, FileText, Image, Video,
+    CheckCircle2, Lightbulb, Sparkles, Bell, MessageSquare, Pin, Calendar,
+    Eye, EyeOff, Target, Settings, Send
+} from 'lucide-react';
 import api from '../../../lib/api';
 import { Post, PostImage } from '../../../types/post';
-import RichTextEditor from '../RichTextEditor';
+import PostRichTextEditor from './PostRichTextEditor';
 import { getMediaUrl } from '../../utils';
 import Toast from '../Toast';
 import { useAuth } from '../../../context/AuthContext';
-
-// Shadcn
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 
 interface PostFormProps {
     initialData?: Post;
@@ -28,11 +25,16 @@ interface PostFormProps {
 export default function PostForm({ initialData, role, onSuccess }: PostFormProps) {
     const router = useRouter();
     const { user: currentUser } = useAuth();
+    const progressPlaceholderRef = useRef<HTMLDivElement>(null);
+    
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
         message: '', type: 'success', isVisible: false,
     });
+    const [focusedField, setFocusedField] = useState<string | null>(null);
+    const [isProgressFixed, setIsProgressFixed] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
     // --- Dynamic Data ---
     const [municipalities, setMunicipalities] = useState<any[]>([]);
@@ -44,7 +46,6 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     // --- 1. Distribution (Scope) State ---
     const getInitialDistributionMode = (): 'GLOBAL' | 'MUNICIPALITY' | 'CLUB' => {
         if (initialData) {
-            // Municipality and club admins cannot have global posts
             if (initialData.is_global && role === 'super') return 'GLOBAL';
             if (initialData.target_municipalities?.length) return 'MUNICIPALITY';
             return 'CLUB';
@@ -57,8 +58,6 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     const [distributionMode, setDistributionMode] = useState<'GLOBAL' | 'MUNICIPALITY' | 'CLUB'>(getInitialDistributionMode());
     const [selectedMunis, setSelectedMunis] = useState<number[]>(initialData?.target_municipalities || []);
     const [selectedClubs, setSelectedClubs] = useState<number[]>(initialData?.target_clubs || []);
-    
-    // For Muni Admin: "All Clubs" vs "Specific"
     const [muniScope, setMuniScope] = useState<'ALL' | 'SPECIFIC'>(
         (initialData?.target_clubs && initialData.target_clubs.length > 0) ? 'SPECIFIC' : 'ALL'
     );
@@ -100,11 +99,16 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     const [pushTitle, setPushTitle] = useState(initialData?.push_title || '');
     const [pushMessage, setPushMessage] = useState(initialData?.push_message || '');
 
+    // Track component mount for portal
+    useEffect(() => {
+        setIsMounted(true);
+        return () => setIsMounted(false);
+    }, []);
+
     // --- Data Fetching ---
     useEffect(() => {
         const loadData = async () => {
             try {
-                // 1. Basic Lists
                 const groupsRes = await api.get('/groups/');
                 setAvailableGroups(Array.isArray(groupsRes.data) ? groupsRes.data : groupsRes.data.results || []);
 
@@ -117,7 +121,6 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                     ['BOOLEAN', 'SINGLE_SELECT', 'MULTI_SELECT'].includes(f.field_type)
                 ));
 
-                // 2. Admin Specific Lists
                 if (role === 'super') {
                     const muniRes = await api.get('/municipalities/');
                     setMunicipalities(Array.isArray(muniRes.data) ? muniRes.data : muniRes.data.results || []);
@@ -126,18 +129,43 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                     setClubs(Array.isArray(clubRes.data) ? clubRes.data : clubRes.data.results || []);
                 } 
                 else if (role === 'municipality') {
-                    // Municipality Admins only need the clubs in their muni (API handles filtering)
                     const clubRes = await api.get('/clubs/?page_size=1000');
                     setClubs(Array.isArray(clubRes.data) ? clubRes.data : clubRes.data.results || []);
                 }
-                // Club admins don't need to fetch external clubs or munis
-
             } catch (err) {
                 console.error("Failed to load form data", err);
             }
         };
         loadData();
     }, [role]);
+
+    // Progress calculation
+    const calculateCompletion = useCallback(() => {
+        const requiredFields = [title];
+        const filled = requiredFields.filter(f => f && f.toString().trim()).length;
+        return Math.round((filled / requiredFields.length) * 100);
+    }, [title]);
+
+    const completionPercent = calculateCompletion();
+
+    const checkScroll = useCallback(() => {
+        if (!progressPlaceholderRef.current) return;
+        const rect = progressPlaceholderRef.current.getBoundingClientRect();
+        const mainElement = document.querySelector('main');
+        const headerHeight = mainElement ? 0 : 64;
+        setIsProgressFixed(rect.top < headerHeight);
+    }, []);
+
+    useEffect(() => {
+        const mainElement = document.querySelector('main');
+        if (mainElement) mainElement.addEventListener('scroll', checkScroll);
+        window.addEventListener('scroll', checkScroll);
+        checkScroll();
+        return () => {
+            if (mainElement) mainElement.removeEventListener('scroll', checkScroll);
+            window.removeEventListener('scroll', checkScroll);
+        };
+    }, [checkScroll]);
 
     // --- Helpers ---
     const toggleSelection = (id: any, list: any[], setList: (l: any[]) => void) => {
@@ -158,13 +186,11 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         setError('');
         const formData = new FormData();
 
-        // 1. Basic
         formData.append('title', title);
         formData.append('content', content);
         formData.append('post_type', postType);
         if (videoUrl) formData.append('video_url', videoUrl);
 
-        // 2. Distribution Logic
         let isGlobal = false;
         let targetMunis: number[] = [];
         let targetClubs: number[] = [];
@@ -175,28 +201,23 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
             else targetClubs = selectedClubs;
         } 
         else if (role === 'municipality') {
-            // Municipality admins CANNOT create global posts - force false
             isGlobal = false;
-            // Also prevent GLOBAL mode from being set
             if (distributionMode === 'GLOBAL') {
                 setError('Municipality admins cannot create global posts.');
                 setLoading(false);
                 return;
             }
             if (muniScope === 'ALL') {
-                 // If targeting entire municipality, we pass the municipality ID but NO specific clubs
                  const muniId = currentUser?.assigned_municipality 
                     ? (typeof currentUser.assigned_municipality === 'object' ? currentUser.assigned_municipality.id : currentUser.assigned_municipality)
                     : null;
                  if (muniId) targetMunis = [muniId];
             } else {
-                // Specific clubs
                 targetClubs = selectedClubs;
             }
         } 
         else if (role === 'club') {
             isGlobal = false;
-            // The backend automatically assigns the club, but passing it here helps validity
             const clubId = currentUser?.assigned_club
                 ? (typeof currentUser.assigned_club === 'object' ? currentUser.assigned_club.id : currentUser.assigned_club)
                 : null;
@@ -204,18 +225,14 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         }
 
         formData.append('is_global', isGlobal.toString());
-        
-        // Only append IDs if we have them (avoids sending empty strings)
         targetMunis.forEach(id => formData.append('target_municipalities', id.toString()));
         targetClubs.forEach(id => formData.append('target_clubs', id.toString()));
 
-        // 3. Status
         formData.append('status', status);
         if (status === 'SCHEDULED' && publishedAt) formData.append('published_at', new Date(publishedAt).toISOString());
         if (visibilityEndDate) formData.append('visibility_end_date', new Date(visibilityEndDate).toISOString());
         formData.append('is_pinned', isPinned ? 'true' : 'false');
 
-        // 4. Targeting
         formData.append('target_member_type', memberType);
         if (targetMode === 'GROUPS') {
             selectedGroups.forEach(id => formData.append('target_groups', id.toString()));
@@ -223,21 +240,17 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
             formData.append('target_genders', '[]');
             formData.append('target_custom_fields', '{}');
         } else {
-            // Important: Don't append empty strings for ManyToMany logic in Django Rest Framework
             if (selectedGroups.length > 0) {
                  selectedGroups.forEach(id => formData.append('target_groups', id.toString()));
             }
-            
             if (minAge) formData.append('target_min_age', minAge.toString());
             if (maxAge) formData.append('target_max_age', maxAge.toString());
             formData.append('target_grades', JSON.stringify(selectedGrades));
             formData.append('target_genders', JSON.stringify(selectedGenders));
-            
             selectedInterests.forEach(id => formData.append('target_interests', id.toString()));
             formData.append('target_custom_fields', JSON.stringify(customFieldRules));
         }
 
-        // 5. Settings
         formData.append('allow_comments', allowComments ? 'true' : 'false');
         formData.append('require_moderation', requireModeration ? 'true' : 'false');
         formData.append('allow_replies', allowReplies ? 'true' : 'false');
@@ -248,7 +261,6 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
             formData.append('push_message', pushMessage);
         }
 
-        // 6. Files
         newImages.forEach((file) => formData.append('uploaded_images', file));
         if (initialData && imagesToDelete.length > 0) {
             imagesToDelete.forEach((id) => formData.append('images_to_delete', id.toString()));
@@ -257,15 +269,14 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         try {
             if (initialData) {
                 await api.patch(`/posts/${initialData.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-                setToast({ message: 'Updated successfully', type: 'success', isVisible: true });
+                setToast({ message: 'Post updated successfully!', type: 'success', isVisible: true });
             } else {
                 await api.post('/posts/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-                setToast({ message: 'Created successfully', type: 'success', isVisible: true });
+                setToast({ message: 'Post created successfully!', type: 'success', isVisible: true });
             }
             setTimeout(() => onSuccess(), 1000);
         } catch (err: any) {
             console.error(err);
-            // Extract error message safely
             let msg = 'Failed to save post.';
             if (err.response?.data) {
                if (typeof err.response.data === 'string') msg = err.response.data;
@@ -279,572 +290,774 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         }
     };
 
-    // Prevent municipality and club admins from editing global posts
+    // Access denied for non-super admins editing global posts
     if (initialData?.is_global && role !== 'super') {
         return (
-            <div className="max-w-4xl mx-auto space-y-6">
-                <Card className="border-none shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Edit Post</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-red-600 bg-red-50 p-4 rounded text-sm border border-red-200">
-                            <strong>Access Denied:</strong> You do not have permission to edit global posts. Only super admins can create and edit global posts.
+            <div className="min-h-screen bg-[var(--dark-900)] py-8">
+                <div className="sm:max-w-4xl sm:mx-auto sm:px-6">
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-8 text-center">
+                        <div className="w-16 h-16 rounded-full bg-[var(--brand-red)]/20 flex items-center justify-center mx-auto mb-4">
+                            <EyeOff className="w-8 h-8 text-[var(--brand-red)]" />
+                        </div>
+                        <h2 className="text-xl font-bold text-[var(--brand-light)] mb-2">Access Denied</h2>
+                        <p className="text-[var(--brand-light)]/60 mb-6">
+                            You do not have permission to edit global posts. Only super admins can create and edit global posts.
                         </p>
-                    </CardContent>
-                </Card>
+                        <button 
+                            onClick={() => router.back()}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-purple)] transition-all"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Go Back
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }
 
+    const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
+    
+    const inputClasses = (field: string) => `
+        w-full h-11 px-4 rounded-xl
+        bg-[var(--dark-700)] border-2 
+        ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+        text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+        outline-none transition-all duration-200
+        hover:border-[var(--brand-primary)]/50
+        focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+    `;
+
+    const getBasePath = () => {
+        if (role === 'super') return '/admin/super/posts';
+        if (role === 'municipality') return '/admin/municipality/posts';
+        return '/admin/club/posts';
+    };
+
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => router.back()}>
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                        {initialData ? 'Edit Post' : 'Create New Post'}
-                    </h1>
-                    <p className="text-sm text-muted-foreground">Share updates, news, or media with your members.</p>
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+            <div className="sm:max-w-4xl sm:mx-auto sm:px-6">
+                
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+                    <Link 
+                        href={getBasePath()}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+                    <div className="flex-1">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                            {initialData ? 'Edit Post' : 'Create New Post'}
+                        </h1>
+                        <p className="text-[var(--brand-light)]/50 text-sm mt-1">
+                            {initialData ? 'Update your post content and settings' : 'Share updates, news, or media with your members'}
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-sm">
-                    {error}
+                {/* Progress Indicator */}
+                <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
+                    <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                            <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+                        </div>
+                        <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPercent}%` }} />
+                        </div>
+                        {completionPercent === 100 && (
+                            <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span className="text-sm font-medium">Ready to publish!</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            )}
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Fixed Progress */}
+                {isMounted && createPortal(
+                    <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
+                        <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                                <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+                            </div>
+                            <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPercent}%` }} />
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
 
-                {/* --- DISTRIBUTION SECTION --- */}
-                <Card className="border-none shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Distribution Scope</CardTitle>
-                        <CardDescription>Choose where this post will be visible.</CardDescription>
-                    </CardHeader>
-                    <Separator />
-                    <CardContent className="pt-6 space-y-4">
-                        {/* SUPER ADMIN UI */}
-                        {role === 'super' && (
-                            <>
-                                <div className="flex flex-wrap gap-4">
-                                    <label className="flex items-center cursor-pointer">
-                                        <input 
-                                            type="radio" 
-                                            checked={distributionMode === 'GLOBAL'} 
-                                            onChange={() => setDistributionMode('GLOBAL')} 
-                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
-                                        />
-                                        <span className="font-medium flex items-center gap-2">
-                                            <Globe className="h-4 w-4" />
-                                            Global (All Users)
-                                        </span>
-                                    </label>
-                                    <label className="flex items-center cursor-pointer">
-                                        <input 
-                                            type="radio" 
-                                            checked={distributionMode === 'MUNICIPALITY'} 
-                                            onChange={() => setDistributionMode('MUNICIPALITY')} 
-                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
-                                        />
-                                        <span className="font-medium flex items-center gap-2">
-                                            <Building className="h-4 w-4" />
-                                            Specific Municipalities
-                                        </span>
-                                    </label>
-                                    <label className="flex items-center cursor-pointer">
-                                        <input 
-                                            type="radio" 
-                                            checked={distributionMode === 'CLUB'} 
-                                            onChange={() => setDistributionMode('CLUB')} 
-                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
-                                        />
-                                        <span className="font-medium flex items-center gap-2">
-                                            <Users className="h-4 w-4" />
-                                            Specific Clubs
-                                        </span>
-                                    </label>
+                {/* Error Message */}
+                {error && (
+                    <div className="mx-4 sm:mx-0 mb-6 bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30 text-[var(--brand-red)] p-4 rounded-xl text-sm">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit}>
+
+                    {/* --- POST CONTENT --- */}
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
+                        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                    <FileText className="w-5 h-5 text-white" />
                                 </div>
-
-                                {distributionMode === 'MUNICIPALITY' && (
-                                    <div className="bg-muted/30 p-4 rounded-lg border max-h-48 overflow-y-auto">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {municipalities.map(m => (
-                                                <label key={m.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-background p-2 rounded">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={selectedMunis.includes(m.id)} 
-                                                        onChange={() => toggleSelection(m.id, selectedMunis, setSelectedMunis)}
-                                                        className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                                                    />
-                                                    <span>{m.name}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {distributionMode === 'CLUB' && (
-                                    <div className="bg-muted/30 p-4 rounded-lg border max-h-48 overflow-y-auto">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {clubs.map(c => (
-                                                <label key={c.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-background p-2 rounded">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={selectedClubs.includes(c.id)} 
-                                                        onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)}
-                                                        className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                                                    />
-                                                    <span>{c.name}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {/* MUNICIPALITY ADMIN UI */}
-                        {role === 'municipality' && (
-                            <>
-                                <div className="flex flex-wrap gap-4">
-                                    <label className="flex items-center cursor-pointer">
-                                        <input 
-                                            type="radio" 
-                                            checked={muniScope === 'ALL'} 
-                                            onChange={() => setMuniScope('ALL')} 
-                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
-                                        />
-                                        <span className="font-medium">Entire Municipality</span>
-                                    </label>
-                                    <label className="flex items-center cursor-pointer">
-                                        <input 
-                                            type="radio" 
-                                            checked={muniScope === 'SPECIFIC'} 
-                                            onChange={() => setMuniScope('SPECIFIC')} 
-                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
-                                        />
-                                        <span className="font-medium">Specific Clubs</span>
-                                    </label>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Post Content</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">Enter the title and content for your post</p>
                                 </div>
+                            </div>
+                        </div>
 
-                                {muniScope === 'SPECIFIC' && (
-                                    <div className="bg-muted/30 p-4 rounded-lg border max-h-48 overflow-y-auto">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {clubs.map(c => (
-                                                <label key={c.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-background p-2 rounded">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={selectedClubs.includes(c.id)} 
-                                                        onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)}
-                                                        className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                                                    />
-                                                    <span>{c.name}</span>
-                                                </label>
-                                            ))}
-                                            {clubs.length === 0 && <p className="text-sm text-muted-foreground col-span-2">No clubs found.</p>}
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
+                        <div className="p-4 sm:p-6 space-y-6">
+                            {/* Title */}
+                            <div>
+                                <label className={labelClasses}>Title <span className="text-[var(--brand-red)]">*</span></label>
+                                <input 
+                                    type="text" 
+                                    required 
+                                    placeholder="Enter a catchy title..."
+                                    className={inputClasses('title')}
+                                    value={title} 
+                                    onChange={e => setTitle(e.target.value)} 
+                                    onFocus={() => setFocusedField('title')}
+                                    onBlur={() => setFocusedField(null)}
+                                />
+                            </div>
 
-                        {/* CLUB ADMIN UI */}
-                        {role === 'club' && (
-                            <div className="bg-[#EBEBFE]/30 p-4 rounded-lg border border-[#4D4DA4]/20">
-                                <p className="text-sm font-medium flex items-center gap-2">
-                                    <Globe className="h-4 w-4 text-[#4D4DA4]" />
-                                    This post will be visible to members of your assigned club.
+                            {/* Content */}
+                            <div>
+                                <label className={labelClasses}>Content</label>
+                                <PostRichTextEditor value={content} onChange={setContent} />
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">
+                                    Use bold, italic, underline, strikethrough, or add links to format your text
                                 </p>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </div>
+                    </div>
 
-                {/* --- CONTENT --- */}
-                <Card className="border-none shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Post Content</CardTitle>
-                        <CardDescription>Enter the title and content for your post.</CardDescription>
-                    </CardHeader>
-                    <Separator />
-                    <CardContent className="pt-6 space-y-4">
-                        <div className="space-y-2">
-                            <Label>Title <span className="text-red-500">*</span></Label>
-                            <Input 
-                                type="text" 
-                                required 
-                                value={title} 
-                                onChange={e => setTitle(e.target.value)} 
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Content</Label>
-                            <RichTextEditor value={content} onChange={setContent} />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* --- MEDIA TYPE --- */}
-                <Card className="border-none shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Media Type</CardTitle>
-                        <CardDescription>Choose the type of media for this post.</CardDescription>
-                    </CardHeader>
-                    <Separator />
-                    <CardContent className="pt-6 space-y-4">
-                        <div className="flex flex-wrap gap-3">
-                            {['TEXT', 'IMAGE', 'VIDEO'].map((type) => (
-                                <Button 
-                                    key={type} 
-                                    type="button" 
-                                    onClick={() => setPostType(type as any)} 
-                                    variant={postType === type ? 'default' : 'outline'}
-                                    className={postType === type ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white' : ''}
-                                >
-                                    {type}
-                                </Button>
-                            ))}
-                        </div>
-                        
-                        {postType === 'IMAGE' && (
-                            <div className="space-y-3">
-                                {existingImages.length > 0 && (
-                                    <div className="flex gap-2 flex-wrap">
-                                        {existingImages.map(img => (
-                                            <div key={img.id} className="relative w-24 h-24 group">
-                                                <img 
-                                                    src={getMediaUrl(img.image) || ''} 
-                                                    className={`w-full h-full object-cover rounded-lg ${imagesToDelete.includes(img.id) ? 'opacity-50' : ''}`} 
-                                                    alt={`Post image ${img.id}`} 
-                                                />
-                                                {!imagesToDelete.includes(img.id) && (
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => toggleSelection(img.id, imagesToDelete, setImagesToDelete)} 
-                                                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="space-y-2">
-                                    <Label>Upload Images</Label>
-                                    <Input 
-                                        type="file" 
-                                        multiple 
-                                        accept="image/*" 
-                                        onChange={e => e.target.files && setNewImages(Array.from(e.target.files))} 
-                                    />
+                    {/* --- MEDIA TYPE --- */}
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
+                        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
+                                    <Image className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Media Type</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">Choose the type of media for this post</p>
                                 </div>
                             </div>
-                        )}
-                        
-                        {postType === 'VIDEO' && (
-                            <div className="space-y-2">
-                                <Label>YouTube URL</Label>
-                                <Input 
-                                    type="url" 
-                                    placeholder="https://www.youtube.com/watch?v=..." 
-                                    value={videoUrl} 
-                                    onChange={e => setVideoUrl(e.target.value)} 
-                                />
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* --- TARGETING (AUDIENCE) --- */}
-                <Card className="border-none shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Target Audience Filters</CardTitle>
-                        <CardDescription>Define who can see this post.</CardDescription>
-                    </CardHeader>
-                    <Separator />
-                    <CardContent className="pt-6 space-y-4">
-                        <div className="flex flex-wrap items-center gap-6">
-                            <label className="flex items-center cursor-pointer">
-                                <input 
-                                    type="radio" 
-                                    checked={targetMode === 'ATTRIBUTES'} 
-                                    onChange={() => setTargetMode('ATTRIBUTES')} 
-                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
-                                />
-                                <span className="font-medium">Attributes (Age, Interests)</span>
-                            </label>
-                            <label className="flex items-center cursor-pointer">
-                                <input 
-                                    type="radio" 
-                                    checked={targetMode === 'GROUPS'} 
-                                    onChange={() => setTargetMode('GROUPS')} 
-                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]" 
-                                />
-                                <span className="font-medium">Specific Groups</span>
-                            </label>
                         </div>
 
-                        {targetMode === 'GROUPS' ? (
-                            <div className="bg-muted/30 p-4 rounded-lg border max-h-48 overflow-y-auto">
-                                {availableGroups.map(g => (
-                                    <label key={g.id} className="flex items-center p-2 cursor-pointer hover:bg-background rounded">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedGroups.includes(g.id)} 
-                                            onChange={() => toggleSelection(g.id, selectedGroups, setSelectedGroups)} 
-                                            className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                                        />
-                                        <span className="text-sm">{g.name}</span>
-                                    </label>
+                        <div className="p-4 sm:p-6 space-y-4">
+                            <div className="flex flex-wrap gap-3">
+                                {[
+                                    { type: 'TEXT', icon: FileText, label: 'Text Only' },
+                                    { type: 'IMAGE', icon: Image, label: 'With Images' },
+                                    { type: 'VIDEO', icon: Video, label: 'With Video' }
+                                ].map(({ type, icon: Icon, label }) => (
+                                    <button 
+                                        key={type} 
+                                        type="button" 
+                                        onClick={() => setPostType(type as any)} 
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                                            postType === type 
+                                                ? 'bg-[var(--brand-primary)] text-white' 
+                                                : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
+                                        }`}
+                                    >
+                                        <Icon className="w-4 h-4" />
+                                        {label}
+                                    </button>
                                 ))}
-                                {availableGroups.length === 0 && <p className="text-sm text-muted-foreground">No groups available.</p>}
                             </div>
-                        ) : (
-                            <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
-                                <div>
-                                    <Label className="text-xs font-bold uppercase mb-2">Member Type</Label>
-                                    <div className="flex flex-wrap gap-4 mt-2">
-                                        {['BOTH', 'YOUTH', 'GUARDIAN'].map(t => (
-                                            <label key={t} className="flex items-center cursor-pointer">
-                                                <input 
-                                                    type="radio" 
-                                                    checked={memberType === t} 
-                                                    onChange={() => setMemberType(t as any)} 
-                                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                                                />
-                                                <span className="text-sm font-medium">{t}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Min Age</Label>
-                                        <Input 
-                                            type="number" 
-                                            placeholder="Min Age" 
-                                            value={minAge} 
-                                            onChange={e => setMinAge(e.target.value)} 
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Max Age</Label>
-                                        <Input 
-                                            type="number" 
-                                            placeholder="Max Age" 
-                                            value={maxAge} 
-                                            onChange={e => setMaxAge(e.target.value)} 
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-bold uppercase mb-2">Grades</Label>
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {[1,2,3,4,5,6,7,8,9,10,11,12].map(g => (
-                                            <Button 
-                                                key={g} 
-                                                type="button" 
-                                                onClick={() => toggleSelection(g, selectedGrades, setSelectedGrades)} 
-                                                variant={selectedGrades.includes(g) ? 'default' : 'outline'}
-                                                size="sm"
-                                                className={selectedGrades.includes(g) ? 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white w-10 h-10' : 'w-10 h-10'}
-                                            >
-                                                {g}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-bold uppercase mb-2">Gender</Label>
-                                    <div className="flex flex-wrap gap-3 mt-2">
-                                        {['MALE', 'FEMALE', 'OTHER'].map(g => (
-                                            <label key={g} className="inline-flex items-center bg-background px-3 py-2 rounded-lg border shadow-sm cursor-pointer hover:bg-muted/50">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={selectedGenders.includes(g)}
-                                                    onChange={() => toggleSelection(g, selectedGenders, setSelectedGenders)}
-                                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                                                />
-                                                <span className="text-sm capitalize">{g.toLowerCase()}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-bold uppercase mb-2">Interests</Label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto mt-2">
-                                        {availableInterests.map(interest => (
-                                            <label key={interest.id} className="flex items-center text-sm cursor-pointer hover:bg-background p-2 rounded">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={selectedInterests.includes(interest.id)}
-                                                    onChange={() => toggleSelection(interest.id, selectedInterests, setSelectedInterests)}
-                                                    className="mr-2 text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                                                />
-                                                {interest.name}
-                                            </label>
-                                        ))}
-                                        {availableInterests.length === 0 && <span className="text-sm text-muted-foreground col-span-full">No interests available.</span>}
-                                    </div>
-                                </div>
-                                {availableCustomFields.length > 0 && (
-                                    <div className="border-t pt-4 mt-4">
-                                        <Label className="text-xs font-bold uppercase mb-3 block">Custom Fields</Label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {availableCustomFields.map(f => (
-                                                <div key={f.id} className="space-y-2">
-                                                    <Label className="text-sm">{f.name}</Label>
-                                                    <select 
-                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2" 
-                                                        value={customFieldRules[f.id] || ''} 
-                                                        onChange={e => handleCustomFieldChange(f.id, e.target.value)}
-                                                    >
-                                                        <option value="">Any</option>
-                                                        {f.field_type === 'BOOLEAN' ? (
-                                                            <>
-                                                                <option value="true">Yes</option>
-                                                                <option value="false">No</option>
-                                                            </>
-                                                        ) : (
-                                                            f.options?.map((o:string) => <option key={o} value={o}>{o}</option>)
-                                                        )}
-                                                    </select>
+                            
+                            {postType === 'IMAGE' && (
+                                <div className="space-y-4 pt-4 border-t border-[var(--dark-600)]">
+                                    {existingImages.length > 0 && (
+                                        <div className="flex gap-3 flex-wrap">
+                                            {existingImages.map(img => (
+                                                <div key={img.id} className="relative w-24 h-24 group rounded-xl overflow-hidden">
+                                                    <img 
+                                                        src={getMediaUrl(img.image) || ''} 
+                                                        className={`w-full h-full object-cover ${imagesToDelete.includes(img.id) ? 'opacity-30' : ''}`} 
+                                                        alt={`Post image ${img.id}`} 
+                                                    />
+                                                    {!imagesToDelete.includes(img.id) && (
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => toggleSelection(img.id, imagesToDelete, setImagesToDelete)} 
+                                                            className="absolute top-1 right-1 w-6 h-6 bg-[var(--brand-red)] text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
+                                    )}
+                                    <div>
+                                        <label className={labelClasses}>Upload Images</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="file" 
+                                                multiple 
+                                                accept="image/*" 
+                                                onChange={e => e.target.files && setNewImages(Array.from(e.target.files))}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed border-[var(--dark-500)] bg-[var(--dark-700)]/50 hover:border-[var(--brand-primary)]/50 transition-colors">
+                                                <Upload className="w-5 h-5 text-[var(--brand-light)]/40" />
+                                                <span className="text-[var(--brand-light)]/60">
+                                                    {newImages.length > 0 ? `${newImages.length} file(s) selected` : 'Click or drag to upload images'}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* --- PUBLISH SETTINGS --- */}
-                <Card className="border-none shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Publication Settings</CardTitle>
-                        <CardDescription>Configure when and how this post will be published.</CardDescription>
-                    </CardHeader>
-                    <Separator />
-                    <CardContent className="pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label>Status</Label>
-                                    <select 
-                                        value={status} 
-                                        onChange={e => setStatus(e.target.value as any)} 
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2"
-                                    >
-                                        <option value="DRAFT">Draft</option>
-                                        <option value="PUBLISHED">Publish Now</option>
-                                        <option value="SCHEDULED">Schedule</option>
-                                    </select>
                                 </div>
-                                {status === 'SCHEDULED' && (
-                                    <div className="space-y-2">
-                                        <Label>Schedule Date & Time</Label>
-                                        <Input 
-                                            type="datetime-local" 
-                                            value={publishedAt} 
-                                            onChange={e => setPublishedAt(e.target.value)} 
-                                        />
-                                    </div>
-                                )}
-                                <div className="space-y-2">
-                                    <Label>Visibility End Date (Optional)</Label>
-                                    <Input 
-                                        type="datetime-local" 
-                                        value={visibilityEndDate} 
-                                        onChange={e => setVisibilityEndDate(e.target.value)} 
-                                    />
-                                </div>
-                                <label className="flex items-center gap-2 cursor-pointer">
+                            )}
+                            
+                            {postType === 'VIDEO' && (
+                                <div className="pt-4 border-t border-[var(--dark-600)]">
+                                    <label className={labelClasses}>YouTube URL</label>
                                     <input 
-                                        type="checkbox" 
-                                        checked={isPinned} 
-                                        onChange={e => setIsPinned(e.target.checked)}
-                                        className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                        type="url" 
+                                        placeholder="https://www.youtube.com/watch?v=..." 
+                                        className={inputClasses('videoUrl')}
+                                        value={videoUrl} 
+                                        onChange={e => setVideoUrl(e.target.value)}
+                                        onFocus={() => setFocusedField('videoUrl')}
+                                        onBlur={() => setFocusedField(null)}
                                     />
-                                    <span className="text-sm font-medium">Pin to top</span>
-                                </label>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* --- DISTRIBUTION SCOPE --- */}
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
+                        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                                    <Globe className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Distribution Scope</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">Choose where this post will be visible</p>
+                                </div>
                             </div>
-                            <div className="space-y-4">
-                                <div className="space-y-3">
-                                    <label className="flex items-center gap-2 cursor-pointer">
+                        </div>
+
+                        <div className="p-4 sm:p-6 space-y-4">
+                            {/* SUPER ADMIN UI */}
+                            {role === 'super' && (
+                                <>
+                                    <div className="flex flex-wrap gap-3">
+                                        {[
+                                            { mode: 'GLOBAL', icon: Globe, label: 'Global (All Users)' },
+                                            { mode: 'MUNICIPALITY', icon: Building, label: 'Specific Municipalities' },
+                                            { mode: 'CLUB', icon: Users, label: 'Specific Clubs' }
+                                        ].map(({ mode, icon: Icon, label }) => (
+                                            <button
+                                                key={mode}
+                                                type="button"
+                                                onClick={() => setDistributionMode(mode as any)}
+                                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                                                    distributionMode === mode 
+                                                        ? 'bg-[var(--brand-green)] text-white' 
+                                                        : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/30'
+                                                }`}
+                                            >
+                                                <Icon className="w-4 h-4" />
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {distributionMode === 'MUNICIPALITY' && (
+                                        <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] max-h-48 overflow-y-auto">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {municipalities.map(m => (
+                                                    <label key={m.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--dark-600)] cursor-pointer transition-colors">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={selectedMunis.includes(m.id)} 
+                                                            onChange={() => toggleSelection(m.id, selectedMunis, setSelectedMunis)}
+                                                            className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                                                        />
+                                                        <span className="text-sm text-[var(--brand-light)]/80">{m.name}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {distributionMode === 'CLUB' && (
+                                        <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] max-h-48 overflow-y-auto">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {clubs.map(c => (
+                                                    <label key={c.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--dark-600)] cursor-pointer transition-colors">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={selectedClubs.includes(c.id)} 
+                                                            onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)}
+                                                            className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                                                        />
+                                                        <span className="text-sm text-[var(--brand-light)]/80">{c.name}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* MUNICIPALITY ADMIN UI */}
+                            {role === 'municipality' && (
+                                <>
+                                    <div className="flex flex-wrap gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setMuniScope('ALL')}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                                                muniScope === 'ALL' 
+                                                    ? 'bg-[var(--brand-green)] text-white' 
+                                                    : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/30'
+                                            }`}
+                                        >
+                                            <Building className="w-4 h-4" />
+                                            Entire Municipality
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setMuniScope('SPECIFIC')}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                                                muniScope === 'SPECIFIC' 
+                                                    ? 'bg-[var(--brand-green)] text-white' 
+                                                    : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/30'
+                                            }`}
+                                        >
+                                            <Users className="w-4 h-4" />
+                                            Specific Clubs
+                                        </button>
+                                    </div>
+
+                                    {muniScope === 'SPECIFIC' && (
+                                        <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] max-h-48 overflow-y-auto">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {clubs.map(c => (
+                                                    <label key={c.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--dark-600)] cursor-pointer transition-colors">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={selectedClubs.includes(c.id)} 
+                                                            onChange={() => toggleSelection(c.id, selectedClubs, setSelectedClubs)}
+                                                            className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                                                        />
+                                                        <span className="text-sm text-[var(--brand-light)]/80">{c.name}</span>
+                                                    </label>
+                                                ))}
+                                                {clubs.length === 0 && <p className="text-sm text-[var(--brand-light)]/50 col-span-2">No clubs found.</p>}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* CLUB ADMIN UI */}
+                            {role === 'club' && (
+                                <div className="bg-[var(--brand-green)]/10 p-4 rounded-xl border border-[var(--brand-green)]/30">
+                                    <p className="text-sm text-[var(--brand-light)]/80 flex items-center gap-2">
+                                        <Globe className="w-4 h-4 text-[var(--brand-green)]" />
+                                        This post will be visible to members of your assigned club.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* --- TARGET AUDIENCE --- */}
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
+                        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
+                                    <Target className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">Define who can see this post</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 sm:p-6 space-y-4">
+                            <div className="flex flex-wrap gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setTargetMode('ATTRIBUTES')}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                                        targetMode === 'ATTRIBUTES' 
+                                            ? 'bg-[var(--brand-peach)] text-[var(--dark-900)]' 
+                                            : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/30'
+                                    }`}
+                                >
+                                    Attributes (Age, Interests)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setTargetMode('GROUPS')}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                                        targetMode === 'GROUPS' 
+                                            ? 'bg-[var(--brand-peach)] text-[var(--dark-900)]' 
+                                            : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/30'
+                                    }`}
+                                >
+                                    Specific Groups
+                                </button>
+                            </div>
+
+                            {targetMode === 'GROUPS' ? (
+                                <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] max-h-48 overflow-y-auto">
+                                    {availableGroups.map(g => (
+                                        <label key={g.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--dark-600)] cursor-pointer transition-colors">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedGroups.includes(g.id)} 
+                                                onChange={() => toggleSelection(g.id, selectedGroups, setSelectedGroups)}
+                                                className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                                            />
+                                            <span className="text-sm text-[var(--brand-light)]/80">{g.name}</span>
+                                        </label>
+                                    ))}
+                                    {availableGroups.length === 0 && <p className="text-sm text-[var(--brand-light)]/50">No groups available.</p>}
+                                </div>
+                            ) : (
+                                <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] space-y-4">
+                                    {/* Member Type */}
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">Member Type</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {['BOTH', 'YOUTH', 'GUARDIAN'].map(t => (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => setMemberType(t as any)}
+                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                        memberType === t 
+                                                            ? 'bg-[var(--brand-primary)] text-white' 
+                                                            : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
+                                                    }`}
+                                                >
+                                                    {t}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Age Range */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={labelClasses}>Min Age</label>
+                                            <input 
+                                                type="number" 
+                                                placeholder="Min" 
+                                                className={inputClasses('minAge')}
+                                                value={minAge} 
+                                                onChange={e => setMinAge(e.target.value)}
+                                                onFocus={() => setFocusedField('minAge')}
+                                                onBlur={() => setFocusedField(null)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClasses}>Max Age</label>
+                                            <input 
+                                                type="number" 
+                                                placeholder="Max" 
+                                                className={inputClasses('maxAge')}
+                                                value={maxAge} 
+                                                onChange={e => setMaxAge(e.target.value)}
+                                                onFocus={() => setFocusedField('maxAge')}
+                                                onBlur={() => setFocusedField(null)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Grades */}
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">Grades</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[1,2,3,4,5,6,7,8,9,10,11,12].map(g => (
+                                                <button 
+                                                    key={g} 
+                                                    type="button" 
+                                                    onClick={() => toggleSelection(g, selectedGrades, setSelectedGrades)} 
+                                                    className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
+                                                        selectedGrades.includes(g) 
+                                                            ? 'bg-[var(--brand-primary)] text-white' 
+                                                            : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
+                                                    }`}
+                                                >
+                                                    {g}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Gender */}
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">Gender</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {['MALE', 'FEMALE', 'OTHER'].map(g => (
+                                                <label key={g} className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-all ${
+                                                    selectedGenders.includes(g) 
+                                                        ? 'bg-[var(--brand-primary)] text-white' 
+                                                        : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
+                                                }`}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedGenders.includes(g)}
+                                                        onChange={() => toggleSelection(g, selectedGenders, setSelectedGenders)}
+                                                        className="hidden"
+                                                    />
+                                                    <span className="text-sm capitalize">{g.toLowerCase()}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Interests */}
+                                    {availableInterests.length > 0 && (
+                                        <div>
+                                            <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">Interests</label>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                                                {availableInterests.map(interest => (
+                                                    <label key={interest.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--dark-600)] cursor-pointer transition-colors">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={selectedInterests.includes(interest.id)}
+                                                            onChange={() => toggleSelection(interest.id, selectedInterests, setSelectedInterests)}
+                                                            className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                                                        />
+                                                        <span className="text-sm text-[var(--brand-light)]/80">{interest.name}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Custom Fields */}
+                                    {availableCustomFields.length > 0 && (
+                                        <div className="border-t border-[var(--dark-500)] pt-4">
+                                            <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-3 block">Custom Fields</label>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {availableCustomFields.map(f => (
+                                                    <div key={f.id}>
+                                                        <label className={labelClasses}>{f.name}</label>
+                                                        <select 
+                                                            className={inputClasses(`custom-${f.id}`)}
+                                                            value={customFieldRules[f.id] || ''} 
+                                                            onChange={e => handleCustomFieldChange(f.id, e.target.value)}
+                                                        >
+                                                            <option value="">Any</option>
+                                                            {f.field_type === 'BOOLEAN' ? (
+                                                                <>
+                                                                    <option value="true">Yes</option>
+                                                                    <option value="false">No</option>
+                                                                </>
+                                                            ) : (
+                                                                f.options?.map((o:string) => <option key={o} value={o}>{o}</option>)
+                                                            )}
+                                                        </select>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* --- PUBLICATION SETTINGS --- */}
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
+                        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-pink)] flex items-center justify-center">
+                                    <Settings className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Publication Settings</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">Configure when and how this post will be published</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 sm:p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Left Column */}
+                                <div className="space-y-4">
+                                    {/* Status */}
+                                    <div>
+                                        <label className={labelClasses}>Status</label>
+                                        <select 
+                                            value={status} 
+                                            onChange={e => setStatus(e.target.value as any)} 
+                                            className={inputClasses('status')}
+                                        >
+                                            <option value="DRAFT">Draft</option>
+                                            <option value="PUBLISHED">Publish Now</option>
+                                            <option value="SCHEDULED">Schedule</option>
+                                        </select>
+                                    </div>
+
+                                    {status === 'SCHEDULED' && (
+                                        <div>
+                                            <label className={labelClasses}>Schedule Date & Time</label>
+                                            <input 
+                                                type="datetime-local" 
+                                                className={inputClasses('publishedAt')}
+                                                value={publishedAt} 
+                                                onChange={e => setPublishedAt(e.target.value)}
+                                                onFocus={() => setFocusedField('publishedAt')}
+                                                onBlur={() => setFocusedField(null)}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className={labelClasses}>Visibility End Date (Optional)</label>
                                         <input 
-                                            type="checkbox" 
-                                            checked={allowComments} 
-                                            onChange={e => setAllowComments(e.target.checked)}
-                                            className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                            type="datetime-local" 
+                                            className={inputClasses('visibilityEndDate')}
+                                            value={visibilityEndDate} 
+                                            onChange={e => setVisibilityEndDate(e.target.value)}
+                                            onFocus={() => setFocusedField('visibilityEndDate')}
+                                            onBlur={() => setFocusedField(null)}
                                         />
-                                        <span className="text-sm font-bold">Allow Comments</span>
-                                    </label>
+                                    </div>
+
+                                    {/* Pin Toggle */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPinned(!isPinned)}
+                                        className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
+                                            isPinned 
+                                                ? 'bg-[var(--brand-peach)]/20 border-2 border-[var(--brand-peach)]' 
+                                                : 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] hover:border-[var(--brand-peach)]/30'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Pin className={`w-5 h-5 ${isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/50'}`} />
+                                            <span className={`font-medium ${isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/70'}`}>Pin to top</span>
+                                        </div>
+                                        <div className={`w-10 h-6 rounded-full transition-colors ${isPinned ? 'bg-[var(--brand-peach)]' : 'bg-[var(--dark-500)]'}`}>
+                                            <div className={`w-4 h-4 rounded-full bg-white mt-1 transition-transform ${isPinned ? 'translate-x-5' : 'translate-x-1'}`} />
+                                        </div>
+                                    </button>
+                                </div>
+
+                                {/* Right Column */}
+                                <div className="space-y-4">
+                                    {/* Comments Toggle */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setAllowComments(!allowComments)}
+                                        className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
+                                            allowComments 
+                                                ? 'bg-[var(--brand-green)]/20 border-2 border-[var(--brand-green)]' 
+                                                : 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] hover:border-[var(--brand-green)]/30'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <MessageSquare className={`w-5 h-5 ${allowComments ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`} />
+                                            <span className={`font-medium ${allowComments ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/70'}`}>Allow Comments</span>
+                                        </div>
+                                        <div className={`w-10 h-6 rounded-full transition-colors ${allowComments ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}>
+                                            <div className={`w-4 h-4 rounded-full bg-white mt-1 transition-transform ${allowComments ? 'translate-x-5' : 'translate-x-1'}`} />
+                                        </div>
+                                    </button>
+
                                     {allowComments && (
-                                        <div className="pl-6 space-y-2">
+                                        <div className="pl-4 space-y-3 border-l-2 border-[var(--brand-green)]/30">
                                             <label className="flex items-center gap-2 cursor-pointer">
                                                 <input 
                                                     type="checkbox" 
                                                     checked={requireModeration} 
                                                     onChange={e => setRequireModeration(e.target.checked)}
-                                                    className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                    className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                                                 />
-                                                <span className="text-sm">Require Moderation</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">Require Moderation</span>
                                             </label>
                                             <label className="flex items-center gap-2 cursor-pointer">
                                                 <input 
                                                     type="checkbox" 
                                                     checked={allowReplies} 
                                                     onChange={e => setAllowReplies(e.target.checked)}
-                                                    className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
+                                                    className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                                                 />
-                                                <span className="text-sm">Allow Replies</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">Allow Replies</span>
                                             </label>
-                                            <div className="space-y-2">
-                                                <Label className="text-xs">Comment Limit Per User (0 = unlimited)</Label>
-                                                <Input 
+                                            <div>
+                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Comment Limit Per User (0 = unlimited)</label>
+                                                <input 
                                                     type="number" 
                                                     min="0"
+                                                    className={`${inputClasses('limitComments')} h-9`}
                                                     value={limitComments} 
-                                                    onChange={e => setLimitComments(parseInt(e.target.value) || 0)} 
+                                                    onChange={e => setLimitComments(parseInt(e.target.value) || 0)}
+                                                    onFocus={() => setFocusedField('limitComments')}
+                                                    onBlur={() => setFocusedField(null)}
                                                 />
                                             </div>
                                         </div>
                                     )}
-                                </div>
-                                <div className="space-y-3 border-t pt-4">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={sendPush} 
-                                            onChange={e => setSendPush(e.target.checked)}
-                                            className="text-[#4D4DA4] focus:ring-[#4D4DA4]"
-                                        />
-                                        <span className="text-sm font-bold">Send Push Notification</span>
-                                    </label>
+
+                                    {/* Push Notification Toggle */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSendPush(!sendPush)}
+                                        className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
+                                            sendPush 
+                                                ? 'bg-[var(--brand-blue)]/20 border-2 border-[var(--brand-blue)]' 
+                                                : 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] hover:border-[var(--brand-blue)]/30'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Bell className={`w-5 h-5 ${sendPush ? 'text-[var(--brand-blue)]' : 'text-[var(--brand-light)]/50'}`} />
+                                            <span className={`font-medium ${sendPush ? 'text-[var(--brand-blue)]' : 'text-[var(--brand-light)]/70'}`}>Send Push Notification</span>
+                                        </div>
+                                        <div className={`w-10 h-6 rounded-full transition-colors ${sendPush ? 'bg-[var(--brand-blue)]' : 'bg-[var(--dark-500)]'}`}>
+                                            <div className={`w-4 h-4 rounded-full bg-white mt-1 transition-transform ${sendPush ? 'translate-x-5' : 'translate-x-1'}`} />
+                                        </div>
+                                    </button>
+
                                     {sendPush && (
-                                        <div className="pl-6 space-y-2">
-                                            <div className="space-y-2">
-                                                <Label className="text-xs">Notification Title</Label>
-                                                <Input 
+                                        <div className="pl-4 space-y-3 border-l-2 border-[var(--brand-blue)]/30">
+                                            <div>
+                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Notification Title</label>
+                                                <input 
                                                     type="text" 
                                                     placeholder="Notification title" 
+                                                    className={`${inputClasses('pushTitle')} h-9`}
                                                     value={pushTitle} 
-                                                    onChange={e => setPushTitle(e.target.value)} 
+                                                    onChange={e => setPushTitle(e.target.value)}
+                                                    onFocus={() => setFocusedField('pushTitle')}
+                                                    onBlur={() => setFocusedField(null)}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-xs">Notification Message</Label>
-                                                <Input 
+                                            <div>
+                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Notification Message</label>
+                                                <input 
                                                     type="text" 
                                                     placeholder="Notification message" 
+                                                    className={`${inputClasses('pushMessage')} h-9`}
                                                     value={pushMessage} 
-                                                    onChange={e => setPushMessage(e.target.value)} 
+                                                    onChange={e => setPushMessage(e.target.value)}
+                                                    onFocus={() => setFocusedField('pushMessage')}
+                                                    onBlur={() => setFocusedField(null)}
                                                 />
                                             </div>
                                         </div>
@@ -852,19 +1065,64 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                 </div>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
 
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pb-10">
-                    <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
-                    <Button type="submit" disabled={loading} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]">
-                        {loading ? 'Saving...' : (initialData ? 'Update Post' : 'Create Post')}
-                    </Button>
-                </div>
-            </form>
+                    {/* --- QUICK TIPS --- */}
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
+                        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
+                                    <Lightbulb className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">Best practices for engaging posts</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 sm:p-6 text-sm text-[var(--brand-light)]/70 space-y-3">
+                            <ul className="list-disc list-inside space-y-2 pl-2">
+                                <li>Keep your title short and attention-grabbing</li>
+                                <li>Use images to increase engagement</li>
+                                <li>Pin important announcements to keep them visible</li>
+                                <li>Schedule posts for optimal timing</li>
+                            </ul>
+                        </div>
+                    </div>
 
-            <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={() => setToast({...toast, isVisible: false})} />
+                    {/* Actions */}
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 pb-8">
+                        <button 
+                            type="button" 
+                            onClick={() => router.back()}
+                            className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold 
+                                       bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]
+                                       hover:bg-[var(--dark-600)] hover:border-[var(--dark-400)] transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            disabled={loading} 
+                            className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold 
+                                       bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-purple)] transition-all
+                                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[150px]"
+                        >
+                            {loading && <Sparkles className="w-4 h-4 animate-pulse" />}
+                            {loading ? 'Saving...' : (initialData ? 'Update Post' : 'Create Post')}
+                        </button>
+                    </div>
+                </form>
+
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    isVisible={toast.isVisible} 
+                    onClose={() => setToast({...toast, isVisible: false})} 
+                    darkMode 
+                    duration={1250}
+                />
+            </div>
         </div>
     );
 }

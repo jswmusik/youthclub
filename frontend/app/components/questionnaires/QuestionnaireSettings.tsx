@@ -1,14 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, ClipboardList, Users, Gift, Building2, EyeOff } from 'lucide-react';
 import api from '../../../lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 
 interface QuestionnaireSettingsProps {
   data: any;
@@ -20,8 +14,9 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
   const [rewards, setRewards] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [municipalities, setMunicipalities] = useState<any[]>([]);
-  const [allClubs, setAllClubs] = useState<any[]>([]); // Store all clubs
+  const [allClubs, setAllClubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   
   // Rewards search state
   const [rewardSearchTerm, setRewardSearchTerm] = useState('');
@@ -35,24 +30,19 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
   // Filter groups based on municipality and club selection
   const filteredGroups = (() => {
     if (data.club) {
-      // If club is selected, show only groups from that club
       return groups.filter(group => {
         const groupClubId = typeof group.club === 'object' ? group.club?.id : group.club;
         return groupClubId === parseInt(data.club);
       });
     } else if (data.municipality) {
-      // If municipality is selected (but no club), show groups from that municipality
-      // This includes: groups directly assigned to municipality OR groups from clubs in that municipality
       return groups.filter(group => {
         const groupMuniId = typeof group.municipality === 'object' ? group.municipality?.id : group.municipality;
         const groupClubId = typeof group.club === 'object' ? group.club?.id : group.club;
         
-        // Group directly assigned to municipality
         if (groupMuniId === parseInt(data.municipality)) {
           return true;
         }
         
-        // Group assigned to a club in this municipality
         if (groupClubId) {
           const club = allClubs.find(c => c.id === groupClubId);
           if (club && club.municipality === parseInt(data.municipality)) {
@@ -63,7 +53,6 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         return false;
       });
     } else {
-      // No municipality or club selected - show all groups
       return groups;
     }
   })();
@@ -72,7 +61,6 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
     fetchOptions();
   }, [scope]);
 
-  // Clear club selection if municipality changes and selected club is not in new municipality
   useEffect(() => {
     if (data.municipality && data.club && allClubs.length > 0) {
       const club = allClubs.find(c => c.id === parseInt(data.club));
@@ -80,10 +68,8 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         handleChange('club', null);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.municipality, allClubs.length]);
 
-  // Clear group selection if municipality/club changes and selected group is not valid
   useEffect(() => {
     if (data.visibility_group && groups.length > 0) {
       const selectedGroup = groups.find(g => g.id === parseInt(data.visibility_group));
@@ -91,23 +77,20 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         const groupMuniId = typeof selectedGroup.municipality === 'object' ? selectedGroup.municipality?.id : selectedGroup.municipality;
         const groupClubId = typeof selectedGroup.club === 'object' ? selectedGroup.club?.id : selectedGroup.club;
         
-        // If club is selected, group must belong to that club
         if (data.club && groupClubId !== parseInt(data.club)) {
           handleChange('visibility_group', null);
         }
-        // If municipality is selected (but no club), group must belong to that municipality
         else if (data.municipality && !data.club && groupMuniId !== parseInt(data.municipality)) {
           handleChange('visibility_group', null);
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.municipality, data.club, groups.length]);
 
   const fetchOptions = async () => {
     setLoading(true);
     try {
-      // Fetch rewards (handle pagination)
+      // Fetch rewards
       let allRewards: any[] = [];
       let page = 1;
       const pageSize = 100;
@@ -122,7 +105,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
       }
       setRewards(allRewards);
 
-      // Fetch groups (handle pagination)
+      // Fetch groups
       let allGroups: any[] = [];
       page = 1;
       while (true) {
@@ -130,7 +113,6 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         const groupsData = Array.isArray(groupRes.data) ? groupRes.data : groupRes.data.results || [];
         if (groupsData.length === 0) break;
         allGroups = [...allGroups, ...groupsData];
-        // Check if there's more data
         const hasMore = Array.isArray(groupRes.data) ? false : (groupRes.data.next !== null && groupRes.data.next !== undefined);
         if (!hasMore || groupsData.length < pageSize) break;
         page++;
@@ -153,19 +135,19 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         setMunicipalities(allMunicipalities);
       }
 
-      // Fetch clubs (handle pagination and scope)
-      let allClubs: any[] = [];
+      // Fetch clubs
+      let fetchedClubs: any[] = [];
       page = 1;
       while (true) {
         const clubRes = await api.get(`/clubs/?page=${page}&page_size=${pageSize}`);
         const clubData = Array.isArray(clubRes.data) ? clubRes.data : clubRes.data.results || [];
         if (clubData.length === 0) break;
-        allClubs = [...allClubs, ...clubData];
+        fetchedClubs = [...fetchedClubs, ...clubData];
         const hasMore = Array.isArray(clubRes.data) ? false : (clubRes.data.next !== null && clubRes.data.next !== undefined);
         if (!hasMore || clubData.length < pageSize) break;
         page++;
       }
-      setAllClubs(allClubs);
+      setAllClubs(fetchedClubs);
     } catch (err) {
       console.error("Error fetching settings options", err);
     } finally {
@@ -206,87 +188,189 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
     return match && !currentRewards.includes(r.id);
   });
 
+  const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
+  
+  const inputClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const textareaClasses = (field: string) => `
+    w-full px-4 py-3 rounded-xl resize-none
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl appearance-none cursor-pointer
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)]
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Basic Information */}
-      <Card className="border-none shadow-sm">
-        <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="text-lg sm:text-xl">Basic Information</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Enter the questionnaire title, description, and dates.</CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-4 sm:pt-6 space-y-4 px-4 sm:px-6">
-          <div className="space-y-2">
-            <Label>Title <span className="text-red-500">*</span></Label>
-            <Input
+    <div className="space-y-6">
+      {/* Basic Information Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <ClipboardList className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
+              <p className="text-sm text-[var(--brand-light)]/50">Enter the questionnaire title, description, and dates</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-6 space-y-6">
+          {/* Title */}
+          <div>
+            <label className={labelClasses}>Title <span className="text-[var(--brand-red)]">*</span></label>
+            <input
               type="text"
               required
+              placeholder="Enter questionnaire title..."
+              className={inputClasses('title')}
               value={data.title || ''}
               onChange={(e) => handleChange('title', e.target.value)}
+              onFocus={() => setFocusedField('title')}
+              onBlur={() => setFocusedField(null)}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Description</Label>
+
+          {/* Description */}
+          <div>
+            <label className={labelClasses}>Description</label>
             <textarea
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              rows={3}
+              placeholder="Enter a description for this questionnaire..."
+              className={textareaClasses('description')}
               value={data.description || ''}
               onChange={(e) => handleChange('description', e.target.value)}
+              onFocus={() => setFocusedField('description')}
+              onBlur={() => setFocusedField(null)}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Schedule Publish Date (Optional)</Label>
-              <Input
-                type="datetime-local"
-                value={data.scheduled_publish_date ? data.scheduled_publish_date.slice(0, 16) : ''}
-                onChange={(e) => handleChange('scheduled_publish_date', e.target.value || null)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Leave empty to publish immediately when you click "Publish". Set a future date to schedule automatic publishing.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label>Expiration Date <span className="text-red-500">*</span></Label>
-              <Input
-                type="datetime-local"
-                required
-                value={data.expiration_date ? data.expiration_date.slice(0, 16) : ''}
-                onChange={(e) => handleChange('expiration_date', e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex items-start gap-3 p-3 sm:p-4 rounded-lg border border-input">
-            <input 
-              type="checkbox" 
-              id="is_anonymous"
-              checked={data.is_anonymous || false}
-              onChange={(e) => handleChange('is_anonymous', e.target.checked)}
-              className="w-5 h-5 text-[#4D4DA4] focus:ring-[#4D4DA4] rounded mt-0.5 flex-shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <Label htmlFor="is_anonymous" className="font-semibold text-foreground cursor-pointer block">Anonymous Responses</Label>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Admins cannot see who answered</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Target Audience */}
-      <Card className="border-none shadow-sm">
-        <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="text-lg sm:text-xl">Target Audience</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Configure who can see and answer this questionnaire.</CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-4 sm:pt-6 space-y-4 px-4 sm:px-6">
-          {/* Scope Selection for Super/Muni Admins */}
+          {/* Schedule Publish Date */}
+          <div>
+            <label className={labelClasses}>
+              Schedule Publish Date (Optional)
+            </label>
+            <input
+              type="datetime-local"
+              className={inputClasses('scheduled_publish_date')}
+              value={data.scheduled_publish_date ? data.scheduled_publish_date.slice(0, 16) : ''}
+              onChange={(e) => handleChange('scheduled_publish_date', e.target.value || null)}
+              onFocus={() => setFocusedField('scheduled_publish_date')}
+              onBlur={() => setFocusedField(null)}
+            />
+            <p className="text-xs text-[var(--brand-light)]/40 mt-2">
+              Leave empty to publish immediately when you click "Publish"
+            </p>
+          </div>
+
+          {/* Expiration Date */}
+          <div>
+            <label className={labelClasses}>
+              Expiration Date <span className="text-[var(--brand-red)]">*</span>
+            </label>
+            <input
+              type="datetime-local"
+              required
+              className={inputClasses('expiration_date')}
+              value={data.expiration_date ? data.expiration_date.slice(0, 16) : ''}
+              onChange={(e) => handleChange('expiration_date', e.target.value)}
+              onFocus={() => setFocusedField('expiration_date')}
+              onBlur={() => setFocusedField(null)}
+            />
+          </div>
+
+          {/* Anonymous Toggle */}
+          <div 
+            className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
+              data.is_anonymous 
+                ? 'bg-[var(--brand-purple)]/10 border-[var(--brand-purple)]/50' 
+                : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
+            }`}
+            onClick={() => handleChange('is_anonymous', !data.is_anonymous)}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                data.is_anonymous 
+                  ? 'bg-[var(--brand-purple)] border-[var(--brand-purple)]' 
+                  : 'border-[var(--dark-400)]'
+              }`}>
+                {data.is_anonymous && (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <EyeOff className="w-4 h-4 text-[var(--brand-purple)]" />
+                  <span className="font-semibold text-[var(--brand-light)]">Anonymous Responses</span>
+                </div>
+                <p className="text-sm text-[var(--brand-light)]/50 mt-1">Admins cannot see who answered</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Target Audience Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
+              <Users className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
+              <p className="text-sm text-[var(--brand-light)]/50">Configure who can see and answer this questionnaire</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-6 space-y-6">
+          {/* Scope Selection for Super Admins */}
           {scope === 'SUPER' && (
-            <div className="space-y-2">
-              <Label>Municipality (Optional - Limits scope)</Label>
+            <div>
+              <label className={labelClasses}>
+                <span className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[var(--brand-light)]/50" />
+                  Municipality (Optional - Limits scope)
+                </span>
+              </label>
               <select 
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className={selectClasses('municipality')}
+                style={selectArrowStyle}
                 value={data.municipality || ''}
                 onChange={(e) => handleChange('municipality', e.target.value || null)}
+                onFocus={() => setFocusedField('municipality')}
+                onBlur={() => setFocusedField(null)}
               >
                 <option value="">All / Global</option>
                 {municipalities.map(m => (
@@ -297,13 +381,21 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
           )}
           
           {(scope === 'SUPER' || scope === 'MUNICIPALITY') && (
-            <div className="space-y-2">
-              <Label>Club (Optional - Limits scope)</Label>
+            <div>
+              <label className={labelClasses}>
+                <span className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[var(--brand-light)]/50" />
+                  Club (Optional - Limits scope)
+                </span>
+              </label>
               <select 
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`${selectClasses('club')} ${scope === 'CLUB' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                style={selectArrowStyle}
                 value={data.club || ''}
                 onChange={(e) => handleChange('club', e.target.value || null)}
-                disabled={scope === 'CLUB'} // Club admins can't change club
+                disabled={scope === 'CLUB'}
+                onFocus={() => setFocusedField('club')}
+                onBlur={() => setFocusedField(null)}
               >
                 <option value="">All in Scope</option>
                 {filteredClubs.map(c => (
@@ -311,20 +403,23 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                 ))}
               </select>
               {data.municipality && filteredClubs.length === 0 && (
-                <p className="text-xs text-muted-foreground mt-1">No clubs found in this municipality.</p>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">No clubs found in this municipality.</p>
               )}
             </div>
           )}
 
           {/* Role / Group Selection */}
-          <div className="space-y-2">
-            <Label>Who can answer?</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={labelClasses}>Who can answer?</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`${selectClasses('target_audience')} ${data.visibility_group ? 'opacity-50' : ''}`}
+                style={selectArrowStyle}
                 value={data.target_audience || 'YOUTH'}
                 onChange={(e) => handleChange('target_audience', e.target.value)}
-                disabled={!!data.visibility_group} // Disable if group is selected
+                disabled={!!data.visibility_group}
+                onFocus={() => setFocusedField('target_audience')}
+                onBlur={() => setFocusedField(null)}
               >
                 <option value="YOUTH">Youth Members</option>
                 <option value="GUARDIAN">Guardians</option>
@@ -332,9 +427,12 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               </select>
               
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className={selectClasses('visibility_group')}
+                style={selectArrowStyle}
                 value={data.visibility_group || ''}
                 onChange={(e) => handleChange('visibility_group', e.target.value || null)}
+                onFocus={() => setFocusedField('visibility_group')}
+                onBlur={() => setFocusedField(null)}
               >
                 <option value="">-- Or Target Specific Group --</option>
                 {filteredGroups.map(g => (
@@ -343,7 +441,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               </select>
             </div>
             {filteredGroups.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-[var(--brand-light)]/40 mt-2">
                 {data.club 
                   ? "No groups found in this club." 
                   : data.municipality 
@@ -351,41 +449,47 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                   : "No groups available."}
               </p>
             )}
-            <p className="text-xs text-muted-foreground">Note: Selecting a Group overrides the Youth/Guardian setting.</p>
+            <p className="text-xs text-[var(--brand-light)]/40 mt-2">Note: Selecting a Group overrides the Youth/Guardian setting.</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Rewards */}
-      <Card className="border-none shadow-sm">
-        <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="text-lg sm:text-xl">Rewards (Optional)</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Select rewards to give to users who complete this questionnaire.</CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-4 sm:pt-6 space-y-4 px-4 sm:px-6">
-          <div className="space-y-2">
-            <Label>Select Reward(s)</Label>
+      {/* Rewards Card */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+              <Gift className="w-5 h-5 text-[var(--dark-900)]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Rewards (Optional)</h2>
+              <p className="text-sm text-[var(--brand-light)]/50">Select rewards to give to users who complete this questionnaire</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-6 space-y-6">
+          <div>
+            <label className={labelClasses}>Select Reward(s)</label>
             
             {/* Selected Rewards Display */}
             {getSelectedRewards().length > 0 && (
-              <div className="flex flex-wrap gap-2 p-3 bg-[#EBEBFE]/30 rounded-lg border border-[#4D4DA4]/20">
+              <div className="flex flex-wrap gap-2 p-3 bg-[var(--brand-purple)]/10 rounded-xl border border-[var(--brand-purple)]/30 mb-4">
                 {getSelectedRewards().map(reward => (
-                  <Badge 
+                  <span 
                     key={reward.id}
-                    variant="outline" 
-                    className="bg-[#4D4DA4] text-white border-[#4D4DA4] px-3 py-1 flex items-center gap-2"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--brand-purple)] text-white"
                   >
                     {reward.name}
                     <button
                       type="button"
                       onClick={() => removeReward(reward.id)}
-                      className="ml-1 hover:bg-[#4D4DA4]/80 rounded-full p-0.5 transition-colors"
+                      className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
                       aria-label={`Remove ${reward.name}`}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
-                  </Badge>
+                  </span>
                 ))}
               </div>
             )}
@@ -393,8 +497,8 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
             {/* Searchable Dropdown */}
             <div className="relative">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
+                <input
                   type="text"
                   placeholder="Search rewards by name..."
                   value={rewardSearchTerm}
@@ -403,7 +507,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                     setShowRewardDropdown(true);
                   }}
                   onFocus={() => setShowRewardDropdown(true)}
-                  className="pl-9"
+                  className={`${inputClasses('reward_search')} pl-11`}
                 />
               </div>
 
@@ -414,27 +518,27 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                     className="fixed inset-0 z-10" 
                     onClick={() => setShowRewardDropdown(false)}
                   ></div>
-                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-20 w-full mt-2 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl shadow-xl max-h-60 overflow-y-auto">
                     {filteredRewards.length > 0 ? (
                       filteredRewards.map(reward => (
                         <button
                           key={reward.id}
                           type="button"
                           onClick={() => toggleReward(reward.id)}
-                          className="w-full text-left px-4 py-2.5 hover:bg-[#EBEBFE]/50 transition-colors border-b border-gray-100 last:border-b-0"
+                          className="w-full text-left px-4 py-3 hover:bg-[var(--dark-600)] transition-colors border-b border-[var(--dark-600)] last:border-b-0"
                         >
-                          <div className="font-medium text-gray-900">{reward.name}</div>
+                          <div className="font-medium text-[var(--brand-light)]">{reward.name}</div>
                           {reward.description && (
-                            <div className="text-xs text-gray-500">{reward.description}</div>
+                            <div className="text-xs text-[var(--brand-light)]/50 mt-0.5">{reward.description}</div>
                           )}
                         </button>
                       ))
                     ) : rewardSearchTerm ? (
-                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                      <div className="px-4 py-4 text-sm text-[var(--brand-light)]/50 text-center">
                         No rewards found matching "{rewardSearchTerm}"
                       </div>
                     ) : (
-                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                      <div className="px-4 py-4 text-sm text-[var(--brand-light)]/50 text-center">
                         {getSelectedRewards().length === 0 
                           ? 'No rewards available. Create a reward first.'
                           : 'All rewards are already selected.'}
@@ -445,17 +549,23 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               )}
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Limit (Optional)</Label>
-            <Input
+
+          {/* Limit Field */}
+          <div>
+            <label className={labelClasses}>Limit (Optional)</label>
+            <input
               type="number"
               placeholder="e.g. First 10 users only"
+              className={inputClasses('benefit_limit')}
               value={data.benefit_limit || ''}
               onChange={(e) => handleChange('benefit_limit', parseInt(e.target.value) || null)}
+              onFocus={() => setFocusedField('benefit_limit')}
+              onBlur={() => setFocusedField(null)}
             />
+            <p className="text-xs text-[var(--brand-light)]/40 mt-2">Leave empty for unlimited rewards</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

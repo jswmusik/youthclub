@@ -6,6 +6,7 @@ import { updateUserProfile, saveCustomFieldValues } from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
 import api from '@/lib/api';
 import Toast from '@/app/components/Toast';
+import { Camera, User, X, Search, Sparkles } from 'lucide-react';
 
 interface CustomField {
   id: number;
@@ -17,7 +18,12 @@ interface CustomField {
   value?: any;
 }
 
-export default function ProfileEditForm({ user }: { user: any }) {
+interface ProfileEditFormProps {
+  user: any;
+  darkMode?: boolean;
+}
+
+export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -278,14 +284,20 @@ export default function ProfileEditForm({ user }: { user: any }) {
     
     return (
       <div key={field.id} className="mb-6">
-        <label className="block text-base font-semibold text-gray-700 mb-2">
-          {field.name} {field.required && <span className="text-red-500">*</span>}
+        <label className={`block text-sm font-bold mb-2 ${
+          darkMode ? 'text-[var(--brand-light)]' : 'text-gray-700'
+        }`}>
+          {field.name} {field.required && <span className="text-[var(--brand-red)]">*</span>}
         </label>
         
         {field.field_type === 'TEXT' && (
           <input 
             type="text" 
-            className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
+            className={`mt-1 block w-full px-4 py-3 text-base rounded-xl border transition ${
+              darkMode 
+                ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20'
+                : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
+            }`}
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
           />
@@ -295,17 +307,27 @@ export default function ProfileEditForm({ user }: { user: any }) {
           <div className="flex items-center py-2">
             <input 
               type="checkbox" 
-              className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-2 border-gray-300 rounded"
+              className={`h-5 w-5 rounded border transition ${
+                darkMode
+                  ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]'
+                  : 'text-blue-600 focus:ring-blue-500 border-gray-300'
+              }`}
               checked={value === true || value === 'true'}
               onChange={(e) => handleCustomFieldChange(field.id, e.target.checked)}
             />
-            <span className="ml-3 text-base text-gray-700 font-medium">Yes</span>
+            <span className={`ml-3 text-base font-medium ${
+              darkMode ? 'text-[var(--brand-light)]' : 'text-gray-700'
+            }`}>Yes</span>
           </div>
         )}
         
         {field.field_type === 'SINGLE_SELECT' && (
           <select 
-            className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
+            className={`mt-1 block w-full px-4 py-3 text-base rounded-xl border transition appearance-none ${
+              darkMode 
+                ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20'
+                : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
+            }`}
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
           >
@@ -322,10 +344,14 @@ export default function ProfileEditForm({ user }: { user: any }) {
               const currentValues = Array.isArray(value) ? value : [];
               const isChecked = currentValues.includes(opt);
               return (
-                <label key={opt} className="flex items-center space-x-3">
+                <label key={opt} className="flex items-center space-x-3 cursor-pointer">
                   <input 
                     type="checkbox" 
-                    className="w-5 h-5 text-blue-600 rounded border-2 border-gray-300"
+                    className={`w-5 h-5 rounded border transition ${
+                      darkMode
+                        ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]'
+                        : 'text-blue-600 border-gray-300'
+                    }`}
                     checked={isChecked}
                     onChange={(e) => {
                       const updated = e.target.checked
@@ -334,7 +360,7 @@ export default function ProfileEditForm({ user }: { user: any }) {
                       handleCustomFieldChange(field.id, updated);
                     }}
                   />
-                  <span className="text-base text-gray-700">{opt}</span>
+                  <span className={`text-base ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-700'}`}>{opt}</span>
                 </label>
               );
             })}
@@ -342,201 +368,255 @@ export default function ProfileEditForm({ user }: { user: any }) {
         )}
         
         {field.help_text && (
-          <p className="text-sm text-gray-500 mt-2">{field.help_text}</p>
+          <p className={`text-sm mt-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{field.help_text}</p>
         )}
       </div>
     );
   };
 
+  // Common input classes
+  const inputClasses = darkMode 
+    ? 'w-full px-4 py-3 h-[50px] text-base rounded-xl border bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition'
+    : 'w-full px-4 py-3 h-[50px] text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition';
+
+  const labelClasses = darkMode 
+    ? 'block text-sm font-bold text-[var(--brand-light)] mb-2'
+    : 'block text-base font-semibold text-gray-700 mb-2';
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 md:p-10 rounded-xl shadow-sm border border-gray-100">
+    <form onSubmit={handleSubmit} className={`space-y-8 p-6 sm:p-8 md:p-10 rounded-none sm:rounded-2xl border-y sm:border ${
+      darkMode 
+        ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
+        : 'bg-white shadow-sm border-gray-100'
+    }`}>
       
       {/* IMAGES SECTION */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Background Image */}
+      <div className="space-y-6">
+        {/* Cover Image */}
         <div>
-          <label className="block text-base font-semibold text-gray-700 mb-3">Cover Image</label>
+          <label className={labelClasses}>Cover Image</label>
           <div 
-            className="h-48 rounded-lg bg-gray-100 bg-cover bg-center border border-gray-200 relative group"
+            className={`relative h-40 sm:h-48 rounded-xl bg-cover bg-center overflow-hidden ${
+              darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-100'
+            }`}
             style={{ backgroundImage: bgPreview ? `url(${bgPreview})` : 'none' }}
           >
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition flex items-center justify-center">
-               <label className="cursor-pointer bg-white/90 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white">
-                 Change Cover
-                 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'bg')} />
-               </label>
+            {!bgPreview && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)]">
+                <User className="w-16 h-16 text-white/30" />
+              </div>
+            )}
+            <div className={`absolute inset-0 flex items-center justify-center transition ${
+              darkMode ? 'bg-black/30 hover:bg-black/40' : 'bg-black/10 hover:bg-black/20'
+            }`}>
+              <label className={`cursor-pointer px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
+                darkMode 
+                  ? 'bg-[var(--dark-800)]/90 text-[var(--brand-light)] hover:bg-[var(--dark-800)]'
+                  : 'bg-white/90 text-gray-700 hover:bg-white'
+              }`}>
+                <Camera className="w-4 h-4" />
+                Change Cover
+                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'bg')} />
+              </label>
             </div>
           </div>
         </div>
 
         {/* Avatar */}
         <div>
-          <label className="block text-base font-semibold text-gray-700 mb-3">Avatar</label>
+          <label className={labelClasses}>Profile Picture</label>
           <div className="flex items-center gap-6">
-            <div className="w-28 h-28 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-200 relative">
-               {avatarPreview ? (
-                 <img src={avatarPreview} className="w-full h-full object-cover" />
-               ) : (
-                 <div className="w-full h-full flex items-center justify-center text-gray-400">?</div>
-               )}
+            <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 ${
+              darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-gray-200 bg-gray-100'
+            }`}>
+              {avatarPreview ? (
+                <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)]">
+                  <User className="w-10 h-10 text-white/50" />
+                </div>
+              )}
             </div>
-            <label className="cursor-pointer bg-white border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg text-base font-medium hover:bg-gray-50 transition">
-               Upload New
-               <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar')} />
+            <label className={`cursor-pointer px-5 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
+              darkMode 
+                ? 'bg-[var(--dark-600)] text-[var(--brand-light)] hover:bg-[var(--dark-500)] border border-[var(--dark-500)]'
+                : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}>
+              <Camera className="w-4 h-4" />
+              Upload New
+              <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar')} />
             </label>
           </div>
         </div>
       </div>
 
-      <hr className="border-gray-200 my-8" />
+      <hr className={darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'} />
 
       {/* TEXT FIELDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">First Name</label>
-           <input 
-             type="text" 
-             name="first_name" 
-             value={formData.first_name} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           />
+          <label className={labelClasses}>First Name</label>
+          <input 
+            type="text" 
+            name="first_name" 
+            value={formData.first_name} 
+            onChange={handleChange}
+            className={inputClasses}
+          />
         </div>
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Last Name</label>
-           <input 
-             type="text" 
-             name="last_name" 
-             value={formData.last_name} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           />
-        </div>
-
-        <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Nickname (Display Name)</label>
-           <div className="mt-1 flex rounded-lg shadow-sm border-2 border-gray-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 transition">
-             <span className="inline-flex items-center px-4 py-3 rounded-l-lg border-r-2 border-gray-300 bg-gray-50 text-gray-600 text-lg font-medium">@</span>
-             <input 
-               type="text" 
-               name="nickname" 
-               value={formData.nickname} 
-               onChange={handleChange}
-               className="flex-1 block w-full px-4 py-3 text-base rounded-r-lg border-0 focus:ring-0"
-             />
-           </div>
+          <label className={labelClasses}>Last Name</label>
+          <input 
+            type="text" 
+            name="last_name" 
+            value={formData.last_name} 
+            onChange={handleChange}
+            className={inputClasses}
+          />
         </div>
 
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Status / Mood</label>
-           <input 
-             type="text" 
-             name="mood_status" 
-             placeholder="e.g. Playing FIFA..."
-             value={formData.mood_status} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           />
+          <label className={labelClasses}>Nickname (Display Name)</label>
+          <div className={`flex rounded-xl overflow-hidden border ${
+            darkMode 
+              ? 'border-[var(--dark-500)] focus-within:border-[var(--brand-primary)] focus-within:ring-2 focus-within:ring-[var(--brand-primary)]/20'
+              : 'border-gray-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500'
+          }`}>
+            <span className={`inline-flex items-center px-4 py-3 text-lg font-medium ${
+              darkMode 
+                ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-r border-[var(--dark-500)]'
+                : 'bg-gray-50 text-gray-600 border-r border-gray-300'
+            }`}>@</span>
+            <input 
+              type="text" 
+              name="nickname" 
+              value={formData.nickname} 
+              onChange={handleChange}
+              className={`flex-1 px-4 py-3 text-base border-0 focus:ring-0 ${
+                darkMode 
+                  ? 'bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40'
+                  : 'bg-white'
+              }`}
+            />
+          </div>
         </div>
 
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Phone Number</label>
-           <input 
-             type="tel" 
-             name="phone_number" 
-             value={formData.phone_number} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           />
+          <label className={labelClasses}>Status / Mood</label>
+          <input 
+            type="text" 
+            name="mood_status" 
+            placeholder="e.g. Playing FIFA..."
+            value={formData.mood_status} 
+            onChange={handleChange}
+            className={inputClasses}
+          />
         </div>
 
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Preferred Language</label>
-           <select 
-             name="preferred_language" 
-             value={formData.preferred_language} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           >
-             <option value="sv">Swedish</option>
-             <option value="en">English</option>
-           </select>
+          <label className={labelClasses}>Phone Number</label>
+          <input 
+            type="tel" 
+            name="phone_number" 
+            value={formData.phone_number} 
+            onChange={handleChange}
+            className={inputClasses}
+          />
         </div>
 
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Date of Birth</label>
-           <input 
-             type="date" 
-             name="date_of_birth" 
-             value={formData.date_of_birth} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           />
+          <label className={labelClasses}>Preferred Language</label>
+          <select 
+            name="preferred_language" 
+            value={formData.preferred_language} 
+            onChange={handleChange}
+            className={`${inputClasses} appearance-none`}
+          >
+            <option value="sv">Swedish</option>
+            <option value="en">English</option>
+          </select>
         </div>
 
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Grade</label>
-           <input 
-             type="number" 
-             name="grade" 
-             min="1"
-             max="12"
-             value={formData.grade} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           />
+          <label className={labelClasses}>Date of Birth</label>
+          <input 
+            type="date" 
+            name="date_of_birth" 
+            value={formData.date_of_birth} 
+            onChange={handleChange}
+            className={`${inputClasses} appearance-none`}
+            style={{ minHeight: '50px' }}
+          />
         </div>
 
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Legal Gender</label>
-           <select 
-             name="legal_gender" 
-             value={formData.legal_gender} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           >
-             <option value="">Select...</option>
-             <option value="MALE">Male</option>
-             <option value="FEMALE">Female</option>
-             <option value="OTHER">Other</option>
-           </select>
+          <label className={labelClasses}>Grade</label>
+          <input 
+            type="number" 
+            name="grade" 
+            min="1"
+            max="12"
+            value={formData.grade} 
+            onChange={handleChange}
+            className={inputClasses}
+          />
         </div>
 
         <div>
-           <label className="block text-base font-semibold text-gray-700 mb-2">Preferred Gender</label>
-           <input 
-             type="text" 
-             name="preferred_gender" 
-             placeholder="e.g. They/Them"
-             value={formData.preferred_gender} 
-             onChange={handleChange}
-             className="mt-1 block w-full px-4 py-3 text-base rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-           />
+          <label className={labelClasses}>Legal Gender</label>
+          <select 
+            name="legal_gender" 
+            value={formData.legal_gender} 
+            onChange={handleChange}
+            className={`${inputClasses} appearance-none`}
+          >
+            <option value="">Select...</option>
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label className={labelClasses}>Preferred Gender</label>
+          <input 
+            type="text" 
+            name="preferred_gender" 
+            placeholder="e.g. They/Them"
+            value={formData.preferred_gender} 
+            onChange={handleChange}
+            className={inputClasses}
+          />
         </div>
       </div>
 
       {/* Interests Section */}
       <div className="mt-8">
-        <label className="block text-base font-semibold text-gray-700 mb-3">Interests</label>
+        <label className={`${labelClasses} flex items-center gap-2`}>
+          <Sparkles className="w-4 h-4 text-[var(--brand-primary)]" />
+          Interests
+        </label>
         
         {/* Selected Interests Display */}
         {formData.interests.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+          <div className={`flex flex-wrap gap-2 mb-3 p-3 rounded-xl border ${
+            darkMode 
+              ? 'bg-[var(--brand-purple)]/10 border-[var(--brand-purple)]/30'
+              : 'bg-purple-50 border-purple-200'
+          }`}>
             {getSelectedInterests().map(interest => (
               <span 
                 key={interest.id}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-full font-medium"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--brand-purple)] text-white text-sm rounded-full font-medium"
               >
                 {interest.name}
                 <button
                   type="button"
                   onClick={() => removeInterest(interest.id)}
-                  className="hover:bg-purple-700 rounded-full p-0.5 transition-colors"
+                  className="hover:bg-[var(--brand-purple)]/80 rounded-full p-0.5 transition-colors"
                   aria-label={`Remove ${interest.name}`}
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-3 h-3" />
                 </button>
               </span>
             ))}
@@ -555,16 +635,11 @@ export default function ProfileEditForm({ user }: { user: any }) {
                 setShowInterestDropdown(true);
               }}
               onFocus={() => setShowInterestDropdown(true)}
-              className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-base pr-10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+              className={`${inputClasses} pr-10`}
             />
-            <svg 
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <Search className={`absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none ${
+              darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'
+            }`} />
           </div>
 
           {/* Dropdown List */}
@@ -574,24 +649,36 @@ export default function ProfileEditForm({ user }: { user: any }) {
                 className="fixed inset-0 z-10" 
                 onClick={() => setShowInterestDropdown(false)}
               ></div>
-              <div className="absolute z-20 w-full mt-1 bg-white border-2 border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div className={`absolute z-20 w-full mt-1 rounded-xl border max-h-60 overflow-y-auto ${
+                darkMode 
+                  ? 'bg-[var(--dark-700)] border-[var(--dark-500)]'
+                  : 'bg-white border-gray-300 shadow-lg'
+              }`}>
                 {filteredInterests.length > 0 ? (
                   filteredInterests.map(interest => (
                     <button
                       key={interest.id}
                       type="button"
                       onClick={() => toggleInterest(interest.id)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-b-0"
+                      className={`w-full text-left px-4 py-2.5 transition-colors border-b last:border-b-0 ${
+                        darkMode 
+                          ? 'hover:bg-[var(--dark-600)] border-[var(--dark-600)] text-[var(--brand-light)]'
+                          : 'hover:bg-purple-50 border-gray-100 text-gray-900'
+                      }`}
                     >
-                      <div className="font-medium text-gray-900">{interest.name}</div>
+                      <div className="font-medium">{interest.name}</div>
                     </button>
                   ))
                 ) : interestSearchTerm ? (
-                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                  <div className={`px-4 py-3 text-sm text-center ${
+                    darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
+                  }`}>
                     No interests found matching "{interestSearchTerm}"
                   </div>
                 ) : (
-                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                  <div className={`px-4 py-3 text-sm text-center ${
+                    darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
+                  }`}>
                     {formData.interests.length === 0 
                       ? 'No interests available. Create interests in the admin panel first.'
                       : 'All interests are already selected.'}
@@ -603,28 +690,41 @@ export default function ProfileEditForm({ user }: { user: any }) {
         </div>
       </div>
 
-      <div className="flex items-center py-2">
+      {/* Email Notifications Toggle */}
+      <div className={`flex items-center p-4 rounded-xl ${
+        darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+      }`}>
         <input 
           id="notification_email" 
           type="checkbox" 
           name="notification_email_enabled" 
           checked={formData.notification_email_enabled} 
           onChange={handleChange}
-          className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-2 border-gray-300 rounded"
+          className={`h-5 w-5 rounded border transition ${
+            darkMode
+              ? 'bg-[var(--dark-600)] border-[var(--dark-500)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]'
+              : 'text-blue-600 focus:ring-blue-500 border-gray-300'
+          }`}
         />
-        <label htmlFor="notification_email" className="ml-3 block text-base text-gray-900 font-medium">
+        <label htmlFor="notification_email" className={`ml-3 block text-base font-medium ${
+          darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+        }`}>
           Enable email notifications
         </label>
       </div>
 
       {/* CUSTOM FIELDS SECTION */}
       {loadingFields ? (
-        <div className="text-base text-gray-500 py-4">Loading custom fields...</div>
+        <div className={`text-base py-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
+          Loading custom fields...
+        </div>
       ) : customFields.length > 0 && (
         <>
-          <hr className="border-gray-200 my-8" />
+          <hr className={darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'} />
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Additional Information</h3>
+            <h3 className={`text-xl font-bold mb-6 ${
+              darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+            }`}>Additional Information</h3>
             <div className="space-y-6">
               {customFields.map(field => renderCustomField(field))}
             </div>
@@ -632,18 +732,25 @@ export default function ProfileEditForm({ user }: { user: any }) {
         </>
       )}
 
-      <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+      {/* Action Buttons */}
+      <div className={`flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t ${
+        darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'
+      }`}>
         <button 
           type="button"
           onClick={() => router.back()}
-          className="px-6 py-3 border-2 border-gray-300 rounded-lg text-base text-gray-700 font-semibold hover:bg-gray-50 transition"
+          className={`px-6 py-3 rounded-xl text-base font-bold transition ${
+            darkMode 
+              ? 'bg-[var(--dark-600)] text-[var(--brand-light)] hover:bg-[var(--dark-500)] border border-[var(--dark-500)]'
+              : 'border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
+          }`}
         >
           Cancel
         </button>
         <button 
           type="submit"
           disabled={loading}
-          className="px-8 py-3 bg-blue-600 text-white rounded-lg text-base font-semibold hover:bg-blue-700 disabled:opacity-50 transition shadow-md"
+          className="px-8 py-3 bg-[var(--brand-primary)] text-[var(--dark-900)] rounded-xl text-base font-bold hover:bg-[var(--brand-primary)]/90 disabled:opacity-50 transition active:scale-95"
         >
           {loading ? 'Saving...' : 'Save Changes'}
         </button>
@@ -653,7 +760,8 @@ export default function ProfileEditForm({ user }: { user: any }) {
         message={toast.message} 
         type={toast.type} 
         isVisible={toast.isVisible} 
-        onClose={() => setToast({ ...toast, isVisible: false })} 
+        onClose={() => setToast({ ...toast, isVisible: false })}
+        darkMode={darkMode}
       />
     </form>
   );

@@ -1,164 +1,216 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+
 import { useAuth } from '../../../context/AuthContext';
+import { 
+    Home, 
+    QrCode, 
+    Package, 
+    CalendarCheck, 
+    ClipboardList, 
+    Users, 
+    MapPin, 
+    Newspaper,
+    CalendarDays,
+    ChevronRight
+} from 'lucide-react';
+
 
 interface YouthSidebarProps {
     activePath?: string;
     unfinishedCount?: number;
+    darkMode?: boolean;
 }
 
-export default function YouthSidebar({ activePath, unfinishedCount = 0 }: YouthSidebarProps) {
+interface NavItemProps {
+    icon: React.ReactNode;
+    label: string;
+    path: string;
+    isActive: boolean;
+    onClick: () => void;
+    badge?: number | string;
+    badgeColor?: 'pink' | 'orange';
+    disabled?: boolean;
+    darkMode?: boolean;
+}
+
+function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pink', disabled, darkMode }: NavItemProps) {
+    if (disabled) {
+        return (
+            <button
+                disabled
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm cursor-not-allowed ${
+                    darkMode 
+                        ? 'text-[var(--brand-light)]/30 bg-[var(--dark-700)]' 
+                        : 'text-gray-400 bg-gray-50'
+                }`}
+            >
+                <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                    darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'
+                }`}>
+                    {icon}
+                </span>
+                <span className="flex-1 text-left font-medium">{label}</span>
+            </button>
+        );
+    }
+
+    return (
+        <button
+            onClick={onClick}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group ${
+                darkMode
+                    ? isActive
+                        ? 'bg-[var(--brand-secondary)] text-[var(--brand-light)] border border-[var(--brand-purple)]/30'
+                        : 'text-[var(--brand-light)]/80 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                    : isActive
+                        ? 'bg-[#4D4DA4] text-white shadow-md shadow-[#4D4DA4]/20'
+                        : 'text-gray-700 hover:bg-[#EBEBFE]'
+            }`}
+        >
+            <span className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                darkMode
+                    ? isActive 
+                        ? 'bg-[var(--brand-primary)]/20' 
+                        : 'bg-[var(--dark-600)] group-hover:bg-[var(--dark-500)]'
+                    : isActive 
+                        ? 'bg-white/20' 
+                        : 'bg-gray-100 group-hover:bg-[#4D4DA4]/10'
+            }`}>
+                {icon}
+            </span>
+            <span className="flex-1 text-left font-medium">{label}</span>
+            {badge !== undefined && (
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center ${
+                    darkMode
+                        ? isActive 
+                            ? 'bg-[var(--brand-primary)]/30 text-[var(--brand-primary)]' 
+                            : badgeColor === 'orange'
+                            ? 'bg-[var(--brand-peach)] text-[var(--dark-900)]'
+                            : 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                        : isActive 
+                            ? 'bg-white/20 text-white' 
+                            : badgeColor === 'orange'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-[#FF5485] text-white'
+                }`}>
+                    {badge}
+                </span>
+            )}
+            {isActive && (
+                <ChevronRight className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-primary)]' : 'opacity-60'}`} />
+            )}
+        </button>
+    );
+}
+
+export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode }: YouthSidebarProps) {
     const router = useRouter();
     const { user } = useAuth();
 
-    const isActive = (path: string) => {
+    const checkActive = (path: string) => {
         if (!activePath) return false;
         if (path === '/dashboard/youth' && activePath === '/dashboard/youth') return true;
-        return activePath.startsWith(path);
+        if (path !== '/dashboard/youth' && activePath.startsWith(path)) return true;
+        return false;
     };
 
-    const navItemClass = (path: string) => {
-        const active = isActive(path);
-        if (active) {
-            return "w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 bg-[#4D4DA4] text-white shadow-sm hover:shadow-md hover:bg-[#5D5DB4] flex items-center gap-3";
-        }
-        return "w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-gray-700 bg-white hover:bg-[#EBEBFE] border border-gray-200 hover:border-[#4D4DA4]/20 flex items-center gap-3 group";
-    };
+    const navItems = [
+        { 
+            icon: <Home className="w-5 h-5" />, 
+            label: 'Your Feed', 
+            path: '/dashboard/youth',
+        },
+        { 
+            icon: <QrCode className="w-5 h-5" />, 
+            label: 'Scan to Check In', 
+            path: '/dashboard/youth/scan',
+        },
+        { 
+            icon: <Package className="w-5 h-5" />, 
+            label: 'Borrow Items', 
+            path: '/dashboard/youth/inventory',
+        },
+        { 
+            icon: <CalendarCheck className="w-5 h-5" />, 
+            label: 'Bookings', 
+            path: '/dashboard/youth/bookings',
+        },
+        { 
+            icon: <ClipboardList className="w-5 h-5" />, 
+            label: 'Questionnaires', 
+            path: '/dashboard/youth/questionnaires',
+            badge: unfinishedCount > 0 ? unfinishedCount : undefined,
+        },
+        { 
+            icon: <Users className="w-5 h-5" />, 
+            label: 'Groups', 
+            path: '/dashboard/youth/groups',
+        },
+        { 
+            icon: <MapPin className="w-5 h-5" />, 
+            label: 'My Club', 
+            path: user?.preferred_club?.id ? `/dashboard/youth/club/${user.preferred_club.id}` : '',
+            checkPath: '/dashboard/youth/club',
+            disabled: !user?.preferred_club?.id,
+        },
+        { 
+            icon: <Newspaper className="w-5 h-5" />, 
+            label: 'News', 
+            path: '/dashboard/youth/news',
+        },
+        { 
+            icon: <CalendarDays className="w-5 h-5" />, 
+            label: 'Events', 
+            path: '/dashboard/youth/events',
+            badge: '6',
+            badgeColor: 'orange' as const,
+        },
+    ];
 
     return (
-        <aside className="w-full md:w-64 flex-shrink-0 md:sticky md:top-[72px] md:self-start md:max-h-[calc(100vh-88px)] md:overflow-y-auto">
+        <div className="w-full">
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-[#4D4DA4] mb-1">Dashboard</h1>
-                <p className="text-sm text-gray-600">Your space to explore</p>
+            <div className="mb-5 hidden md:block">
+                <h1 className={`text-2xl mb-0.5 font-heading font-bold ${
+                    darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+                }`}>
+                    Menu
+                </h1>
+                <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
+                    Navigate your dashboard
+                </p>
             </div>
 
-            {/* Navigation Menu */}
-            <div className="space-y-2">
-                {/* Your Feed - Start */}
-                <button
-                    onClick={() => router.push('/dashboard/youth')}
-                    className={navItemClass('/dashboard/youth')}
-                >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
-                    </svg>
-                    <span>Your Feed</span>
-                </button>
-                
-                {/* Scan to Check In */}
-                <button
-                    onClick={() => router.push('/dashboard/youth/scan')}
-                    className={navItemClass('/dashboard/youth/scan')}
-                >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 13h6v-6h-6v6zm1.5-1.5h3v3h-3v-3z"/>
-                    </svg>
-                    <span>Scan to Check In</span>
-                </button>
-                
-                {/* Borrow Items */}
-                <button
-                    onClick={() => router.push('/dashboard/youth/inventory')}
-                    className={navItemClass('/dashboard/youth/inventory')}
-                >
-                    <svg className="w-5 h-5 text-gray-600 group-hover:text-[#4D4DA4]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20 6h-2.18c.11-.31.18-.65.18-1a2.996 2.996 0 0 0-5.5-1.65l-.5.67-.5-.68C10.96 2.54 10 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76l1-1.36 1 1.36L15.38 12 17 10.83 14.92 8H20v6z"/>
-                    </svg>
-                    <span>Borrow Items</span>
-                </button>
-                
-                {/* Bookings */}
-                <button
-                    onClick={() => router.push('/dashboard/youth/bookings')}
-                    className={navItemClass('/dashboard/youth/bookings')}
-                >
-                    <svg className="w-5 h-5 text-gray-600 group-hover:text-[#4D4DA4]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
-                    </svg>
-                    <span>Bookings</span>
-                </button>
-                
-                {/* Questionnaires */}
-                <button
-                    onClick={() => router.push('/dashboard/youth/questionnaires')}
-                    className={`${navItemClass('/dashboard/youth/questionnaires').replace('gap-3', 'justify-between')} group`}
-                >
-                    <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-gray-600 group-hover:text-[#4D4DA4]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                        </svg>
-                        <span>Questionnaires</span>
-                    </div>
-                    {unfinishedCount > 0 && (
-                        <span className="bg-[#FF5485] text-white text-xs font-bold px-2 py-1 rounded-full min-w-[22px] text-center">
-                            {unfinishedCount}
-                        </span>
-                    )}
-                </button>
-                
-                {/* My Groups */}
-                <button
-                    onClick={() => router.push('/dashboard/youth/profile?tab=clubs')}
-                    className={navItemClass('/dashboard/youth/profile')}
-                >
-                    <svg className="w-5 h-5 text-gray-600 group-hover:text-[#4D4DA4]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-                    </svg>
-                    <span>My Groups</span>
-                </button>
-                
-                {/* My Club */}
-                {user?.preferred_club?.id ? (
-                    <button
-                        onClick={() => router.push(`/dashboard/youth/club/${user.preferred_club.id}`)}
-                        className={navItemClass('/dashboard/youth/club')}
-                    >
-                        <svg className="w-5 h-5 text-gray-600 group-hover:text-[#4D4DA4]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                        </svg>
-                        <span>My Club</span>
-                    </button>
-                ) : (
-                    <button
-                        disabled
-                        className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-gray-400 bg-gray-50 border border-gray-200 cursor-not-allowed flex items-center gap-3"
-                    >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                        </svg>
-                        <span>My Club</span>
-                    </button>
-                )}
-                
-                {/* News */}
-                <button
-                    onClick={() => router.push('/dashboard/youth/news')}
-                    className={navItemClass('/dashboard/youth/news')}
-                >
-                    <svg className="w-5 h-5 text-gray-600 group-hover:text-[#4D4DA4]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                    </svg>
-                    <span>News</span>
-                </button>
-                
-                {/* Events */}
-                <button
-                    onClick={() => router.push('/dashboard/youth/events')}
-                    className={`${navItemClass('/dashboard/youth/events').replace('gap-3', 'justify-between')} group`}
-                >
-                    <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-gray-600 group-hover:text-[#4D4DA4]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M17 10H7v2h10v-2zm2-7h-3V1h-2v2H8V1H6v2H3c-1.11 0-1.99.9-1.99 2L1 19c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V8h16v11zm-5-9H7v2h7v-2z"/>
-                        </svg>
-                        <span>Events</span>
-                    </div>
-                    <span className="bg-[#FF5485] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                        6
-                    </span>
-                </button>
+            {/* Navigation */}
+            <nav className="space-y-1.5">
+                {navItems.map((item) => (
+                    <NavItem
+                        key={item.path || item.label}
+                        icon={item.icon}
+                        label={item.label}
+                        path={item.path}
+                        isActive={checkActive(item.checkPath || item.path)}
+                        onClick={() => item.path && router.push(item.path)}
+                        badge={item.badge}
+                        badgeColor={item.badgeColor}
+                        disabled={item.disabled}
+                        darkMode={darkMode}
+                    />
+                ))}
+            </nav>
+
+            {/* Footer hint */}
+            <div className={`mt-6 pt-4 hidden md:block ${
+                darkMode ? 'border-t border-[var(--dark-600)]' : 'border-t border-gray-100'
+            }`}>
+                <p className={`text-[10px] text-center ${
+                    darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'
+                }`}>
+                    Tap any item to navigate
+                </p>
             </div>
-        </aside>
+        </div>
     );
 }

@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure--=9kkpv))f8u^_0()806)3=3%8!d3(_185s!x2(&lz*3h#5$sj
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.50.44', '217.211.65.86', '192.168.1.208']
 
 
 # Application definition
@@ -135,7 +135,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Allow Next.js to talk to Django
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://192.168.50.44:3000",  # Frontend Port (old IP)
+    "http://217.211.65.86:3000",  # Frontend Port (public IP)
+    "http://192.168.1.208:3000",  # Frontend Port (local network IP)
 ]
+
+# Allow credentials (cookies, authorization headers) to be sent
+CORS_ALLOW_CREDENTIALS = True
 
 AUTH_USER_MODEL = 'users.User'
 

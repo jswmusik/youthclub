@@ -1,14 +1,133 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Package, Clock, CheckCircle2, AlertTriangle, ChevronLeft, User, Calendar, Eye } from 'lucide-react';
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onView?: () => void;
+  onClick: () => void;
+  showActions?: boolean;
+}
+
+function SwipeableCard({ children, onView, onClick, showActions = true }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 70;
+  const threshold = 35;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!showActions) return;
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !showActions) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!showActions) return;
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleViewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onView) onView();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      {/* Action buttons (behind the card) */}
+      {showActions && (
+        <div className="absolute inset-y-0 right-0 flex items-stretch">
+          <button
+            onClick={handleViewClick}
+            className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+          >
+            <Eye className="w-5 h-5" />
+            <span className="text-xs font-medium">View</span>
+          </button>
+        </div>
+      )}
+
+      {/* Swipeable card content */}
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {/* Swipe hint indicator */}
+        {showActions && !isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface LendingSession {
     id: number;
-    item: number; // Item ID
+    item: number;
     item_title: string;
     user_name: string;
     borrowed_at: string;
@@ -25,187 +144,246 @@ interface LendingHistoryTableProps {
 }
 
 export default function LendingHistoryTable({ sessions, showReturnButton = false, onReturnItem }: LendingHistoryTableProps) {
-    // Safety check: ensure sessions is always an array
     const sessionsArray = Array.isArray(sessions) ? sessions : [];
     
     const isOverdue = (dueAt?: string) => {
         if (!dueAt) return false;
         return new Date(dueAt) < new Date();
     };
+
+    const getStatusBadge = (session: LendingSession) => {
+        const overdue = session.status === 'ACTIVE' && isOverdue(session.due_at);
+        
+        if (session.status === 'ACTIVE') {
+            return overdue ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
+                    <AlertTriangle className="w-3 h-3" />
+                    Overdue
+                </span>
+            ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
+                    <Clock className="w-3 h-3" />
+                    Active
+                </span>
+            );
+        }
+        
+        if (session.status === 'RETURNED_USER') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Returned
+                </span>
+            );
+        }
+        
+        if (session.status === 'RETURNED_SYSTEM') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
+                    System Auto
+                </span>
+            );
+        }
+        
+        if (session.status === 'RETURNED_ADMIN') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
+                    Admin Return
+                </span>
+            );
+        }
+        
+        return (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
+                {session.status}
+            </span>
+        );
+    };
     
     if (sessionsArray.length === 0) {
         return (
-            <Card className="border border-gray-100 shadow-sm bg-white">
-                <CardContent className="p-12 text-center text-gray-500">
-                    No history found.
-                </CardContent>
-            </Card>
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                    <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No history found</h3>
+                <p className="text-[var(--brand-light)]/50 text-sm">Lending history will appear here.</p>
+            </div>
         );
     }
     
     return (
-        <Card className="border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <CardContent className="p-0">
-                {/* Mobile: Cards */}
-                <div className="block md:hidden divide-y divide-gray-100">
-                    {sessionsArray.map((session) => {
-                        const overdue = session.status === 'ACTIVE' && isOverdue(session.due_at);
-                        return (
-                            <div key={session.id} className={`p-4 space-y-2 ${overdue ? 'bg-red-50' : session.is_guest ? 'bg-orange-50' : ''}`}>
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold text-[#121213] truncate">{session.item_title}</p>
-                                        <p className="text-xs text-gray-500 truncate">{session.user_name}</p>
+        <>
+            {/* Mobile: Swipeable Cards */}
+            <div className="flex flex-col gap-3 md:hidden">
+                {sessionsArray.map((session) => {
+                    const overdue = session.status === 'ACTIVE' && isOverdue(session.due_at);
+                    return (
+                        <SwipeableCard
+                            key={session.id}
+                            onClick={() => {}}
+                            onView={() => {}}
+                            showActions={false}
+                        >
+                            <div className={`border-y border-[var(--dark-600)] p-4 ${overdue ? 'border-l-4 border-l-[var(--brand-red)]' : session.is_guest ? 'border-l-4 border-l-[var(--brand-peach)]' : ''}`}>
+                                <div className="flex items-start gap-3">
+                                    {/* Icon */}
+                                    <div className="w-10 h-10 rounded-xl flex-shrink-0 bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center">
+                                        <Package className="w-5 h-5 text-[var(--brand-primary)]" />
                                     </div>
-                                    {session.is_guest && (
-                                        <Badge className="bg-pink-50 text-[#FF5485] border-[#FF5485]/30 text-xs">Guest</Badge>
-                                    )}
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div>
-                                        <span className="text-gray-500">Time Out:</span>
-                                        <span className="ml-1 text-[#121213]">{format(new Date(session.borrowed_at), 'MMM d, HH:mm')}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-500">Due:</span>
-                                        <span className={`ml-1 ${overdue ? 'text-[#EF4444] font-bold' : 'text-[#121213]'}`}>
-                                            {session.due_at ? format(new Date(session.due_at), 'MMM d, HH:mm') : '-'}
-                                            {overdue && ' ⚠️'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-500">Time In:</span>
-                                        <span className="ml-1 text-[#121213]">{session.returned_at ? format(new Date(session.returned_at), 'HH:mm') : '-'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-500">Status:</span>
-                                        <span className="ml-1">
-                                            {session.status === 'ACTIVE' && (
-                                                <Badge variant="outline" className={`text-xs ${
-                                                    overdue 
-                                                        ? 'bg-red-50 text-[#EF4444] border-[#EF4444]/30' 
-                                                        : 'bg-green-50 text-[#10B981] border-[#10B981]/30'
-                                                }`}>
-                                                    {overdue ? 'Overdue' : 'Active'}
-                                                </Badge>
+                                    
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
+                                                    {session.item_title}
+                                                </h3>
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <User className="w-3 h-3 text-[var(--brand-light)]/40" />
+                                                    <p className="text-xs text-[var(--brand-light)]/50 truncate">
+                                                        {session.user_name}
+                                                    </p>
+                                                    {session.is_guest && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
+                                                            Guest
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {getStatusBadge(session)}
+                                        </div>
+                                        
+                                        {/* Times */}
+                                        <div className="mt-3 grid grid-cols-2 gap-2">
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar className="w-3 h-3 text-[var(--brand-light)]/40" />
+                                                <span className="text-xs text-[var(--brand-light)]/50">Out:</span>
+                                                <span className="text-xs text-[var(--brand-light)]">
+                                                    {format(new Date(session.borrowed_at), 'MMM d, HH:mm')}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock className="w-3 h-3 text-[var(--brand-light)]/40" />
+                                                <span className="text-xs text-[var(--brand-light)]/50">Due:</span>
+                                                <span className={`text-xs ${overdue ? 'text-[var(--brand-red)] font-semibold' : 'text-[var(--brand-light)]'}`}>
+                                                    {session.due_at ? format(new Date(session.due_at), 'MMM d, HH:mm') : '-'}
+                                                </span>
+                                            </div>
+                                            {session.returned_at && (
+                                                <div className="flex items-center gap-1.5 col-span-2">
+                                                    <CheckCircle2 className="w-3 h-3 text-[var(--brand-green)]" />
+                                                    <span className="text-xs text-[var(--brand-light)]/50">Returned:</span>
+                                                    <span className="text-xs text-[var(--brand-light)]">
+                                                        {format(new Date(session.returned_at), 'MMM d, HH:mm')}
+                                                    </span>
+                                                </div>
                                             )}
-                                            {session.status === 'RETURNED_USER' && (
-                                                <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Returned</Badge>
-                                            )}
-                                            {session.status === 'RETURNED_SYSTEM' && (
-                                                <Badge variant="outline" className="text-xs bg-red-50 text-[#EF4444] border-[#EF4444]/30">System Auto-Return</Badge>
-                                            )}
-                                            {session.status === 'RETURNED_ADMIN' && (
-                                                <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">Admin Force-Return</Badge>
-                                            )}
-                                        </span>
+                                        </div>
+                                        
+                                        {/* Return Button */}
+                                        {showReturnButton && session.status === 'ACTIVE' && onReturnItem && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onReturnItem(session.item);
+                                                }}
+                                                className="mt-3 w-full py-2 rounded-xl text-sm font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all"
+                                            >
+                                                Return Item
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
+                        </SwipeableCard>
+                    );
+                })}
+            </div>
 
-                {/* Desktop: Table */}
-                <Table className="hidden md:table">
-                    <TableHeader>
-                        <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Item</TableHead>
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Borrower</TableHead>
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Time Out</TableHead>
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Due Date</TableHead>
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Time In</TableHead>
-                            <TableHead className="h-12 px-6 text-gray-600 font-semibold">Status</TableHead>
+            {/* Desktop: Table */}
+            <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                <table className="w-full">
+                    <thead>
+                        <tr className="border-b border-[var(--dark-600)]">
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Borrower</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time Out</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Due Date</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time In</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
                             {showReturnButton && (
-                                <TableHead className="h-12 px-6 text-gray-600 font-semibold">Actions</TableHead>
+                                <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
                             )}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {sessionsArray.map((session) => {
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sessionsArray.map((session, index) => {
                             const overdue = session.status === 'ACTIVE' && isOverdue(session.due_at);
                             return (
-                                <TableRow 
+                                <tr 
                                     key={session.id} 
-                                    className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${
-                                        overdue 
-                                            ? 'bg-red-50/50' 
-                                            : session.is_guest 
-                                                ? 'bg-orange-50/50' 
-                                                : ''
-                                    }`}
+                                    className={`${index !== sessionsArray.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors ${overdue ? 'bg-[var(--brand-red)]/5' : session.is_guest ? 'bg-[var(--brand-peach)]/5' : ''}`}
                                 >
-                                    <TableCell className="py-4 px-6">
-                                        <div className="text-sm font-semibold text-[#121213]">{session.item_title}</div>
-                                    </TableCell>
-                                    <TableCell className="py-4 px-6">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg flex-shrink-0 bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center">
+                                                <Package className="w-4 h-4 text-[var(--brand-primary)]" />
+                                            </div>
+                                            <span className="font-semibold text-[var(--brand-light)]">{session.item_title}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
-                                            <div className="text-sm text-[#121213]">{session.user_name}</div>
+                                            <span className="text-[var(--brand-light)]">{session.user_name}</span>
                                             {session.is_guest && (
-                                                <Badge className="bg-pink-50 text-[#FF5485] border-[#FF5485]/30 text-xs">Guest</Badge>
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+                                                    Guest
+                                                </span>
                                             )}
                                         </div>
-                                    </TableCell>
-                                    <TableCell className="py-4 px-6">
-                                        <div className="text-sm text-gray-500">{format(new Date(session.borrowed_at), 'MMM d, HH:mm')}</div>
-                                    </TableCell>
-                                    <TableCell className="py-4 px-6">
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-sm text-[var(--brand-light)]/60">
+                                            {format(new Date(session.borrowed_at), 'MMM d, HH:mm')}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
                                         {session.due_at ? (
-                                            <div className={`text-sm font-semibold ${overdue ? 'text-[#EF4444]' : 'text-[#121213]'}`}>
+                                            <span className={`text-sm font-semibold ${overdue ? 'text-[var(--brand-red)]' : 'text-[var(--brand-light)]'}`}>
                                                 {format(new Date(session.due_at), 'MMM d, HH:mm')}
                                                 {overdue && ' ⚠️'}
-                                            </div>
+                                            </span>
                                         ) : (
-                                            <div className="text-sm text-gray-400">-</div>
+                                            <span className="text-sm text-[var(--brand-light)]/40">-</span>
                                         )}
-                                    </TableCell>
-                                    <TableCell className="py-4 px-6">
-                                        <div className="text-sm text-gray-500">
-                                            {session.returned_at ? format(new Date(session.returned_at), 'HH:mm') : '-'}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="py-4 px-6">
-                                        {session.status === 'ACTIVE' && (
-                                            <Badge variant="outline" className={`text-xs font-semibold ${
-                                                overdue 
-                                                    ? 'bg-red-50 text-[#EF4444] border-[#EF4444]/30' 
-                                                    : 'bg-green-50 text-[#10B981] border-[#10B981]/30'
-                                            }`}>
-                                                {overdue ? 'Overdue' : 'Active'}
-                                            </Badge>
-                                        )}
-                                        {session.status === 'RETURNED_USER' && (
-                                            <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">Returned</Badge>
-                                        )}
-                                        {session.status === 'RETURNED_SYSTEM' && (
-                                            <Badge variant="outline" className="text-xs bg-red-50 text-[#EF4444] border-[#EF4444]/30" title="User forgot to return, system auto-closed">
-                                                System Auto-Return
-                                            </Badge>
-                                        )}
-                                        {session.status === 'RETURNED_ADMIN' && (
-                                            <Badge variant="outline" className="text-xs bg-[#EBEBFE] text-[#4D4DA4] border-[#4D4DA4]/30">Admin Force-Return</Badge>
-                                        )}
-                                    </TableCell>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-sm text-[var(--brand-light)]/60">
+                                            {session.returned_at ? format(new Date(session.returned_at), 'MMM d, HH:mm') : '-'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {getStatusBadge(session)}
+                                    </td>
                                     {showReturnButton && (
-                                        <TableCell className="py-4 px-6">
+                                        <td className="px-6 py-4 text-right">
                                             {session.status === 'ACTIVE' && onReturnItem && (
-                                                <Button
+                                                <button
                                                     onClick={() => onReturnItem(session.item)}
-                                                    size="sm"
-                                                    className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white text-xs font-semibold rounded-full"
+                                                    className="px-4 py-2 rounded-xl text-sm font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all"
                                                 >
                                                     Return Item
-                                                </Button>
+                                                </button>
                                             )}
-                                        </TableCell>
+                                        </td>
                                     )}
-                                </TableRow>
+                                </tr>
                             );
                         })}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 }
-

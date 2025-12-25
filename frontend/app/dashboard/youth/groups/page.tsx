@@ -2,9 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+
 import api from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import NavBar from '@/app/components/NavBar';
+import YouthSidebar from '@/app/components/youth/YouthSidebar';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
+import Toast from '@/app/components/Toast';
+import { Users as UsersIcon, Search, X, AlertCircle, Globe, MapPin, Building2, Heart } from 'lucide-react';
+import YouthFooter from '@/app/components/youth/YouthFooter';
+
 
 interface Eligibility {
     is_eligible: boolean;
@@ -28,12 +35,12 @@ interface Group {
 // Helper Component: Badges
 const StatusBadge = ({ status }: { status: string }) => {
     const styles = {
-        APPROVED: "bg-green-100 text-green-700 border-green-200",
-        PENDING: "bg-yellow-100 text-yellow-700 border-yellow-200",
-        REJECTED: "bg-red-100 text-red-700 border-red-200"
+        APPROVED: "bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30",
+        PENDING: "bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30",
+        REJECTED: "bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30"
     };
     return (
-        <span className={`text-xs px-2 py-1 rounded border font-medium ${styles[status as keyof typeof styles] || "bg-gray-100"}`}>
+        <span className={`text-xs px-3 py-1.5 rounded-lg font-bold ${styles[status as keyof typeof styles] || "bg-[var(--dark-600)]"}`}>
             {status === 'APPROVED' ? 'Member' : status}
         </span>
     );
@@ -41,14 +48,19 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 const IneligibleTooltip = ({ reasons }: { reasons: string[] }) => (
     <div className="absolute top-2 right-2 group z-10">
-        <div className="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded border border-gray-200 cursor-help shadow-sm flex items-center gap-1">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        <div className="bg-[var(--dark-700)] text-[var(--brand-light)]/60 text-xs px-2.5 py-1.5 rounded-lg border border-[var(--dark-500)] cursor-help flex items-center gap-1.5 font-bold">
+            <AlertCircle className="w-3.5 h-3.5" />
             <span>Restricted</span>
         </div>
-        <div className="absolute right-0 mt-1 w-48 p-3 bg-gray-800 text-white text-xs rounded-md shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            <p className="font-bold mb-1">Requirements not met:</p>
-            <ul className="list-disc pl-3 space-y-1">
-                {reasons.map((r, i) => <li key={i}>{r}</li>)}
+        <div className="absolute right-0 mt-1 w-56 p-4 bg-[var(--dark-700)] text-[var(--brand-light)] text-xs rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-[var(--dark-500)]">
+            <p className="font-bold mb-2 text-sm">Requirements not met:</p>
+            <ul className="space-y-1.5">
+                {reasons.map((r, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                        <span className="text-[var(--brand-red)] mt-0.5">•</span>
+                        <span className="text-[var(--brand-light)]/80">{r}</span>
+                    </li>
+                ))}
             </ul>
         </div>
     </div>
@@ -57,6 +69,7 @@ const IneligibleTooltip = ({ reasons }: { reasons: string[] }) => (
 export default function GroupSearchPage() {
     const { user } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -64,11 +77,20 @@ export default function GroupSearchPage() {
     const [hasMore, setHasMore] = useState(true);
     const [paginationSupported, setPaginationSupported] = useState<boolean | null>(null);
     const observerTarget = useRef<HTMLDivElement>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [scopeFilter, setScopeFilter] = useState<'ALL' | 'GLOBAL' | 'MUNI' | 'CLUB' | 'FOLLOWING'>('ALL');
     const [interestFilter, setInterestFilter] = useState(false);
+
+    // Confirmation modal state
+    const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+    const [selectedGroupToJoin, setSelectedGroupToJoin] = useState<Group | null>(null);
+    const [isJoining, setIsJoining] = useState(false);
+
+    // Toast state
+    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
 
     // Fetch groups with pagination
     const fetchGroups = useCallback(async (pageNum: number = 1, append: boolean = false) => {
@@ -181,14 +203,36 @@ export default function GroupSearchPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasMore, loadingMore, loading, page, paginationSupported]);
 
-    const handleJoin = async (groupId: number) => {
+    const handleJoinClick = (group: Group) => {
+        setSelectedGroupToJoin(group);
+        setConfirmModalVisible(true);
+    };
+
+    const handleJoinConfirm = async () => {
+        if (!selectedGroupToJoin) return;
+
+        setIsJoining(true);
         try {
-            const res = await api.post(`/groups/${groupId}/join/`);
-            alert(res.data.message); // Replace with Toast in production
+            const res = await api.post(`/groups/${selectedGroupToJoin.id}/join/`);
+            setToast({
+                message: res.data.message || 'Successfully joined the group!',
+                type: 'success',
+                isVisible: true
+            });
             // Refresh current page
             fetchGroups(page, false);
+            setConfirmModalVisible(false);
+            setSelectedGroupToJoin(null);
         } catch (err: any) {
-            alert(err.response?.data?.message || "Failed to join");
+            setToast({
+                message: err.response?.data?.message || 'Failed to join group',
+                type: 'error',
+                isVisible: true
+            });
+            setConfirmModalVisible(false);
+            setSelectedGroupToJoin(null);
+        } finally {
+            setIsJoining(false);
         }
     };
 
@@ -216,23 +260,14 @@ export default function GroupSearchPage() {
             const preferredClubId = typeof user?.preferred_club === 'object' ? user.preferred_club?.id : user?.preferred_club;
             matchesScope = groupClubId === preferredClubId;
         } else if (scopeFilter === 'FOLLOWING') {
-            // Check if club ID is in followed_clubs (assuming AuthContext provides this, or we infer from context)
-            // If AuthContext doesn't have followed_clubs, this filter might be weak on frontend.
-            // Ideally backend handles scope, this just toggles visibility. 
-            // For now, let's assume if it's NOT my preferred club and NOT global/muni, it's a followed club.
             const isMyClub = groupClubId === (typeof user?.preferred_club === 'object' ? user.preferred_club?.id : user?.preferred_club);
             const isClubGroup = !!groupClubId;
             matchesScope = isClubGroup && !isMyClub && (user?.followed_clubs_ids?.includes(groupClubId) || false);
         }
 
         // 3. Interest Filter
-        // If checked, we ONLY show groups where eligibility.reasons does NOT contain "Does not match your interests"
-        // Or simply leverage the eligibility flag if interest is the *only* barrier.
         let matchesInterest = true;
         if (interestFilter) {
-            // We want groups that are ELIGIBLE (which implies interests match)
-            // OR groups where the ONLY reason for ineligibility is NOT interests.
-            // Simplified: Just show eligible groups.
             matchesInterest = group.eligibility.is_eligible;
         }
 
@@ -240,234 +275,332 @@ export default function GroupSearchPage() {
     });
 
     if (loading) return (
-        <div className="min-h-screen bg-gray-50">
-            <NavBar />
+        <div className="min-h-screen bg-[var(--dark-900)]">
+            <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
             <div className="flex justify-center items-center min-h-[50vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
             </div>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <NavBar />
-            <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-            <div className="flex flex-col md:flex-row gap-8">
-                
-                {/* --- SIDEBAR FILTERS (Sticky) --- */}
-                <aside className="w-full md:w-64 flex-shrink-0 space-y-8 md:sticky md:top-[72px] md:self-start md:max-h-[calc(100vh-88px)] md:overflow-y-auto">
-                    {/* Header */}
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
-                        <p className="text-sm text-gray-500 mt-1">Discover & Join</p>
-                    </div>
-
-                    {/* Search Input */}
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Search</label>
-                        <div className="relative">
-                            <input 
-                                type="text" 
-                                placeholder="Find a group..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-                            />
-                            <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    {/* Scope Filters */}
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Filter by Level</label>
-                        <div className="space-y-1">
-                            {[
-                                { id: 'ALL', label: 'All Groups' },
-                                { id: 'GLOBAL', label: 'Global / Public' },
-                                { id: 'MUNI', label: 'My Municipality' },
-                                { id: 'CLUB', label: 'My Club' },
-                                { id: 'FOLLOWING', label: 'Followed Clubs' },
-                            ].map((opt) => (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => setScopeFilter(opt.id as any)}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                                        scopeFilter === opt.id 
-                                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                                        : 'text-gray-600 hover:bg-gray-50'
-                                    }`}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Interest Toggle */}
-                    <div>
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${interestFilter ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 group-hover:border-blue-400'}`}>
-                                {interestFilter && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+        <div className="min-h-screen bg-[var(--dark-900)]">
+            <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
+            
+            {/* Mobile Sidebar Overlay */}
+            <div 
+                className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300 ${
+                    isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={() => setIsSidebarOpen(false)}
+            />
+            
+            {/* Mobile Sidebar */}
+            <aside 
+                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
+                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+                    <button
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
+                    <YouthSidebar activePath={pathname} darkMode={true} />
+                </div>
+            </aside>
+            
+            {/* Main Layout */}
+            <div className="pt-14 sm:pt-16">
+                <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
+                    {/* Desktop Sidebar - Fixed position aligned with container */}
+                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+                        <YouthSidebar activePath={pathname} darkMode={true} />
+                    </aside>
+                    
+                    {/* Content wrapper with left margin for sidebar */}
+                    <div className="md:ml-60">
+                        <main className="px-0 py-2 sm:p-4 md:p-6 pb-24 md:pb-6">
+                            {/* Header Section */}
+                            <div className="mb-4 sm:mb-6 px-4 sm:px-0">
+                                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                                    <UsersIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
+                                    <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
+                                        Groups
+                                    </h1>
+                                </div>
+                                <p className="text-[var(--brand-light)]/60 text-sm pl-8 sm:pl-10 font-semibold">
+                                    Discover and join groups
+                                </p>
                             </div>
-                            <input 
-                                type="checkbox" 
-                                className="hidden"
-                                checked={interestFilter}
-                                onChange={(e) => setInterestFilter(e.target.checked)}
-                            />
-                            <span className="text-sm text-gray-700">Match my interests only</span>
-                        </label>
-                    </div>
-                </aside>
 
-                {/* --- RESULTS GRID --- */}
-                <main className="flex-1">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {filteredGroups.map(group => {
-                            const isEligible = group.eligibility.is_eligible;
-                            // Handle both old format (string) and new format (object)
-                            const membershipStatus = typeof group.membership_status === 'object' 
-                                ? group.membership_status?.status 
-                                : group.membership_status;
-                            const rejectionCount = typeof group.membership_status === 'object' 
-                                ? (group.membership_status?.rejection_count || 0)
-                                : 0;
-                            
-                            const isMember = membershipStatus === 'APPROVED';
-                            const isPending = membershipStatus === 'PENDING';
-                            const isRejected = membershipStatus === 'REJECTED';
-                            const maxRejectionsReached = isRejected && rejectionCount >= 3;
-                            
-                            // Visual Style: Gray out if ineligible AND not already a member
-                            const cardStyle = (!isEligible && !isMember) ? 'opacity-70 grayscale-[0.3]' : 'opacity-100';
+                            {/* Filters Section */}
+                            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] px-4 py-3 sm:p-4 mb-4 sm:mb-6">
+                                {/* Search Bar */}
+                                <div className="relative mb-3">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search groups..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-10 py-2.5 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-sm font-medium text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] transition-all"
+                                    />
+                                    {searchTerm && (
+                                        <button
+                                            onClick={() => setSearchTerm('')}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
 
-                            return (
-                                <div key={group.id} className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow ${cardStyle}`}>
-                                    {/* Header Image */}
-                                    <div className="h-32 bg-gray-200 relative">
-                                        {group.background_image ? (
-                                            <img src={group.background_image} alt={group.name} className="w-full h-full object-cover" />
-                                        ) : group.avatar ? (
-                                            <img src={group.avatar} alt={group.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                                                 <span className="text-4xl">👥</span>
+                                {/* Filter Chips */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {[
+                                        { id: 'ALL', label: 'All Groups', icon: <UsersIcon className="w-3.5 h-3.5" /> },
+                                        { id: 'GLOBAL', label: 'Global', icon: <Globe className="w-3.5 h-3.5" /> },
+                                        { id: 'MUNI', label: 'My Municipality', icon: <MapPin className="w-3.5 h-3.5" /> },
+                                        { id: 'CLUB', label: 'My Club', icon: <Building2 className="w-3.5 h-3.5" /> },
+                                        { id: 'FOLLOWING', label: 'Following', icon: <UsersIcon className="w-3.5 h-3.5" /> },
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => setScopeFilter(opt.id as any)}
+                                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                                scopeFilter === opt.id 
+                                                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                                                    : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                                            }`}
+                                        >
+                                            {opt.icon}
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                    
+                                    {/* Interest Filter Toggle */}
+                                    <button
+                                        onClick={() => setInterestFilter(!interestFilter)}
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                            interestFilter 
+                                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                                                : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                                        }`}
+                                    >
+                                        <Heart className="w-3.5 h-3.5" />
+                                        My Interests
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* --- RESULTS GRID --- */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-4 px-4 sm:px-0">
+                                    {filteredGroups.map(group => {
+                                        const isEligible = group.eligibility.is_eligible;
+                                        // Handle both old format (string) and new format (object)
+                                        const membershipStatus = typeof group.membership_status === 'object' 
+                                            ? group.membership_status?.status 
+                                            : group.membership_status;
+                                        const rejectionCount = typeof group.membership_status === 'object' 
+                                            ? (group.membership_status?.rejection_count || 0)
+                                            : 0;
+                                        
+                                        const isMember = membershipStatus === 'APPROVED';
+                                        const isPending = membershipStatus === 'PENDING';
+                                        const isRejected = membershipStatus === 'REJECTED';
+                                        const maxRejectionsReached = isRejected && rejectionCount >= 3;
+                                        
+                                        // Visual Style: Gray out if ineligible AND not already a member
+                                        const cardStyle = (!isEligible && !isMember) ? 'opacity-70 grayscale-[0.3]' : 'opacity-100';
+
+                                        return (
+                                            <div key={group.id} className={`bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden flex flex-col hover:border-[var(--brand-primary)]/30 transition-all ${cardStyle}`}>
+                                                {/* Header Image */}
+                                                <div className="h-40 sm:h-44 bg-[var(--dark-700)] relative">
+                                                    {group.background_image ? (
+                                                        <img src={group.background_image} alt={group.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                    ) : group.avatar ? (
+                                                        <img src={group.avatar} alt={group.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                                                            <UsersIcon className="w-16 h-16 text-white/30" />
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Top Badges */}
+                                                    <div className="absolute top-2 left-2 flex gap-1.5">
+                                                        {group.group_type !== 'OPEN' && (
+                                                            <span className="bg-[var(--dark-900)]/80 backdrop-blur-sm text-[var(--brand-light)] text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wide font-bold">
+                                                                {group.group_type === 'CLOSED' ? 'Private' : 'Application'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Ineligibility Tooltip */}
+                                                    {!isEligible && !isMember && (
+                                                        <IneligibleTooltip reasons={group.eligibility.reasons} />
+                                                    )}
+                                                </div>
+
+                                                {/* Card Body */}
+                                                <div className="p-4 sm:p-5 flex-1 flex flex-col">
+                                                    <div className="mb-3">
+                                                        <h3 className="font-bold text-[var(--brand-light)] text-lg sm:text-xl leading-tight font-heading">{group.name}</h3>
+                                                        <div className="flex items-center gap-1.5 mt-1.5">
+                                                            {group.club_name ? (
+                                                                <>
+                                                                    <Building2 className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+                                                                    <p className="text-xs text-[var(--brand-primary)] font-bold">
+                                                                        {group.club_name}
+                                                                    </p>
+                                                                </>
+                                                            ) : group.municipality_name ? (
+                                                                <>
+                                                                    <MapPin className="w-3.5 h-3.5 text-[var(--brand-green)]" />
+                                                                    <p className="text-xs text-[var(--brand-green)] font-bold">
+                                                                        {group.municipality_name}
+                                                                    </p>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Globe className="w-3.5 h-3.5 text-[var(--brand-purple)]" />
+                                                                    <p className="text-xs text-[var(--brand-purple)] font-bold">
+                                                                        Global Group
+                                                                    </p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <p className="text-sm text-[var(--brand-light)]/60 mb-4 line-clamp-2 flex-1 font-medium">
+                                                        {group.description || <span className="italic text-[var(--brand-light)]/40">No description available.</span>}
+                                                    </p>
+
+                                                    {/* Footer Action */}
+                                                    <div className="mt-auto pt-4 border-t border-[var(--dark-600)]">
+                                                        {isMember ? (
+                                                            <div className="flex justify-between items-center gap-2">
+                                                                <StatusBadge status="APPROVED" />
+                                                                <button 
+                                                                    onClick={() => router.push(`/dashboard/youth/groups/${group.id}`)}
+                                                                    className="text-xs text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 font-bold transition-colors"
+                                                                >
+                                                                    Visit Group →
+                                                                </button>
+                                                            </div>
+                                                        ) : isPending ? (
+                                                            <div className="flex justify-between items-center gap-2">
+                                                                <StatusBadge status="PENDING" />
+                                                                <span className="text-xs text-[var(--brand-light)]/50 font-semibold">Pending...</span>
+                                                            </div>
+                                                        ) : maxRejectionsReached ? (
+                                                            <button
+                                                                disabled={true}
+                                                                className="w-full py-2.5 rounded-xl text-sm font-bold bg-[var(--dark-700)] text-[var(--brand-light)]/50 cursor-not-allowed border border-[var(--dark-500)]"
+                                                            >
+                                                                Max Applications Reached
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleJoinClick(group)}
+                                                                disabled={!isEligible || maxRejectionsReached}
+                                                                className={`w-full py-2.5 sm:py-3 rounded-none sm:rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                                                                    (isEligible && !maxRejectionsReached)
+                                                                        ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                                                                        : 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 cursor-not-allowed border border-[var(--dark-500)]'
+                                                                }`}
+                                                            >
+                                                                {isEligible 
+                                                                    ? (group.group_type === 'OPEN' ? 'Join Group' : 'Apply to Join') 
+                                                                    : 'Unavailable'}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        )}
-                                        
-                                        {/* Top Badges */}
-                                        <div className="absolute top-2 left-2 flex gap-1">
-                                            {group.group_type !== 'OPEN' && (
-                                                <span className="bg-black/50 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide">
-                                                    {group.group_type === 'CLOSED' ? 'Private' : 'Application'}
-                                                </span>
-                                            )}
-                                        </div>
+                                        );
+                                    })}
+                            </div>
 
-                                        {/* Ineligibility Tooltip */}
-                                        {!isEligible && !isMember && (
-                                            <IneligibleTooltip reasons={group.eligibility.reasons} />
-                                        )}
+                            {/* Infinite Scroll Trigger */}
+                            <div ref={observerTarget} className="h-10 flex items-center justify-center mt-6">
+                                {loadingMore && (
+                                    <div className="flex items-center gap-2 text-[var(--brand-primary)]">
+                                        <div className="w-6 h-6 border-3 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin"></div>
+                                        <span className="text-sm font-semibold">Loading more groups...</span>
                                     </div>
+                                )}
+                                {!hasMore && filteredGroups.length > 0 && (
+                                    <p className="text-sm text-[var(--brand-light)]/40 text-center py-4 font-semibold">
+                                        You've reached the end
+                                    </p>
+                                )}
+                            </div>
 
-                                    {/* Card Body */}
-                                    <div className="p-5 flex-1 flex flex-col">
-                                        <div className="mb-3">
-                                            <h3 className="font-bold text-gray-900 text-lg leading-tight">{group.name}</h3>
-                                            <p className="text-xs text-blue-600 font-medium mt-1">
-                                                {group.club_name ? `Club: ${group.club_name}` : (group.municipality_name ? `Muni: ${group.municipality_name}` : "Global Group")}
-                                            </p>
+                            {filteredGroups.length === 0 && !loading && (
+                                <div className="text-center py-12 sm:py-20 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-dashed border-[var(--dark-500)]">
+                                    <div className="max-w-md mx-auto px-4">
+                                        <div className="w-20 h-20 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                            <UsersIcon className="w-10 h-10 text-[var(--brand-light)]/40" />
                                         </div>
-                                        
-                                        <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-1">
-                                            {group.description || <span className="italic text-gray-400">No description available.</span>}
+                                        <h3 className="text-lg sm:text-xl font-bold text-[var(--brand-light)] mb-2 font-heading">No groups found</h3>
+                                        <p className="text-sm text-[var(--brand-light)]/60 mb-4 font-medium">
+                                            Try adjusting your filters or search terms to find more groups.
                                         </p>
-
-                                        {/* Footer Action */}
-                                        <div className="mt-auto pt-4 border-t border-gray-100">
-                                            {isMember ? (
-                                                <div className="flex justify-between items-center">
-                                                    <StatusBadge status="APPROVED" />
-                                                    <button 
-                                                        onClick={() => router.push(`/dashboard/youth/groups/${group.id}`)}
-                                                        className="text-xs text-blue-600 hover:underline"
-                                                    >
-                                                        Visit Group
-                                                    </button>
-                                                </div>
-                                            ) : isPending ? (
-                                                <div className="flex justify-between items-center">
-                                                    <StatusBadge status="PENDING" />
-                                                    <span className="text-xs text-gray-500">Application Pending</span>
-                                                </div>
-                                            ) : maxRejectionsReached ? (
-                                                <button
-                                                    disabled={true}
-                                                    className="w-full py-2.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-200"
-                                                >
-                                                    Maximum Applications Reached
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleJoin(group.id)}
-                                                    disabled={!isEligible || maxRejectionsReached}
-                                                    className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm active:scale-95 ${
-                                                        (isEligible && !maxRejectionsReached)
-                                                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow' 
-                                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                                                    }`}
-                                                >
-                                                    {isEligible 
-                                                        ? (group.group_type === 'OPEN' ? 'Join Group' : 'Apply to Join') 
-                                                        : 'Unavailable'}
-                                                </button>
-                                            )}
-                                        </div>
+                                        <button 
+                                            onClick={() => { setSearchTerm(''); setScopeFilter('ALL'); setInterestFilter(false); }}
+                                            className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95"
+                                        >
+                                            Clear all filters
+                                        </button>
                                     </div>
                                 </div>
-                            );
-                        })}
+                            )}
+                        </main>
                     </div>
-
-                    {/* Infinite Scroll Trigger */}
-                    <div ref={observerTarget} className="h-10 flex items-center justify-center mt-6">
-                        {loadingMore && (
-                            <div className="flex items-center gap-2 text-gray-500">
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                                <span className="text-sm">Loading more groups...</span>
-                            </div>
-                        )}
-                        {!hasMore && filteredGroups.length > 0 && (
-                            <p className="text-sm text-gray-400 text-center py-4">
-                                You've reached the end
-                            </p>
-                        )}
-                    </div>
-
-                    {filteredGroups.length === 0 && !loading && (
-                        <div className="text-center py-20">
-                            <div className="bg-gray-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900">No groups found</h3>
-                            <p className="text-gray-500 max-w-sm mx-auto mt-1">
-                                Try adjusting your filters or search terms to find more groups.
-                            </p>
-                            <button 
-                                onClick={() => { setSearchTerm(''); setScopeFilter('ALL'); setInterestFilter(false); }}
-                                className="mt-4 text-blue-600 font-medium hover:underline"
-                            >
-                                Clear all filters
-                            </button>
-                        </div>
-                    )}
-                </main>
+                </div>
             </div>
-            </div>
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isVisible={confirmModalVisible}
+                onClose={() => {
+                    if (!isJoining) {
+                        setConfirmModalVisible(false);
+                        setSelectedGroupToJoin(null);
+                    }
+                }}
+                onConfirm={handleJoinConfirm}
+                title={selectedGroupToJoin?.group_type === 'OPEN' ? 'Join Group?' : 'Apply to Join Group?'}
+                message={
+                    selectedGroupToJoin?.group_type === 'OPEN'
+                        ? `Are you sure you want to join "${selectedGroupToJoin?.name}"?`
+                        : `Submit an application to join "${selectedGroupToJoin?.name}"? The group admin will review your request.`
+                }
+                confirmButtonText={selectedGroupToJoin?.group_type === 'OPEN' ? 'Join Group' : 'Submit Application'}
+                cancelButtonText="Cancel"
+                isLoading={isJoining}
+                variant="info"
+                darkMode={true}
+            />
+
+            {/* Toast Notification */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={() => setToast({ ...toast, isVisible: false })}
+                darkMode={true}
+            />
+            
+            {/* Footer */}
+            <YouthFooter />
         </div>
     );
 }

@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import api from '../../../../../../lib/api';
 import PostForm from '../../../../../components/posts/PostForm';
 import { Post } from '../../../../../../types/post';
+import { Sparkles } from 'lucide-react';
 
-export default function EditPostPage() {
+function EditPostPageContent() {
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams();
@@ -42,7 +43,6 @@ export default function EditPostPage() {
                 setPost(res.data);
             } catch (err) {
                 console.error("Failed to fetch post", err);
-                alert("Post not found");
                 router.push('/admin/municipality/posts');
             } finally {
                 setLoading(false);
@@ -51,26 +51,43 @@ export default function EditPostPage() {
         fetchPost();
     }, [postId, router]);
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Loading post data...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+            <div className="text-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
+                    <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <p className="text-[var(--brand-light)]/60">Loading post data...</p>
+            </div>
+        </div>
+    );
+    
     if (!post) return null;
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-                <button 
-                    onClick={() => router.back()}
-                    className="text-sm text-gray-500 hover:text-gray-700 mb-2"
-                >
-                    ← Cancel & Back
-                </button>
-                <h1 className="text-2xl font-bold text-gray-900">Edit Post</h1>
-            </div>
-
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-6 md:py-8 px-0">
             <PostForm 
                 initialData={post}
-                role="municipality" // <--- Ensures "Global" option is HIDDEN
+                role="municipality"
                 onSuccess={() => router.push(buildUrlWithParams(`/admin/municipality/posts/${post.id}`))} 
             />
         </div>
+    );
+}
+
+export default function EditPostPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
+                        <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-[var(--brand-light)]/60">Loading post form...</p>
+                </div>
+            </div>
+        }>
+            <EditPostPageContent />
+        </Suspense>
     );
 }

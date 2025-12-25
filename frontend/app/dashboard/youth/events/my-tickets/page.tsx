@@ -2,21 +2,27 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
 import api from '@/lib/api';
 import { format } from 'date-fns';
-import { ChevronRight, ArrowLeft, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ChevronRight, ArrowLeft, Calendar, CheckCircle, Clock, AlertCircle, Ticket, X, MapPin } from 'lucide-react';
 import NavBar from '@/app/components/NavBar';
+import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import SwipeButton from '@/app/components/ui/SwipeButton';
+
 
 type TabType = 'active' | 'history';
 
 export default function MyTicketsPage() {
+    const pathname = usePathname();
     const [registrations, setRegistrations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('active');
     const [checkInState, setCheckInState] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
     const [checkInMessage, setCheckInMessage] = useState('');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         fetchRegistrations().finally(() => {
@@ -128,27 +134,27 @@ export default function MyTicketsPage() {
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'APPROVED':
-                return <CheckCircle className="w-4 h-4 text-green-600" />;
+                return <CheckCircle className="w-4 h-4 text-[var(--brand-third)]" />;
             case 'WAITLIST':
-                return <Clock className="w-4 h-4 text-orange-600" />;
+                return <Clock className="w-4 h-4 text-[var(--brand-third)]" />;
             case 'PENDING_GUARDIAN':
             case 'PENDING_ADMIN':
-                return <AlertCircle className="w-4 h-4 text-yellow-600" />;
+                return <AlertCircle className="w-4 h-4 text-[var(--brand-third)]" />;
             default:
-                return <Calendar className="w-4 h-4 text-gray-600" />;
+                return <Calendar className="w-4 h-4 text-[var(--brand-light)]/40" />;
         }
     };
 
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
-            APPROVED: 'bg-green-100 text-green-700',
-            WAITLIST: 'bg-orange-100 text-orange-700',
-            PENDING_GUARDIAN: 'bg-yellow-100 text-yellow-700',
-            PENDING_ADMIN: 'bg-blue-100 text-blue-700',
-            ATTENDED: 'bg-green-100 text-green-700',
+            APPROVED: 'bg-[var(--brand-third)] text-[var(--dark-900)]',
+            WAITLIST: 'bg-[var(--brand-third)] text-[var(--dark-900)]',
+            PENDING_GUARDIAN: 'bg-[var(--brand-primary)] text-[var(--dark-900)]',
+            PENDING_ADMIN: 'bg-[var(--brand-purple)] text-[var(--brand-light)]',
+            ATTENDED: 'bg-[var(--brand-third)] text-[var(--dark-900)]',
         };
         return (
-            <span className={`px-2 py-1 rounded-full text-xs font-bold ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
+            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${styles[status] || 'bg-[var(--dark-600)] text-[var(--brand-light)]/70'}`}>
                 {status === 'PENDING_GUARDIAN' ? 'Pending Guardian' :
                  status === 'PENDING_ADMIN' ? 'Pending Admin' :
                  status === 'ATTENDED' ? 'Attended' :
@@ -207,347 +213,411 @@ export default function MyTicketsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <NavBar />
-            <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-                <div className="flex flex-col md:flex-row gap-8">
-                    {/* Left Sidebar */}
-                    <aside className="w-full md:w-64 flex-shrink-0 space-y-6 md:sticky md:top-[72px] md:self-start md:max-h-[calc(100vh-88px)] md:overflow-y-auto">
-                        {/* Back Button */}
-                        <div>
-                            <Link 
-                                href="/dashboard/youth/events"
-                                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors mb-4"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                Back to Events
-                            </Link>
-                        </div>
+        <div className="min-h-screen bg-[var(--dark-900)]">
+            <NavBar 
+                showBackButton={true} 
+                darkMode={true}
+                onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+            />
+            
+            {/* Mobile Sidebar Overlay */}
+            <div 
+                className={`fixed inset-0 bg-black/60 z-40 md:hidden transition-opacity duration-300 ${
+                    isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={() => setIsSidebarOpen(false)}
+            />
+            
+            {/* Mobile Sidebar */}
+            <aside 
+                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
+                    <h1 className="text-xl font-bold text-[var(--brand-light)]">Menu</h1>
+                    <button
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
+                    <YouthSidebar activePath={pathname} darkMode={true} />
+                </div>
+            </aside>
 
-                        {/* Tabs */}
-                        <div>
-                            <div className="flex gap-2 border-b border-gray-200 mb-4">
-                                <button
-                                    onClick={() => setActiveTab('active')}
-                                    className={`px-4 py-2 font-semibold text-sm border-b-2 transition-colors ${
-                                        activeTab === 'active'
-                                            ? 'border-green-600 text-green-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                                    }`}
-                                >
-                                    Active ({activeEvents.length})
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('history')}
-                                    className={`px-4 py-2 font-semibold text-sm border-b-2 transition-colors ${
-                                        activeTab === 'history'
-                                            ? 'border-purple-600 text-purple-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                                    }`}
-                                >
-                                    History ({historyEvents.length})
-                                </button>
-                            </div>
-
-                            {/* Events List */}
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-900 mb-3">
-                                    {activeTab === 'active' ? 'Active Tickets' : 'Ticket History'}
-                                </h2>
-                                {loading ? (
-                                    <div className="text-sm text-gray-500">Loading...</div>
-                                ) : currentEvents.length === 0 ? (
-                                    <div className="text-sm text-gray-500">
-                                        {activeTab === 'active' 
-                                            ? 'No active tickets'
-                                            : 'No ticket history'}
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {currentEvents.map((event) => {
-                                            const reg = event.registration;
-                                            const isSelected = selectedEventId === event.id;
-                                            const isPast = event.end_date ? new Date(event.end_date) < new Date() : false;
-                                            const isAttended = reg.status === 'ATTENDED';
-                                            
-                                            return (
-                                                <button
-                                                    key={event.id}
-                                                    onClick={() => setSelectedEventId(event.id)}
-                                                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                                                        isSelected
-                                                            ? activeTab === 'active'
-                                                                ? 'bg-green-50 border-green-200 shadow-sm'
-                                                                : 'bg-purple-50 border-purple-200 shadow-sm'
-                                                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                                                    }`}
-                                                >
-                                                    <div className="flex items-start gap-2 mb-1">
-                                                        {activeTab === 'active' 
-                                                            ? getStatusIcon(reg.status)
-                                                            : isAttended 
-                                                                ? <CheckCircle className="w-4 h-4 text-green-600" />
-                                                                : <Calendar className="w-4 h-4 text-gray-400" />
-                                                        }
-                                                        <div className="flex-1 min-w-0">
-                                                            <h3 className={`font-semibold text-sm line-clamp-2 ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
-                                                                {event.title}
-                                                            </h3>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        {format(new Date(event.start_date), 'MMM d, HH:mm')}
-                                                        {isPast && activeTab === 'history' && (
-                                                            <span className="ml-2 text-gray-400">• Past</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="mt-2">
-                                                        {activeTab === 'active' ? (
-                                                            getStatusBadge(reg.status)
-                                                        ) : (
-                                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                                                isAttended 
-                                                                    ? 'bg-green-100 text-green-700'
-                                                                    : 'bg-gray-100 text-gray-700'
-                                                            }`}>
-                                                                {isAttended ? 'Attended' : 'Past Event'}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+            <div className="pt-14 sm:pt-16">
+                <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
+                    {/* Desktop Sidebar */}
+                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+                        <YouthSidebar activePath={pathname} darkMode={true} />
                     </aside>
-
-                    {/* Main Content */}
-                    <main className="flex-1">
-                        <div className="mb-6">
-                            <h1 className="text-2xl font-bold text-gray-900">My Tickets</h1>
-                            <p className="text-sm text-gray-500 mt-1">
-                                {selectedRegistration 
-                                    ? `Ticket for ${selectedRegistration.event_detail?.title || 'Event'}`
-                                    : 'Select an event to view your ticket'}
-                            </p>
-                        </div>
-
-                        {loading ? (
-                            <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
-                                Loading tickets...
-                            </div>
-                        ) : !selectedRegistration ? (
-                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
-                                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-500 mb-2 font-medium">No ticket selected</p>
-                                <p className="text-sm text-gray-400 mb-4">
-                                    Select an event from the {activeTab === 'active' ? 'active tickets' : 'history'} to view your ticket.
+                    
+                    {/* Content wrapper with left margin for sidebar */}
+                    <div className="md:ml-60">
+                        <div className="p-0 sm:p-4 md:p-6 pb-24 md:pb-6">
+                            {/* Header */}
+                            <div className="px-4 sm:px-0 mb-4 sm:mb-6">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <Ticket className="w-7 h-7 text-[var(--brand-primary)]" />
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">My Tickets</h1>
+                                </div>
+                                <p className="text-sm text-[var(--brand-light)]/60 pl-10">
+                                    {selectedRegistration 
+                                        ? `Ticket for ${selectedRegistration.event_detail?.title || 'Event'}`
+                                        : 'Select an event to view your ticket'}
                                 </p>
-                                {currentEvents.length === 0 && (
-                                    <Link 
-                                        href="/dashboard/youth/events" 
-                                        className="text-green-600 font-semibold hover:underline inline-block"
-                                    >
-                                        Browse Events →
-                                    </Link>
-                                )}
                             </div>
-                        ) : (
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                {/* Header Color Strip */}
-                                <div className={`h-2 ${selectedRegistration.status === 'APPROVED' ? 'bg-green-500' : selectedRegistration.status === 'WAITLIST' ? 'bg-orange-500' : 'bg-yellow-500'}`} />
-                                
-                                <div className="p-6">
-                                    <div className="mb-6">
-                                        <h2 className="font-bold text-2xl mb-2">
-                                            {selectedRegistration.event_detail?.title || 'Event'}
-                                        </h2>
-                                        <div className="flex flex-col gap-2 text-sm text-gray-600">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-green-600" />
-                                                <span className="font-medium">
-                                                    {format(new Date(selectedRegistration.event_detail.start_date), 'EEEE, MMMM d, yyyy • HH:mm')}
-                                                </span>
-                                            </div>
-                                            {selectedRegistration.event_detail?.location_name && (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-gray-400">📍</span>
-                                                    <span>{selectedRegistration.event_detail.location_name}</span>
-                                                </div>
-                                            )}
+
+                            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+                                {/* Ticket List Sidebar */}
+                                <aside className="w-full lg:w-72 flex-shrink-0 space-y-4">
+                                    {/* Tabs */}
+                                    <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                                        <div className="flex">
+                                            <button
+                                                onClick={() => setActiveTab('active')}
+                                                className={`flex-1 px-4 py-3 font-bold text-sm transition-all ${
+                                                    activeTab === 'active'
+                                                        ? 'bg-[var(--brand-third)] text-[var(--dark-900)]'
+                                                        : 'bg-[var(--dark-800)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]'
+                                                }`}
+                                            >
+                                                Active ({activeEvents.length})
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveTab('history')}
+                                                className={`flex-1 px-4 py-3 font-bold text-sm transition-all ${
+                                                    activeTab === 'history'
+                                                        ? 'bg-[var(--brand-purple)] text-[var(--brand-light)]'
+                                                        : 'bg-[var(--dark-800)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]'
+                                                }`}
+                                            >
+                                                History ({historyEvents.length})
+                                            </button>
                                         </div>
                                     </div>
 
-                                    {/* Ticket Area */}
-                                    {selectedRegistration.status === 'APPROVED' && selectedRegistration.ticket && activeTab === 'active' ? (
-                                        <div className="bg-gradient-to-br from-gray-50 to-green-50/30 rounded-xl p-8 flex flex-col items-center justify-center border-2 border-dashed border-green-200">
-                                            <div className="text-center mb-6">
-                                                <div className="mb-4 flex items-center justify-center gap-2 text-green-600 font-bold text-lg">
-                                                    <CheckCircle className="w-6 h-6" />
-                                                    <span>Confirmed Seat</span>
-                                                </div>
-                                                <div className="bg-white px-6 py-3 rounded-lg border-2 border-green-200 shadow-sm mb-4">
-                                                    <span className="text-lg font-mono text-gray-700 tracking-wider">
-                                                        {selectedRegistration.ticket.ticket_code}
-                                                    </span>
-                                                </div>
+                                    {/* Events List */}
+                                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-3 sm:p-4">
+                                        <h2 className="text-lg font-bold text-[var(--brand-light)] mb-3 font-heading">
+                                            {activeTab === 'active' ? 'Active Tickets' : 'Ticket History'}
+                                        </h2>
+                                        {loading ? (
+                                            <div className="flex justify-center py-8">
+                                                <div className="w-8 h-8 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
                                             </div>
-
-                                            {/* Check if already checked in */}
-                                            {selectedRegistration.ticket.checked_in_at ? (
-                                                <div className="w-full max-w-md py-4">
-                                                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                        <CheckCircle className="w-8 h-8" />
-                                                    </div>
-                                                    <h4 className="text-lg font-bold text-green-700 text-center">Already Checked In</h4>
-                                                    <p className="text-xs text-gray-500 mt-1 text-center">
-                                                        Checked in at {format(new Date(selectedRegistration.ticket.checked_in_at), 'MMM d, yyyy • h:mm a')}
-                                                    </p>
-                                                </div>
-                                            ) : (() => {
-                                                // Calculate if check-in is allowed (1 hour before start until event ends)
-                                                const eventStartDate = new Date(selectedRegistration.event_detail.start_date);
-                                                const eventEndDate = new Date(selectedRegistration.event_detail.end_date || selectedRegistration.event_detail.start_date);
-                                                const now = new Date();
-                                                const oneHourBeforeStart = new Date(eventStartDate.getTime() - 60 * 60 * 1000); // 1 hour in milliseconds
-                                                
-                                                const isTooEarly = now < oneHourBeforeStart;
-                                                const isTooLate = now > eventEndDate;
-                                                const canCheckIn = !isTooEarly && !isTooLate;
-                                                
-                                                return (
-                                                    <>
-                                                        {/* Swipe to Check In */}
-                                                        {checkInState === 'IDLE' && (
-                                                            <div className="w-full max-w-md space-y-3">
-                                                                {isTooEarly ? (
-                                                                    <div className="p-3 bg-gray-50 text-gray-600 text-xs rounded-lg border border-gray-200 text-center">
-                                                                        ⏰ Check-in will be available starting {format(oneHourBeforeStart, 'MMM d, yyyy • h:mm a')}
-                                                                    </div>
-                                                                ) : isTooLate ? (
-                                                                    <div className="p-3 bg-gray-50 text-gray-600 text-xs rounded-lg border border-gray-200 text-center">
-                                                                        ⏰ This event has ended. Check-in is no longer available.
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="p-3 bg-yellow-50 text-yellow-800 text-xs rounded-lg border border-yellow-100 text-center">
-                                                                        ⚠️ Show this screen to staff and swipe to check in when you arrive.
-                                                                    </div>
-                                                                )}
-                                                                <SwipeButton 
-                                                                    onSuccess={handleCheckIn} 
-                                                                    text="Swipe to Check In"
-                                                                    successText="Checked In!"
-                                                                    color="green"
-                                                                    disabled={!canCheckIn}
-                                                                />
-                                                            </div>
-                                                        )}
-
-                                                    {checkInState === 'SUCCESS' && (
-                                                        <div className="w-full max-w-md py-4 animate-in fade-in zoom-in duration-300">
-                                                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                                <CheckCircle className="w-8 h-8" />
-                                                            </div>
-                                                            <h4 className="text-lg font-bold text-green-700 text-center">Checked In!</h4>
-                                                            <p className="text-xs text-gray-500 mt-1 text-center">{checkInMessage}</p>
-                                                        </div>
-                                                    )}
-
-                                                    {checkInState === 'ERROR' && (
-                                                        <div className="w-full max-w-md py-2 text-red-600">
-                                                            <p className="text-sm font-bold text-center">Error!</p>
-                                                            <p className="text-xs text-center mt-1">{checkInMessage}</p>
-                                                            <button 
-                                                                onClick={() => {
-                                                                    setCheckInState('IDLE');
-                                                                    setCheckInMessage('');
-                                                                }}
-                                                                className="mt-2 text-xs underline w-full text-center block"
-                                                            >
-                                                                Try Again
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )})()}
-                                        </div>
-                                    ) : selectedRegistration.status === 'ATTENDED' && activeTab === 'history' ? (
-                                        <div className="bg-gradient-to-br from-gray-50 to-green-50/30 rounded-xl p-8 flex flex-col items-center justify-center border-2 border-dashed border-green-200">
-                                            <div className="text-center">
-                                                <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-                                                <div className="mt-4 flex items-center justify-center gap-2 text-green-600 font-bold text-lg">
-                                                    <span>Event Attended</span>
-                                                </div>
-                                                {selectedRegistration.ticket && (
-                                                    <div className="mt-4">
-                                                        <span className="text-sm font-mono text-gray-600 tracking-wider bg-white px-4 py-2 rounded-lg border border-gray-200">
-                                                            Ticket: {selectedRegistration.ticket.ticket_code}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : activeTab === 'history' ? (
-                                        <div className="bg-gradient-to-br from-gray-50 to-gray-50/30 rounded-xl p-8 flex flex-col items-center justify-center border-2 border-dashed border-gray-200">
-                                            <div className="text-center">
-                                                <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                                <div className="mt-4 flex items-center justify-center gap-2 text-gray-600 font-bold text-lg">
-                                                    <span>Past Event</span>
-                                                </div>
-                                                <p className="text-sm text-gray-500 mt-2">
-                                                    This event has ended.
+                                        ) : currentEvents.length === 0 ? (
+                                            <div className="text-center py-8 bg-[var(--dark-700)] rounded-xl border border-dashed border-[var(--dark-500)]">
+                                                <Ticket className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-3" />
+                                                <p className="text-sm text-[var(--brand-light)]/50 font-semibold">
+                                                    {activeTab === 'active' 
+                                                        ? 'No active tickets'
+                                                        : 'No ticket history'}
                                                 </p>
                                             </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {currentEvents.map((event) => {
+                                                    const reg = event.registration;
+                                                    const isSelected = selectedEventId === event.id;
+                                                    const isPast = event.end_date ? new Date(event.end_date) < new Date() : false;
+                                                    const isAttended = reg.status === 'ATTENDED';
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={event.id}
+                                                            onClick={() => setSelectedEventId(event.id)}
+                                                            className={`w-full text-left p-3 rounded-xl border transition-all ${
+                                                                isSelected
+                                                                    ? activeTab === 'active'
+                                                                        ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]'
+                                                                        : 'bg-[var(--brand-purple)]/10 border-[var(--brand-purple)]'
+                                                                    : 'bg-[var(--dark-700)] border-[var(--dark-600)] hover:bg-[var(--dark-600)] hover:border-[var(--dark-500)]'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-start gap-2 mb-1">
+                                                                {activeTab === 'active' 
+                                                                    ? getStatusIcon(reg.status)
+                                                                    : isAttended 
+                                                                        ? <CheckCircle className="w-4 h-4 text-[var(--brand-third)]" />
+                                                                        : <Calendar className="w-4 h-4 text-[var(--brand-light)]/40" />
+                                                                }
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h3 className={`font-bold text-sm line-clamp-2 ${isSelected ? 'text-[var(--brand-light)]' : 'text-[var(--brand-light)]/80'}`}>
+                                                                        {event.title}
+                                                                    </h3>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-xs text-[var(--brand-light)]/50 mt-1 font-medium">
+                                                                {format(new Date(event.start_date), 'MMM d, HH:mm')}
+                                                                {isPast && activeTab === 'history' && (
+                                                                    <span className="ml-2 text-[var(--brand-light)]/30">• Past</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="mt-2">
+                                                                {activeTab === 'active' ? (
+                                                                    getStatusBadge(reg.status)
+                                                                ) : (
+                                                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                                                        isAttended 
+                                                                            ? 'bg-[var(--brand-third)] text-[var(--dark-900)]'
+                                                                            : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70'
+                                                                    }`}>
+                                                                        {isAttended ? 'Attended' : 'Past Event'}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </aside>
+
+                                {/* Main Content */}
+                                <main className="flex-1">
+                                    {loading ? (
+                                        <div className="text-center py-12 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                                            <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+                                            <p className="text-[var(--brand-light)]/50 font-semibold">Loading tickets...</p>
+                                        </div>
+                                    ) : !selectedRegistration ? (
+                                        <div className="text-center py-12 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                                            <div className="w-20 h-20 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                                <Ticket className="w-10 h-10 text-[var(--brand-light)]/30" />
+                                            </div>
+                                            <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">No ticket selected</p>
+                                            <p className="text-sm text-[var(--brand-light)]/60 mb-4">
+                                                Select an event from the {activeTab === 'active' ? 'active tickets' : 'history'} to view your ticket.
+                                            </p>
+                                            {currentEvents.length === 0 && (
+                                                <Link 
+                                                    href="/dashboard/youth/events" 
+                                                    className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all"
+                                                >
+                                                    Browse Events →
+                                                </Link>
+                                            )}
                                         </div>
                                     ) : (
-                                        <div className={`rounded-xl p-6 text-center border-2 ${
-                                            selectedRegistration.status === 'WAITLIST' 
-                                                ? 'bg-orange-50 border-orange-200' 
-                                                : 'bg-yellow-50 border-yellow-200'
-                                        }`}>
-                                            <div className="mb-3">
-                                                {selectedRegistration.status === 'WAITLIST' ? (
-                                                    <Clock className="w-12 h-12 text-orange-600 mx-auto" />
+                                        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                                            {/* Header Color Strip */}
+                                            <div className={`h-2 ${
+                                                selectedRegistration.status === 'APPROVED' 
+                                                    ? 'bg-[var(--brand-third)]' 
+                                                    : selectedRegistration.status === 'WAITLIST' 
+                                                        ? 'bg-[var(--brand-third)]' 
+                                                        : selectedRegistration.status === 'ATTENDED'
+                                                            ? 'bg-[var(--brand-third)]'
+                                                            : 'bg-[var(--brand-primary)]'
+                                            }`} />
+                                            
+                                            <div className="p-4 sm:p-6">
+                                                <div className="mb-6">
+                                                    <h2 className="font-bold text-xl sm:text-2xl mb-3 text-[var(--brand-light)] font-heading">
+                                                        {selectedRegistration.event_detail?.title || 'Event'}
+                                                    </h2>
+                                                    <div className="flex flex-col gap-2 text-sm">
+                                                        <div className="flex items-center gap-2 bg-[var(--dark-700)] p-3 rounded-xl border border-[var(--dark-600)]">
+                                                            <Calendar className="w-4 h-4 text-[var(--brand-third)]" />
+                                                            <span className="font-bold text-[var(--brand-light)]">
+                                                                {format(new Date(selectedRegistration.event_detail.start_date), 'EEEE, MMMM d, yyyy • HH:mm')}
+                                                            </span>
+                                                        </div>
+                                                        {selectedRegistration.event_detail?.location_name && (
+                                                            <div className="flex items-center gap-2 bg-[var(--dark-700)] p-3 rounded-xl border border-[var(--dark-600)]">
+                                                                <MapPin className="w-4 h-4 text-[var(--brand-primary)]" />
+                                                                <span className="font-semibold text-[var(--brand-light)]/80">{selectedRegistration.event_detail.location_name}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Ticket Area */}
+                                                {selectedRegistration.status === 'APPROVED' && selectedRegistration.ticket && activeTab === 'active' ? (
+                                                    <div className="bg-[var(--brand-third)]/10 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center border border-dashed border-[var(--brand-third)]/50">
+                                                        <div className="text-center mb-6">
+                                                            <div className="mb-4 flex items-center justify-center gap-2 text-[var(--brand-third)] font-bold text-lg">
+                                                                <CheckCircle className="w-6 h-6" />
+                                                                <span className="font-heading">Confirmed Seat</span>
+                                                            </div>
+                                                            <div className="bg-[var(--dark-700)] px-6 py-4 rounded-xl border-2 border-[var(--brand-third)] mb-4">
+                                                                <span className="text-lg sm:text-xl font-mono text-[var(--brand-light)] tracking-wider font-bold">
+                                                                    {selectedRegistration.ticket.ticket_code}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Check if already checked in */}
+                                                        {selectedRegistration.ticket.checked_in_at ? (
+                                                            <div className="w-full max-w-md py-4">
+                                                                <div className="w-20 h-20 bg-[var(--brand-third)] text-[var(--dark-900)] rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                                                    <CheckCircle className="w-10 h-10" />
+                                                                </div>
+                                                                <h4 className="text-lg font-bold text-[var(--brand-third)] text-center font-heading">Already Checked In</h4>
+                                                                <p className="text-xs text-[var(--brand-light)]/60 mt-2 text-center font-semibold bg-[var(--dark-700)] px-3 py-2 rounded-lg inline-block">
+                                                                    {format(new Date(selectedRegistration.ticket.checked_in_at), 'MMM d, yyyy • h:mm a')}
+                                                                </p>
+                                                            </div>
+                                                        ) : (() => {
+                                                            // Calculate if check-in is allowed (1 hour before start until event ends)
+                                                            const eventStartDate = new Date(selectedRegistration.event_detail.start_date);
+                                                            const eventEndDate = new Date(selectedRegistration.event_detail.end_date || selectedRegistration.event_detail.start_date);
+                                                            const now = new Date();
+                                                            const oneHourBeforeStart = new Date(eventStartDate.getTime() - 60 * 60 * 1000); // 1 hour in milliseconds
+                                                            
+                                                            const isTooEarly = now < oneHourBeforeStart;
+                                                            const isTooLate = now > eventEndDate;
+                                                            const canCheckIn = !isTooEarly && !isTooLate;
+                                                            
+                                                            return (
+                                                                <>
+                                                                    {/* Swipe to Check In */}
+                                                                    {checkInState === 'IDLE' && (
+                                                                        <div className="w-full max-w-md space-y-3">
+                                                                            {isTooEarly ? (
+                                                                                <div className="p-3 bg-[var(--dark-700)] text-[var(--brand-light)]/70 text-xs rounded-xl border border-[var(--dark-600)] text-center font-semibold">
+                                                                                    ⏰ Check-in opens {format(oneHourBeforeStart, 'MMM d • h:mm a')}
+                                                                                </div>
+                                                                            ) : isTooLate ? (
+                                                                                <div className="p-3 bg-[var(--dark-700)] text-[var(--brand-light)]/70 text-xs rounded-xl border border-[var(--dark-600)] text-center font-semibold">
+                                                                                    ⏰ Event has ended. Check-in closed.
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="p-3 bg-[var(--brand-third)]/10 text-[var(--brand-third)] text-xs rounded-xl border border-[var(--brand-third)]/30 text-center font-bold">
+                                                                                    ⚠️ Show this to staff and swipe to check in
+                                                                                </div>
+                                                                            )}
+                                                                            <SwipeButton 
+                                                                                onSuccess={handleCheckIn} 
+                                                                                text="Swipe to Check In"
+                                                                                successText="Checked In!"
+                                                                                color="green"
+                                                                                disabled={!canCheckIn}
+                                                                            />
+                                                                        </div>
+                                                                    )}
+
+                                                                    {checkInState === 'SUCCESS' && (
+                                                                        <div className="w-full max-w-md py-4 animate-in fade-in zoom-in duration-300">
+                                                                            <div className="w-20 h-20 bg-[var(--brand-third)] text-[var(--dark-900)] rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                                                                <CheckCircle className="w-10 h-10" />
+                                                                            </div>
+                                                                            <h4 className="text-lg font-bold text-[var(--brand-third)] text-center font-heading">Checked In!</h4>
+                                                                            <p className="text-xs text-[var(--brand-light)]/60 mt-2 text-center font-semibold bg-[var(--dark-700)] px-3 py-2 rounded-lg inline-block">{checkInMessage}</p>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {checkInState === 'ERROR' && (
+                                                                        <div className="w-full max-w-md py-4">
+                                                                            <div className="w-20 h-20 bg-[var(--brand-red)] text-white rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                                                                <AlertCircle className="w-10 h-10" />
+                                                                            </div>
+                                                                            <p className="text-lg font-bold text-[var(--brand-red)] text-center mb-2 font-heading">Error!</p>
+                                                                            <p className="text-sm text-[var(--brand-light)]/60 text-center mb-3 bg-[var(--brand-red)]/10 px-3 py-2 rounded-lg">{checkInMessage}</p>
+                                                                            <button 
+                                                                                onClick={() => {
+                                                                                    setCheckInState('IDLE');
+                                                                                    setCheckInMessage('');
+                                                                                }}
+                                                                                className="bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all mx-auto block"
+                                                                            >
+                                                                                Try Again
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            )})()}
+                                                    </div>
+                                                ) : selectedRegistration.status === 'ATTENDED' && activeTab === 'history' ? (
+                                                    <div className="bg-[var(--brand-third)]/10 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center border border-dashed border-[var(--brand-third)]/50">
+                                                        <div className="text-center">
+                                                            <div className="w-20 h-20 bg-[var(--brand-third)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                                                <CheckCircle className="w-10 h-10 text-[var(--dark-900)]" />
+                                                            </div>
+                                                            <div className="mt-2 text-[var(--brand-third)] font-bold text-xl font-heading">
+                                                                Event Attended
+                                                            </div>
+                                                            {selectedRegistration.ticket && (
+                                                                <div className="mt-4">
+                                                                    <span className="text-sm font-mono text-[var(--brand-light)] tracking-wider bg-[var(--dark-700)] px-4 py-2.5 rounded-xl border border-[var(--brand-third)] font-bold inline-block">
+                                                                        {selectedRegistration.ticket.ticket_code}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ) : activeTab === 'history' ? (
+                                                    <div className="bg-[var(--dark-700)] rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center border border-dashed border-[var(--dark-500)]">
+                                                        <div className="text-center">
+                                                            <div className="w-20 h-20 bg-[var(--dark-600)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                                                <Calendar className="w-10 h-10 text-[var(--brand-light)]/40" />
+                                                            </div>
+                                                            <div className="mt-2 text-[var(--brand-light)] font-bold text-xl font-heading">
+                                                                Past Event
+                                                            </div>
+                                                            <p className="text-sm text-[var(--brand-light)]/60 mt-2 font-semibold">
+                                                                This event has ended.
+                                                            </p>
+                                                        </div>
+                                                    </div>
                                                 ) : (
-                                                    <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto" />
+                                                    <div className={`rounded-2xl p-6 sm:p-8 text-center border ${
+                                                        selectedRegistration.status === 'WAITLIST' 
+                                                            ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' 
+                                                            : 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30'
+                                                    }`}>
+                                                        <div className="mb-4">
+                                                            {selectedRegistration.status === 'WAITLIST' ? (
+                                                                <div className="w-20 h-20 bg-[var(--brand-third)] rounded-2xl flex items-center justify-center mx-auto">
+                                                                    <Clock className="w-10 h-10 text-[var(--dark-900)]" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-20 h-20 bg-[var(--brand-primary)] rounded-2xl flex items-center justify-center mx-auto">
+                                                                    <AlertCircle className="w-10 h-10 text-[var(--dark-900)]" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <p className={`font-bold text-xl mb-3 font-heading ${
+                                                            selectedRegistration.status === 'WAITLIST' ? 'text-[var(--brand-third)]' : 'text-[var(--brand-primary)]'
+                                                        }`}>
+                                                            {selectedRegistration.status === 'WAITLIST' ? 'You are on the Waitlist' : 
+                                                             selectedRegistration.status === 'PENDING_GUARDIAN' ? 'Waiting for Guardian Approval' :
+                                                             selectedRegistration.status === 'PENDING_ADMIN' ? 'Waiting for Admin Approval' :
+                                                             'Pending Approval'}
+                                                        </p>
+                                                        <p className={`text-sm font-semibold bg-[var(--dark-700)] px-4 py-2 rounded-xl inline-block ${
+                                                            selectedRegistration.status === 'WAITLIST' ? 'text-[var(--brand-third)]' : 'text-[var(--brand-primary)]'
+                                                        }`}>
+                                                            {selectedRegistration.status === 'WAITLIST' 
+                                                                ? "You'll be notified if a seat becomes available."
+                                                                : "You will receive a notification if your seat is confirmed."}
+                                                        </p>
+                                                    </div>
                                                 )}
+                                                
+                                                {/* Actions */}
+                                                <div className="mt-6 pt-6 border-t border-[var(--dark-600)]">
+                                                    <Link 
+                                                        href={`/dashboard/youth/events/${selectedRegistration.event}`} 
+                                                        className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all"
+                                                    >
+                                                        View Event Details →
+                                                    </Link>
+                                                </div>
                                             </div>
-                                            <p className={`font-bold text-lg mb-2 ${
-                                                selectedRegistration.status === 'WAITLIST' ? 'text-orange-800' : 'text-yellow-800'
-                                            }`}>
-                                                {selectedRegistration.status === 'WAITLIST' ? 'You are on the Waitlist' : 
-                                                 selectedRegistration.status === 'PENDING_GUARDIAN' ? 'Waiting for Guardian Approval' :
-                                                 selectedRegistration.status === 'PENDING_ADMIN' ? 'Waiting for Admin Approval' :
-                                                 'Pending Approval'}
-                                            </p>
-                                            <p className={`text-sm ${
-                                                selectedRegistration.status === 'WAITLIST' ? 'text-orange-600' : 'text-yellow-600'
-                                            }`}>
-                                                {selectedRegistration.status === 'WAITLIST' 
-                                                    ? "You'll be notified if a seat becomes available."
-                                                    : "You will receive a notification if your seat is confirmed."}
-                                            </p>
                                         </div>
                                     )}
-                                    
-                                    {/* Actions */}
-                                    <div className="mt-6 pt-6 border-t flex justify-between items-center">
-                                        <Link 
-                                            href={`/dashboard/youth/events/${selectedRegistration.event}`} 
-                                            className="text-sm text-green-600 font-semibold hover:text-green-700 flex items-center gap-1"
-                                        >
-                                            View Event Details →
-                                        </Link>
-                                    </div>
-                                </div>
+                                </main>
                             </div>
-                        )}
-                    </main>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
-

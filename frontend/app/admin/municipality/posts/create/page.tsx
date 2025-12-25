@@ -1,28 +1,36 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import PostForm from '../../../../components/posts/PostForm';
+import { Sparkles } from 'lucide-react';
 
-export default function CreatePostPage() {
+function CreatePostPageContent() {
     const router = useRouter();
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-                <button 
-                    onClick={() => router.back()}
-                    className="text-sm text-gray-500 hover:text-gray-700 mb-2"
-                >
-                    ← Back to Posts
-                </button>
-                <h1 className="text-2xl font-bold text-gray-900">Create New Post</h1>
-                <p className="text-gray-500">Share updates, news, or media with your members.</p>
-            </div>
-
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-6 md:py-8 px-0">
             <PostForm 
-                role="municipality" // <--- This ensures only Municipality options are shown
+                role="municipality"
                 onSuccess={() => router.push('/admin/municipality/posts')} 
             />
         </div>
+    );
+}
+
+export default function CreatePostPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
+                        <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-[var(--brand-light)]/60">Loading post form...</p>
+                </div>
+            </div>
+        }>
+            <CreatePostPageContent />
+        </Suspense>
     );
 }

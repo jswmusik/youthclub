@@ -2,41 +2,57 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db.models import Q
 import re
+import logging
 from .models import Post
 from users.models import User
 from notifications.models import Notification
 from .engine import PostEngine
 
+logger = logging.getLogger(__name__)
+
 @receiver(post_save, sender=Post)
 def create_post_notification(sender, instance, created, **kwargs):
     """
     Triggers when a Post is saved. 
-    Checks if it is PUBLISHED and sends notifications to relevant users.
+    Checks if it is PUBLISHED and send_push_notification is True, then sends notifications to relevant users.
     """
     post = instance
 
+    # Use print for immediate visibility in console
+    print(f"[POST SIGNAL] Post saved: id={post.id}, title='{post.title}', status={post.status}, send_push={post.send_push_notification}, is_global={post.is_global}")
+    logger.info(f"[POST SIGNAL] Post saved: id={post.id}, title='{post.title}', status={post.status}, send_push={post.send_push_notification}, is_global={post.is_global}")
+
     # 1. Basic Gatekeeping
     # Only notify if the post is PUBLISHED.
-    # We also check if it was just created OR if the status just changed to PUBLISHED
-    # (For simplicity in this step, we process if status is PUBLISHED)
     if post.status != Post.Status.PUBLISHED:
+        print(f"[POST SIGNAL] Skipping: Post {post.id} is not PUBLISHED (status={post.status})")
         return
+
+    # Check if push notifications should be sent for this post
+    # If send_push_notification is False, skip sending notifications
+    if not post.send_push_notification:
+        print(f"[POST SIGNAL] Skipping: Post {post.id} has send_push_notification=False")
+        return
+    
+    print(f"[POST SIGNAL] Post {post.id} passed initial checks, continuing...")
 
     # Skip notifications for activity posts (posts authored by the user themselves)
     # These are personal activity posts like "Joined Group", "Borrowed Item", "Returned Item" 
     # and shouldn't trigger notifications
-    # Check if it's an activity post: authored by the user AND title starts with activity keywords
     if post.author and post.title:
         activity_keywords = ['Joined ', 'Borrowed ', 'Returned ', 'Borrowed & Returned ', 'Completed Questionnaire: ']
         if any(post.title.startswith(keyword) for keyword in activity_keywords):
             # Activity posts are created for the user's own feed, so they shouldn't get notifications
             return
 
-    # If updated, avoid duplicate massive notifications? 
+    # If updated, avoid duplicate massive notifications
     # A simple check: if notifications already exist for this post, skip.
     # This prevents editing a typo from spamming everyone again.
     if Notification.objects.filter(category=Notification.Category.POST, action_url__icontains=f"post={post.id}").exists():
+        print(f"[POST SIGNAL] Skipping: Notifications already exist for post {post.id}")
         return
+    
+    print(f"[POST SIGNAL] Processing notifications for post {post.id}")
 
     # 2. Find "Candidate" Users (Broad Net)
     # We want to find anyone who MIGHT be interested, then filter them down strictly.
@@ -88,9 +104,13 @@ def create_post_notification(sender, instance, created, **kwargs):
     if not post.is_global:
         if query_filter:
             candidates = candidates.filter(query_filter).distinct()
+            print(f"[POST SIGNAL] Post {post.id}: Found {candidates.count()} candidate users after filtering")
         else:
             # If it's not global and targets nothing we know of, notify no one
+            print(f"[POST SIGNAL] Skipping: Post {post.id} has no targeting (not global, no clubs/municipalities)")
             return
+    else:
+        print(f"[POST SIGNAL] Post {post.id}: Global post, {candidates.count()} candidate users")
 
     # 3. Smart Filtering & Bulk Creation
     notifications_to_create = []
@@ -123,7 +143,16 @@ def create_post_notification(sender, instance, created, **kwargs):
             # Fallback to post if we can't find group ID
             action_url = f"/dashboard/youth?post={post.id}"
     else:
-        notification_title = f"New post from {source_name}"
+        # Use custom push_title if provided, otherwise generate default
+        if post.push_title:
+            notification_title = post.push_title
+        else:
+            notification_title = f"New post from {source_name}"
+        
+        # Use custom push_message if provided, otherwise use post title
+        if post.push_message:
+            display_title = post.push_message[:100] + "..." if len(post.push_message) > 100 else post.push_message
+        
         action_url = f"/dashboard/youth?post={post.id}"
 
     # We need to loop to check specific permissions (Age, Group, Gender)
@@ -147,4 +176,7 @@ def create_post_notification(sender, instance, created, **kwargs):
     # 4. Bulk Insert for Performance
     if notifications_to_create:
         Notification.objects.bulk_create(notifications_to_create)
+        print(f"[POST SIGNAL] Created {len(notifications_to_create)} notifications for post {post.id}")
+    else:
+        print(f"[POST SIGNAL] No notifications created for post {post.id} (no eligible users passed PostEngine check)")
 

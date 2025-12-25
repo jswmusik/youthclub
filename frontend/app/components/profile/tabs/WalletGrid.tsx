@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
 import { getMediaUrl } from '@/app/utils';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import SwipeButton from '@/app/components/ui/SwipeButton';
+import { WalletPageSkeleton } from '@/app/components/ui/Skeleton';
+import { Wallet, Gift, Ticket, Check, Sparkles } from 'lucide-react';
+
+// Minimum skeleton display time (in ms) for better UX
+const MIN_LOADING_TIME = 400;
 
 interface Reward {
   id: number;
@@ -19,10 +25,19 @@ interface Reward {
   sponsor: string;
 }
 
-export default function WalletGrid({ user }: { user: any }) {
+export default function WalletGrid({ user, darkMode = false }: { user: any; darkMode?: boolean }) {
   const router = useRouter();
-  const rewards: Reward[] = user.my_rewards || [];
+  const rewards: Reward[] = user?.my_rewards || [];
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+  const [showSkeleton, setShowSkeleton] = useState(true);
+
+  // Minimum loading time for skeleton display
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSkeleton(false);
+    }, MIN_LOADING_TIME);
+    return () => clearTimeout(timer);
+  }, []);
   
   // Redeem State
   const [redeemState, setRedeemState] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
@@ -39,6 +54,11 @@ export default function WalletGrid({ user }: { user: any }) {
     setRedeemState('IDLE');
     setFeedbackMsg('');
   };
+
+  // Show skeleton while loading
+  if (showSkeleton || !user) {
+    return <WalletPageSkeleton />;
+  }
 
   const handleRedeem = async () => {
     if (!selectedReward || !selectedReward.reward_id) return;
@@ -70,11 +90,17 @@ export default function WalletGrid({ user }: { user: any }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-          <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <h3 className={`text-2xl font-bold flex items-center gap-3 font-heading ${
+          darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+        }`}>
+          <Wallet className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
           My Wallet
         </h3>
-        <span className="text-xs font-medium text-gray-400">
+        <span className={`px-4 py-2 text-sm font-bold rounded-xl ${
+          darkMode 
+            ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+            : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md'
+        }`}>
           {rewards.filter(r => !r.is_redeemed).length} Available
         </span>
       </div>
@@ -90,14 +116,21 @@ export default function WalletGrid({ user }: { user: any }) {
                 key={reward.id} 
                 onClick={() => active && handleOpenModal(reward)}
                 className={`
-                  relative border rounded-xl overflow-hidden transition-all duration-200
-                  ${active 
-                    ? 'bg-[#050505] border-[#262626] shadow-sm hover:shadow-md cursor-pointer hover:border-[#4D4DA4]/40' 
-                    : 'bg-[#0a0a0a] border-[#262626] opacity-70'}
+                  relative overflow-hidden transition-all duration-200
+                  ${darkMode 
+                    ? `bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-500)] ${active ? 'hover:border-[var(--brand-primary)]/50 cursor-pointer' : 'opacity-60'}`
+                    : `border-2 rounded-2xl ${active 
+                        ? 'bg-white border-[#4D4DA4]/20 shadow-lg hover:shadow-xl cursor-pointer hover:border-[#4D4DA4]/50 hover:scale-105' 
+                        : 'bg-gray-50 border-gray-200 opacity-60'}`
+                  }
                 `}
               >
                 {/* Image Section */}
-                <div className="h-32 bg-black relative">
+                <div className={`h-40 relative ${
+                  darkMode 
+                    ? 'bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-purple)]' 
+                    : 'bg-gradient-to-br from-[#EBEBFE] to-[#FFE8F0]'
+                }`}>
                   {reward.reward_image ? (
                     <img 
                       src={getMediaUrl(reward.reward_image)} 
@@ -105,38 +138,87 @@ export default function WalletGrid({ user }: { user: any }) {
                       className={`w-full h-full object-cover ${!active ? 'grayscale' : ''}`} 
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-[#4D4DA4]">
-                      <span className="text-4xl">🎁</span>
+                    <div className={`w-full h-full flex items-center justify-center ${
+                      darkMode 
+                        ? 'bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-primary)]' 
+                        : 'bg-gradient-to-br from-[#4D4DA4] to-[#FF5485]'
+                    }`}>
+                      <Gift className="w-16 h-16 text-white" />
                     </div>
                   )}
                   
                   {/* Status Badge */}
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-3 right-3">
                     {reward.is_redeemed && (
-                      <span className="bg-[#0a0a0a] text-gray-300 border border-[#262626] text-xs font-bold px-2 py-1 rounded">USED</span>
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${
+                        darkMode 
+                          ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border border-[var(--dark-400)]' 
+                          : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 shadow-md'
+                      }`}>USED</span>
                     )}
                     {expired && !reward.is_redeemed && (
-                      <span className="bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold px-2 py-1 rounded">EXPIRED</span>
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${
+                        darkMode 
+                          ? 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30' 
+                          : 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md'
+                      }`}>EXPIRED</span>
                     )}
                   </div>
+                  
+                  {/* Active indicator */}
+                  {active && (
+                    <div className="absolute top-3 left-3">
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 ${
+                        darkMode 
+                          ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30' 
+                          : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md'
+                      }`}>
+                        <Sparkles className="w-3 h-3" />
+                        READY
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Ticket "Punch" Holes (Visual Flair) */}
-                <div className="absolute top-32 -left-2 w-4 h-4 bg-[#050505] rounded-full" />
-                <div className="absolute top-32 -right-2 w-4 h-4 bg-[#050505] rounded-full" />
-                <div className="border-t border-dashed border-[#262626] my-0" />
+                <div className={`absolute top-40 -left-2 w-5 h-5 rounded-full border-2 ${
+                  darkMode 
+                    ? 'bg-[var(--dark-900)] border-[var(--dark-500)]' 
+                    : 'bg-[#f5f5ff] border-[#4D4DA4]/20'
+                }`} />
+                <div className={`absolute top-40 -right-2 w-5 h-5 rounded-full border-2 ${
+                  darkMode 
+                    ? 'bg-[var(--dark-900)] border-[var(--dark-500)]' 
+                    : 'bg-[#f5f5ff] border-[#4D4DA4]/20'
+                }`} />
+                <div className={`border-t-2 border-dashed my-0 ${
+                  darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/20'
+                }`} />
 
                 {/* Content Section */}
-                <div className="p-4">
-                  <h4 className="font-bold text-gray-200 line-clamp-1">{reward.reward_name}</h4>
-                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{reward.description}</p>
+                <div className="p-5">
+                  <h4 className={`font-bold text-lg line-clamp-1 mb-2 font-heading ${
+                    darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+                  }`}>{reward.reward_name}</h4>
+                  <p className={`text-xs line-clamp-2 mb-3 ${
+                    darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                  }`}>{reward.description}</p>
                   
                   {reward.sponsor && (
-                     <p className="text-xs text-[#6D6DD4] mt-2 font-medium">Sponsored by {reward.sponsor}</p>
+                     <p className={`text-xs font-bold mb-3 flex items-center gap-1 ${
+                       darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+                     }`}>
+                       <Gift className="w-3 h-3" />
+                       {reward.sponsor}
+                     </p>
                   )}
 
                   {active && (
-                    <div className="mt-3 w-full py-1.5 bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30 text-xs font-bold rounded-lg text-center">
+                    <div className={`mt-3 w-full py-2.5 text-xs font-bold rounded-xl text-center ${
+                      darkMode 
+                        ? 'bg-[var(--brand-secondary)] text-[var(--brand-light)]' 
+                        : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md'
+                    }`}>
                       Tap to Redeem
                     </div>
                   )}
@@ -146,35 +228,72 @@ export default function WalletGrid({ user }: { user: any }) {
           })}
         </div>
       ) : (
-        <div className="text-center py-10 bg-[#050505] rounded-xl border border-dashed border-[#262626]">
-           <div className="text-4xl mb-3">🎟️</div>
-           <p className="text-gray-400 font-medium">Your wallet is empty.</p>
-           <p className="text-sm text-gray-500">Join events and club activities to earn rewards!</p>
+        <div className={`text-center py-16 rounded-none sm:rounded-2xl border-2 border-dashed ${
+          darkMode 
+            ? 'bg-[var(--dark-800)] border-[var(--dark-400)]' 
+            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 border-[#4D4DA4]/30'
+        }`}>
+           <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${
+             darkMode 
+               ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' 
+               : 'bg-gradient-to-br from-[#4D4DA4]/10 to-[#FF5485]/10'
+           }`}>
+             <Ticket className={`w-10 h-10 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
+           </div>
+           <p className={`font-bold text-xl mb-2 font-heading ${
+             darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+           }`}>Your wallet is empty.</p>
+           <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Join events and club activities to earn rewards!</p>
         </div>
       )}
 
       {/* REDEMPTION MODAL */}
       {selectedReward && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setSelectedReward(null)}>
-           <div className="bg-[#050505] rounded-2xl max-w-sm w-full p-6 text-center relative overflow-hidden border border-[#262626]" onClick={e => e.stopPropagation()}>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm ${
+          darkMode ? 'bg-black/80' : 'bg-black/80'
+        }`} onClick={() => setSelectedReward(null)}>
+           <div className={`max-w-md w-full p-8 pt-20 text-center relative ${
+             darkMode 
+               ? 'bg-[var(--dark-800)] rounded-xl border border-[var(--dark-500)]' 
+               : 'bg-white rounded-3xl border-2 border-[#4D4DA4]/20 shadow-2xl'
+           }`} onClick={e => e.stopPropagation()}>
               
               {/* Header Image */}
-              <div className="w-20 h-20 mx-auto bg-[#0a0a0a] rounded-full flex items-center justify-center mb-4 overflow-hidden border-4 border-[#050505] shadow-lg -mt-10">
+              <div className={`absolute -top-14 left-1/2 -translate-x-1/2 w-28 h-28 rounded-2xl flex items-center justify-center overflow-hidden border-4 ${
+                darkMode 
+                  ? 'bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-purple)] border-[var(--dark-800)]' 
+                  : 'bg-gradient-to-br from-[#EBEBFE] to-[#FFE8F0] border-white shadow-xl'
+              }`}>
                  {selectedReward.reward_image ? (
                     <img src={getMediaUrl(selectedReward.reward_image)} className="w-full h-full object-cover" />
                  ) : (
-                    <span className="text-3xl">🎁</span>
+                    <Gift className={`w-14 h-14 ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'}`} />
                  )}
               </div>
 
-              <h3 className="text-xl font-bold text-gray-200 mb-1">{selectedReward.reward_name}</h3>
-              <p className="text-sm text-gray-400 mb-6 px-4">{selectedReward.description}</p>
+              <h3 className={`text-2xl font-bold mb-2 mt-2 font-heading ${
+                darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+              }`}>{selectedReward.reward_name}</h3>
+              <p className={`text-sm mb-3 px-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{selectedReward.description}</p>
+              
+              {selectedReward.sponsor && (
+                <p className={`text-sm font-bold mb-6 flex items-center justify-center gap-1 ${
+                  darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+                }`}>
+                  <Gift className="w-4 h-4" />
+                  Sponsored by {selectedReward.sponsor}
+                </p>
+              )}
               
               {/* INTERACTIVE AREA */}
               <div className="mb-6">
                  {redeemState === 'IDLE' && (
-                    <div className="space-y-3">
-                       <div className="p-3 bg-yellow-500/20 text-yellow-400 text-xs rounded-lg border border-yellow-500/30">
+                    <div className="space-y-4">
+                       <div className={`p-4 text-sm rounded-xl font-semibold ${
+                         darkMode 
+                           ? 'bg-[var(--brand-peach)]/10 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30' 
+                           : 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-2 border-amber-200'
+                       }`}>
                           ⚠️ Show this screen to the staff before swiping.
                        </div>
                        
@@ -187,22 +306,41 @@ export default function WalletGrid({ user }: { user: any }) {
                  )}
 
                  {redeemState === 'SUCCESS' && (
-                    <div className="py-4 animate-in fade-in zoom-in duration-300">
-                        <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                           <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
+                    <div className="py-6 animate-in fade-in zoom-in duration-300">
+                        <div className={`w-20 h-20 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 ${
+                          darkMode 
+                            ? 'bg-[var(--brand-third)]' 
+                            : 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg'
+                        }`}>
+                           <Check className="w-10 h-10" />
                         </div>
-                        <h4 className="text-lg font-bold text-emerald-400">Redeemed!</h4>
-                        <p className="text-xs text-gray-400 mt-1">{feedbackMsg}</p>
+                        <h4 className={`text-2xl font-bold mb-2 font-heading ${
+                          darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-500'
+                        }`}>Redeemed!</h4>
+                        <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{feedbackMsg}</p>
                     </div>
                  )}
 
                  {redeemState === 'ERROR' && (
-                    <div className="py-2 text-red-400">
-                       <p className="text-sm font-bold">Error!</p>
-                       <p className="text-xs">{feedbackMsg}</p>
+                    <div className="py-4">
+                       <div className={`w-20 h-20 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 ${
+                         darkMode 
+                           ? 'bg-[var(--brand-red)]' 
+                           : 'bg-gradient-to-br from-red-500 to-red-600 shadow-lg'
+                       }`}>
+                          <span className="text-3xl">✕</span>
+                       </div>
+                       <p className={`text-xl font-bold mb-2 font-heading ${
+                         darkMode ? 'text-[var(--brand-red)]' : 'text-red-500'
+                       }`}>Error!</p>
+                       <p className={`text-sm mb-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{feedbackMsg}</p>
                        <button 
                          onClick={() => setRedeemState('IDLE')}
-                         className="mt-2 text-xs underline"
+                         className={`px-4 py-2 rounded-xl font-bold text-sm ${
+                           darkMode 
+                             ? 'bg-[var(--brand-secondary)] text-[var(--brand-light)]' 
+                             : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md'
+                         }`}
                        >
                          Try Again
                        </button>
@@ -212,7 +350,11 @@ export default function WalletGrid({ user }: { user: any }) {
               
               <button 
                 onClick={() => setSelectedReward(null)}
-                className="w-full py-2 border border-[#262626] rounded-lg text-gray-300 font-medium hover:bg-[#0a0a0a] text-sm"
+                className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${
+                  darkMode 
+                    ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)]/80 border border-[var(--dark-400)]' 
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
               >
                 Close
               </button>

@@ -7,16 +7,16 @@ import { Course } from '@/types/learning';
 import CourseSettingsForm, { CourseSettingsFormRef } from './CourseSettingsForm';
 import CurriculumBuilder from './CurriculumBuilder';
 import CourseAnalytics from './CourseAnalytics';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye, Settings, BookOpen, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Eye, Settings, BookOpen, BarChart3, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Toast from '../Toast';
 
 interface Props {
     course: Course;
+    basePath?: string;
 }
 
-export default function CourseEditorLayout({ course }: Props) {
+export default function CourseEditorLayout({ course, basePath = '/admin/super/knowledge' }: Props) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState('settings');
@@ -25,15 +25,22 @@ export default function CourseEditorLayout({ course }: Props) {
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
     const settingsFormRef = useRef<CourseSettingsFormRef>(null);
     const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
 
     // Tab order for animation direction
     const tabOrder = ['settings', 'curriculum', 'analytics'];
+
+    const tabs = [
+        { id: 'settings', label: 'Settings', icon: Settings },
+        { id: 'curriculum', label: 'Curriculum', icon: BookOpen },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    ];
 
     // Update indicator position
     const updateIndicator = useCallback(() => {
         const activeTabElement = tabRefs.current[activeTab];
         if (activeTabElement) {
-            const container = activeTabElement.parentElement?.parentElement; // TabsList -> container div
+            const container = activeTabElement.parentElement;
             if (container) {
                 const containerRect = container.getBoundingClientRect();
                 const tabRect = activeTabElement.getBoundingClientRect();
@@ -69,7 +76,6 @@ export default function CourseEditorLayout({ course }: Props) {
 
     // Update indicator when tab changes
     useEffect(() => {
-        // Small delay to ensure DOM is updated
         const timer = setTimeout(() => {
             updateIndicator();
         }, 10);
@@ -93,8 +99,7 @@ export default function CourseEditorLayout({ course }: Props) {
     const slideDirection = getSlideDirection();
 
     const handlePreview = () => {
-        // Opens the player in a new tab
-        window.open(`/admin/super/knowledge/courses/${course.slug}`, '_blank');
+        window.open(`${basePath}/courses/${course.slug}`, '_blank');
     };
 
     const handleSave = async () => {
@@ -102,10 +107,11 @@ export default function CourseEditorLayout({ course }: Props) {
         try {
             if (activeTab === 'settings' && settingsFormRef.current) {
                 await settingsFormRef.current.handleSave(false);
+                setToast({ message: 'Course saved successfully!', type: 'success', isVisible: true });
             }
-            // For curriculum and analytics, changes are saved automatically
         } catch (error) {
             console.error('Save failed', error);
+            setToast({ message: 'Failed to save course', type: 'error', isVisible: true });
         } finally {
             setSaving(false);
         }
@@ -117,188 +123,184 @@ export default function CourseEditorLayout({ course }: Props) {
             if (activeTab === 'settings' && settingsFormRef.current) {
                 await settingsFormRef.current.handleSave(true);
             } else {
-                router.push('/admin/super/knowledge/courses');
+                router.push(`${basePath}/courses`);
             }
         } catch (error) {
             console.error('Save failed', error);
+            setToast({ message: 'Failed to save course', type: 'error', isVisible: true });
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href="/admin/super/knowledge/courses">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                        Edit Course
-                    </h1>
-                    <p className="text-sm text-muted-foreground">{course.title}</p>
-                </div>
-                <div className="ml-auto flex gap-2">
-                    <Button variant="outline" onClick={handlePreview}>
-                        <Eye className="w-4 h-4 mr-2" />
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+            <div className="sm:max-w-4xl sm:mx-auto sm:px-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+                    <div className="flex items-center gap-4 flex-1">
+                        <Link 
+                            href={`${basePath}/courses`}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </Link>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+                                Edit Course
+                            </h1>
+                            <p className="text-[var(--brand-light)]/50 text-sm mt-1 truncate">{course.title}</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={handlePreview}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
+                    >
+                        <Eye className="w-4 h-4" />
                         Preview
-                    </Button>
+                    </button>
                 </div>
-            </div>
 
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-1.5 mb-6 relative">
+                {/* Tab Navigation */}
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-1.5 mb-6 relative">
                     {/* Sliding Background Indicator */}
                     <div
-                        className="absolute top-1.5 bottom-1.5 rounded-lg bg-gradient-to-r from-[#4D4DA4] to-[#6B6BC4] shadow-md transition-all duration-300 ease-in-out z-0"
+                        className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] shadow-lg transition-all duration-300 ease-in-out z-0"
                         style={{
                             left: `${indicatorStyle.left}px`,
                             width: `${indicatorStyle.width}px`,
                         }}
                     />
                     
-                    <TabsList className="w-full justify-start bg-transparent p-0 h-auto gap-2 relative z-10">
-                        <TabsTrigger 
-                            ref={(el) => { tabRefs.current['settings'] = el; }}
-                            value="settings" 
-                            className={`
-                                flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors duration-200 relative z-10
-                                data-[state=active]:text-white
-                                data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900
-                                data-[state=inactive]:hover:bg-gray-50
-                                border-0 bg-transparent
-                            `}
-                        >
-                            <Settings className="w-4 h-4" />
-                            <span>Settings</span>
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            ref={(el) => { tabRefs.current['curriculum'] = el; }}
-                            value="curriculum" 
-                            className={`
-                                flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors duration-200 relative z-10
-                                data-[state=active]:text-white
-                                data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900
-                                data-[state=inactive]:hover:bg-gray-50
-                                border-0 bg-transparent
-                            `}
-                        >
-                            <BookOpen className="w-4 h-4" />
-                            <span>Curriculum</span>
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            ref={(el) => { tabRefs.current['analytics'] = el; }}
-                            value="analytics" 
-                            className={`
-                                flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors duration-200 relative z-10
-                                data-[state=active]:text-white
-                                data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900
-                                data-[state=inactive]:hover:bg-gray-50
-                                border-0 bg-transparent
-                            `}
-                        >
-                            <BarChart3 className="w-4 h-4" />
-                            <span>Analytics</span>
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
-
-                <div className="py-6 relative overflow-hidden">
-                    <div className="relative">
-                        <TabsContent 
-                            value="settings" 
-                            key="settings"
-                            className={`
-                                mt-0 transition-all duration-500 ease-in-out
-                                ${activeTab === 'settings' 
-                                    ? 'opacity-100 translate-x-0 relative' 
-                                    : slideDirection === 'right' 
-                                        ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none' 
-                                        : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
-                                }
-                            `}
-                        >
-                            <div className="max-w-4xl mx-auto">
-                                <CourseSettingsForm 
-                                    ref={settingsFormRef}
-                                    initialData={course} 
-                                    isEditing 
-                                    hideActions 
-                                />
-                            </div>
-                        </TabsContent>
-                        
-                        <TabsContent 
-                            value="curriculum" 
-                            key="curriculum"
-                            className={`
-                                mt-0 transition-all duration-500 ease-in-out
-                                ${activeTab === 'curriculum' 
-                                    ? 'opacity-100 translate-x-0 relative' 
-                                    : slideDirection === 'right' 
-                                        ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none' 
-                                        : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
-                                }
-                            `}
-                        >
-                            <div className="max-w-4xl mx-auto">
-                                <CurriculumBuilder course={course} />
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent 
-                            value="analytics" 
-                            key="analytics"
-                            className={`
-                                mt-0 transition-all duration-500 ease-in-out
-                                ${activeTab === 'analytics' 
-                                    ? 'opacity-100 translate-x-0 relative' 
-                                    : slideDirection === 'right' 
-                                        ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none' 
-                                        : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
-                                }
-                            `}
-                        >
-                            <div className="max-w-6xl mx-auto p-6">
-                                <CourseAnalytics courseSlug={course.slug} />
-                            </div>
-                        </TabsContent>
+                    <div className="flex relative z-10">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    ref={(el) => { tabRefs.current[tab.id] = el; }}
+                                    onClick={() => handleTabChange(tab.id)}
+                                    className={`
+                                        flex-1 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl font-medium text-sm transition-colors duration-200
+                                        ${isActive 
+                                            ? 'text-white' 
+                                            : 'text-[var(--brand-light)]/50 hover:text-[var(--brand-light)]/80 hover:bg-[var(--dark-700)]'
+                                        }
+                                    `}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{tab.label}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
-            </Tabs>
 
-            {/* Global Actions */}
-            <div className="flex justify-end gap-3 pb-10 border-t pt-6">
-                <Button 
-                    variant="ghost" 
-                    type="button" 
-                    onClick={() => router.push('/admin/super/knowledge/courses')}
-                >
-                    Cancel
-                </Button>
-                
-                {activeTab === 'settings' && (
-                    <Button 
-                        type="button" 
-                        variant="secondary" 
-                        disabled={saving}
-                        onClick={handleSave}
+                {/* Tab Content */}
+                <div className="relative overflow-hidden">
+                    {/* Settings Tab */}
+                    <div 
+                        className={`
+                            transition-all duration-500 ease-in-out
+                            ${activeTab === 'settings' 
+                                ? 'opacity-100 translate-x-0 relative' 
+                                : slideDirection === 'right' 
+                                    ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none' 
+                                    : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
+                            }
+                        `}
                     >
-                        {saving ? 'Saving...' : 'Save & Continue Editing'}
-                    </Button>
-                )}
-                
-                <Button 
-                    type="button" 
-                    disabled={saving}
-                    onClick={handleSaveAndExit}
-                    className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]"
-                >
-                    {saving ? 'Saving...' : 'Save & Exit'}
-                </Button>
+                        {activeTab === 'settings' && (
+                            <CourseSettingsForm 
+                                ref={settingsFormRef}
+                                initialData={course} 
+                                isEditing 
+                                hideActions 
+                                basePath={basePath}
+                            />
+                        )}
+                    </div>
+                    
+                    {/* Curriculum Tab */}
+                    <div 
+                        className={`
+                            transition-all duration-500 ease-in-out
+                            ${activeTab === 'curriculum' 
+                                ? 'opacity-100 translate-x-0 relative' 
+                                : slideDirection === 'right' 
+                                    ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none' 
+                                    : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
+                            }
+                        `}
+                    >
+                        {activeTab === 'curriculum' && (
+                            <CurriculumBuilder course={course} />
+                        )}
+                    </div>
+
+                    {/* Analytics Tab */}
+                    <div 
+                        className={`
+                            transition-all duration-500 ease-in-out
+                            ${activeTab === 'analytics' 
+                                ? 'opacity-100 translate-x-0 relative' 
+                                : slideDirection === 'right' 
+                                    ? 'opacity-0 -translate-x-full absolute inset-0 pointer-events-none' 
+                                    : 'opacity-0 translate-x-full absolute inset-0 pointer-events-none'
+                            }
+                        `}
+                    >
+                        {activeTab === 'analytics' && (
+                            <CourseAnalytics courseSlug={course.slug} />
+                        )}
+                    </div>
+                </div>
+
+                {/* Global Actions */}
+                <div className="px-4 sm:px-0 pb-8 pt-6 border-t border-[var(--dark-600)] mt-6">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                        <button 
+                            type="button" 
+                            onClick={() => router.push(`${basePath}/courses`)}
+                            className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all"
+                        >
+                            Cancel
+                        </button>
+                        
+                        {activeTab === 'settings' && (
+                            <button 
+                                type="button" 
+                                disabled={saving}
+                                onClick={handleSave}
+                                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-600)] text-[var(--brand-light)] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--dark-500)]"
+                            >
+                                {saving ? 'Saving...' : 'Save & Continue Editing'}
+                            </button>
+                        )}
+                        
+                        <button 
+                            type="button" 
+                            disabled={saving}
+                            onClick={handleSaveAndExit}
+                            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {saving ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    Save & Exit
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
             </div>
         </div>
     );

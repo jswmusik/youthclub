@@ -5,13 +5,7 @@ import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import Toast from '../../../components/Toast';
 import { useAuth } from '../../../../context/AuthContext';
-import { User, Mail, Phone, Globe, UserCircle, Lock, ShieldCheck, Clock, Camera, Briefcase, Building2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { User, Mail, Phone, Globe, UserCircle, Lock, ShieldCheck, Clock, Camera, Briefcase, Building2, Eye, EyeOff, Shield } from 'lucide-react';
 
 interface ProfileForm {
   first_name: string;
@@ -52,6 +46,19 @@ const formatDateTime = (value: string | null | undefined) => {
   });
 };
 
+const getRoleBadgeStyle = (role?: string) => {
+  switch (role) {
+    case 'SUPER_ADMIN':
+      return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
+    case 'MUNICIPALITY_ADMIN':
+      return 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border-[var(--brand-purple)]/30';
+    case 'CLUB_ADMIN':
+      return 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30';
+    default:
+      return 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30';
+  }
+};
+
 function MunicipalityProfileContent() {
   const { user, loading } = useAuth();
   const [profile, setProfile] = useState<ProfileForm>({
@@ -71,6 +78,8 @@ function MunicipalityProfileContent() {
   const [lastLogin, setLastLogin] = useState<string | null>(null);
   const [loginHistory, setLoginHistory] = useState<LoginHistoryItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
     message: '',
     type: 'success',
@@ -167,290 +176,394 @@ function MunicipalityProfileContent() {
     }
   };
 
+  const inputClasses = (field: string) => `
+    w-full h-12 px-4 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.75rem center',
+    backgroundSize: '1rem'
+  };
+
   if (loading || !user) {
-    return <div className="p-8 text-center text-gray-500">Loading profile...</div>;
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+            <User className="w-8 h-8 text-[var(--dark-900)]" />
+          </div>
+          <span className="text-[var(--brand-light)]/60">Loading profile...</span>
+        </div>
+      </div>
+    );
   }
 
   const latestLoginTimestamp = loginHistory.length > 0 ? loginHistory[0].timestamp : lastLogin;
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Badge className="bg-purple-50 text-purple-600 border-purple-200 px-3 py-1 text-xs font-semibold uppercase">
-            Municipality Admin
-          </Badge>
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="px-0 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="px-4 sm:px-0 space-y-2">
+          <div className="flex items-center gap-3">
+            <span className={`px-3 py-1 text-xs font-bold uppercase rounded-lg border ${getRoleBadgeStyle(user.role)}`}>
+              {formatRole(user.role)}
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">My Profile</h1>
+          <p className="text-sm sm:text-base text-[var(--brand-light)]/50">
+            Update your personal information and review your recent login activity.
+          </p>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#121213]">My Profile</h1>
-        <p className="text-gray-500 mt-1">Update your personal information and review your recent login activity.</p>
-      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Main Profile Form */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Profile Details Card */}
-          <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
-                <CardTitle className="text-xl font-bold text-[#121213]">Profile Details</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Avatar Section */}
-                <div className="flex items-center gap-6 pb-6 border-b border-gray-100">
-                  <div className="relative">
-                    <Avatar className="h-24 w-24 border-4 border-white shadow-lg">
-                      <AvatarImage src={avatarPreview || undefined} alt="Profile" />
-                      <AvatarFallback className="bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] text-white text-2xl font-bold">
-                        {profile.first_name?.[0] || profile.email?.[0] || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-[#4D4DA4] text-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-[#FF5485] transition-colors">
-                      <Camera className="h-4 w-4" />
-                      <input
-                        id="avatar-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarChange}
-                        className="hidden"
-                      />
-                    </label>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Main Profile Form */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Profile Details Card */}
+            <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
+              {/* Card Header */}
+              <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                    <User className="w-5 h-5 text-[var(--dark-900)]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#121213]">
-                      {profile.first_name} {profile.last_name}
-                    </h3>
-                    <p className="text-sm text-gray-500">{profile.email}</p>
+                    <h2 className="font-semibold text-[var(--brand-light)]">Profile Details</h2>
+                    <p className="text-sm text-[var(--brand-light)]/50">Your personal information</p>
                   </div>
                 </div>
-
-                {/* Form Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <User className="h-4 w-4 text-[#4D4DA4]" />
-                      First Name
-                    </Label>
-                    <Input
-                      id="first_name"
-                      type="text"
-                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                      value={profile.first_name}
-                      onChange={(e) => handleChange('first_name', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last_name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <User className="h-4 w-4 text-[#4D4DA4]" />
-                      Last Name
-                    </Label>
-                    <Input
-                      id="last_name"
-                      type="text"
-                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                      value={profile.last_name}
-                      onChange={(e) => handleChange('last_name', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-[#4D4DA4]" />
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                      value={profile.email}
-                      onChange={(e) => handleChange('email', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone_number" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-[#4D4DA4]" />
-                      Phone Number
-                    </Label>
-                    <Input
-                      id="phone_number"
-                      type="text"
-                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                      value={profile.phone_number}
-                      onChange={(e) => handleChange('phone_number', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="preferred_language" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-[#4D4DA4]" />
-                      Preferred Language
-                    </Label>
-                    <select
-                      id="preferred_language"
-                      className="flex h-10 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                      value={profile.preferred_language}
-                      onChange={(e) => handleChange('preferred_language', e.target.value)}
-                    >
-                      <option value="sv">Swedish</option>
-                      <option value="en">English</option>
-                      <option value="fi">Finnish</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="profession" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-[#4D4DA4]" />
-                      Profession / Title
-                    </Label>
-                    <Input
-                      id="profession"
-                      type="text"
-                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                      value={profile.profession}
-                      onChange={(e) => handleChange('profession', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nickname" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <UserCircle className="h-4 w-4 text-[#4D4DA4]" />
-                      Nickname
-                    </Label>
-                    <Input
-                      id="nickname"
-                      type="text"
-                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                      value={profile.nickname}
-                      onChange={(e) => handleChange('nickname', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="assigned_municipality" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-[#4D4DA4]" />
-                      Assigned Municipality
-                    </Label>
-                    <Input
-                      id="assigned_municipality"
-                      type="text"
-                      className="bg-gray-100 border-gray-200 cursor-not-allowed"
-                      value={assignedMunicipalityName || 'Not assigned'}
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-[#4D4DA4]" />
-                      New Password
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                      placeholder="Leave blank to keep current password"
-                      value={profile.password}
-                      onChange={(e) => handleChange('password', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Privacy Checkbox */}
-                <div className="flex items-center gap-3 p-4 bg-[#EBEBFE]/30 rounded-xl border border-[#4D4DA4]/20">
-                  <input
-                    id="hide_contact"
-                    type="checkbox"
-                    className="h-4 w-4 text-[#4D4DA4] border-gray-300 rounded focus:ring-[#4D4DA4]"
-                    checked={profile.hide_contact_info}
-                    onChange={(e) => handleChange('hide_contact_info', e.target.checked)}
-                  />
-                  <label htmlFor="hide_contact" className="text-sm text-gray-700 cursor-pointer">
-                    Hide my contact info from public listings
-                  </label>
-                </div>
-
-                {/* Submit Button */}
-                <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
-                  <Button
-                    type="submit"
-                    className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white px-8 py-2 rounded-full transition-colors disabled:opacity-50"
-                    disabled={isSaving}
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Account Summary Card */}
-          <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-6 bg-[#4D4DA4] rounded-full"></div>
-                <CardTitle className="text-lg font-bold text-[#121213] flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-[#4D4DA4]" />
-                  Account Summary
-                </CardTitle>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-[#EBEBFE]/30 rounded-lg">
-                  <span className="text-sm text-gray-600">Role</span>
-                  <Badge className="bg-purple-50 text-purple-600 border-purple-200">
-                    {formatRole(user.role)}
-                  </Badge>
+
+              {/* Card Content */}
+              <div className="px-4 sm:px-6 py-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Avatar Section */}
+                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pb-6 border-b border-[var(--dark-600)]">
+                    <div className="relative">
+                      <div className="w-24 h-24 rounded-2xl bg-[var(--dark-600)] border-4 border-[var(--dark-500)] overflow-hidden flex items-center justify-center">
+                        {avatarPreview ? (
+                          <img src={avatarPreview} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-3xl font-bold text-[var(--brand-primary)]">
+                            {profile.first_name?.[0] || profile.email?.[0] || 'U'}
+                          </span>
+                        )}
+                      </div>
+                      <label 
+                        htmlFor="avatar-upload" 
+                        className="absolute -bottom-1 -right-1 w-9 h-9 bg-[var(--brand-primary)] text-[var(--dark-900)] rounded-xl flex items-center justify-center cursor-pointer hover:bg-[var(--brand-primary)]/80 transition-colors shadow-lg"
+                      >
+                        <Camera className="h-4 w-4" />
+                        <input
+                          id="avatar-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <div className="text-center sm:text-left">
+                      <h3 className="text-lg font-semibold text-[var(--brand-light)]">
+                        {profile.first_name} {profile.last_name}
+                      </h3>
+                      <p className="text-sm text-[var(--brand-light)]/50">{profile.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Form Fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    {/* First Name */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <User className="h-4 w-4 text-[var(--brand-primary)]" />
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.first_name}
+                        onChange={(e) => handleChange('first_name', e.target.value)}
+                        onFocus={() => setFocusedField('first_name')}
+                        onBlur={() => setFocusedField(null)}
+                        className={inputClasses('first_name')}
+                        required
+                      />
+                    </div>
+
+                    {/* Last Name */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <User className="h-4 w-4 text-[var(--brand-primary)]" />
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.last_name}
+                        onChange={(e) => handleChange('last_name', e.target.value)}
+                        onFocus={() => setFocusedField('last_name')}
+                        onBlur={() => setFocusedField(null)}
+                        className={inputClasses('last_name')}
+                        required
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <Mail className="h-4 w-4 text-[var(--brand-primary)]" />
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={profile.email}
+                        onChange={(e) => handleChange('email', e.target.value)}
+                        onFocus={() => setFocusedField('email')}
+                        onBlur={() => setFocusedField(null)}
+                        className={inputClasses('email')}
+                        required
+                      />
+                    </div>
+
+                    {/* Phone Number */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <Phone className="h-4 w-4 text-[var(--brand-primary)]" />
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.phone_number}
+                        onChange={(e) => handleChange('phone_number', e.target.value)}
+                        onFocus={() => setFocusedField('phone_number')}
+                        onBlur={() => setFocusedField(null)}
+                        className={inputClasses('phone_number')}
+                      />
+                    </div>
+
+                    {/* Preferred Language */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <Globe className="h-4 w-4 text-[var(--brand-primary)]" />
+                        Preferred Language
+                      </label>
+                      <select
+                        value={profile.preferred_language}
+                        onChange={(e) => handleChange('preferred_language', e.target.value)}
+                        className="w-full h-12 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all appearance-none cursor-pointer hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)]"
+                        style={selectArrowStyle}
+                      >
+                        <option value="sv">Swedish</option>
+                        <option value="en">English</option>
+                        <option value="fi">Finnish</option>
+                      </select>
+                    </div>
+
+                    {/* Profession */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <Briefcase className="h-4 w-4 text-[var(--brand-primary)]" />
+                        Profession / Title
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.profession}
+                        onChange={(e) => handleChange('profession', e.target.value)}
+                        onFocus={() => setFocusedField('profession')}
+                        onBlur={() => setFocusedField(null)}
+                        className={inputClasses('profession')}
+                        placeholder="Optional"
+                      />
+                    </div>
+
+                    {/* Nickname */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <UserCircle className="h-4 w-4 text-[var(--brand-primary)]" />
+                        Nickname
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.nickname}
+                        onChange={(e) => handleChange('nickname', e.target.value)}
+                        onFocus={() => setFocusedField('nickname')}
+                        onBlur={() => setFocusedField(null)}
+                        className={inputClasses('nickname')}
+                        placeholder="Optional"
+                      />
+                    </div>
+
+                    {/* Assigned Municipality */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <Building2 className="h-4 w-4 text-[var(--brand-primary)]" />
+                        Assigned Municipality
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full h-12 px-4 rounded-xl bg-[var(--dark-600)] border-2 border-[var(--dark-500)] text-[var(--brand-light)]/50 cursor-not-allowed"
+                        value={assignedMunicipalityName || 'Not assigned'}
+                        disabled
+                      />
+                    </div>
+
+                    {/* New Password */}
+                    <div className="sm:col-span-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                        <Lock className="h-4 w-4 text-[var(--brand-primary)]" />
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={profile.password}
+                          onChange={(e) => handleChange('password', e.target.value)}
+                          onFocus={() => setFocusedField('password')}
+                          onBlur={() => setFocusedField(null)}
+                          className={`${inputClasses('password')} pr-12`}
+                          placeholder="Leave blank to keep current password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-primary)] transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Privacy Checkbox */}
+                  <div 
+                    className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      profile.hide_contact_info 
+                        ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' 
+                        : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
+                    }`}
+                    onClick={() => handleChange('hide_contact_info', !profile.hide_contact_info)}
+                  >
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                      profile.hide_contact_info 
+                        ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' 
+                        : 'border-[var(--dark-400)] bg-transparent'
+                    }`}>
+                      {profile.hide_contact_info && (
+                        <svg className="w-4 h-4 text-[var(--dark-900)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-[var(--brand-primary)]" />
+                        <span className="font-semibold text-[var(--brand-light)]">Privacy Mode</span>
+                      </div>
+                      <p className="text-sm text-[var(--brand-light)]/50 mt-1">
+                        Hide my contact info from public listings
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-[var(--dark-600)]">
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Account Summary Card */}
+            <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
+              {/* Card Header */}
+              <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="font-semibold text-[var(--brand-light)]">Account Summary</h2>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-[#EBEBFE]/30 rounded-lg">
-                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-[#4D4DA4]" />
+              </div>
+
+              {/* Card Content */}
+              <div className="px-4 sm:px-6 py-4 space-y-3">
+                <div className="flex justify-between items-center p-3 bg-[var(--dark-700)] rounded-xl">
+                  <span className="text-sm text-[var(--brand-light)]/60">Role</span>
+                  <span className={`px-3 py-1 text-xs font-bold uppercase rounded-lg border ${getRoleBadgeStyle(user.role)}`}>
+                    {formatRole(user.role)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-[var(--dark-700)] rounded-xl">
+                  <span className="text-sm text-[var(--brand-light)]/60 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-[var(--brand-primary)]" />
                     Last Login
                   </span>
-                  <span className="text-sm font-semibold text-[#121213]">
+                  <span className="text-sm font-semibold text-[var(--brand-light)]">
                     {formatDateTime(latestLoginTimestamp)}
                   </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Recent Logins Card */}
-          <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-6 bg-[#0EA5E9] rounded-full"></div>
-                <CardTitle className="text-lg font-bold text-[#121213] flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-[#0EA5E9]" />
-                  Recent Logins
-                </CardTitle>
+            {/* Recent Logins Card */}
+            <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
+              {/* Card Header */}
+              <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="font-semibold text-[var(--brand-light)]">Recent Logins</h2>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              {loginHistory.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No login history recorded yet.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {loginHistory.slice(0, 5).map((entry) => (
-                    <li key={entry.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                      <div className="w-2 h-2 rounded-full bg-[#0EA5E9]"></div>
-                      <div className="flex-1">
-                        <span className="text-sm font-semibold text-[#121213] block">
-                          {formatDateTime(entry.timestamp)}
-                        </span>
-                        {entry.ip_address && (
-                          <span className="text-xs text-gray-500">{entry.ip_address}</span>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+
+              {/* Card Content */}
+              <div className="px-4 sm:px-6 py-4">
+                {loginHistory.length === 0 ? (
+                  <p className="text-sm text-[var(--brand-light)]/50 text-center py-4">
+                    No login history recorded yet.
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {loginHistory.slice(0, 5).map((entry) => (
+                      <li 
+                        key={entry.id} 
+                        className="flex items-center gap-3 p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)]"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-[var(--brand-green)]"></div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-semibold text-[var(--brand-light)] block">
+                            {formatDateTime(entry.timestamp)}
+                          </span>
+                          {entry.ip_address && (
+                            <span className="text-xs text-[var(--brand-light)]/40 truncate block">
+                              {entry.ip_address}
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -459,6 +572,7 @@ function MunicipalityProfileContent() {
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={() => setToast({ ...toast, isVisible: false })}
+        darkMode={true}
       />
     </div>
   );
@@ -466,7 +580,16 @@ function MunicipalityProfileContent() {
 
 export default function MunicipalityProfilePage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Loading profile...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+            <User className="w-8 h-8 text-[var(--dark-900)]" />
+          </div>
+          <span className="text-[var(--brand-light)]/60">Loading profile...</span>
+        </div>
+      </div>
+    }>
       <MunicipalityProfileContent />
     </Suspense>
   );

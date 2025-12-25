@@ -71,37 +71,40 @@ export default function VisitsTabs({
   const tabs = [
     {
       key: 'live',
-      label: 'Live Attendance',
+      label: 'Live',
+      fullLabel: 'Live Attendance',
       icon: Users,
       href: getLiveHref(),
     },
     {
       key: 'history',
-      label: 'History Log',
+      label: 'History',
+      fullLabel: 'History Log',
       icon: Clock,
       href: getHistoryHref(),
     },
     {
       key: 'analytics',
       label: 'Analytics',
+      fullLabel: 'Analytics',
       icon: BarChart3,
       href: getAnalyticsHref(),
     },
   ];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-1.5 mb-6 relative">
+    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-1.5 relative overflow-hidden">
       {/* Sliding Background Indicator */}
       <div
-        className="absolute top-1.5 bottom-1.5 rounded-lg bg-gradient-to-r from-[#4D4DA4] to-[#6B6BC4] shadow-md transition-all duration-300 ease-in-out z-0"
+        className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] shadow-lg shadow-[var(--brand-primary)]/20 transition-all duration-300 ease-in-out z-0"
         style={{
           left: `${indicatorStyle.left}px`,
           width: `${indicatorStyle.width}px`,
         }}
       />
       
-      <nav className="flex gap-2 relative z-10">
-        {tabs.map(({ key, label, icon: Icon, href }) => {
+      <nav className="flex gap-1 relative z-10">
+        {tabs.map(({ key, label, fullLabel, icon: Icon, href }) => {
           const isActive = activeTab === key;
           
           if (isActive) {
@@ -109,10 +112,11 @@ export default function VisitsTabs({
               <button
                 key={key}
                 ref={(el) => { tabRefs.current[key] = el; }}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors duration-200 relative z-10 text-white cursor-default border-0 bg-transparent"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl font-semibold text-sm transition-colors duration-200 relative z-10 text-white cursor-default border-0 bg-transparent"
               >
                 <Icon className="w-4 h-4" />
-                <span>{label}</span>
+                <span className="hidden sm:inline">{fullLabel}</span>
+                <span className="sm:hidden">{label}</span>
               </button>
             );
           }
@@ -122,10 +126,11 @@ export default function VisitsTabs({
               key={key}
               ref={(el) => { tabRefs.current[key] = el; }}
               href={href}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors duration-200 relative z-10 text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-0 bg-transparent"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl font-medium text-sm transition-colors duration-200 relative z-10 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] border-0 bg-transparent"
             >
               <Icon className="w-4 h-4" />
-              <span>{label}</span>
+              <span className="hidden sm:inline">{fullLabel}</span>
+              <span className="sm:hidden">{label}</span>
             </Link>
           );
         })}

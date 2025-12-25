@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
 import Toast from './Toast';
+import { Check, ChevronLeft, ChevronRight, MapPin, Lock, User, Users, FileCheck, Eye, EyeOff, AlertCircle, Sparkles, Building2 } from 'lucide-react';
 
 // --- Interfaces ---
 interface Option { id: number; name: string; }
@@ -18,14 +19,13 @@ interface Club extends Option {
 
 interface Municipality extends Option {
   terms_and_conditions: string;
-  allow_self_registration: boolean; // Used for initial filtering
+  allow_self_registration: boolean;
 }
 
 interface Interest extends Option {
   icon: string;
 }
 
-// Custom Field Interfaces
 interface CustomFieldDef {
     id: number;
     name: string;
@@ -34,6 +34,14 @@ interface CustomFieldDef {
     required: boolean;
     help_text?: string;
 }
+
+const STEPS = [
+  { id: 1, title: 'Location', icon: MapPin },
+  { id: 2, title: 'Account', icon: Lock },
+  { id: 3, title: 'Profile', icon: User },
+  { id: 4, title: 'Guardian', icon: Users },
+  { id: 5, title: 'Confirm', icon: FileCheck },
+];
 
 export default function YouthRegistrationWizard() {
   const router = useRouter();
@@ -66,18 +74,19 @@ export default function YouthRegistrationWizard() {
   const [captchaParams, setCaptchaParams] = useState({ num1: 0, num2: 0 });
   const [captchaAnswer, setCaptchaAnswer] = useState('');
 
-  // --- NEW STATE FOR EMAIL CHECK ---
+  // --- Email Check State ---
   const [emailTaken, setEmailTaken] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  
+  // --- Password Visibility ---
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // --- Form Data ---
   const [formData, setFormData] = useState({
-    // Account
     email: '',
     password: '',
     confirm_password: '',
-    
-    // Profile
     first_name: '',
     last_name: '',
     nickname: '',
@@ -86,45 +95,28 @@ export default function YouthRegistrationWizard() {
     legal_gender: 'MALE',
     preferred_gender: '',
     interests: [] as number[],
-    
-    // Custom Fields Values (Key = Field ID)
     custom_field_values: {} as Record<string, any>,
-
-    // Guardian
     guardian_email: '',
     guardian_first_name: '',
     guardian_last_name: '',
     guardian_phone: '',
     guardian_legal_gender: 'MALE',
-    
-    // Guardian Custom Fields
     guardian_custom_field_values: {} as Record<string, any>,
-    
-    // Consents
     terms_accepted: false,
   });
 
   // --- Fetch Initial Data ---
   useEffect(() => {
-    // 1. Fetch Municipalities (Public)
     api.get('/municipalities/').then(res => {
       const data = Array.isArray(res.data) ? res.data : res.data.results;
-      // Filter out municipalities that block self-registration entirely (optional optimization)
       setMunicipalities(data);
-    }).catch(err => {
-      console.error('Failed to fetch municipalities:', err);
-    });
+    }).catch(err => console.error('Failed to fetch municipalities:', err));
 
-    // 2. Fetch Interests
     api.get('/interests/').then(res => {
       const interests = Array.isArray(res.data) ? res.data : res.data.results || [];
-      console.log('Interests fetched:', interests);
       setInterestsList(interests);
-    }).catch(err => {
-      console.error('Failed to fetch interests:', err);
-    });
+    }).catch(err => console.error('Failed to fetch interests:', err));
 
-    // 3. Generate initial captcha
     generateCaptcha();
   }, []);
 
@@ -141,7 +133,6 @@ export default function YouthRegistrationWizard() {
     if (selectedMuni) {
       api.get(`/clubs/?municipality=${selectedMuni.id}`).then(res => {
         const allClubs = Array.isArray(res.data) ? res.data : res.data.results;
-        // CRITICAL: Filter clubs based on the "Effective" setting computed by backend
         const openClubs = allClubs.filter((c: Club) => c.effective_registration_allowed === true);
         setClubs(openClubs);
       });
@@ -153,53 +144,31 @@ export default function YouthRegistrationWizard() {
   // --- Fetch Custom Fields when Club Selected ---
   useEffect(() => {
     if (selectedClub) {
-        console.log('Fetching custom fields for club:', selectedClub.id);
         setLoadingYouthFields(true);
         setLoadingGuardianFields(true);
         
-        // Fetch Youth Fields (public endpoint - no auth required)
-        api.get(`/custom-fields/public/?club_id=${selectedClub.id}&target_role=YOUTH_MEMBER`, {
-          skipAuth: true
-        } as any)
+        api.get(`/custom-fields/public/?club_id=${selectedClub.id}&target_role=YOUTH_MEMBER`, { skipAuth: true } as any)
            .then(res => {
-             console.log('Full response for youth fields:', res);
-             console.log('Response data:', res.data);
-             console.log('Response data type:', typeof res.data, 'Is array:', Array.isArray(res.data));
              const fields = Array.isArray(res.data) ? res.data : (res.data?.results || res.data || []);
-             console.log('Parsed youth custom fields:', fields, 'Count:', fields.length);
              setYouthCustomFields(fields);
              setLoadingYouthFields(false);
            })
-           .catch(err => {
-             console.error('Failed to fetch youth custom fields:', err);
-             console.error('Error response:', err.response);
-             console.error('Error details:', err.response?.data);
+           .catch(() => {
              setYouthCustomFields([]);
              setLoadingYouthFields(false);
            });
 
-        // Fetch Guardian Fields (public endpoint - no auth required)
-        api.get(`/custom-fields/public/?club_id=${selectedClub.id}&target_role=GUARDIAN`, {
-          skipAuth: true
-        } as any)
+        api.get(`/custom-fields/public/?club_id=${selectedClub.id}&target_role=GUARDIAN`, { skipAuth: true } as any)
            .then(res => {
-             console.log('Full response for guardian fields:', res);
-             console.log('Response data:', res.data);
-             console.log('Response data type:', typeof res.data, 'Is array:', Array.isArray(res.data));
              const fields = Array.isArray(res.data) ? res.data : (res.data?.results || res.data || []);
-             console.log('Parsed guardian custom fields:', fields, 'Count:', fields.length);
              setGuardianCustomFields(fields);
              setLoadingGuardianFields(false);
            })
-           .catch(err => {
-             console.error('Failed to fetch guardian custom fields:', err);
-             console.error('Error response:', err.response);
-             console.error('Error details:', err.response?.data);
+           .catch(() => {
              setGuardianCustomFields([]);
              setLoadingGuardianFields(false);
            });
     } else {
-      // Reset when no club selected
       setYouthCustomFields([]);
       setGuardianCustomFields([]);
       setLoadingYouthFields(false);
@@ -207,14 +176,12 @@ export default function YouthRegistrationWizard() {
     }
   }, [selectedClub]);
 
-  // --- NEW HANDLER: Check User Email (Step 2) ---
+  // --- Check User Email ---
   const checkEmailAvailability = async () => {
     if (!formData.email || !formData.email.includes('@')) return;
     setCheckingEmail(true);
     try {
-        const res = await api.post('/register/check-email/', { email: formData.email }, {
-          skipAuth: true
-        } as any);
+        const res = await api.post('/register/check-email/', { email: formData.email }, { skipAuth: true } as any);
         if (res.data.exists) {
             setEmailTaken(true);
             setToast({ message: 'This email is already registered.', type: 'error', isVisible: true });
@@ -233,9 +200,7 @@ export default function YouthRegistrationWizard() {
     if (!formData.guardian_email || !formData.guardian_email.includes('@')) return;
     setCheckingGuardian(true);
     try {
-        const res = await api.post('/register/check-guardian/', { email: formData.guardian_email }, {
-          skipAuth: true
-        } as any);
+        const res = await api.post('/register/check-guardian/', { email: formData.guardian_email }, { skipAuth: true } as any);
         setGuardianExists(res.data.exists);
         if (res.data.exists) {
             setToast({ message: 'Guardian found! We will link your account.', type: 'success', isVisible: true });
@@ -247,7 +212,7 @@ export default function YouthRegistrationWizard() {
     }
   };
 
-  // --- Password Validation Logic ---
+  // --- Password Validation ---
   const getPasswordValidation = () => {
     const pw = formData.password;
     return {
@@ -264,15 +229,11 @@ export default function YouthRegistrationWizard() {
   const isCaptchaValid = () => {
       if (!captchaAnswer) return false;
       const answer = parseInt(captchaAnswer);
-      const correctAnswer = captchaParams.num1 + captchaParams.num2;
-      return answer === correctAnswer;
+      return answer === captchaParams.num1 + captchaParams.num2;
   };
 
-  // --- Helper to check if we can leave Step 2 ---
-  const isStep2Valid = () => {
-      // Must have email, email NOT taken, not currently checking, valid passwords, and correct captcha
-      return formData.email && !emailTaken && !checkingEmail && isPasswordValid && isCaptchaValid();
-  };
+  // --- Step Validation ---
+  const isStep2Valid = () => formData.email && !emailTaken && !checkingEmail && isPasswordValid && isCaptchaValid();
 
   // --- Helpers ---
   const updateCF = (fieldId: number, value: any, isGuardian = false) => {
@@ -284,13 +245,12 @@ export default function YouthRegistrationWizard() {
   };
   
   const handleInterestToggle = (id: number) => {
-    setFormData(prev => {
-      const exists = prev.interests.includes(id);
-      return {
-        ...prev,
-        interests: exists ? prev.interests.filter(i => i !== id) : [...prev.interests, id]
-      };
-    });
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.includes(id) 
+        ? prev.interests.filter(i => i !== id) 
+        : [...prev.interests, id]
+    }));
   };
 
   const handleSubmit = async () => {
@@ -299,7 +259,6 @@ export default function YouthRegistrationWizard() {
       return;
     }
     
-    // Captcha Check (double-check even though it's validated in step 2)
     if (!isCaptchaValid()) {
         setToast({ message: 'Incorrect math answer. Are you a robot?', type: 'error', isVisible: true });
         generateCaptcha();
@@ -320,7 +279,6 @@ export default function YouthRegistrationWizard() {
         custom_fields: formData.custom_field_values,
       };
       
-      // Add optional fields only if they have values
       if (formData.nickname) payload.nickname = formData.nickname;
       if (formData.date_of_birth) payload.date_of_birth = formData.date_of_birth;
       if (formData.grade && !isNaN(parseInt(formData.grade))) {
@@ -331,10 +289,8 @@ export default function YouthRegistrationWizard() {
         payload.interests = formData.interests;
       }
       
-      // Guardian fields (only send if filled)
       if (formData.guardian_email) {
         payload.guardian_email = formData.guardian_email;
-        // Only send full details if guardian is NEW
         if (!guardianExists) {
             payload.guardian_first_name = formData.guardian_first_name;
             payload.guardian_last_name = formData.guardian_last_name;
@@ -344,11 +300,9 @@ export default function YouthRegistrationWizard() {
         }
       }
 
-      await api.post('/register/youth/', payload, {
-        skipAuth: true
-      } as any); // Public Endpoint
+      await api.post('/register/youth/', payload, { skipAuth: true } as any);
       
-      setToast({ message: 'Registration Successful!', type: 'success', isVisible: true });
+      setToast({ message: 'Registration Successful! Redirecting...', type: 'success', isVisible: true });
       setTimeout(() => router.push('/login'), 2000);
 
     } catch (err: any) {
@@ -359,32 +313,35 @@ export default function YouthRegistrationWizard() {
     }
   };
 
-  // --- Renderers ---
+  // --- Custom Field Renderer ---
   const renderCustomFields = (fields: CustomFieldDef[], isGuardian = false) => {
     return fields.map(field => (
-        <div key={field.id} className="mb-3">
-            <label className="block text-sm font-bold text-gray-700 mb-1">
-                {field.name} {field.required && <span className="text-red-500">*</span>}
+        <div key={field.id} className="mb-4">
+            <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">
+                {field.name} {field.required && <span className="text-[var(--brand-red)]">*</span>}
             </label>
             {field.field_type === 'TEXT' && (
                 <input 
                     type="text" 
-                    className="w-full border p-2 rounded"
+                    className="w-full px-4 py-3 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition outline-none"
                     value={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || ''}
                     onChange={e => updateCF(field.id, e.target.value, isGuardian)}
                 />
             )}
             {field.field_type === 'BOOLEAN' && (
-                <input 
-                    type="checkbox" 
-                    className="w-5 h-5 text-blue-600 rounded"
-                    checked={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || false}
-                    onChange={e => updateCF(field.id, e.target.checked, isGuardian)}
-                />
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        className="w-5 h-5 rounded border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                        checked={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || false}
+                        onChange={e => updateCF(field.id, e.target.checked, isGuardian)}
+                    />
+                    <span className="text-[var(--brand-light)]/80">Yes</span>
+                </label>
             )}
-            {(field.field_type === 'SINGLE_SELECT') && (
+            {field.field_type === 'SINGLE_SELECT' && (
                 <select 
-                    className="w-full border p-2 rounded"
+                    className="w-full px-4 py-3 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition outline-none appearance-none"
                     value={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || ''}
                     onChange={e => updateCF(field.id, e.target.value, isGuardian)}
                 >
@@ -392,17 +349,17 @@ export default function YouthRegistrationWizard() {
                     {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
             )}
-            {(field.field_type === 'MULTI_SELECT') && (
+            {field.field_type === 'MULTI_SELECT' && (
                 <div className="space-y-2">
                     {field.options.map(opt => {
                         const currentValues = (isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || [];
                         const isChecked = Array.isArray(currentValues) && currentValues.includes(opt);
                         return (
-                            <label key={opt} className="flex items-center space-x-2">
+                            <label key={opt} className="flex items-center gap-3 cursor-pointer">
                                 <input 
                                     type="checkbox" 
                                     checked={isChecked}
-                                    className="w-4 h-4 text-blue-600 rounded"
+                                    className="w-4 h-4 rounded border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                                     onChange={e => {
                                         const current = (isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || [];
                                         const updated = e.target.checked 
@@ -411,277 +368,538 @@ export default function YouthRegistrationWizard() {
                                         updateCF(field.id, updated, isGuardian);
                                     }}
                                 />
-                                <span className="text-sm">{opt}</span>
+                                <span className="text-[var(--brand-light)]/80 text-sm">{opt}</span>
                             </label>
                         );
                     })}
                 </div>
             )}
-            {field.help_text && <p className="text-xs text-gray-500 mt-1">{field.help_text}</p>}
+            {field.help_text && <p className="text-xs text-[var(--brand-light)]/50 mt-1">{field.help_text}</p>}
         </div>
     ));
   };
 
+  // Common input classes
+  const inputClasses = "w-full px-4 py-3 h-[50px] bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition outline-none";
+
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
       
-      {/* Header / Progress */}
-      <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800">Youth Registration</h2>
-        <div className="flex gap-2">
-            {[1,2,3,4,5].map(s => (
-                <div key={s} className={`w-3 h-3 rounded-full ${step >= s ? 'bg-blue-600' : 'bg-gray-300'}`} />
-            ))}
+      {/* Progress Header */}
+      <div className="bg-[var(--dark-700)] px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
+        <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+          {STEPS.map((s, idx) => {
+            const Icon = s.icon;
+            const isActive = step === s.id;
+            const isCompleted = step > s.id;
+            
+            return (
+              <div key={s.id} className="flex items-center">
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all ${
+                  isActive 
+                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                    : isCompleted 
+                      ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]'
+                      : 'bg-[var(--dark-600)] text-[var(--brand-light)]/40'
+                }`}>
+                  {isCompleted ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Icon className="w-4 h-4" />
+                  )}
+                  <span className="text-xs font-bold hidden sm:inline">{s.title}</span>
+                </div>
+                {idx < STEPS.length - 1 && (
+                  <div className={`w-4 sm:w-8 h-0.5 mx-1 ${
+                    step > s.id ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'
+                  }`} />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="p-8 min-h-[400px]">
+      {/* Form Content */}
+      <div className="p-4 sm:p-6 md:p-8 min-h-[400px]">
         
         {/* STEP 1: LOCATION */}
         {step === 1 && (
-            <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-gray-800">Where do you hang out?</h3>
-                <select className="w-full border p-3 rounded-lg" onChange={(e) => {
-                    const m = municipalities.find(m => m.id === parseInt(e.target.value));
-                    setSelectedMuni(m || null); setSelectedClub(null);
-                }}>
-                    <option value="">-- Choose Municipality --</option>
-                    {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-                {selectedMuni && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {clubs.map(club => (
-                            <div key={club.id} onClick={() => setSelectedClub(club)} className={`p-4 border rounded-lg cursor-pointer ${selectedClub?.id === club.id ? 'border-blue-500 bg-blue-50' : ''}`}>
-                                <div className="font-bold">{club.name}</div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
+                <MapPin className="w-6 h-6 text-[var(--brand-primary)]" />
+                Where do you hang out?
+              </h3>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Select your municipality and youth club</p>
             </div>
+            
+            <div>
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Municipality</label>
+              <select 
+                className={`${inputClasses} appearance-none`}
+                onChange={(e) => {
+                  const m = municipalities.find(m => m.id === parseInt(e.target.value));
+                  setSelectedMuni(m || null); 
+                  setSelectedClub(null);
+                }}
+              >
+                <option value="">-- Choose Municipality --</option>
+                {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </div>
+            
+            {selectedMuni && (
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-3">Select Your Club</label>
+                {clubs.length === 0 ? (
+                  <div className="text-center py-8 bg-[var(--dark-700)] rounded-xl border border-dashed border-[var(--dark-500)]">
+                    <Building2 className="w-10 h-10 text-[var(--brand-light)]/30 mx-auto mb-2" />
+                    <p className="text-[var(--brand-light)]/60 text-sm">No clubs available for registration in this municipality</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {clubs.map(club => (
+                      <button 
+                        key={club.id} 
+                        type="button"
+                        onClick={() => setSelectedClub(club)} 
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          selectedClub?.id === club.id 
+                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10' 
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
+                        }`}
+                      >
+                        <div className="font-bold text-[var(--brand-light)]">{club.name}</div>
+                        {selectedClub?.id === club.id && (
+                          <div className="flex items-center gap-1 mt-2 text-[var(--brand-primary)] text-xs font-medium">
+                            <Check className="w-3 h-3" /> Selected
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* STEP 2: ACCOUNT & SECURITY */}
         {step === 2 && (
-            <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-gray-800">Login Details</h3>
-                
-                {/* MODIFIED EMAIL INPUT */}
-                <div>
-                    <input 
-                        type="email" 
-                        placeholder="Email" 
-                        className={`w-full border p-3 rounded-lg transition-colors ${emailTaken ? 'border-red-500 bg-red-50 text-red-900' : ''}`}
-                        value={formData.email} 
-                        onChange={e => { 
-                            setFormData({...formData, email: e.target.value}); 
-                            setEmailTaken(false); // Reset error while typing
-                        }}
-                        onBlur={checkEmailAvailability} 
-                    />
-                    {checkingEmail && <p className="text-xs text-gray-500 mt-1">Checking availability...</p>}
-                    {emailTaken && (
-                        <p className="text-xs text-red-600 mt-1 font-bold">
-                            ❌ This email is already registered. <a href="/login" className="underline hover:text-red-800">Log in instead?</a>
-                        </p>
-                    )}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <input type="password" placeholder="Password" className="w-full border p-3 rounded-lg" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                    </div>
-                    <div>
-                        <input type="password" placeholder="Confirm Password" className={`w-full border p-3 rounded-lg ${formData.confirm_password && !pwValid.match ? 'border-red-500 bg-red-50' : ''}`} value={formData.confirm_password} onChange={e => setFormData({...formData, confirm_password: e.target.value})} />
-                    </div>
-                </div>
-
-                {/* Password Requirements Checklist */}
-                <div className="bg-gray-50 p-3 rounded text-sm text-gray-600">
-                    <p className="font-bold mb-2">Password must contain:</p>
-                    <ul className="space-y-1">
-                        <li className={pwValid.length ? 'text-green-600' : ''}>{pwValid.length ? '✅' : '○'} At least 8 characters</li>
-                        <li className={pwValid.number ? 'text-green-600' : ''}>{pwValid.number ? '✅' : '○'} At least 1 number</li>
-                        <li className={pwValid.special ? 'text-green-600' : ''}>{pwValid.special ? '✅' : '○'} At least 1 special char (!@#$...)</li>
-                        <li className={pwValid.match && formData.confirm_password ? 'text-green-600' : ''}>{pwValid.match && formData.confirm_password ? '✅' : '○'} Passwords match</li>
-                    </ul>
-                </div>
-
-                {/* Math Captcha */}
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                    <label className="block text-sm font-bold text-blue-900 mb-1">Human Check: What is {captchaParams.num1} + {captchaParams.num2}?</label>
-                    <div className="flex items-center gap-2">
-                        <input 
-                            type="number" 
-                            placeholder="Answer" 
-                            className={`w-24 border p-2 rounded ${captchaAnswer && !isCaptchaValid() ? 'border-red-500 bg-red-50' : ''}`}
-                            value={captchaAnswer}
-                            onChange={e => setCaptchaAnswer(e.target.value)}
-                        />
-                        {captchaAnswer && isCaptchaValid() && (
-                            <span className="text-green-600 font-bold">✅</span>
-                        )}
-                        {captchaAnswer && !isCaptchaValid() && (
-                            <span className="text-red-600 text-sm">❌ Incorrect</span>
-                        )}
-                    </div>
-                </div>
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
+                <Lock className="w-6 h-6 text-[var(--brand-primary)]" />
+                Create Your Login
+              </h3>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Set up your email and a secure password</p>
             </div>
+            
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Email Address</label>
+              <input 
+                type="email" 
+                placeholder="your@email.com"
+                className={`${inputClasses} ${emailTaken ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
+                value={formData.email} 
+                onChange={e => { 
+                  setFormData({...formData, email: e.target.value}); 
+                  setEmailTaken(false);
+                }}
+                onBlur={checkEmailAvailability} 
+              />
+              {checkingEmail && <p className="text-xs text-[var(--brand-light)]/50 mt-1">Checking availability...</p>}
+              {emailTaken && (
+                <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  This email is already registered. <a href="/login" className="underline hover:text-[var(--brand-red)]/80">Log in instead?</a>
+                </p>
+              )}
+            </div>
+            
+            {/* Passwords */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? 'text' : 'password'} 
+                    placeholder="••••••••"
+                    className={inputClasses}
+                    value={formData.password} 
+                    onChange={e => setFormData({...formData, password: e.target.value})} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Confirm Password</label>
+                <div className="relative">
+                  <input 
+                    type={showConfirmPassword ? 'text' : 'password'} 
+                    placeholder="••••••••"
+                    className={`${inputClasses} ${formData.confirm_password && !pwValid.match ? 'border-[var(--brand-red)]' : ''}`}
+                    value={formData.confirm_password} 
+                    onChange={e => setFormData({...formData, confirm_password: e.target.value})} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Password Requirements */}
+            <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)]">
+              <p className="font-bold text-[var(--brand-light)] text-sm mb-2">Password Requirements:</p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <RequirementItem met={pwValid.length} text="8+ characters" />
+                <RequirementItem met={pwValid.number} text="1 number" />
+                <RequirementItem met={pwValid.special} text="1 special char" />
+                <RequirementItem met={pwValid.match && !!formData.confirm_password} text="Passwords match" />
+              </div>
+            </div>
+
+            {/* Captcha */}
+            <div className="bg-[var(--brand-purple)]/10 border border-[var(--brand-purple)]/30 p-4 rounded-xl">
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">
+                Human Check: What is {captchaParams.num1} + {captchaParams.num2}?
+              </label>
+              <div className="flex items-center gap-3">
+                <input 
+                  type="number" 
+                  placeholder="?" 
+                  className={`w-24 px-4 py-2 bg-[var(--dark-700)] border rounded-xl text-[var(--brand-light)] text-center font-bold outline-none ${
+                    captchaAnswer && !isCaptchaValid() 
+                      ? 'border-[var(--brand-red)]' 
+                      : captchaAnswer && isCaptchaValid() 
+                        ? 'border-[var(--brand-green)]' 
+                        : 'border-[var(--dark-500)]'
+                  }`}
+                  value={captchaAnswer}
+                  onChange={e => setCaptchaAnswer(e.target.value)}
+                />
+                {captchaAnswer && isCaptchaValid() && (
+                  <span className="text-[var(--brand-green)] font-bold flex items-center gap-1">
+                    <Check className="w-4 h-4" /> Correct!
+                  </span>
+                )}
+                {captchaAnswer && !isCaptchaValid() && (
+                  <span className="text-[var(--brand-red)] text-sm">Try again</span>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* STEP 3: PROFILE & CUSTOM FIELDS */}
+        {/* STEP 3: PROFILE */}
         {step === 3 && (
-            <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-gray-800">About You</h3>
-                <div className="grid grid-cols-2 gap-4">
-                    <input type="text" placeholder="First Name" className="border p-3 rounded-lg" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
-                    <input type="text" placeholder="Last Name" className="border p-3 rounded-lg" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <input type="date" className="border p-3 rounded-lg" value={formData.date_of_birth} onChange={e => setFormData({...formData, date_of_birth: e.target.value})} />
-                    <input type="number" placeholder="Grade" className="border p-3 rounded-lg" value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <select className="border p-3 rounded-lg" value={formData.legal_gender} onChange={e => setFormData({...formData, legal_gender: e.target.value})}>
-                        <option value="MALE">Male</option>
-                        <option value="FEMALE">Female</option>
-                        <option value="OTHER">Other</option>
-                    </select>
-                    <input type="text" placeholder="Preferred Gender (Optional)" className="border p-3 rounded-lg" value={formData.preferred_gender} onChange={e => setFormData({...formData, preferred_gender: e.target.value})} />
-                </div>
-                <input type="text" placeholder="Nickname (Optional)" className="w-full border p-3 rounded-lg" value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} />
-
-                {/* INTERESTS */}
-                <div className="pt-2">
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Interests</label>
-                    {interestsList.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                            {interestsList.map(i => (
-                                <button 
-                                    key={i.id} 
-                                    onClick={() => handleInterestToggle(i.id)} 
-                                    className={`px-4 py-1.5 rounded-full text-sm font-medium ${formData.interests.includes(i.id) ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
-                                >
-                                    {i.icon} {i.name}
-                                </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-gray-500 italic">No interests available</p>
-                    )}
-                </div>
-
-                {/* YOUTH CUSTOM FIELDS */}
-                {loadingYouthFields ? (
-                    <div className="pt-4 border-t mt-4">
-                        <p className="text-sm text-gray-500">Loading custom fields...</p>
-                    </div>
-                ) : youthCustomFields.length > 0 ? (
-                    <div className="pt-4 border-t mt-4">
-                        <h4 className="font-bold text-gray-800 mb-3">Additional Questions</h4>
-                        {renderCustomFields(youthCustomFields, false)}
-                    </div>
-                ) : (
-                    <div className="pt-4 border-t mt-4">
-                        <p className="text-xs text-gray-400">No custom fields configured for this club (Debug: {youthCustomFields.length} fields)</p>
-                    </div>
-                )}
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
+                <User className="w-6 h-6 text-[var(--brand-primary)]" />
+                About You
+              </h3>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Tell us a bit about yourself</p>
             </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">First Name *</label>
+                <input type="text" placeholder="First Name" className={inputClasses} value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Last Name *</label>
+                <input type="text" placeholder="Last Name" className={inputClasses} value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Date of Birth</label>
+                <input type="date" className={`${inputClasses} appearance-none`} style={{ minHeight: '50px' }} value={formData.date_of_birth} onChange={e => setFormData({...formData, date_of_birth: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Grade</label>
+                <input type="number" placeholder="e.g. 9" className={inputClasses} value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Legal Gender *</label>
+                <select className={`${inputClasses} appearance-none`} value={formData.legal_gender} onChange={e => setFormData({...formData, legal_gender: e.target.value})}>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Preferred Gender</label>
+                <input type="text" placeholder="e.g. They/Them" className={inputClasses} value={formData.preferred_gender} onChange={e => setFormData({...formData, preferred_gender: e.target.value})} />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Nickname</label>
+              <input type="text" placeholder="What should we call you?" className={inputClasses} value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} />
+            </div>
+
+            {/* Interests */}
+            {interestsList.length > 0 && (
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[var(--brand-primary)]" />
+                  Interests
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {interestsList.map(i => (
+                    <button 
+                      key={i.id}
+                      type="button"
+                      onClick={() => handleInterestToggle(i.id)} 
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        formData.interests.includes(i.id) 
+                          ? 'bg-[var(--brand-purple)] text-white' 
+                          : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
+                      }`}
+                    >
+                      {i.icon} {i.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Youth Custom Fields */}
+            {loadingYouthFields ? (
+              <div className="pt-4 border-t border-[var(--dark-600)]">
+                <p className="text-sm text-[var(--brand-light)]/50">Loading additional questions...</p>
+              </div>
+            ) : youthCustomFields.length > 0 && (
+              <div className="pt-4 border-t border-[var(--dark-600)]">
+                <h4 className="font-bold text-[var(--brand-light)] mb-4">Additional Questions</h4>
+                {renderCustomFields(youthCustomFields, false)}
+              </div>
+            )}
+          </div>
         )}
 
         {/* STEP 4: GUARDIAN */}
         {step === 4 && (
-            <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-gray-800">Guardian</h3>
-                
-                {/* Email Check */}
-                <div className="flex gap-2">
-                    <input 
-                        type="email" 
-                        placeholder="Guardian Email" 
-                        className={`w-full border p-3 rounded-lg ${guardianExists ? 'bg-green-50 border-green-300 text-green-800' : ''}`}
-                        value={formData.guardian_email} 
-                        onChange={e => {
-                            setFormData({...formData, guardian_email: e.target.value});
-                            setGuardianExists(false); // Reset if they change email
-                        }}
-                        onBlur={checkGuardianEmail}
-                    />
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
+                <Users className="w-6 h-6 text-[var(--brand-primary)]" />
+                Guardian Information
+              </h3>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">
+                {selectedClub?.effective_require_guardian 
+                  ? 'A guardian is required for this club' 
+                  : 'Optional: Add a guardian to your account'}
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Guardian Email</label>
+              <input 
+                type="email" 
+                placeholder="guardian@email.com"
+                className={`${inputClasses} ${guardianExists ? 'border-[var(--brand-green)] bg-[var(--brand-green)]/10' : ''}`}
+                value={formData.guardian_email} 
+                onChange={e => {
+                  setFormData({...formData, guardian_email: e.target.value});
+                  setGuardianExists(false);
+                }}
+                onBlur={checkGuardianEmail}
+              />
+              {checkingGuardian && <p className="text-xs text-[var(--brand-light)]/50 mt-1">Checking...</p>}
+            </div>
+            
+            {guardianExists && (
+              <div className="p-4 bg-[var(--brand-green)]/10 border border-[var(--brand-green)]/30 rounded-xl">
+                <p className="text-[var(--brand-green)] text-sm font-medium flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  Guardian found! We will link your accounts automatically.
+                </p>
+              </div>
+            )}
+            
+            {formData.guardian_email && !guardianExists && !checkingGuardian && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">First Name</label>
+                    <input type="text" placeholder="Guardian's first name" className={inputClasses} value={formData.guardian_first_name} onChange={e => setFormData({...formData, guardian_first_name: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Last Name</label>
+                    <input type="text" placeholder="Guardian's last name" className={inputClasses} value={formData.guardian_last_name} onChange={e => setFormData({...formData, guardian_last_name: e.target.value})} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Phone</label>
+                    <input type="tel" placeholder="Phone number" className={inputClasses} value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Gender</label>
+                    <select className={`${inputClasses} appearance-none`} value={formData.guardian_legal_gender} onChange={e => setFormData({...formData, guardian_legal_gender: e.target.value})}>
+                      <option value="MALE">Male</option>
+                      <option value="FEMALE">Female</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
                 </div>
                 
-                {/* Conditional Fields */}
-                {formData.guardian_email && !guardianExists && !checkingGuardian && (
-                    <div className="space-y-4 animate-fade-in">
-                        <div className="grid grid-cols-2 gap-4">
-                            <input type="text" placeholder="First Name" className="border p-3 rounded-lg" value={formData.guardian_first_name} onChange={e => setFormData({...formData, guardian_first_name: e.target.value})} />
-                            <input type="text" placeholder="Last Name" className="border p-3 rounded-lg" value={formData.guardian_last_name} onChange={e => setFormData({...formData, guardian_last_name: e.target.value})} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <input type="text" placeholder="Phone" className="border p-3 rounded-lg" value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
-                            <select className="border p-3 rounded-lg" value={formData.guardian_legal_gender} onChange={e => setFormData({...formData, guardian_legal_gender: e.target.value})}>
-                                <option value="MALE">Male</option>
-                                <option value="FEMALE">Female</option>
-                                <option value="OTHER">Other</option>
-                            </select>
-                        </div>
-                        
-                        {/* GUARDIAN CUSTOM FIELDS */}
-                        {guardianCustomFields.length > 0 && (
-                            <div className="pt-4 border-t mt-4">
-                                <h4 className="font-bold text-gray-800 mb-3">Guardian Details</h4>
-                                {renderCustomFields(guardianCustomFields, true)}
-                            </div>
-                        )}
-                    </div>
+                {guardianCustomFields.length > 0 && (
+                  <div className="pt-4 border-t border-[var(--dark-600)]">
+                    <h4 className="font-bold text-[var(--brand-light)] mb-4">Guardian Details</h4>
+                    {renderCustomFields(guardianCustomFields, true)}
+                  </div>
                 )}
-
-                {guardianExists && (
-                    <div className="p-4 bg-green-50 text-green-800 rounded-lg text-sm border border-green-200">
-                        ✅ Account found! We will link you to this guardian automatically.
-                    </div>
-                )}
-            </div>
+              </div>
+            )}
+            
+            {!formData.guardian_email && !selectedClub?.effective_require_guardian && (
+              <div className="p-4 bg-[var(--dark-700)] rounded-xl border border-dashed border-[var(--dark-500)] text-center">
+                <p className="text-[var(--brand-light)]/60 text-sm">
+                  You can skip this step if you don't want to add a guardian now.
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* STEP 5: REVIEW */}
         {step === 5 && (
-            <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-gray-800">Finish Up</h3>
-                <div className="border p-4 rounded text-sm text-gray-600 max-h-40 overflow-y-auto">
-                    <strong>Terms:</strong> {selectedMuni?.terms_and_conditions} <br/><br/>
-                    <strong>Policies:</strong> {selectedClub?.club_policies}
-                </div>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                    <input type="checkbox" checked={formData.terms_accepted} onChange={e => setFormData({...formData, terms_accepted: e.target.checked})} className="w-5 h-5" />
-                    <span>I accept the Terms & Conditions</span>
-                </label>
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
+                <FileCheck className="w-6 h-6 text-[var(--brand-primary)]" />
+                Almost Done!
+              </h3>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Review and accept the terms to complete registration</p>
             </div>
+            
+            {/* Summary */}
+            <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--brand-light)]/60">Club</span>
+                <span className="text-[var(--brand-light)] font-medium">{selectedClub?.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--brand-light)]/60">Email</span>
+                <span className="text-[var(--brand-light)] font-medium">{formData.email}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--brand-light)]/60">Name</span>
+                <span className="text-[var(--brand-light)] font-medium">{formData.first_name} {formData.last_name}</span>
+              </div>
+              {formData.guardian_email && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[var(--brand-light)]/60">Guardian</span>
+                  <span className="text-[var(--brand-light)] font-medium">{formData.guardian_email}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Terms */}
+            <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] max-h-40 overflow-y-auto text-sm text-[var(--brand-light)]/70">
+              <strong className="text-[var(--brand-light)]">Terms & Conditions:</strong>
+              <p className="mt-2">{selectedMuni?.terms_and_conditions || 'No terms available.'}</p>
+              {selectedClub?.club_policies && (
+                <>
+                  <strong className="text-[var(--brand-light)] block mt-4">Club Policies:</strong>
+                  <p className="mt-2">{selectedClub.club_policies}</p>
+                </>
+              )}
+            </div>
+            
+            {/* Accept Terms */}
+            <label className="flex items-start gap-3 cursor-pointer p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+              <input 
+                type="checkbox" 
+                checked={formData.terms_accepted} 
+                onChange={e => setFormData({...formData, terms_accepted: e.target.checked})} 
+                className="w-5 h-5 mt-0.5 rounded border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+              />
+              <span className="text-[var(--brand-light)] text-sm">
+                I have read and accept the <span className="text-[var(--brand-primary)] font-medium">Terms & Conditions</span> and <span className="text-[var(--brand-primary)] font-medium">Club Policies</span>
+              </span>
+            </label>
+          </div>
         )}
-
       </div>
 
-      {/* Footer Nav */}
-      <div className="bg-gray-50 px-6 py-4 border-t flex justify-between">
-        {step > 1 ? <button onClick={() => setStep(step - 1)} className="text-gray-600 font-bold">Back</button> : <div/>}
+      {/* Footer Navigation */}
+      <div className="bg-[var(--dark-700)] px-4 sm:px-6 py-4 border-t border-[var(--dark-600)] flex justify-between items-center">
+        {step > 1 ? (
+          <button 
+            type="button"
+            onClick={() => setStep(step - 1)} 
+            className="flex items-center gap-2 text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] font-bold transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            Back
+          </button>
+        ) : <div />}
+        
         {step < 5 ? (
-            <button 
-                onClick={() => setStep(step + 1)} 
-                disabled={(step === 1 && !selectedClub) || (step === 2 && !isStep2Valid())} 
-                className="bg-blue-600 text-white px-6 py-2 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                Next
-            </button>
+          <button 
+            type="button"
+            onClick={() => setStep(step + 1)} 
+            disabled={(step === 1 && !selectedClub) || (step === 2 && !isStep2Valid())} 
+            className="flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95"
+          >
+            Next
+            <ChevronRight className="w-5 h-5" />
+          </button>
         ) : (
-            <button 
-                onClick={handleSubmit} 
-                disabled={loading || !formData.terms_accepted} 
-                className="bg-green-600 text-white px-6 py-2 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {loading ? 'Creating...' : 'Complete'}
-            </button>
+          <button 
+            type="button"
+            onClick={handleSubmit} 
+            disabled={loading || !formData.terms_accepted} 
+            className="flex items-center gap-2 bg-[var(--brand-green)] text-[var(--dark-900)] px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-green)]/90 transition-all active:scale-95"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Check className="w-5 h-5" />
+                Complete Registration
+              </>
+            )}
+          </button>
         )}
       </div>
 
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
+    </div>
+  );
+}
+
+// Requirement Item Component
+function RequirementItem({ met, text }: { met: boolean; text: string }) {
+  return (
+    <div className={`flex items-center gap-2 ${met ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`}>
+      {met ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current" />}
+      <span className="text-xs">{text}</span>
     </div>
   );
 }

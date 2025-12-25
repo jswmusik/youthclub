@@ -1,27 +1,47 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
+
 import { useAuth } from '@/context/AuthContext';
 import { inventoryApi, Item, ItemCategory } from '@/lib/inventory-api';
 import InventoryCard from '@/app/components/inventory/InventoryCard';
 import NavBar from '@/app/components/NavBar';
+import YouthSidebar from '@/app/components/youth/YouthSidebar';
+import { InventoryPageSkeleton } from '@/app/components/ui/Skeleton';
+import YouthFooter from '@/app/components/youth/YouthFooter';
 import { visits } from '@/lib/api';
-import { LogIn } from 'lucide-react';
+import { LogIn, Package, Search, X } from 'lucide-react';
+
+// Minimum skeleton display time (in ms) for better UX
+const MIN_LOADING_TIME = 400;
+
 
 export default function InventoryBrowserPage() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Active club ID - determined by check-in status or preferred club
   const [activeClubId, setActiveClubId] = useState<number | null>(null);
   const [activeClubName, setActiveClubName] = useState<string>('');
   const [checkingClub, setCheckingClub] = useState(true);
   const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
+  const [minLoadingComplete, setMinLoadingComplete] = useState(false);
+
+  // Minimum loading time for skeleton display
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoadingComplete(true);
+    }, MIN_LOADING_TIME);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Determine which club to show items from
   useEffect(() => {
@@ -138,29 +158,21 @@ export default function InventoryBrowserPage() {
     return matchesSearch && matchesCategory;
   });
 
-  if (checkingClub) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <NavBar />
-        <div className="flex justify-center items-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      </div>
-    );
-  }
+  // Show skeleton while checking club or loading items (with minimum display time)
+  const showSkeleton = checkingClub || loading || !minLoadingComplete;
 
-  if (!activeClubId) {
+  if (!activeClubId && !checkingClub && minLoadingComplete) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <NavBar />
-        <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-          <div className="flex justify-center items-center min-h-[50vh]">
-            <div className="text-center">
-              <div className="bg-orange-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <LogIn className="w-8 h-8 text-orange-600" />
+      <div className="min-h-screen bg-[var(--dark-900)]">
+        <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <div className="pt-20 px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-[var(--dark-800)] p-8 rounded-none sm:rounded-2xl border border-[var(--dark-600)] text-center">
+              <div className="w-16 h-16 bg-[var(--brand-peach)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <LogIn className="w-8 h-8 text-[var(--brand-peach)]" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Club Available</h3>
-              <p className="text-gray-500 max-w-sm mx-auto">
+              <h3 className="text-2xl font-bold text-[var(--brand-light)] mb-3 font-heading">No Club Available</h3>
+              <p className="text-[var(--brand-light)]/60">
                 You need to be checked in to a club or have a preferred club set to browse inventory items.
               </p>
             </div>
@@ -170,135 +182,189 @@ export default function InventoryBrowserPage() {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <NavBar />
-        <div className="flex justify-center items-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <NavBar />
-      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          
-          {/* --- SIDEBAR FILTERS (Sticky) --- */}
-          <aside className="w-full md:w-64 flex-shrink-0 space-y-8 md:sticky md:top-[72px] md:self-start md:max-h-[calc(100vh-88px)] md:overflow-y-auto">
-            {/* Header */}
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
-              <p className="text-sm text-gray-500 mt-1">Borrow Items</p>
-              {activeClubName && (
-                <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                  <span className="text-xs font-medium text-blue-700">
-                    {isCheckedIn ? '✓ Checked in to' : 'Viewing'} {activeClubName}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Search Input */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Search</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="Find an item..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-                />
-                <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Category Filters */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Category</label>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                    selectedCategory === null 
-                      ? 'bg-blue-50 text-blue-700 font-medium' 
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  All Categories
-                </button>
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
-                      selectedCategory === category.id 
-                        ? 'bg-blue-50 text-blue-700 font-medium' 
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span>{category.icon}</span>
-                    <span>{category.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+      
+      {/* Mobile Sidebar Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${
+          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      
+      {/* Mobile Sidebar */}
+      <aside 
+        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] border-r border-[var(--dark-600)] transform transition-transform duration-300 md:hidden ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
+          <YouthSidebar activePath={pathname} darkMode={true} />
+        </div>
+      </aside>
+      
+      {/* Main Layout */}
+      <div className="pt-14 sm:pt-16">
+        <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
+          {/* Desktop Sidebar - Fixed position aligned with container */}
+          <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+            <YouthSidebar activePath={pathname} darkMode={true} />
           </aside>
+          
+          {/* Content wrapper with left margin for sidebar */}
+          <div className="md:ml-60">
+            <main className="p-0 sm:p-4 md:p-6 pb-24 md:pb-6">
+              {showSkeleton ? (
+                <InventoryPageSkeleton />
+              ) : (
+                <>
+                  {/* Header Section */}
+                  <div className="mb-4 sm:mb-6 px-4 sm:px-0 pt-4 sm:pt-0">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                      <Package className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
+                      <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
+                        Borrow Items
+                      </h1>
+                    </div>
+                    {activeClubName && (
+                      <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 border rounded-xl ml-8 sm:ml-10 inline-flex ${
+                        isCheckedIn 
+                          ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' 
+                          : 'bg-[var(--dark-700)] border-[var(--dark-600)]'
+                      }`}>
+                        <span className={`text-xs sm:text-sm font-bold ${
+                          isCheckedIn ? 'text-[var(--brand-third)]' : 'text-[var(--brand-light)]/60'
+                        }`}>
+                          {isCheckedIn ? '✓ Checked in to' : 'Viewing'} {activeClubName}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-          {/* --- RESULTS GRID --- */}
-          <main className="flex-1">
-            {!isCheckedIn && (
-              <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3">
-                <LogIn className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-orange-900 mb-1">
-                    Check in required to borrow
-                  </p>
-                  <p className="text-xs text-orange-700">
-                    You're viewing items from your preferred club. Check in to {activeClubName} to borrow items.
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredItems.map(item => (
-                <InventoryCard key={item.id} item={item} onRefresh={loadItems} />
-              ))}
-            </div>
+                  {/* Check-in Warning */}
+                  {!isCheckedIn && (
+                    <div className="mb-4 sm:mb-6 mx-0 sm:mx-0 p-4 bg-[var(--brand-peach)]/10 border-y sm:border border-[var(--brand-peach)]/30 sm:rounded-2xl flex items-start gap-3">
+                      <LogIn className="w-5 h-5 text-[var(--brand-peach)] mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-[var(--brand-peach)] mb-1">
+                          Check in required to borrow
+                        </p>
+                        <p className="text-xs text-[var(--brand-light)]/60">
+                          You're viewing items from your preferred club. Check in to {activeClubName} to borrow items.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-            {filteredItems.length === 0 && !loading && (
-              <div className="text-center py-20">
-                <div className="bg-gray-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900">No items found</h3>
-                <p className="text-gray-500 max-w-sm mx-auto mt-1">
-                  {searchTerm || selectedCategory 
-                    ? "Try adjusting your filters or search terms to find more items."
-                    : `No items available at ${activeClubName} right now.`}
-                </p>
-                {(searchTerm || selectedCategory) && (
-                  <button 
-                    onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
-                    className="mt-4 text-blue-600 font-medium hover:underline"
-                  >
-                    Clear all filters
-                  </button>
-                )}
-              </div>
-            )}
-          </main>
+                  {/* Filters Section */}
+                  <div className="mb-4 sm:mb-6 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-3 sm:p-4">
+                    {/* Search Bar */}
+                    <div className="relative mb-3">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5" />
+                      <input 
+                        type="text" 
+                        placeholder="Search for an item..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl py-3 pl-12 pr-4 text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-all font-medium"
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Category Filter Chips */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => setSelectedCategory(null)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          selectedCategory === null
+                            ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                            : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                        }`}
+                      >
+                        All Categories
+                      </button>
+                      {categories.map((category) => (
+                        <button
+                          key={category.id}
+                          onClick={() => setSelectedCategory(category.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            selectedCategory === category.id
+                              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                              : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                          }`}
+                        >
+                          <span>{category.icon}</span>
+                          <span>{category.name}</span>
+                        </button>
+                      ))}
+                      {(searchTerm || selectedCategory) && (
+                        <button
+                          onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all ml-auto"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Results Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-4 px-4 sm:px-0">
+                    {filteredItems.map(item => (
+                      <InventoryCard key={item.id} item={item} onRefresh={loadItems} darkMode={true} />
+                    ))}
+                  </div>
+
+                  {/* Empty State */}
+                  {filteredItems.length === 0 && (
+                    <div className="text-center py-12 sm:py-20 px-4">
+                      <div className="w-16 h-16 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
+                      </div>
+                      <h3 className="text-xl font-bold text-[var(--brand-light)] mb-2 font-heading">No items found</h3>
+                      <p className="text-[var(--brand-light)]/60 max-w-sm mx-auto">
+                        {searchTerm || selectedCategory 
+                          ? "Try adjusting your filters or search terms to find more items."
+                          : `No items available at ${activeClubName} right now.`}
+                      </p>
+                      {(searchTerm || selectedCategory) && (
+                        <button 
+                          onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
+                          className="mt-4 bg-[var(--brand-primary)] text-[var(--dark-900)] px-6 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95"
+                        >
+                          Clear all filters
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </main>
+          </div>
         </div>
       </div>
+      
+      {/* Footer */}
+      <YouthFooter />
     </div>
   );
 }

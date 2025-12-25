@@ -3,34 +3,246 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { MoreHorizontal, Plus, Search, Globe, CreditCard, Trash2, Edit, Eye } from 'lucide-react';
+import { MoreHorizontal, Plus, Search, Globe, CreditCard, Trash2, Edit, Eye, Flag, Languages, Clock, ChevronLeft } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-
-// New Shadcn Components
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 
 // Your existing Modals (Preserved)
 import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Swipeable Card Component
+interface SwipeableCardProps {
+  children: React.ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+}
+
+function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const actionWidth = 140;
+  const threshold = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = startX - e.touches[0].clientX;
+    if (isOpen) {
+      const newX = Math.max(-actionWidth, Math.min(0, -actionWidth + (startX - e.touches[0].clientX) * -1));
+      setCurrentX(newX);
+    } else {
+      const newX = Math.max(-actionWidth, Math.min(0, -diff));
+      setCurrentX(newX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (isOpen) {
+      if (currentX > -actionWidth + threshold) {
+        setIsOpen(false);
+        setCurrentX(0);
+      } else {
+        setCurrentX(-actionWidth);
+      }
+    } else {
+      if (currentX < -threshold) {
+        setIsOpen(true);
+        setCurrentX(-actionWidth);
+      } else {
+        setCurrentX(0);
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isOpen && Math.abs(currentX) < 5) {
+      onClick();
+    } else if (isOpen) {
+      setIsOpen(false);
+      setCurrentX(0);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+    setIsOpen(false);
+    setCurrentX(0);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node) && isOpen) {
+        setIsOpen(false);
+        setCurrentX(0);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={cardRef} className="relative overflow-hidden">
+      <div className="absolute inset-y-0 right-0 flex items-stretch">
+        <button
+          onClick={handleEditClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
+        >
+          <Edit className="w-5 h-5" />
+          <span className="text-xs font-medium">Edit</span>
+        </button>
+        <button
+          onClick={handleDeleteClick}
+          className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+
+      <div
+        className="relative bg-[var(--dark-700)] transition-transform duration-200 ease-out cursor-pointer"
+        style={{ 
+          transform: `translateX(${isDragging ? currentX : (isOpen ? -actionWidth : 0)}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        {!isOpen && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/20 pointer-events-none">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function CountryCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-center gap-3">
+        <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-12" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 mt-4">
+        <Skeleton className="h-12 rounded-lg" />
+        <Skeleton className="h-12 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+function CountryTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-lg flex-shrink-0" />
+          <Skeleton className="h-5 w-28" />
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-12 rounded-lg" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-10" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-8" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-1">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <Skeleton className="w-9 h-9 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function CountriesPageSkeleton() {
+  return (
+    <>
+      {/* Mobile Cards Skeleton */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {[...Array(4)].map((_, i) => (
+          <CountryCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--dark-600)]">
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Country</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Code</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Currency</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Language</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Timezone</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(5)].map((_, i) => (
+              <CountryTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 interface CountryManagerProps {
   basePath: string;
 }
 
 export default function CountryManager({ basePath }: CountryManagerProps) {
-  // --- 1. PRESERVED LOGIC SECTION (Exact copy of your logic) ---
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [countries, setCountries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const isUpdatingFromInput = useRef(false);
   
@@ -62,6 +274,9 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
 
   const fetchCountries = useCallback(async () => {
     setLoading(true);
+    setShowSkeleton(true);
+    const startTime = Date.now();
+    
     try {
       const search = searchParams.get('search') || '';
       const params = new URLSearchParams();
@@ -74,7 +289,14 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
       console.error('Error fetching countries:', err);
       setCountries([]);
     } finally {
-      setLoading(false);
+      // Ensure minimum loading time for skeleton display
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+      
+      setTimeout(() => {
+        setLoading(false);
+        setShowSkeleton(false);
+      }, remaining);
     }
   }, [searchParams]);
 
@@ -86,7 +308,7 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
     if (!itemToDelete) return;
     try {
       await api.delete(`/countries/${itemToDelete.id}/`);
-      setToast({ message: 'Country deleted.', type: 'success', isVisible: true });
+      setToast({ message: 'Country deleted successfully.', type: 'success', isVisible: true });
       fetchCountries();
     } catch (err) {
       setToast({ message: 'Failed to delete. It might contain municipalities.', type: 'error', isVisible: true });
@@ -103,172 +325,190 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  // --- 2. NEW UI SECTION (Taskly-inspired clean design) ---
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Manage Countries</h1>
-          <p className="text-gray-500 mt-1.5 text-sm">Configure the regions available in the application.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+              <Flag className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Countries</h1>
+          </div>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Configure the regions available in the application.</p>
         </div>
         <Link href={`${basePath}/create`}>
-          <Button className="w-full sm:w-auto gap-2 bg-[#4D4DA4] hover:bg-[#4D4DA4]/90 text-white rounded-full px-6 shadow-sm hover:shadow-md transition-all">
+          <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> Add Country
-          </Button>
+          </button>
         </Link>
       </div>
 
-      {/* Filter / Search */}
-      <Card className="border border-gray-100 shadow-sm bg-white">
-        <div className="px-3 py-1.5 flex items-center gap-2">
-          <Search className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-          <Input 
+      {/* Search Bar */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+          <input 
+            type="text"
             placeholder="Search by name or code..." 
-            className="border-0 shadow-none focus-visible:ring-0 bg-transparent placeholder:text-gray-400 p-0 h-7 text-sm"
+            className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
           />
+          {searchInput && (
+            <button 
+              onClick={() => setSearchInput('')}
+              className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors"
+            >
+              ×
+            </button>
+          )}
         </div>
-      </Card>
+      </div>
 
-      {/* CONTENT: Loading State */}
-      {loading ? (
-        <div className="py-20 flex justify-center text-gray-400">
-          <div className="animate-pulse">Loading...</div>
+      {/* Stats Bar */}
+      {!loading && countries.length > 0 && (
+        <div className="px-4 sm:px-0">
+          <p className="text-sm text-[var(--brand-light)]/50">
+            Showing <span className="text-[var(--brand-primary)] font-semibold">{countries.length}</span> {countries.length === 1 ? 'country' : 'countries'}
+          </p>
         </div>
+      )}
+
+      {/* Content */}
+      {showSkeleton ? (
+        <CountriesPageSkeleton />
       ) : countries.length === 0 ? (
-        <Card className="border border-gray-100 shadow-sm">
-          <div className="py-20 text-center">
-            <p className="text-gray-500">No countries found matching your search.</p>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+            <Globe className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-        </Card>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No countries found</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm mb-6">
+            {searchInput ? 'Try adjusting your search terms.' : 'Get started by adding your first country.'}
+          </p>
+          {!searchInput && (
+            <Link href={`${basePath}/create`}>
+              <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
+                <Plus className="h-4 w-4" /> Add Country
+              </button>
+            </Link>
+          )}
+        </div>
       ) : (
         <>
-          {/* MOBILE VIEW: Cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {countries.map((item) => (
-              <Card key={item.id} className="border border-gray-100 shadow-sm bg-white hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar className="h-10 w-10 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0">
-                      <AvatarImage src={getMediaUrl(item.avatar)} className="object-cover" />
-                      <AvatarFallback className="rounded-lg font-semibold text-xs bg-gray-100 text-gray-700">
-                        {item.country_code}
-                      </AvatarFallback>
-                    </Avatar>
+          {/* Mobile Cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {countries.map((item, index) => (
+              <SwipeableCard
+                key={item.id}
+                onClick={() => router.push(buildUrlWithParams(`${basePath}/${item.id}`))}
+                onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${item.id}`))}
+                onDelete={() => setItemToDelete(item)}
+              >
+                <div className="border-y border-[var(--dark-600)] p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {item.avatar ? (
+                        <img src={getMediaUrl(item.avatar)} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-[var(--brand-light)]/60">{item.country_code}</span>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base font-semibold text-gray-900 truncate">{item.name}</CardTitle>
-                      <CardDescription className="font-mono text-xs text-gray-500 mt-0.5">{item.country_code}</CardDescription>
+                      <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">{item.name}</h3>
+                      <span className="inline-block mt-1 px-2 py-0.5 bg-[var(--dark-600)] rounded-md text-xs font-mono text-[var(--brand-light)]/60">
+                        {item.country_code}
+                      </span>
                     </div>
                   </div>
                   
-                  {/* Actions Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-50 flex-shrink-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={buildUrlWithParams(`${basePath}/${item.id}`)} className="cursor-pointer">
-                          <Eye className="mr-2 h-4 w-4" /> View Details
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={buildUrlWithParams(`${basePath}/edit/${item.id}`)} className="cursor-pointer">
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setItemToDelete(item)} className="text-red-600 cursor-pointer focus:text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                      <CreditCard className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" /> 
-                      <span className="text-sm text-gray-700 truncate">{item.currency_code}</span>
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <div className="flex items-center gap-2 bg-[var(--dark-600)] p-3 rounded-lg">
+                      <CreditCard className="h-4 w-4 text-[var(--brand-peach)] flex-shrink-0" /> 
+                      <span className="text-sm text-[var(--brand-light)]/70 truncate">{item.currency_code || '—'}</span>
                     </div>
-                    <div className="flex items-center gap-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                      <Globe className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" /> 
-                      <span className="text-sm text-gray-700 truncate">{item.default_language}</span>
+                    <div className="flex items-center gap-2 bg-[var(--dark-600)] p-3 rounded-lg">
+                      <Languages className="h-4 w-4 text-[var(--brand-blue)] flex-shrink-0" /> 
+                      <span className="text-sm text-[var(--brand-light)]/70 truncate">{item.default_language || '—'}</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </SwipeableCard>
             ))}
           </div>
 
-          {/* DESKTOP VIEW: Table */}
-          <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-gray-600 font-semibold">Country</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Code</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Currency</TableHead>
-                  <TableHead className="h-12 text-gray-600 font-semibold">Language</TableHead>
-                  <TableHead className="h-12 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {countries.map((item) => (
-                  <TableRow key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <TableCell className="py-4">
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Country</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Code</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Currency</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Language</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Timezone</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {countries.map((item, index) => (
+                  <tr 
+                    key={item.id} 
+                    className={`${index !== countries.length - 1 ? 'border-b border-[var(--dark-600)]/50' : ''} hover:bg-[var(--dark-700)]/30 transition-colors`}
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50">
-                          <AvatarImage src={getMediaUrl(item.avatar)} className="object-cover" />
-                          <AvatarFallback className="rounded-lg font-semibold text-xs bg-gray-100 text-gray-700">
-                            {item.country_code}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-semibold text-gray-900">{item.name}</span>
+                        <div className="w-10 h-10 rounded-lg bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center overflow-hidden">
+                          {item.avatar ? (
+                            <img src={getMediaUrl(item.avatar)} alt={item.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-[var(--brand-light)]/50">{item.country_code}</span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-[var(--brand-light)]">{item.name}</span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono text-xs border-gray-200 text-gray-700 bg-gray-50">
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-block px-2.5 py-1 bg-[var(--dark-600)] rounded-lg text-xs font-mono text-[var(--brand-light)]/70">
                         {item.country_code}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-600">{item.currency_code}</TableCell>
-                    <TableCell className="text-gray-600">{item.default_language}</TableCell>
-                    <TableCell className="text-right">
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-[var(--brand-light)]/60">{item.currency_code || '—'}</td>
+                    <td className="px-6 py-4 text-[var(--brand-light)]/60">{item.default_language || '—'}</td>
+                    <td className="px-6 py-4 text-[var(--brand-light)]/60 text-sm">{item.timezone || '—'}</td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={buildUrlWithParams(`${basePath}/${item.id}`)}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Eye className="w-4 h-4" />
+                          </button>
                         </Link>
                         <Link href={buildUrlWithParams(`${basePath}/edit/${item.id}`)}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <button className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all">
+                            <Edit className="w-4 h-4" />
+                          </button>
                         </Link>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                        <button 
                           onClick={() => setItemToDelete(item)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </Card>
+              </tbody>
+            </table>
+          </div>
         </>
       )}
 
-      {/* Preserve Modals */}
+      {/* Modals */}
       <ConfirmationModal 
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
@@ -278,8 +518,9 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
         message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
         confirmButtonText="Delete"
         cancelButtonText="Cancel"
+        darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
     </div>
   );
 }

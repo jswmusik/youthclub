@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import GuardianForm from '@/app/components/GuardianForm';
+import { Users } from 'lucide-react';
 
 function EditPageContent() {
   const { id } = useParams() as { id: string };
@@ -32,10 +33,19 @@ function EditPageContent() {
     return queryString ? `/admin/club/guardians?${queryString}` : '/admin/club/guardians';
   };
 
-  if (!data) return <div className="p-8">Loading...</div>;
+  if (!data) return (
+    <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <Users className="w-6 h-6 text-white" />
+        </div>
+        <p className="text-[var(--brand-light)]/60">Loading guardian...</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-8">
+    <div>
       <GuardianForm initialData={data} redirectPath={buildRedirectPath()} scope="CLUB" />
     </div>
   );
@@ -43,7 +53,16 @@ function EditPageContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-8">Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Users className="w-6 h-6 text-white" />
+          </div>
+          <p className="text-[var(--brand-light)]/60">Loading guardian...</p>
+        </div>
+      </div>
+    }>
       <EditPageContent />
     </Suspense>
   );

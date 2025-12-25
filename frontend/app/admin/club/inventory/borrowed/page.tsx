@@ -6,15 +6,68 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import LendingHistoryTable from '@/app/components/inventory/LendingHistoryTable';
-import { Clock, AlertCircle, Search, X, Package, ChevronLeft, ChevronUp, BarChart3, CheckCircle } from 'lucide-react';
+import { 
+    Clock, AlertCircle, Search, X, Package, ArrowLeft, ChevronUp, ChevronDown, 
+    BarChart3, CheckCircle2, Users
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import Toast from '@/app/components/Toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+
+// Minimum loading time for skeleton display
+const MIN_LOADING_TIME = 400;
+
+// Skeleton Components
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div 
+      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
+      style={{
+        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
+      }}
+    />
+  );
+}
+
+function BorrowedCardSkeleton() {
+  return (
+    <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+      <div className="flex items-start gap-3">
+        <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-24" />
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        </div>
+        <Skeleton className="h-6 w-16 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+function BorrowedTableRowSkeleton() {
+  return (
+    <tr className="border-b border-[var(--dark-600)]/50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
+          <Skeleton className="h-5 w-32" />
+        </div>
+      </td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-28" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-28" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-5 w-28" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-9 w-24 rounded-xl" /></td>
+    </tr>
+  );
+}
 
 export default function ClubBorrowedItemsPage() {
     const router = useRouter();
@@ -25,17 +78,31 @@ export default function ClubBorrowedItemsPage() {
     const [sessions, setSessions] = useState([]);
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showSkeleton, setShowSkeleton] = useState(true);
     const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
     const [returningItemId, setReturningItemId] = useState<number | null>(null);
     const [showReturnModal, setShowReturnModal] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean } | null>(null);
     
-    // Get filter values from URL
-    const search = searchParams.get('search') || '';
-    const selectedItemId = searchParams.get('item') ? Number(searchParams.get('item')) : null;
+    // Filter state
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+    const [selectedItemId, setSelectedItemId] = useState(searchParams.get('item') || '');
+    
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
+
+    // Debounced filter update
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (searchInput) params.set('search', searchInput); else params.delete('search');
+            if (selectedItemId) params.set('item', selectedItemId); else params.delete('item');
+            params.set('page', '1');
+            router.replace(`${pathname}?${params.toString()}`);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchInput, selectedItemId]);
 
     useEffect(() => {
         if (user?.assigned_club) {
@@ -66,19 +133,21 @@ export default function ClubBorrowedItemsPage() {
     const loadBorrowedItems = async () => {
         if (!user?.assigned_club) return;
         
+        setLoading(true);
+        setShowSkeleton(true);
+        const startTime = Date.now();
+        
         try {
-            setLoading(true);
             const params = new URLSearchParams();
-            
-            // Always filter for ACTIVE status
             params.append('status', 'ACTIVE');
             
-            // Add filters from URL
-            if (search) params.append('search', search);
-            if (selectedItemId) params.append('item', String(selectedItemId));
+            const search = searchParams.get('search');
+            const item = searchParams.get('item');
+            const page = searchParams.get('page') || '1';
             
-            // Add pagination
-            params.append('page', String(currentPage));
+            if (search) params.append('search', search);
+            if (item) params.append('item', item);
+            params.append('page', page);
             params.append('page_size', String(pageSize));
             
             const queryString = params.toString();
@@ -87,7 +156,6 @@ export default function ClubBorrowedItemsPage() {
             const res = await api.get(url);
             const data = res.data;
             
-            // Handle paginated response
             if (Array.isArray(data)) {
                 setSessions(data);
                 setTotalCount(data.length);
@@ -100,7 +168,13 @@ export default function ClubBorrowedItemsPage() {
             setSessions([]);
             setTotalCount(0);
         } finally {
-            setLoading(false);
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+            
+            setTimeout(() => {
+                setLoading(false);
+                setShowSkeleton(false);
+            }, remaining);
         }
     };
 
@@ -114,33 +188,26 @@ export default function ClubBorrowedItemsPage() {
         
         try {
             await inventoryApi.returnItem(returningItemId);
-            setToast({ message: 'Item returned successfully', type: 'success' });
+            setToast({ message: 'Item returned successfully', type: 'success', isVisible: true });
             setShowReturnModal(false);
             setReturningItemId(null);
-            // Reload the list
             loadBorrowedItems();
         } catch (error: any) {
             const errorMessage = error.response?.data?.error || 'Failed to return item';
-            setToast({ message: errorMessage, type: 'error' });
+            setToast({ message: errorMessage, type: 'error', isVisible: true });
         }
-    };
-
-    const updateUrl = (key: string, value: string) => {
-        const params = new URLSearchParams(searchParams.toString());
-        if (value) {
-            params.set(key, value);
-        } else {
-            params.delete(key);
-        }
-        // Reset page to 1 when filters change (except when changing page itself)
-        if (key !== 'page') {
-            params.set('page', '1');
-        }
-        router.push(`${pathname}?${params.toString()}`);
     };
 
     const clearFilters = () => {
+        setSearchInput('');
+        setSelectedItemId('');
         router.push(pathname);
+    };
+
+    const handlePageChange = (p: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', p.toString());
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     // Calculate overdue count
@@ -158,254 +225,284 @@ export default function ClubBorrowedItemsPage() {
         active_loans: sessions.filter((s: any) => s.status === 'ACTIVE').length,
     };
 
+    const selectArrowStyle = {
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 0.75rem center',
+        backgroundSize: '1rem'
+    };
+
+    const hasFilters = searchInput || selectedItemId;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
     return (
-        <div className="p-8 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <Link href="/admin/club/inventory">
-                    <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-                        <ChevronLeft className="h-4 w-4" />
-                        Back to Inventory
-                    </Button>
-                </Link>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Currently Borrowed Items</h1>
-                    <p className="text-gray-500 mt-1">View all items that are currently borrowed.</p>
-                </div>
-            </div>
-
-            {/* Analytics */}
-            <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                <Card className="border-0 shadow-sm bg-gray-900">
-                    <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-                        <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-gray-400" />
-                            <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                                Analytics Dashboard
-                            </h3>
+        <div className="min-h-screen bg-[var(--dark-900)]">
+            <div className="py-4 sm:py-8 px-0 space-y-6">
+                {/* Navigation Header */}
+                <div className="flex items-center gap-4 px-4 sm:px-0 mb-6">
+                    <Link 
+                        href="/admin/club/inventory"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
+                                <Users className="w-5 h-5 text-white" />
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Currently Borrowed</h1>
                         </div>
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                                <ChevronUp className={cn(
-                                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                                )} />
-                                <span className="sr-only">Toggle Analytics</span>
-                            </Button>
-                        </CollapsibleTrigger>
+                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">View all items that are currently borrowed.</p>
                     </div>
-                    <CollapsibleContent className="transition-all duration-500 ease-in-out">
-                        <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                </div>
+
+                {/* Analytics Dashboard */}
+                {!showSkeleton && (
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                        <button 
+                            onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+                            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                                    <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+                                </div>
+                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                            </div>
+                            {analyticsExpanded ? (
+                                <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
+                            ) : (
+                                <ChevronDown className="h-4 w-4 text-[var(--brand-light)]/50" />
+                            )}
+                        </button>
+                        
+                        <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+                            <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                                
                                 {/* Total Borrowed */}
-                                <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                    style={{
-                                        boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                                    }}>
-                                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                                                style={{
-                                                    boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                                                }}>
-                                                <Package className="h-5 w-5 text-white" />
-                                            </div>
-                                            <CardTitle className="text-sm font-medium text-white/90">Total Borrowed</CardTitle>
+                                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                            <Package className="h-5 w-5 text-white" />
                                         </div>
-                                        <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_borrowed}</div>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
                                     </div>
-                                </Card>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_borrowed}</div>
+                                </div>
 
                                 {/* Overdue */}
-                                <Card className="bg-white/5 backdrop-blur-sm border border-[#EF4444]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                    style={{
-                                        boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2)',
-                                    }}>
-                                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#F87171] flex items-center justify-center shadow-lg"
-                                                style={{
-                                                    boxShadow: '0 4px 15px rgba(239, 68, 68, 0.5), 0 0 20px rgba(248, 113, 113, 0.3)',
-                                                }}>
-                                                <AlertCircle className="h-5 w-5 text-white" />
-                                            </div>
-                                            <CardTitle className="text-sm font-medium text-white/90">Overdue</CardTitle>
+                                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-red)]/50 transition-all">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-red)] to-[#F87171] flex items-center justify-center">
+                                            <AlertCircle className="h-5 w-5 text-white" />
                                         </div>
-                                        <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.overdue}</div>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Overdue</span>
                                     </div>
-                                </Card>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.overdue}</div>
+                                </div>
 
                                 {/* On Time */}
-                                <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                    style={{
-                                        boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                                    }}>
-                                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                                                style={{
-                                                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                                                }}>
-                                                <CheckCircle className="h-5 w-5 text-white" />
-                                            </div>
-                                            <CardTitle className="text-sm font-medium text-white/90">On Time</CardTitle>
+                                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                                            <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
-                                        <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.on_time}</div>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">On Time</span>
                                     </div>
-                                </Card>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.on_time}</div>
+                                </div>
 
                                 {/* Active Loans */}
-                                <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                    style={{
-                                        boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                                    }}>
-                                    <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                                                style={{
-                                                    boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                                                }}>
-                                                <Clock className="h-5 w-5 text-white" />
-                                            </div>
-                                            <CardTitle className="text-sm font-medium text-white/90">Active Loans</CardTitle>
+                                <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
+                                            <Clock className="h-5 w-5 text-white" />
                                         </div>
-                                        <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.active_loans}</div>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Active</span>
                                     </div>
-                                </Card>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.active_loans}</div>
+                                </div>
                             </div>
-                        </CardContent>
-                    </CollapsibleContent>
-                </Card>
-            </Collapsible>
-
-            {/* Overdue Warning */}
-            {overdueCount > 0 && (
-                <Card className="border border-red-200 bg-red-50">
-                    <CardContent className="p-4 flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                        <div>
-                            <p className="text-sm font-semibold text-red-800">
-                                {overdueCount} item{overdueCount !== 1 ? 's' : ''} {overdueCount !== 1 ? 'are' : 'is'} overdue
-                            </p>
-                            <p className="text-xs text-red-600 mt-1">Items highlighted in red are past their due date.</p>
                         </div>
-                    </CardContent>
-                </Card>
-            )}
+                    </div>
+                )}
 
-            {/* Filters */}
-            <Card className="border border-gray-100 shadow-sm bg-white">
-                <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                        <Input 
-                            placeholder="Search by item or borrower..." 
-                            className="pl-9 bg-gray-50 border-0"
-                            value={search}
-                            onChange={e => updateUrl('search', e.target.value)}
-                        />
+                {/* Overdue Warning */}
+                {!showSkeleton && overdueCount > 0 && (
+                    <div className="bg-[var(--brand-red)]/10 rounded-none sm:rounded-xl border-y sm:border border-[var(--brand-red)]/30 px-4 py-4 mx-0 sm:mx-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)]/20 flex items-center justify-center flex-shrink-0">
+                                <AlertCircle className="w-5 h-5 text-[var(--brand-red)]" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-[var(--brand-red)]">
+                                    {overdueCount} item{overdueCount !== 1 ? 's' : ''} {overdueCount !== 1 ? 'are' : 'is'} overdue
+                                </p>
+                                <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">Items highlighted in red are past their due date.</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="w-full sm:w-[200px]">
-                        <select 
-                            className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                            value={selectedItemId || ''} 
-                            onChange={e => updateUrl('item', e.target.value)}
-                        >
-                            <option value="">All Items</option>
-                            {items.map((item) => (
-                                <option key={item.id} value={item.id}>
-                                    {item.title}
-                                </option>
-                            ))}
-                        </select>
+                )}
+
+                {/* Search & Filters */}
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+                    <div className="flex flex-col gap-3">
+                        {/* Search Row */}
+                        <div className="flex items-center gap-3">
+                            <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+                            <input 
+                                type="text"
+                                placeholder="Search by item or borrower..." 
+                                className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
+                                value={searchInput}
+                                onChange={e => setSearchInput(e.target.value)}
+                            />
+                            {searchInput && (
+                                <button 
+                                    onClick={() => setSearchInput('')}
+                                    className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+                                >
+                                    ×
+                                </button>
+                            )}
+                        </div>
+                        
+                        {/* Filters Row */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="w-full sm:w-[180px]">
+                                <select 
+                                    className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                    value={selectedItemId}
+                                    onChange={e => setSelectedItemId(e.target.value)}
+                                    style={selectArrowStyle}
+                                >
+                                    <option value="">All Items</option>
+                                    {items.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {hasFilters && (
+                                <button
+                                    onClick={clearFilters}
+                                    className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
+                                >
+                                    <X className="h-4 w-4" /> Clear
+                                </button>
+                            )}
+                        </div>
                     </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearFilters}
-                        className="w-full sm:w-auto h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-                    >
-                        <X className="h-4 w-4" /> Clear
-                    </Button>
                 </div>
-            </Card>
 
-            {/* History Table */}
-            {loading ? (
-                <Card className="border border-gray-100 shadow-sm bg-white">
-                    <CardContent className="p-12 text-center text-gray-500">
-                        Loading borrowed items...
-                    </CardContent>
-                </Card>
-            ) : sessions.length === 0 ? (
-                <Card className="border border-gray-100 shadow-sm bg-white">
-                    <CardContent className="p-12 text-center text-gray-500">
-                        No borrowed items found.
-                    </CardContent>
-                </Card>
-            ) : (
-                <LendingHistoryTable 
-                    sessions={sessions} 
-                    showReturnButton={true}
-                    onReturnItem={handleReturnItem}
-                />
-            )}
+                {/* Stats Bar */}
+                {!showSkeleton && sessions.length > 0 && (
+                    <div className="px-4 sm:px-0">
+                        <p className="text-sm text-[var(--brand-light)]/50">
+                            Showing <span className="text-[var(--brand-primary)] font-semibold">{sessions.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> borrowed {totalCount === 1 ? 'item' : 'items'}
+                        </p>
+                    </div>
+                )}
 
-            {/* Pagination */}
-            {(() => {
-                const totalPages = Math.ceil(totalCount / pageSize);
-                if (totalPages <= 1) return null;
-                
-                return (
-                    <div className="flex items-center justify-center gap-2 py-4">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                {/* Content */}
+                {showSkeleton ? (
+                    <>
+                        {/* Mobile Cards Skeleton */}
+                        <div className="flex flex-col md:hidden">
+                            {[...Array(4)].map((_, i) => (
+                                <BorrowedCardSkeleton key={i} />
+                            ))}
+                        </div>
+
+                        {/* Desktop Table Skeleton */}
+                        <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-[var(--dark-600)]">
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Borrower</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time Out</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Due Date</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time In</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {[...Array(5)].map((_, i) => (
+                                        <BorrowedTableRowSkeleton key={i} />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                ) : sessions.length === 0 ? (
+                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 px-4 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                            <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No borrowed items</h3>
+                        <p className="text-[var(--brand-light)]/50 text-sm">All items have been returned.</p>
+                    </div>
+                ) : (
+                    <LendingHistoryTable 
+                        sessions={sessions} 
+                        showReturnButton={true}
+                        onReturnItem={handleReturnItem}
+                    />
+                )}
+
+                {/* Pagination */}
+                {!showSkeleton && totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-0">
+                        <button 
                             disabled={currentPage === 1} 
-                            onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Prev
-                        </Button>
-                        <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                            Previous
+                        </button>
+                        <div className="text-sm text-[var(--brand-light)]/50">
+                            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                        </div>
+                        <button 
                             disabled={currentPage >= totalPages} 
-                            onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             Next
-                        </Button>
+                        </button>
                     </div>
-                );
-            })()}
+                )}
 
-            {/* Return Confirmation Modal */}
-            <ConfirmationModal
-                isVisible={showReturnModal}
-                onClose={() => {
-                    setShowReturnModal(false);
-                    setReturningItemId(null);
-                }}
-                onConfirm={handleReturnConfirm}
-                title="Return Item"
-                message="Are you sure you want to mark this item as returned? This action cannot be undone."
-                confirmButtonText="Return Item"
-                variant="info"
-            />
-
-            {/* Toast Notification */}
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
+                {/* Return Confirmation Modal */}
+                <ConfirmationModal
+                    isVisible={showReturnModal}
+                    onClose={() => {
+                        setShowReturnModal(false);
+                        setReturningItemId(null);
+                    }}
+                    onConfirm={handleReturnConfirm}
+                    title="Return Item"
+                    message="Are you sure you want to mark this item as returned? This action cannot be undone."
+                    confirmButtonText="Return Item"
+                    variant="info"
+                    darkMode={true}
                 />
-            )}
+
+                {/* Toast Notification */}
+                {toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        isVisible={toast.isVisible}
+                        onClose={() => setToast(null)}
+                        darkMode
+                    />
+                )}
+            </div>
         </div>
     );
 }

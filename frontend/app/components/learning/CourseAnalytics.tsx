@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { learningApi } from '@/lib/learning-api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, CheckCircle2, Eye, TrendingUp, Star } from 'lucide-react';
+import { Users, CheckCircle2, Eye, TrendingUp, Star, BarChart3 } from 'lucide-react';
 
 interface Props {
     courseSlug: string;
@@ -46,17 +45,27 @@ export default function CourseAnalytics({ courseSlug }: Props) {
     if (loading) {
         return (
             <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                        <Card key={i} className="border-gray-200">
-                            <CardHeader className="pb-3">
-                                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
-                            </CardContent>
-                        </Card>
-                    ))}
+                {/* Header Skeleton */}
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                    <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] animate-pulse" />
+                            <div className="space-y-2">
+                                <div className="h-5 w-32 bg-[var(--dark-600)] rounded animate-pulse" />
+                                <div className="h-4 w-48 bg-[var(--dark-600)] rounded animate-pulse" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="bg-[var(--dark-700)] rounded-xl p-4 animate-pulse">
+                                    <div className="h-4 w-20 bg-[var(--dark-600)] rounded mb-3" />
+                                    <div className="h-8 w-16 bg-[var(--dark-600)] rounded" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -64,16 +73,22 @@ export default function CourseAnalytics({ courseSlug }: Props) {
 
     if (error) {
         return (
-            <div className="p-8 text-center">
-                <p className="text-red-500">{error}</p>
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--brand-red)]/20 flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="w-8 h-8 text-[var(--brand-red)]" />
+                </div>
+                <p className="text-[var(--brand-red)] font-medium">{error}</p>
             </div>
         );
     }
 
     if (!analytics) {
         return (
-            <div className="p-8 text-center text-muted-foreground">
-                No analytics data available.
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="w-8 h-8 text-[var(--brand-light)]/30" />
+                </div>
+                <p className="text-[var(--brand-light)]/50">No analytics data available.</p>
             </div>
         );
     }
@@ -83,104 +98,126 @@ export default function CourseAnalytics({ courseSlug }: Props) {
             title: 'Started Course',
             value: analytics.total_students,
             icon: Users,
-            color: 'text-[#4D4DA4]',
-            bgColor: 'bg-[#4D4DA4]/10',
+            gradient: 'from-[var(--brand-primary)] to-[var(--brand-purple)]',
+            borderColor: 'border-l-[var(--brand-primary)]',
             description: 'Users who have started the course'
         },
         {
             title: 'Completed',
             value: analytics.completions,
             icon: CheckCircle2,
-            color: 'text-[#10B981]',
-            bgColor: 'bg-[#10B981]/10',
+            gradient: 'from-[var(--brand-green)] to-[var(--brand-third)]',
+            borderColor: 'border-l-[var(--brand-green)]',
             description: 'Users who completed the course'
         },
         {
             title: 'Viewed Only',
             value: analytics.viewed,
             icon: Eye,
-            color: 'text-[#FF5485]',
-            bgColor: 'bg-[#FF5485]/10',
+            gradient: 'from-[var(--brand-red)] to-[var(--brand-peach)]',
+            borderColor: 'border-l-[var(--brand-red)]',
             description: 'Users who viewed but didn\'t start'
         },
         {
             title: 'Completion Rate',
             value: `${analytics.completion_rate}%`,
             icon: TrendingUp,
-            color: 'text-[#4D4DA4]',
-            bgColor: 'bg-[#4D4DA4]/10',
+            gradient: 'from-[var(--brand-blue)] to-[var(--brand-primary)]',
+            borderColor: 'border-l-[var(--brand-blue)]',
             description: 'Percentage of starters who completed'
         }
     ];
 
     return (
         <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map((stat) => {
-                    const Icon = stat.icon;
-                    return (
-                        <Card key={stat.title} className="border-gray-200 hover:shadow-md transition-shadow">
-                            <CardHeader className="flex flex-row items-center justify-between pb-3">
-                                <CardTitle className="text-sm font-medium text-gray-600">
-                                    {stat.title}
-                                </CardTitle>
-                                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                                    <Icon className={`w-4 h-4 ${stat.color}`} />
+            {/* Stats Card */}
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                            <BarChart3 className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Course Analytics</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">Track engagement and completion metrics</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {stats.map((stat) => {
+                            const Icon = stat.icon;
+                            return (
+                                <div 
+                                    key={stat.title} 
+                                    className={`bg-[var(--dark-700)] rounded-xl p-4 border-l-4 ${stat.borderColor} hover:bg-[var(--dark-600)] transition-all`}
+                                >
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-medium text-[var(--brand-light)]/60">
+                                            {stat.title}
+                                        </span>
+                                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
+                                            <Icon className="w-4 h-4 text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] mb-1">
+                                        {stat.value}
+                                    </div>
+                                    <p className="text-xs text-[var(--brand-light)]/40">
+                                        {stat.description}
+                                    </p>
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold text-[#121213] mb-1">
-                                    {stat.value}
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                    {stat.description}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
-            {/* Additional Info */}
-            <Card className="border-gray-200">
-                <CardHeader>
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                        <Star className="w-5 h-5 text-yellow-500" />
-                        Average Rating
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center gap-4">
-                        <div className="text-4xl font-bold text-[#121213]">
+            {/* Rating Card */}
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                            <Star className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Average Rating</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">User feedback and satisfaction</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6">
+                    <div className="flex items-center gap-6 flex-wrap">
+                        <div className="text-5xl font-bold text-[var(--brand-light)]">
                             {analytics.average_rating > 0 ? analytics.average_rating.toFixed(1) : 'N/A'}
                         </div>
                         {analytics.average_rating > 0 && (
-                            <>
+                            <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-1">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <Star
                                             key={star}
-                                            className={`w-5 h-5 ${
+                                            className={`w-6 h-6 ${
                                                 star <= Math.round(analytics.average_rating)
-                                                    ? 'text-yellow-500 fill-yellow-500'
-                                                    : 'text-gray-300'
+                                                    ? 'text-[var(--brand-peach)] fill-[var(--brand-peach)]'
+                                                    : 'text-[var(--dark-500)]'
                                             }`}
                                         />
                                     ))}
                                 </div>
-                                <div className="text-sm text-gray-500 ml-2">
-                                    ({typeof analytics.total_ratings === 'number' ? analytics.total_ratings : 0} {analytics.total_ratings === 1 ? 'vote' : 'votes'})
+                                <div className="text-sm text-[var(--brand-light)]/50">
+                                    Based on {typeof analytics.total_ratings === 'number' ? analytics.total_ratings : 0} {analytics.total_ratings === 1 ? 'review' : 'reviews'}
                                 </div>
-                            </>
+                            </div>
                         )}
                         {analytics.average_rating === 0 && (
-                            <p className="text-sm text-gray-500">No ratings yet</p>
+                            <p className="text-[var(--brand-light)]/50">No ratings yet</p>
                         )}
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }
-

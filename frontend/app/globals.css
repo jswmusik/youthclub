@@ -7,6 +7,7 @@
 
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -119,6 +120,29 @@
   --sidebar-accent-foreground: 240 36% 47%;
   --sidebar-border: 240 6% 90%;
   --sidebar-ring: 343 100% 66%;
+
+  /* --- BRAND COLORS --- */
+  --brand-purple: #B8A9FF;
+  --brand-primary: #FFA8CD;
+  --brand-dark: #050211;
+  --brand-light: #F9F8F5;
+  --brand-brown: #B75D41;
+  --brand-blue: #4C5D87;
+  --brand-red: #F46E6E;
+  --brand-secondary: #403A6D;
+  --brand-third: #EFFFAB;
+  --brand-sky: #A9CCFF;
+  --brand-peach: #FFE2AE;
+  --brand-coral: #FFADAB;
+  --brand-green: #81EA3F;
+
+  /* --- DARK LEVELS (for member part of site) --- */
+  --dark-900: #050211;
+  --dark-800: #0B0716;
+  --dark-700: #120C22;
+  --dark-600: #1A1430;
+  --dark-500: #241C42;
+  --dark-400: #2F2658;
 }
 
 .dark {
@@ -179,6 +203,9 @@ body {
   overflow-x: hidden;
   max-width: 100vw;
   position: relative;
+  /* Prevent iOS zoom on input focus */
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
 }
 
 @theme inline {
@@ -225,12 +252,348 @@ body {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@layer utilities {
+  .font-heading {
+    font-family: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+/* Event description content - force white text to override pasted Word styles */
+.event-description-content,
+.event-description-content * {
+  color: rgba(249, 248, 245, 0.8) !important; /* --brand-light with 80% opacity */
+}
+.event-description-content a {
+  color: var(--brand-primary) !important;
+}
+.event-description-content strong,
+.event-description-content b {
+  color: var(--brand-light) !important;
+}
+.event-description-content h1,
+.event-description-content h2,
+.event-description-content h3,
+.event-description-content h4,
+.event-description-content h5,
+.event-description-content h6 {
+  color: var(--brand-light) !important;
+}
+
+/* Send icon animation for registration modal - horizontal slide */
+@keyframes sendSlide {
+  0% {
+    transform: translateX(-8px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(8px);
+    opacity: 0;
+  }
+}
+
+/* Shake animation for error messages */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Skeleton Shimmer Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--dark-600) 25%,
+    var(--dark-500) 50%,
+    var(--dark-600) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
+  
+  /* Headings use Poppins */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
   html {
     overflow-x: hidden;
     max-width: 100vw;
+    width: 100%;
+    /* Prevent overscroll bounce showing white background */
+    background-color: var(--dark-900);
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
   }
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    position: relative;
+    /* Prevent overscroll bounce showing white background */
+    background-color: var(--dark-900);
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+  }
+  /* Prevent horizontal overflow on mobile when keyboard opens */
+  @media (max-width: 768px) {
+    html, body {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      /* Prevent iOS zoom */
+      -webkit-text-size-adjust: 100% !important;
+      touch-action: manipulation !important;
+      /* Prevent overscroll bounce */
+      overscroll-behavior: none !important;
+      overscroll-behavior-y: none !important;
+    }
+    * {
+      max-width: 100% !important;
+    }
+    /* Prevent zoom on input focus - iOS zooms if font-size < 16px */
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+}
+
+/* QR Scanner Dark Mode Styles */
+.qr-scanner-dark #html5-qrcode-anchor-scan-type-change {
+  color: var(--brand-primary) !important;
+}
+
+.qr-scanner-dark #html5-qrcode-button-camera-permission,
+.qr-scanner-dark #html5-qrcode-button-camera-start,
+.qr-scanner-dark #html5-qrcode-button-camera-stop,
+.qr-scanner-dark #html5-qrcode-button-file-selection {
+  background-color: var(--brand-primary) !important;
+  color: var(--dark-900) !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.qr-scanner-dark #html5-qrcode-button-camera-permission:hover,
+.qr-scanner-dark #html5-qrcode-button-camera-start:hover,
+.qr-scanner-dark #html5-qrcode-button-camera-stop:hover,
+.qr-scanner-dark #html5-qrcode-button-file-selection:hover {
+  opacity: 0.9 !important;
+}
+
+.qr-scanner-dark #reader {
+  background-color: var(--dark-700) !important;
+  border: none !important;
+}
+
+.qr-scanner-dark #reader__scan_region {
+  background-color: var(--dark-700) !important;
+}
+
+.qr-scanner-dark #reader__dashboard_section {
+  background-color: var(--dark-700) !important;
+  padding: 1rem !important;
+}
+
+.qr-scanner-dark #reader__dashboard_section_csr span,
+.qr-scanner-dark #reader__dashboard_section_fsr span,
+.qr-scanner-dark #reader span,
+.qr-scanner-dark #reader__status_span {
+  color: var(--brand-light) !important;
+}
+
+.qr-scanner-dark #reader__filescan_input {
+  color: var(--brand-light) !important;
+}
+
+.qr-scanner-dark #reader__camera_selection {
+  background-color: var(--dark-600) !important;
+  color: var(--brand-light) !important;
+  border: 1px solid var(--dark-500) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem !important;
+}
+
+.qr-scanner-dark #reader img {
+  filter: invert(1) !important;
+}
+
+.qr-scanner-dark #reader__header_message {
+  color: var(--brand-light) !important;
+  opacity: 0.6 !important;
+}
+
+/* News Content Dark Mode Styles */
+.news-content-dark {
+  color: rgba(249, 248, 245, 0.85); /* --brand-light with 85% opacity */
+  line-height: 1.8;
+}
+
+.news-content-dark p {
+  margin-bottom: 1.5rem;
+  color: rgba(249, 248, 245, 0.85);
+}
+
+.news-content-dark h1,
+.news-content-dark h2,
+.news-content-dark h3,
+.news-content-dark h4,
+.news-content-dark h5,
+.news-content-dark h6 {
+  color: var(--brand-light) !important;
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.news-content-dark h1 { font-size: 2rem; }
+.news-content-dark h2 { font-size: 1.75rem; }
+.news-content-dark h3 { font-size: 1.5rem; }
+.news-content-dark h4 { font-size: 1.25rem; }
+
+.news-content-dark a {
+  color: var(--brand-primary) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.news-content-dark a:hover {
+  color: var(--brand-purple) !important;
+}
+
+.news-content-dark strong,
+.news-content-dark b {
+  color: var(--brand-light) !important;
+  font-weight: 600;
+}
+
+.news-content-dark em,
+.news-content-dark i {
+  color: rgba(249, 248, 245, 0.9);
+}
+
+.news-content-dark ul,
+.news-content-dark ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.news-content-dark li {
+  margin-bottom: 0.5rem;
+  color: rgba(249, 248, 245, 0.85);
+}
+
+.news-content-dark ul li::marker {
+  color: var(--brand-primary);
+}
+
+.news-content-dark ol li::marker {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.news-content-dark blockquote {
+  border-left: 4px solid var(--brand-primary);
+  padding-left: 1.5rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: rgba(249, 248, 245, 0.75);
+}
+
+.news-content-dark img {
+  width: 100%;
+  height: auto;
+  margin: 2rem 0;
+}
+
+.news-content-dark hr {
+  border: none;
+  border-top: 1px solid var(--dark-600);
+  margin: 2rem 0;
+}
+
+.news-content-dark pre,
+.news-content-dark code {
+  background-color: var(--dark-700);
+  color: var(--brand-third);
+  padding: 0.25rem 0.5rem;
+  font-family: monospace;
+}
+
+.news-content-dark pre {
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.news-content-dark table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+.news-content-dark th,
+.news-content-dark td {
+  border: 1px solid var(--dark-600);
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.news-content-dark th {
+  background-color: var(--dark-700);
+  color: var(--brand-light);
+  font-weight: 600;
+}
+
+.news-content-dark td {
+  color: rgba(249, 248, 245, 0.85);
+}
+
+/* Override any inline styles from rich text editors */
+.news-content-dark * {
+  color: inherit !important;
+}
+
+.news-content-dark *[style*="color"] {
+  color: rgba(249, 248, 245, 0.85) !important;
+}
+
+.news-content-dark h1[style*="color"],
+.news-content-dark h2[style*="color"],
+.news-content-dark h3[style*="color"],
+.news-content-dark h4[style*="color"],
+.news-content-dark h5[style*="color"],
+.news-content-dark h6[style*="color"] {
+  color: var(--brand-light) !important;
+}
+
+.news-content-dark a[style*="color"] {
+  color: var(--brand-primary) !important;
 }

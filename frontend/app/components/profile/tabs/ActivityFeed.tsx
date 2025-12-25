@@ -2,16 +2,20 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+
 import { fetchUserActivityFeed, visits, rewards } from '@/lib/api';
 import api from '@/lib/api';
 import PostCard from '@/app/components/posts/PostCard';
 import { Post } from '@/types/post';
 import { getMediaUrl } from '@/app/utils';
+import { Users, Package, CheckCircle2, ClipboardCheck, Calendar, Gift, ChevronRight, QrCode, Activity, Clock } from 'lucide-react';
+
 
 type TimeFilter = 'day' | 'week' | 'month' | 'forever';
 
 interface ActivityFeedProps {
   showTimeFilter?: boolean;
+  darkMode?: boolean;
 }
 
 interface Visit {
@@ -53,7 +57,7 @@ type TimelineItem = {
   data: Post | Visit | RewardRedemption | Booking | Post; // group_join, inventory activities, and questionnaire completions use Post type
 };
 
-export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProps) {
+export default function ActivityFeed({ showTimeFilter = true, darkMode = false }: ActivityFeedProps) {
   const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [visitsData, setVisitsData] = useState<Visit[]>([]);
@@ -264,11 +268,13 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
         {/* Sidebar skeleton */}
         {showTimeFilter && (
           <div className="lg:col-span-1">
-            <div className="bg-[#050505] rounded-xl p-4 h-64 animate-pulse shadow-sm border border-[#262626]">
-              <div className="h-6 w-32 bg-[#0a0a0a] rounded mb-4"></div>
+            <div className={`rounded-none sm:rounded-xl p-4 h-64 animate-pulse border-y sm:border ${
+              darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-gray-200'
+            }`}>
+              <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
               <div className="space-y-2">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-10 bg-[#0a0a0a] rounded"></div>
+                  <div key={i} className={`h-10 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
                 ))}
               </div>
             </div>
@@ -277,15 +283,17 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
         {/* Content skeleton */}
         <div className={showTimeFilter ? "lg:col-span-3 space-y-4" : "space-y-4"}>
           {[1, 2].map((i) => (
-            <div key={i} className="bg-[#050505] rounded-2xl p-4 h-48 animate-pulse shadow-sm border border-[#262626]">
+            <div key={i} className={`rounded-none sm:rounded-2xl p-4 h-48 animate-pulse border-t sm:border ${
+              darkMode ? 'bg-[var(--dark-900)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-gray-200'
+            }`}>
               <div className="flex gap-3 mb-4">
-                <div className="w-10 h-10 bg-[#0a0a0a] rounded-full"></div>
+                <div className={`w-10 h-10 rounded-full ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
                 <div className="space-y-2">
-                  <div className="h-4 w-32 bg-[#0a0a0a] rounded"></div>
-                  <div className="h-3 w-20 bg-[#0a0a0a] rounded"></div>
+                  <div className={`h-4 w-32 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                  <div className={`h-3 w-20 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
                 </div>
               </div>
-              <div className="h-20 bg-[#0a0a0a] rounded mb-4"></div>
+              <div className={`h-20 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
             </div>
           ))}
         </div>
@@ -294,25 +302,55 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
   }
 
   if (error) {
-    return <div className="text-center text-gray-400 py-8">{error}</div>;
+    return <div className={`text-center py-8 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{error}</div>;
   }
+
+  // Activity card component for non-post items (lighter background than posts)
+  const ActivityCard = ({ 
+    children, 
+    accentColor 
+  }: { 
+    children: React.ReactNode; 
+    accentColor: string;
+  }) => (
+    <div className={`rounded-none sm:rounded-xl border-l-4 p-4 sm:p-6 border-t sm:border ${
+      darkMode 
+        ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+        : 'bg-white shadow-sm border-gray-200'
+    }`} style={{ borderLeftColor: accentColor }}>
+      {children}
+    </div>
+  );
 
   return (
     <div className={showTimeFilter ? "grid grid-cols-1 lg:grid-cols-4 gap-6" : ""}>
       {/* Left Sidebar - Time Filter */}
       {showTimeFilter && (
         <div className="lg:col-span-1">
-          <div className="bg-[#050505] rounded-xl p-5 shadow-sm border border-[#262626] sticky top-[120px] z-30">
-            <h3 className="text-sm font-bold text-gray-300 uppercase mb-4">Time Period</h3>
+          <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border sticky top-[120px] z-30 ${
+            darkMode 
+              ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+              : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-sm border-[#4D4DA4]/10'
+          }`}>
+            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 font-heading ${
+              darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+            }`}>
+              <Clock className="w-5 h-5" />
+              Time Period
+            </h3>
             <div className="space-y-2">
               {timeFilterOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => setTimeFilter(option.value)}
-                  className={`w-full text-left px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                  className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
                     timeFilter === option.value
-                      ? 'bg-[#4D4DA4]/20 text-[#6D6DD4] border-2 border-[#4D4DA4]/40'
-                      : 'bg-[#0a0a0a] text-gray-300 border-2 border-transparent hover:bg-[#121212] hover:border-[#262626]'
+                      ? darkMode
+                        ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                        : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md shadow-[#4D4DA4]/30'
+                      : darkMode
+                        ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] border border-[var(--dark-500)]'
+                        : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-gray-200 shadow-sm'
                   }`}
                 >
                   {option.label}
@@ -326,86 +364,101 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
       {/* Right Column - Timeline */}
       <div className={showTimeFilter ? "lg:col-span-3" : ""}>
         {timelineItems.length === 0 ? (
-          <div className="text-center py-10 bg-[#050505] rounded-xl shadow-sm border border-[#262626]">
-            <p className="text-gray-400">No recent activity found.</p>
-            <p className="text-sm text-gray-500 mt-1">Join a club to see posts here!</p>
+          <div className={`text-center py-10 rounded-none sm:rounded-xl border-y sm:border ${
+            darkMode 
+              ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
+              : 'bg-white shadow-sm border-gray-200'
+          }`}>
+            <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}>No recent activity found.</p>
+            <p className={`text-sm mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>Join a club to see posts here!</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            <h3 className="text-lg font-bold text-gray-200 px-1">Latest Activity</h3>
+          <div>
+            <h3 className={`text-xl font-bold px-1 mb-6 flex items-center gap-3 font-heading ${
+              darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+            }`}>
+              <Activity className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+              Latest Activity
+            </h3>
             {timelineItems.map((item) => {
               if (item.type === 'group_join') {
                 const groupPost = item.data as Post;
-                // Extract group name from title (format: "Joined {Group Name}")
                 const groupName = groupPost.title.replace('Joined ', '');
                 const joinDate = item.date;
                 const weekday = joinDate.toLocaleDateString('en-US', { weekday: 'long' });
                 const dateStr = joinDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                 const timeStr = joinDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
-                // Extract group image from post images if available
                 const groupImage = groupPost.images && groupPost.images.length > 0 
                   ? groupPost.images[0].image 
                   : null;
                 
-                // Extract group URL from post content (if available)
                 const contentMatch = groupPost.content?.match(/href=['"]([^'"]+)['"]/);
                 const groupUrl = contentMatch ? contentMatch[1] : null;
                 
                 return (
-                  <div key={`group-join-${groupPost.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-[#4D4DA4] p-6">
-                    <div className="flex items-start gap-4">
-                      {/* Group Image/Icon */}
-                      <div className="flex-shrink-0">
-                        {groupImage ? (
-                          <img 
-                            src={getMediaUrl(groupImage) || ''} 
-                            alt={groupName} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-[#262626]"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center text-[#6D6DD4] font-bold text-lg">
-                            👥
+                  <div key={`group-join-${groupPost.id}`} className="mb-4">
+                    <ActivityCard accentColor={darkMode ? 'var(--brand-purple)' : '#4D4DA4'}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          {groupImage ? (
+                            <img 
+                              src={getMediaUrl(groupImage) || ''} 
+                              alt={groupName} 
+                              className={`w-12 h-12 rounded-full object-cover border-2 ${
+                                darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'
+                              }`}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              darkMode ? 'bg-[var(--brand-purple)]/20' : 'bg-[#4D4DA4]/20'
+                            }`}>
+                              <Users className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#6D6DD4]'}`} />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{groupName}</h4>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              darkMode 
+                                ? 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30'
+                                : 'bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30'
+                            }`}>
+                              Joined
+                            </span>
                           </div>
-                        )}
-                      </div>
-                      
-                      {/* Group Join Details */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-200">{groupName}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30">
-                            Joined
-                          </span>
+                          <p className={`text-sm mb-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                            {weekday}, {dateStr} at {timeStr}
+                          </p>
+                          {groupUrl && (
+                            <button
+                              onClick={() => router.push(groupUrl)}
+                              className={`text-sm font-medium inline-flex items-center gap-1 transition-colors ${
+                                darkMode 
+                                  ? 'text-[var(--brand-purple)] hover:text-[var(--brand-primary)]'
+                                  : 'text-[#6D6DD4] hover:text-[#FF5485]'
+                              }`}
+                            >
+                              View Group
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-400 mb-2">
-                          {weekday}, {dateStr} at {timeStr}
-                        </p>
-                        {groupUrl && (
-                          <button
-                            onClick={() => router.push(groupUrl)}
-                            className="text-sm text-[#6D6DD4] hover:text-[#FF5485] font-medium inline-flex items-center gap-1 transition-colors"
-                          >
-                            View Group
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M9 5l7 7-7 7" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                      
-                      {/* Group Icon */}
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-[#6D6DD4]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
+                        
+                        <div className="flex-shrink-0 hidden sm:block">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            darkMode ? 'bg-[var(--brand-purple)]/20' : 'bg-[#4D4DA4]/20'
+                          }`}>
+                            <Users className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#6D6DD4]'}`} />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </ActivityCard>
                   </div>
                 );
               } else if (item.type === 'inventory_borrow' || item.type === 'inventory_return' || item.type === 'inventory_complete') {
@@ -413,17 +466,11 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const isComplete = item.type === 'inventory_complete';
                 const isBorrow = item.type === 'inventory_borrow';
                 
-                // Extract item name from title (format: "Borrowed {Item Name}")
                 const itemName = inventoryPost.title.replace('Borrowed ', '').replace('Returned ', '');
-                
-                // For complete posts, use published_at as borrow date (it's set to borrow_date in backend)
                 const actionDate = item.date;
                 
-                // Try to extract return date from content if it's a complete post
                 let returnDateStr: string | null = null;
                 if (isComplete && inventoryPost.content) {
-                  // Extract return date/time from HTML content
-                  // Format: "Returned to {club} on {date} at {time}"
                   const returnMatch = inventoryPost.content.match(/Returned to[^<]*on ([^<]+) at ([^<]+)/);
                   if (returnMatch) {
                     returnDateStr = `${returnMatch[1]} at ${returnMatch[2]}`;
@@ -433,91 +480,116 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const dateStr = actionDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                 const timeStr = actionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
-                // Extract item image from post images if available
                 const itemImage = inventoryPost.images && inventoryPost.images.length > 0 
                   ? inventoryPost.images[0].image 
                   : null;
+
+                const accentColor = darkMode 
+                  ? (isComplete ? 'var(--brand-purple)' : (isBorrow ? 'var(--brand-sky)' : 'var(--brand-third)'))
+                  : (isComplete ? '#4D4DA4' : (isBorrow ? '#6D6DD4' : '#10B981'));
                 
                 return (
-                  <div key={`inventory-${inventoryPost.id}`} className={`bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 ${isComplete ? 'border-l-[#4D4DA4]' : (isBorrow ? 'border-l-[#6D6DD4]' : 'border-l-emerald-500')} p-6`}>
-                    <div className="flex items-start gap-4">
-                      {/* Item Image/Icon */}
-                      <div className="flex-shrink-0">
-                        {itemImage ? (
-                          <img 
-                            src={getMediaUrl(itemImage) || ''} 
-                            alt={itemName} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-[#262626]"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className={`w-12 h-12 rounded-full ${isComplete ? 'bg-[#4D4DA4]/20' : (isBorrow ? 'bg-[#6D6DD4]/20' : 'bg-emerald-500/20')} flex items-center justify-center ${isComplete ? 'text-[#6D6DD4]' : (isBorrow ? 'text-[#6D6DD4]' : 'text-emerald-400')} font-bold text-lg`}>
-                            {isComplete ? '📦✅' : (isBorrow ? '📦' : '✅')}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Inventory Activity Details */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-200">{itemName}</h4>
-                          {isComplete ? (
-                            <>
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#6D6DD4]/20 text-[#6D6DD4] border border-[#6D6DD4]/30">
-                                Borrowed
-                              </span>
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                Returned
-                              </span>
-                            </>
+                  <div key={`inventory-${inventoryPost.id}`} className="mb-4">
+                    <ActivityCard accentColor={accentColor}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          {itemImage ? (
+                            <img 
+                              src={getMediaUrl(itemImage) || ''} 
+                              alt={itemName} 
+                              className={`w-12 h-12 rounded-full object-cover border-2 ${
+                                darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'
+                              }`}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
                           ) : (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isBorrow ? 'bg-[#6D6DD4]/20 text-[#6D6DD4] border border-[#6D6DD4]/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
-                              {isBorrow ? 'Borrowed' : 'Returned'}
-                            </span>
-                          )}
-                        </div>
-                        {isComplete && returnDateStr ? (
-                          <div className="space-y-1">
-                            <p className="text-sm text-gray-400">
-                              <span className="font-medium text-gray-300">Borrowed:</span> {weekday}, {dateStr} at {timeStr}
-                            </p>
-                            <p className="text-sm text-gray-400">
-                              <span className="font-medium text-gray-300">Returned:</span> {returnDateStr}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-400">
-                            {weekday}, {dateStr} at {timeStr}
-                          </p>
-                        )}
-                      </div>
-                      
-                      {/* Package/Check Icon */}
-                      <div className="flex-shrink-0">
-                        <div className={`w-10 h-10 rounded-full ${isComplete ? 'bg-[#4D4DA4]/20' : (isBorrow ? 'bg-[#6D6DD4]/20' : 'bg-emerald-500/20')} flex items-center justify-center`}>
-                          {isComplete ? (
-                            <div className="flex items-center gap-1">
-                              <svg className="w-5 h-5 text-[#6D6DD4]" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                              </svg>
-                              <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M5 13l4 4L19 7" />
-                              </svg>
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              darkMode 
+                                ? (isComplete ? 'bg-[var(--brand-purple)]/20' : (isBorrow ? 'bg-[var(--brand-sky)]/20' : 'bg-[var(--brand-third)]/20'))
+                                : (isComplete ? 'bg-[#4D4DA4]/20' : (isBorrow ? 'bg-[#6D6DD4]/20' : 'bg-[#10B981]/20'))
+                            }`}>
+                              {isComplete ? (
+                                <div className="flex items-center gap-0.5">
+                                  <Package className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-sky)]' : 'text-[#6D6DD4]'}`} />
+                                  <CheckCircle2 className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`} />
+                                </div>
+                              ) : isBorrow ? (
+                                <Package className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-sky)]' : 'text-[#6D6DD4]'}`} />
+                              ) : (
+                                <CheckCircle2 className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`} />
+                              )}
                             </div>
-                          ) : isBorrow ? (
-                            <svg className="w-6 h-6 text-[#6D6DD4]" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
-                          ) : (
-                            <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M5 13l4 4L19 7" />
-                            </svg>
                           )}
                         </div>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{itemName}</h4>
+                            {isComplete ? (
+                              <>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  darkMode 
+                                    ? 'bg-[var(--brand-sky)]/20 text-[var(--brand-sky)] border border-[var(--brand-sky)]/30'
+                                    : 'bg-[#6D6DD4]/20 text-[#6D6DD4] border border-[#6D6DD4]/30'
+                                }`}>
+                                  Borrowed
+                                </span>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  darkMode 
+                                    ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30'
+                                    : 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30'
+                                }`}>
+                                  Returned
+                                </span>
+                              </>
+                            ) : (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                isBorrow 
+                                  ? (darkMode ? 'bg-[var(--brand-sky)]/20 text-[var(--brand-sky)] border border-[var(--brand-sky)]/30' : 'bg-[#6D6DD4]/20 text-[#6D6DD4] border border-[#6D6DD4]/30')
+                                  : (darkMode ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30' : 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30')
+                              }`}>
+                                {isBorrow ? 'Borrowed' : 'Returned'}
+                              </span>
+                            )}
+                          </div>
+                          {isComplete && returnDateStr ? (
+                            <div className="space-y-1">
+                              <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                                <span className={`font-medium ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>Borrowed:</span> {weekday}, {dateStr} at {timeStr}
+                              </p>
+                              <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                                <span className={`font-medium ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>Returned:</span> {returnDateStr}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                              {weekday}, {dateStr} at {timeStr}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="flex-shrink-0 hidden sm:block">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            darkMode 
+                              ? (isComplete ? 'bg-[var(--brand-purple)]/20' : (isBorrow ? 'bg-[var(--brand-sky)]/20' : 'bg-[var(--brand-third)]/20'))
+                              : (isComplete ? 'bg-[#4D4DA4]/20' : (isBorrow ? 'bg-[#6D6DD4]/20' : 'bg-[#10B981]/20'))
+                          }`}>
+                            {isComplete ? (
+                              <div className="flex items-center gap-0.5">
+                                <Package className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-sky)]' : 'text-[#6D6DD4]'}`} />
+                                <CheckCircle2 className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`} />
+                              </div>
+                            ) : isBorrow ? (
+                              <Package className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-sky)]' : 'text-[#6D6DD4]'}`} />
+                            ) : (
+                              <CheckCircle2 className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`} />
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    </ActivityCard>
                   </div>
                 );
               } else if (item.type === 'questionnaire_complete') {
@@ -527,52 +599,66 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const dateStr = questionnaireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                 const timeStr = questionnaireDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
-                // Extract questionnaire title from post title (format: "Completed Questionnaire: {title}")
                 const questionnaireTitle = questionnairePost.title.replace('Completed Questionnaire: ', '');
                 
                 return (
-                  <div key={`questionnaire-${questionnairePost.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-[#4D4DA4] p-6">
-                    <div className="flex items-start gap-4">
-                      {/* Questionnaire Icon */}
-                      <div className="flex-shrink-0">
-                        <div className="w-12 h-12 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center text-[#6D6DD4] font-bold text-lg">
-                          📋✅
+                  <div key={`questionnaire-${questionnairePost.id}`} className="mb-4">
+                    <ActivityCard accentColor={darkMode ? 'var(--brand-third)' : '#4D4DA4'}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                            darkMode ? 'bg-[var(--brand-third)]/20' : 'bg-[#4D4DA4]/20'
+                          }`}>
+                            <div className="flex items-center gap-0.5">
+                              <ClipboardCheck className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#6D6DD4]'}`} />
+                              <CheckCircle2 className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`} />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{questionnaireTitle}</h4>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              darkMode 
+                                ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30'
+                                : 'bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30'
+                            }`}>
+                              Completed
+                            </span>
+                          </div>
+                          <p className={`text-sm mb-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                            {weekday}, {dateStr} at {timeStr}
+                          </p>
+                          {questionnairePost.content && (
+                            <div 
+                              className={`text-sm max-w-none ${
+                                darkMode 
+                                  ? 'text-[var(--brand-light)]/70 [&_a]:text-[var(--brand-purple)] [&_strong]:text-[var(--brand-light)] [&_p]:text-[var(--brand-light)]/70'
+                                  : 'text-gray-700 [&_a]:text-[#6D6DD4] [&_strong]:text-gray-800'
+                              }`}
+                              dangerouslySetInnerHTML={{ __html: questionnairePost.content }}
+                            />
+                          )}
+                        </div>
+                        
+                        <div className="flex-shrink-0 hidden sm:block">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            darkMode ? 'bg-[var(--brand-third)]/20' : 'bg-[#4D4DA4]/20'
+                          }`}>
+                            <CheckCircle2 className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#6D6DD4]'}`} />
+                          </div>
                         </div>
                       </div>
-                      
-                      {/* Questionnaire Details */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-200">{questionnaireTitle}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30">
-                            Completed
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-400 mb-2">
-                          {weekday}, {dateStr} at {timeStr}
-                        </p>
-                        {/* Show post content if available (includes description and rewards) */}
-                        {questionnairePost.content && (
-                          <div 
-                            className="text-sm text-gray-300 prose prose-sm max-w-none prose-headings:text-gray-200 prose-p:text-gray-300 prose-a:text-[#6D6DD4]"
-                            dangerouslySetInnerHTML={{ __html: questionnairePost.content }}
-                          />
-                        )}
-                      </div>
-                      
-                      {/* Check Icon */}
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-[#4D4DA4]/20 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-[#6D6DD4]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
+                    </ActivityCard>
                   </div>
                 );
               } else if (item.type === 'post') {
-                return <PostCard key={`post-${item.data.id}`} post={item.data as Post} />;
+                return (
+                  <div key={`post-${item.data.id}`} className="mb-6">
+                    <PostCard post={item.data as Post} darkMode={darkMode} />
+                  </div>
+                );
               } else if (item.type === 'booking_confirmed') {
                 const booking = item.data as Booking;
                 const bookingDate = new Date(booking.start_time);
@@ -583,54 +669,61 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
                 return (
-                  <div key={`booking-${booking.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-emerald-500 p-6">
-                    <div className="flex items-start gap-4">
-                      {/* Calendar Icon */}
-                      <div className="flex-shrink-0">
-                        <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-lg">
-                          📅
+                  <div key={`booking-${booking.id}`} className="mb-4">
+                    <ActivityCard accentColor={darkMode ? 'var(--brand-sky)' : '#0EA5E9'}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                            darkMode ? 'bg-[var(--brand-sky)]/20' : 'bg-[#0EA5E9]/20'
+                          }`}>
+                            <Calendar className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-sky)]' : 'text-[#0EA5E9]'}`} />
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Booking Details */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-200">{booking.resource_name}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Confirmed
-                          </span>
-                        </div>
-                        {booking.club_name && (
-                          <p className="text-sm text-gray-400 mb-1">
-                            {booking.club_name}
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{booking.resource_name}</h4>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              darkMode 
+                                ? 'bg-[var(--brand-sky)]/20 text-[var(--brand-sky)] border border-[var(--brand-sky)]/30'
+                                : 'bg-[#0EA5E9]/20 text-[#0EA5E9] border border-[#0EA5E9]/30'
+                            }`}>
+                              Confirmed
+                            </span>
+                          </div>
+                          {booking.club_name && (
+                            <p className={`text-sm mb-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                              {booking.club_name}
+                            </p>
+                          )}
+                          <p className={`text-sm mb-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                            {weekday}, {dateStr}
                           </p>
-                        )}
-                        <p className="text-sm text-gray-400 mb-2">
-                          {weekday}, {dateStr}
-                        </p>
-                        <p className="text-sm text-gray-400">
-                          {startTimeStr} - {endTimeStr}
-                        </p>
-                        <button
-                          onClick={() => router.push('/dashboard/youth/bookings')}
-                          className="text-sm text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1 transition-colors mt-2"
-                        >
-                          View Booking
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
-                      </div>
-                      
-                      {/* Check Icon */}
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
+                          <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                            {startTimeStr} - {endTimeStr}
+                          </p>
+                          <button
+                            onClick={() => router.push('/dashboard/youth/bookings')}
+                            className={`text-sm font-medium inline-flex items-center gap-1 transition-colors mt-2 ${
+                              darkMode 
+                                ? 'text-[var(--brand-sky)] hover:text-[var(--brand-primary)]'
+                                : 'text-[#0EA5E9] hover:text-[#0284C7]'
+                            }`}
+                          >
+                            View Booking
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                        
+                        <div className="flex-shrink-0 hidden sm:block">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            darkMode ? 'bg-[var(--brand-sky)]/20' : 'bg-[#0EA5E9]/20'
+                          }`}>
+                            <CheckCircle2 className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-sky)]' : 'text-[#0EA5E9]'}`} />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </ActivityCard>
                   </div>
                 );
               } else if (item.type === 'reward_redemption') {
@@ -641,58 +734,65 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const timeStr = redemptionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
                 return (
-                  <div key={`reward-${redemption.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-[#FF5485] p-6">
-                    <div className="flex items-start gap-4">
-                      {/* Reward Image/Icon */}
-                      <div className="flex-shrink-0">
-                        {redemption.reward_image ? (
-                          <img 
-                            src={getMediaUrl(redemption.reward_image) || ''} 
-                            alt={redemption.reward_name} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-[#262626]"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-[#FF5485]/20 flex items-center justify-center text-[#FF5485] font-bold text-lg">
-                            🎁
+                  <div key={`reward-${redemption.id}`} className="mb-4">
+                    <ActivityCard accentColor={darkMode ? 'var(--brand-primary)' : '#FF5485'}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          {redemption.reward_image ? (
+                            <img 
+                              src={getMediaUrl(redemption.reward_image) || ''} 
+                              alt={redemption.reward_name} 
+                              className={`w-12 h-12 rounded-full object-cover border-2 ${
+                                darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'
+                              }`}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              darkMode ? 'bg-[var(--brand-primary)]/20' : 'bg-[#FF5485]/20'
+                            }`}>
+                              <Gift className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{redemption.reward_name}</h4>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              darkMode 
+                                ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30'
+                                : 'bg-[#FF5485]/20 text-[#FF5485] border border-[#FF5485]/30'
+                            }`}>
+                              Redeemed
+                            </span>
                           </div>
-                        )}
-                      </div>
-                      
-                      {/* Reward Details */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-200">{redemption.reward_name}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#FF5485]/20 text-[#FF5485] border border-[#FF5485]/30">
-                            Redeemed
-                          </span>
+                          {redemption.reward_description && (
+                            <p className={`text-sm mb-2 line-clamp-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                              {redemption.reward_description}
+                            </p>
+                          )}
+                          {redemption.sponsor && (
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
+                              Sponsored by: {redemption.sponsor}
+                            </p>
+                          )}
+                          <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                            {weekday}, {dateStr} at {timeStr}
+                          </p>
                         </div>
-                        {redemption.reward_description && (
-                          <p className="text-sm text-gray-400 mb-2 line-clamp-2">
-                            {redemption.reward_description}
-                          </p>
-                        )}
-                        {redemption.sponsor && (
-                          <p className="text-xs text-gray-500 mb-2">
-                            Sponsored by: {redemption.sponsor}
-                          </p>
-                        )}
-                        <p className="text-sm text-gray-400">
-                          {weekday}, {dateStr} at {timeStr}
-                        </p>
-                      </div>
-                      
-                      {/* Gift Icon */}
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-[#FF5485]/20 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-[#FF5485]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                          </svg>
+                        
+                        <div className="flex-shrink-0 hidden sm:block">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            darkMode ? 'bg-[var(--brand-primary)]/20' : 'bg-[#FF5485]/20'
+                          }`}>
+                            <Gift className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </ActivityCard>
                   </div>
                 );
               } else {
@@ -703,58 +803,71 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
                 const timeStr = visitDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
                 return (
-                  <div key={`visit-${visit.id}`} className="bg-[#050505] rounded-xl shadow-sm border border-[#262626] border-l-4 border-l-emerald-500 p-6">
-                    <div className="flex items-start gap-4">
-                      {/* Club Avatar */}
-                      <div className="flex-shrink-0">
-                        {visit.club_avatar ? (
-                          <img 
-                            src={getMediaUrl(visit.club_avatar) || ''} 
-                            alt={visit.club_name || 'Club'} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-[#262626]"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-lg">
-                            {(visit.club_name || 'C')[0]}
+                  <div key={`visit-${visit.id}`} className="mb-4">
+                    <ActivityCard accentColor={darkMode ? 'var(--brand-third)' : '#10B981'}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          {visit.club_avatar ? (
+                            <img 
+                              src={getMediaUrl(visit.club_avatar) || ''} 
+                              alt={visit.club_name || 'Club'} 
+                              className={`w-12 h-12 rounded-full object-cover border-2 ${
+                                darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'
+                              }`}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                              darkMode 
+                                ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)]'
+                                : 'bg-[#10B981]/20 text-[#10B981]'
+                            }`}>
+                              {(visit.club_name || 'C')[0]}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{visit.club_name || 'Club Visit'}</h4>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              darkMode 
+                                ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30'
+                                : 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30'
+                            }`}>
+                              Check-in
+                            </span>
                           </div>
-                        )}
-                      </div>
-                      
-                      {/* Visit Details */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-200">{visit.club_name || 'Club Visit'}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Check-in
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-400 mb-2">
-                          {weekday}, {dateStr} at {timeStr}
-                        </p>
-                        {visit.check_out_at && (
-                          <p className="text-xs text-gray-500">
-                            Checked out: {new Date(visit.check_out_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          <p className={`text-sm mb-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                            {weekday}, {dateStr} at {timeStr}
                           </p>
-                        )}
-                        {!visit.check_out_at && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Active Now
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Scanner Icon */}
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 4v1m6 11h2m-6 0h-2v4h-4v-4H8m13-9v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2m-3-2v2M5 3v2m0 12v2m0-6v2m14-8v2m0 6v2m-4-6h2m-6 0h2" />
-                          </svg>
+                          {visit.check_out_at && (
+                            <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
+                              Checked out: {new Date(visit.check_out_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          )}
+                          {!visit.check_out_at && (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              darkMode 
+                                ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30'
+                                : 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30'
+                            }`}>
+                              Active Now
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex-shrink-0 hidden sm:block">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            darkMode ? 'bg-[var(--brand-third)]/20' : 'bg-[#10B981]/20'
+                          }`}>
+                            <QrCode className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`} />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </ActivityCard>
                   </div>
                 );
               }
@@ -763,13 +876,15 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
             {/* Infinite Scroll Trigger */}
             <div ref={observerTarget} className="h-10 flex items-center justify-center">
               {loadingMore && (
-                <div className="flex items-center gap-2 text-gray-400">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#4D4DA4]"></div>
+                <div className={`flex items-center gap-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>
+                  <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${
+                    darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'
+                  }`}></div>
                   <span className="text-sm">Loading more posts...</span>
                 </div>
               )}
               {!hasMore && timelineItems.length > 0 && (
-                <div className="text-center pt-4 pb-8 text-sm text-gray-500">
+                <div className={`text-center pt-4 pb-8 text-sm ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
                   End of timeline
                 </div>
               )}
@@ -780,4 +895,3 @@ export default function ActivityFeed({ showTimeFilter = true }: ActivityFeedProp
     </div>
   );
 }
-

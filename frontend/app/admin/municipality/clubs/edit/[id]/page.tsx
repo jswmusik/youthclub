@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { Building2 } from 'lucide-react';
 import api from '@/lib/api';
 import ClubForm from '@/app/components/ClubForm';
 
@@ -13,10 +14,17 @@ export default function Page() {
     if(id) api.get(`/clubs/${id}/`).then(res => setData(res.data));
   }, [id]);
 
-  if (!data) return <div className="p-8">Loading...</div>;
+  if (!data) return (
+    <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
+      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+        <Building2 className="w-6 h-6 text-white" />
+      </div>
+      <div className="text-[var(--brand-light)]/60 animate-pulse">Loading club...</div>
+    </div>
+  );
 
   return (
-    <div className="p-8">
+    <div>
       <ClubForm initialData={data} redirectPath="/admin/municipality/clubs" scope="MUNICIPALITY" />
     </div>
   );

@@ -1,21 +1,26 @@
+'use client';
+
+import { Suspense } from 'react';
 import CourseLibrary from '@/app/components/learning/CourseLibrary';
 import { BookOpen } from 'lucide-react';
 
+function KnowledgeCoursesPageContent() {
+  return <CourseLibrary basePath="/admin/club/knowledge/courses" />;
+}
+
 export default function ClubCourseLibraryPage() {
-    return (
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6">
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-[#EBEBFE] rounded-lg">
-                        <BookOpen className="w-6 h-6 text-[#4D4DA4]" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold text-[#121213]">All Courses</h1>
-                        <p className="text-gray-500 mt-1">Browse and discover all available learning resources</p>
-                    </div>
-                </div>
-            </div>
-            <CourseLibrary basePath="/admin/club/knowledge/courses" />
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <Suspense fallback={
+        <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+            <BookOpen className="w-6 h-6 text-white" />
+          </div>
+          <div className="text-[var(--brand-light)]/60 animate-pulse">Loading courses...</div>
         </div>
-    );
+      }>
+        <KnowledgeCoursesPageContent />
+      </Suspense>
+    </div>
+  );
 }

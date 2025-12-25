@@ -1,21 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Upload, X, Plus, Trash2 } from 'lucide-react';
+import { 
+  ArrowLeft, Upload, X, MapPin, Building2, Mail, Phone, 
+  CheckCircle2, Lightbulb, Save, Users, Shield, Clock, 
+  Plus, Trash2, FileText, Tag, Map
+} from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import Toast from './Toast';
+import { queueToastForNavigation } from './ToastProvider';
 import { useAuth } from '../../context/AuthContext';
-
-// Shadcn
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
 interface Option { id: number; name: string; }
@@ -48,12 +46,15 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
-
-  // Refs for files
+  const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
   const heroRef = useRef<HTMLInputElement>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error'|'info'|'warning', isVisible: false, title: '' });
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isProgressFixed, setIsProgressFixed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [municipalities, setMunicipalities] = useState<Option[]>([]);
 
   // Files
@@ -90,6 +91,12 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
     allow_self_registration_override: initialData?.allow_self_registration_override === null ? '' : String(initialData?.allow_self_registration_override),
     require_guardian_override: initialData?.require_guardian_override === null ? '' : String(initialData?.require_guardian_override),
   });
+
+  // Track component mount for portal
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -245,7 +252,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
       if (!trimmedTerms) missingFields.push('Terms & Conditions');
       if (!trimmedPolicies) missingFields.push('Club Policies');
       
-      setToast({ message: `Please fill in: ${missingFields.join(', ')}`, type: 'error', isVisible: true });
+      setToast({ message: `Please fill in: ${missingFields.join(', ')}`, type: 'error', isVisible: true, title: 'Missing Fields' });
       return;
     }
     
@@ -320,355 +327,863 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
       if (initialData) {
         await api.patch(`/clubs/${initialData.id}/`, data, config);
-        setToast({ message: 'Club updated!', type: 'success', isVisible: true });
+        queueToastForNavigation(
+          `${formData.name} has been updated with your changes.`,
+          'success',
+          'Club Updated!',
+          2500
+        );
       } else {
         await api.post('/clubs/', data, config);
-        setToast({ message: 'Club created!', type: 'success', isVisible: true });
+        queueToastForNavigation(
+          `${formData.name} has been added to your platform.`,
+          'success',
+          'Club Created!',
+          2500
+        );
       }
 
-      setTimeout(() => router.push(buildUrlWithParams(redirectPath)), 1000);
+      router.push(buildUrlWithParams(redirectPath));
     } catch (err: any) {
       console.error(err);
       const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || JSON.stringify(err?.response?.data) || 'Failed to save. Check inputs.';
-      setToast({ message: errorMessage, type: 'error', isVisible: true });
+      setToast({ message: errorMessage, type: 'error', isVisible: true, title: 'Operation Failed' });
       setLoading(false);
     }
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={buildUrlWithParams(redirectPath)}>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {initialData ? 'Edit Club' : 'Create New Club'}
-          </h1>
-          <p className="text-sm text-muted-foreground">Manage details, location, and opening hours.</p>
-        </div>
-      </div>
+  const inputClasses = (fieldName: string) => `
+    w-full px-4 py-3.5 
+    bg-[var(--dark-700)] 
+    border-2 ${focusedField === fieldName ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    rounded-xl 
+    text-[var(--brand-light)] 
+    placeholder-[var(--brand-light)]/40 
+    focus:ring-0 focus:border-[var(--brand-primary)] 
+    outline-none 
+    transition-all duration-200
+    text-base
+  `;
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+  const selectClasses = (fieldName: string) => `
+    w-full px-4 py-3.5 
+    bg-[var(--dark-700)] 
+    border-2 ${focusedField === fieldName ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    rounded-xl 
+    text-[var(--brand-light)] 
+    focus:ring-0 focus:border-[var(--brand-primary)] 
+    outline-none 
+    transition-all duration-200
+    text-base
+    appearance-none cursor-pointer
+  `;
+
+  const labelClasses = "block text-sm font-semibold text-[var(--brand-light)]/80 mb-2";
+
+  // Calculate form completion percentage
+  const requiredFields = scope === 'SUPER' 
+    ? ['name', 'municipality', 'email', 'phone', 'description', 'terms_and_conditions', 'club_policies']
+    : ['name', 'email', 'phone', 'description', 'terms_and_conditions', 'club_policies'];
+  
+  const filledRequired = requiredFields.filter(field => {
+    const value = formData[field as keyof typeof formData];
+    return typeof value === 'string' ? value.trim() : value;
+  }).length;
+  const completionPercent = Math.round((filledRequired / requiredFields.length) * 100);
+
+  // Handle scroll for sticky progress bar
+  const checkScroll = useCallback(() => {
+    if (!progressPlaceholderRef.current) return;
+    const rect = progressPlaceholderRef.current.getBoundingClientRect();
+    setIsProgressFixed(rect.top < 80);
+  }, []);
+
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (!mainElement) return;
+
+    mainElement.addEventListener('scroll', checkScroll);
+    window.addEventListener('scroll', checkScroll);
+    checkScroll();
+
+    return () => {
+      mainElement.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('scroll', checkScroll);
+    };
+  }, [checkScroll]);
+
+  const selectArrowStyle = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 1rem center',
+    backgroundSize: '1rem'
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
         
-        {/* 1. Basic Info */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Enter the essential details for the club.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Club Name <span className="text-red-500">*</span></Label>
-                <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+          <Link 
+            href={buildUrlWithParams(redirectPath)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+              {initialData ? 'Edit Club' : 'Create New Club'}
+            </h1>
+            <p className="text-[var(--brand-light)]/50 text-sm mt-1">
+              {initialData ? 'Update club information and settings' : 'Configure details, location, and opening hours'}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress Indicator */}
+        <div 
+          ref={progressPlaceholderRef}
+          className="mb-6 sm:mb-8"
+          style={{ minHeight: isProgressFixed ? 72 : 'auto' }}
+        >
+          <div 
+            className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}
+            role="region"
+            aria-label="Form completion progress"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+            </div>
+            <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${completionPercent}%` }}
+              />
+            </div>
+            {completionPercent === 100 && (
+              <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm font-medium">All required fields completed!</span>
               </div>
-              {scope === 'SUPER' && (
-                <div className="space-y-2">
-                  <Label>Municipality <span className="text-red-500">*</span></Label>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    required 
-                    value={formData.municipality} 
-                    onChange={e => setFormData({...formData, municipality: e.target.value})}
-                  >
-                    <option value="">Select Municipality</option>
-                    {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
+            )}
+          </div>
+        </div>
+
+        {/* Fixed Progress Indicator - rendered via portal */}
+        {isMounted && createPortal(
+          <div 
+            className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}
+            role="region"
+            aria-label="Form completion progress"
+            aria-hidden={!isProgressFixed}
+          >
+            <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
+              </div>
+              <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+              {completionPercent === 100 && (
+                <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-sm font-medium">All required fields completed!</span>
                 </div>
               )}
             </div>
-            
-            <div className="space-y-2">
-              <Label>Description <span className="text-red-500">*</span></Label>
-              <Textarea rows={3} required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+          </div>,
+          document.body
+        )}
+
+        {/* Main Form */}
+        <form onSubmit={handleSubmit}>
+          
+          {/* Basic Information Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            {/* Card Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Enter the essential details for the club</p>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Categories</Label>
-              <Input value={formData.club_categories} onChange={e => setFormData({...formData, club_categories: e.target.value})} placeholder="e.g. Sports, Arts, Music" />
-            </div>
-
-            {/* Images */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="space-y-2">
-                <Label>Logo / Avatar</Label>
-                <div className="flex gap-4 items-center">
-                  <div className="relative group h-20 w-20 rounded-full border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => avatarRef.current?.click()}>
-                    {avatarPreview ? (
-                      <>
-                        <img src={avatarPreview} className="h-full w-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Upload className="h-5 w-5 text-white" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-2">
-                        <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                        <span className="text-[10px] text-muted-foreground">Click to upload</span>
-                      </div>
-                    )}
+            {/* Card Content */}
+            <div className="p-6 space-y-6">
+              {/* Name and Municipality */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="name" className={labelClasses}>
+                    Club Name <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <input 
+                    id="name"
+                    type="text"
+                    required 
+                    placeholder="e.g. Youth Center Downtown"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    onFocus={() => setFocusedField('name')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('name')}
+                  />
+                </div>
+                {scope === 'SUPER' && (
+                  <div>
+                    <label htmlFor="municipality" className={labelClasses}>
+                      Municipality <span className="text-[var(--brand-primary)]">*</span>
+                    </label>
+                    <select 
+                      id="municipality"
+                      required
+                      value={formData.municipality}
+                      onChange={e => setFormData({ ...formData, municipality: e.target.value })}
+                      onFocus={() => setFocusedField('municipality')}
+                      onBlur={() => setFocusedField(null)}
+                      className={selectClasses('municipality')}
+                      style={selectArrowStyle}
+                    >
+                      <option value="">Select Municipality</option>
+                      {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex gap-2">
-                      <Button type="button" variant="secondary" size="sm" onClick={() => avatarRef.current?.click()}>Choose File</Button>
-                      {avatarPreview && (
-                        <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleRemoveImage('avatar')}>
-                          <X className="h-4 w-4 mr-1" /> Remove
-                        </Button>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className={labelClasses}>
+                  Description <span className="text-[var(--brand-primary)]">*</span>
+                </label>
+                <textarea 
+                  id="description"
+                  rows={4} 
+                  required
+                  placeholder="Describe what this club offers..."
+                  value={formData.description}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  onFocus={() => setFocusedField('description')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`${inputClasses('description')} resize-none`}
+                />
+              </div>
+
+              {/* Categories */}
+              <div>
+                <label htmlFor="club_categories" className={labelClasses}>
+                  <Tag className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-purple)]" />
+                  Categories
+                </label>
+                <input 
+                  id="club_categories"
+                  type="text"
+                  placeholder="e.g. Sports, Arts, Music"
+                  value={formData.club_categories}
+                  onChange={e => setFormData({ ...formData, club_categories: e.target.value })}
+                  onFocus={() => setFocusedField('club_categories')}
+                  onBlur={() => setFocusedField(null)}
+                  className={inputClasses('club_categories')}
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Images */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Logo / Avatar */}
+                <div>
+                  <label className={labelClasses}>Logo / Avatar</label>
+                  <div className="flex items-start gap-4">
+                    <div 
+                      className="relative group w-20 h-20 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => avatarRef.current?.click()}
+                    >
+                      {avatarPreview ? (
+                        <>
+                          <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Upload className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
+                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">Recommended: Square image, 400x400px</p>
-                  </div>
-                  <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'avatar')} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Hero Image</Label>
-                <div className="flex gap-4 items-center">
-                  <div className="relative group h-20 w-32 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer" onClick={() => heroRef.current?.click()}>
-                    {heroPreview ? (
-                      <>
-                        <img src={heroPreview} className="h-full w-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Upload className="h-5 w-5 text-white" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-2">
-                        <Upload className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                        <span className="text-[10px] text-muted-foreground">Click to upload</span>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => avatarRef.current?.click()}
+                          className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
+                        >
+                          Choose File
+                        </button>
+                        {avatarPreview && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveImage('avatar')}
+                            className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
+                          >
+                            <X className="h-3 w-3" /> Remove
+                          </button>
+                        )}
                       </div>
-                    )}
+                      <p className="text-xs text-[var(--brand-light)]/40">Square image, 400x400px</p>
+                    </div>
+                    <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'avatar')} />
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex gap-2">
-                      <Button type="button" variant="secondary" size="sm" onClick={() => heroRef.current?.click()}>Choose File</Button>
-                      {heroPreview && (
-                        <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleRemoveImage('hero')}>
-                          <X className="h-4 w-4 mr-1" /> Remove
-                        </Button>
+                </div>
+
+                {/* Hero Image */}
+                <div>
+                  <label className={labelClasses}>Hero Image</label>
+                  <div className="flex items-start gap-4">
+                    <div 
+                      className="relative group w-24 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => heroRef.current?.click()}
+                    >
+                      {heroPreview ? (
+                        <>
+                          <img src={heroPreview} alt="Hero preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Upload className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
+                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">Recommended: 1200x400px</p>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => heroRef.current?.click()}
+                          className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
+                        >
+                          Choose File
+                        </button>
+                        {heroPreview && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveImage('hero')}
+                            className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
+                          >
+                            <X className="h-3 w-3" /> Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--brand-light)]/40">1200x400px (JPG, PNG)</p>
+                    </div>
+                    <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'hero')} />
                   </div>
-                  <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'hero')} />
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 2. Contact & Location */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Contact & Location</CardTitle>
-            <CardDescription>Provide contact information and location details.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Email <span className="text-red-500">*</span></Label>
-                <Input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Phone <span className="text-red-500">*</span></Label>
-                <Input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Latitude</Label>
-                <Input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Longitude</Label>
-                <Input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 3. Opening Hours */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Opening Hours</CardTitle>
-            <CardDescription>Define when the club is open and any restrictions.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6">
-            
-            {/* Builder Bar */}
-            <div className="bg-muted/20 p-4 rounded-lg border space-y-4 mb-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                <select className="h-9 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={newHour.weekday} onChange={e => setNewHour({...newHour, weekday: parseInt(e.target.value)})}>
-                  {WEEKDAYS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-                <select className="h-9 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={newHour.week_cycle} onChange={e => setNewHour({...newHour, week_cycle: e.target.value})}>
-                  {CYCLES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <div className="flex gap-1 items-center col-span-2 sm:col-span-2 md:col-span-2">
-                  <Input type="time" className="h-9" value={newHour.open_time} onChange={e => setNewHour({...newHour, open_time: e.target.value})} />
-                  <span className="text-muted-foreground">-</span>
-                  <Input type="time" className="h-9" value={newHour.close_time} onChange={e => setNewHour({...newHour, close_time: e.target.value})} />
+          {/* Contact & Location Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            {/* Card Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact & Location</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Contact information and physical address</p>
                 </div>
               </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="email" className={labelClasses}>
+                    <Mail className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
+                    Email <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <input 
+                    id="email"
+                    type="email"
+                    required
+                    placeholder="contact@club.se"
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('email')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="phone" className={labelClasses}>
+                    <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
+                    Phone <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <input 
+                    id="phone"
+                    type="tel"
+                    required
+                    placeholder="+46..."
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('phone')}
+                  />
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Location Header */}
+              <div className="flex items-center gap-2 text-[var(--brand-light)]/70">
+                <Map className="w-4 h-4 text-[var(--brand-purple)]" />
+                <span className="text-sm font-medium">Location</span>
+              </div>
+
+              <div>
+                <label htmlFor="address" className={labelClasses}>
+                  Street Address
+                </label>
+                <input 
+                  id="address"
+                  type="text"
+                  placeholder="e.g. Storgatan 1, 111 23 Stockholm"
+                  value={formData.address}
+                  onChange={e => setFormData({ ...formData, address: e.target.value })}
+                  onFocus={() => setFocusedField('address')}
+                  onBlur={() => setFocusedField(null)}
+                  className={inputClasses('address')}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="latitude" className={labelClasses}>
+                    Latitude
+                  </label>
+                  <input 
+                    id="latitude"
+                    type="number"
+                    step="any"
+                    placeholder="59.3293"
+                    value={formData.latitude}
+                    onChange={e => setFormData({ ...formData, latitude: e.target.value })}
+                    onFocus={() => setFocusedField('latitude')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`${inputClasses('latitude')} font-mono`}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="longitude" className={labelClasses}>
+                    Longitude
+                  </label>
+                  <input 
+                    id="longitude"
+                    type="number"
+                    step="any"
+                    placeholder="18.0686"
+                    value={formData.longitude}
+                    onChange={e => setFormData({ ...formData, longitude: e.target.value })}
+                    onFocus={() => setFocusedField('longitude')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`${inputClasses('longitude')} font-mono`}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Opening Hours Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            {/* Card Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-[var(--dark-900)]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Opening Hours</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Define when the club is open and any restrictions</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-6 space-y-6">
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Optional Title</Label>
-                  <Input placeholder="e.g. Teen Night" className="h-9" value={newHour.title} onChange={e => setNewHour({...newHour, title: e.target.value})} />
+              {/* Hour Builder */}
+              <div className="bg-[var(--dark-700)]/50 p-5 rounded-xl border border-[var(--dark-500)] space-y-4">
+                <div className="flex items-center gap-2 text-[var(--brand-light)]/70 mb-2">
+                  <Plus className="w-4 h-4 text-[var(--brand-third)]" />
+                  <span className="text-sm font-medium">Add New Time Slot</span>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Gender Restriction</Label>
-                  <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={newHour.gender_restriction} onChange={e => setNewHour({...newHour, gender_restriction: e.target.value})}>
-                    {GENDER_RESTRICTIONS.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </select>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                <div className="space-y-1">
-                  <Label className="text-xs">Restriction Mode</Label>
-                  <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={newHour.restriction_mode} onChange={e => setNewHour({...newHour, restriction_mode: e.target.value})}>
-                    <option value="NONE">No Restriction</option>
-                    <option value="AGE">Age Range</option>
-                    <option value="GRADE">Grade Range</option>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <select 
+                    className={`${selectClasses('weekday')} py-2.5`}
+                    style={selectArrowStyle}
+                    value={newHour.weekday} 
+                    onChange={e => setNewHour({...newHour, weekday: parseInt(e.target.value)})}
+                  >
+                    {WEEKDAYS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
+                  <select 
+                    className={`${selectClasses('week_cycle')} py-2.5`}
+                    style={selectArrowStyle}
+                    value={newHour.week_cycle} 
+                    onChange={e => setNewHour({...newHour, week_cycle: e.target.value})}
+                  >
+                    {CYCLES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <div className="flex gap-2 items-center col-span-1 sm:col-span-2">
+                    <input 
+                      type="time" 
+                      className={`${inputClasses('open_time')} py-2.5`}
+                      value={newHour.open_time} 
+                      onChange={e => setNewHour({...newHour, open_time: e.target.value})} 
+                    />
+                    <span className="text-[var(--brand-light)]/40">-</span>
+                    <input 
+                      type="time" 
+                      className={`${inputClasses('close_time')} py-2.5`}
+                      value={newHour.close_time} 
+                      onChange={e => setNewHour({...newHour, close_time: e.target.value})} 
+                    />
+                  </div>
                 </div>
-                {newHour.restriction_mode !== 'NONE' && (
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1 space-y-1">
-                      <Label className="text-xs">From</Label>
-                      <Input type="number" placeholder="Min" className="h-9" value={newHour.min_value} onChange={e => setNewHour({...newHour, min_value: e.target.value})} />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Optional Title</label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. Teen Night"
+                      className={`${inputClasses('title')} py-2.5`}
+                      value={newHour.title} 
+                      onChange={e => setNewHour({...newHour, title: e.target.value})} 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Gender Restriction</label>
+                    <select 
+                      className={`${selectClasses('gender_restriction')} py-2.5`}
+                      style={selectArrowStyle}
+                      value={newHour.gender_restriction} 
+                      onChange={e => setNewHour({...newHour, gender_restriction: e.target.value})}
+                    >
+                      {GENDER_RESTRICTIONS.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                  <div>
+                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Restriction Mode</label>
+                    <select 
+                      className={`${selectClasses('restriction_mode')} py-2.5`}
+                      style={selectArrowStyle}
+                      value={newHour.restriction_mode} 
+                      onChange={e => setNewHour({...newHour, restriction_mode: e.target.value})}
+                    >
+                      <option value="NONE">No Restriction</option>
+                      <option value="AGE">Age Range</option>
+                      <option value="GRADE">Grade Range</option>
+                    </select>
+                  </div>
+                  {newHour.restriction_mode !== 'NONE' && (
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">From</label>
+                        <input 
+                          type="number" 
+                          placeholder="Min" 
+                          className={`${inputClasses('min_value')} py-2.5`}
+                          value={newHour.min_value} 
+                          onChange={e => setNewHour({...newHour, min_value: e.target.value})} 
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">To</label>
+                        <input 
+                          type="number" 
+                          placeholder="Max" 
+                          className={`${inputClasses('max_value')} py-2.5`}
+                          value={newHour.max_value} 
+                          onChange={e => setNewHour({...newHour, max_value: e.target.value})} 
+                        />
+                      </div>
                     </div>
-                    <div className="flex-1 space-y-1">
-                      <Label className="text-xs">To</Label>
-                      <Input type="number" placeholder="Max" className="h-9" value={newHour.max_value} onChange={e => setNewHour({...newHour, max_value: e.target.value})} />
-                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button 
+                    type="button" 
+                    onClick={addHour}
+                    className="px-5 py-2.5 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" /> Add Time Slot
+                  </button>
+                </div>
+                
+                {hourError && (
+                  <div className="p-3 bg-[var(--brand-red)]/20 border border-[var(--brand-red)]/30 rounded-lg text-[var(--brand-red)] text-sm">
+                    {hourError}
                   </div>
                 )}
-                {newHour.restriction_mode === 'NONE' && (
-                  <div></div>
-                )}
               </div>
 
-              <div className="flex justify-end">
-                <Button type="button" onClick={addHour} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white gap-2">
-                  <Plus className="h-4 w-4" /> Add Hour
-                </Button>
-              </div>
-              {hourError && <p className="text-destructive text-sm font-medium">{hourError}</p>}
-            </div>
-
-            {/* List */}
-            <div className="space-y-2">
-              {openingHours.map((hour, i) => {
-                const dayName = WEEKDAYS.find(d => d.id === hour.weekday)?.name;
-                const cycleName = CYCLES.find(c => c.id === hour.week_cycle)?.name;
-                const genderName = GENDER_RESTRICTIONS.find(g => g.id === hour.gender_restriction)?.name || 'All Genders';
-                return (
-                  <div key={i} className="flex justify-between items-center bg-card border border-gray-100 p-3 rounded-md shadow-sm">
-                    <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                      <div className="flex gap-4 items-center">
-                        <span className="font-bold w-24 text-sm">{dayName}</span>
-                        <div className="text-sm">
-                          <span className="font-mono bg-muted px-2 py-1 rounded">{hour.open_time} - {hour.close_time}</span>
-                          {hour.week_cycle !== 'ALL' && <span className="ml-2 text-xs text-muted-foreground uppercase">{cycleName}</span>}
-                          {hour.title && <span className="ml-2 text-xs font-semibold text-[#4D4DA4]">{hour.title}</span>}
+              {/* Hours List */}
+              <div className="space-y-3">
+                {openingHours.map((hour, i) => {
+                  const dayName = WEEKDAYS.find(d => d.id === hour.weekday)?.name;
+                  const cycleName = CYCLES.find(c => c.id === hour.week_cycle)?.name;
+                  const genderName = GENDER_RESTRICTIONS.find(g => g.id === hour.gender_restriction)?.name || 'All Genders';
+                  return (
+                    <div key={i} className="flex justify-between items-center bg-[var(--dark-700)] border border-[var(--dark-500)] p-4 rounded-xl">
+                      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                        <div className="flex gap-4 items-center">
+                          <span className="font-bold w-24 text-sm text-[var(--brand-light)]">{dayName}</span>
+                          <div className="text-sm text-[var(--brand-light)]">
+                            <span className="font-mono bg-[var(--dark-600)] px-2.5 py-1 rounded-lg text-[var(--brand-third)]">
+                              {hour.open_time} - {hour.close_time}
+                            </span>
+                            {hour.week_cycle !== 'ALL' && (
+                              <span className="ml-2 text-xs text-[var(--brand-light)]/50 uppercase">{cycleName}</span>
+                            )}
+                            {hour.title && (
+                              <span className="ml-2 text-xs font-semibold text-[var(--brand-primary)]">{hour.title}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 items-center">
+                          {hour.restriction_mode !== 'NONE' && (
+                            <Badge className="bg-[var(--brand-third)]/20 text-[var(--brand-third)] border-[var(--brand-third)]/30 hover:bg-[var(--brand-third)]/30">
+                              {hour.restriction_mode === 'AGE' ? 'Age' : 'Grade'} {hour.min_value}-{hour.max_value}
+                            </Badge>
+                          )}
+                          {hour.gender_restriction !== 'ALL' && (
+                            <Badge className="bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border-[var(--brand-peach)]/30 hover:bg-[var(--brand-peach)]/30">
+                              {genderName}
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 items-center">
-                        {hour.restriction_mode !== 'NONE' && (
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">
-                            {hour.restriction_mode === 'AGE' ? 'Age' : 'Grade'} {hour.min_value}-{hour.max_value}
-                          </Badge>
-                        )}
-                        {hour.gender_restriction !== 'ALL' && (
-                          <Badge variant="outline" className="bg-pink-50 text-pink-800 border-pink-200">
-                            {genderName}
-                          </Badge>
-                        )}
-                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => removeHour(i)} 
+                        className="p-2 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 rounded-lg transition-all"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeHour(i)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  );
+                })}
+                {openingHours.length === 0 && (
+                  <div className="text-center py-8 text-[var(--brand-light)]/40 italic">
+                    <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No opening hours added yet</p>
+                    <p className="text-xs mt-1">Use the form above to add time slots</p>
                   </div>
-                );
-              })}
-              {openingHours.length === 0 && <p className="text-center text-sm text-muted-foreground italic py-4">No opening hours added.</p>}
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 4. Legal Documents */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Legal Documents</CardTitle>
-            <CardDescription>Terms, conditions, and policies for club members.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-2">
-              <Label>Terms & Conditions <span className="text-red-500">*</span></Label>
-              <Textarea rows={4} required value={formData.terms_and_conditions} onChange={e => setFormData({...formData, terms_and_conditions: e.target.value})} placeholder="Enter terms and conditions..." />
+          {/* Legal Documents Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            {/* Card Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Legal Documents</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Terms, conditions, and policies for club members</p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Club Policies <span className="text-red-500">*</span></Label>
-              <Textarea rows={4} required value={formData.club_policies} onChange={e => setFormData({...formData, club_policies: e.target.value})} placeholder="Enter club policies..." />
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* 5. Settings & Overrides */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Registration Settings</CardTitle>
-            <CardDescription>Override default municipality settings for this specific club.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Allow Self Registration</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={formData.allow_self_registration_override} onChange={e => setFormData({...formData, allow_self_registration_override: e.target.value})}>
+            {/* Card Content */}
+            <div className="p-6 space-y-6">
+              <div>
+                <label htmlFor="terms_and_conditions" className={labelClasses}>
+                  Terms & Conditions <span className="text-[var(--brand-primary)]">*</span>
+                </label>
+                <textarea 
+                  id="terms_and_conditions"
+                  rows={5} 
+                  required
+                  placeholder="Enter terms and conditions for club membership..."
+                  value={formData.terms_and_conditions}
+                  onChange={e => setFormData({ ...formData, terms_and_conditions: e.target.value })}
+                  onFocus={() => setFocusedField('terms_and_conditions')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`${inputClasses('terms_and_conditions')} resize-none`}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="club_policies" className={labelClasses}>
+                  Club Policies <span className="text-[var(--brand-primary)]">*</span>
+                </label>
+                <textarea 
+                  id="club_policies"
+                  rows={5} 
+                  required
+                  placeholder="Enter club policies and guidelines..."
+                  value={formData.club_policies}
+                  onChange={e => setFormData({ ...formData, club_policies: e.target.value })}
+                  onFocus={() => setFocusedField('club_policies')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`${inputClasses('club_policies')} resize-none`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Settings Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            {/* Card Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Registration Settings</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">Override default municipality settings for this club</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-6 space-y-4">
+              {/* Self Registration Override */}
+              <div className="flex items-center justify-between p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-[var(--brand-third)]" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-[var(--brand-light)]">Self Registration</div>
+                    <div className="text-sm text-[var(--brand-light)]/50">Override municipality default</div>
+                  </div>
+                </div>
+                <select 
+                  className={`${selectClasses('allow_self_registration_override')} w-auto py-2.5 px-4`}
+                  style={selectArrowStyle}
+                  value={formData.allow_self_registration_override} 
+                  onChange={e => setFormData({...formData, allow_self_registration_override: e.target.value})}
+                >
                   <option value="">Use Default</option>
                   <option value="true">Yes, Allow</option>
                   <option value="false">No, Block</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label>Require Guardian</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={formData.require_guardian_override} onChange={e => setFormData({...formData, require_guardian_override: e.target.value})}>
+
+              {/* Require Guardian Override */}
+              <div className="flex items-center justify-between p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-[var(--brand-peach)]" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-[var(--brand-light)]">Require Guardian</div>
+                    <div className="text-sm text-[var(--brand-light)]/50">Override municipality default</div>
+                  </div>
+                </div>
+                <select 
+                  className={`${selectClasses('require_guardian_override')} w-auto py-2.5 px-4`}
+                  style={selectArrowStyle}
+                  value={formData.require_guardian_override} 
+                  onChange={e => setFormData({...formData, require_guardian_override: e.target.value})}
+                >
                   <option value="">Use Default</option>
                   <option value="true">Yes, Require</option>
                   <option value="false">No, Optional</option>
                 </select>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pb-10">
-          <Button type="button" variant="ghost" onClick={() => router.push(buildUrlWithParams(redirectPath))}>Cancel</Button>
-          <Button type="submit" disabled={loading} className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white min-w-[150px]">
-            {loading ? 'Saving...' : 'Save Club'}
-          </Button>
+          {/* Form Actions */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-5 flex flex-col sm:flex-row justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={() => router.push(buildUrlWithParams(redirectPath))} 
+                className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={loading || completionPercent < 100}
+                className="px-8 py-3 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-[var(--dark-900)]/20 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    {initialData ? 'Save Changes' : 'Create Club'}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {/* Helper Tips */}
+        <div className="mt-6 p-4 bg-[var(--dark-800)]/50 rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
+          <h3 className="text-sm font-semibold text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
+            Quick Tips
+          </h3>
+          <ul className="text-sm text-[var(--brand-light)]/50 space-y-1.5">
+            <li>• Add opening hours to let users know when the club is available</li>
+            <li>• Use age or grade restrictions to target specific youth groups</li>
+            <li>• Override registration settings only if this club needs different rules than the municipality default</li>
+            <li>• Categories help users discover your club when searching</li>
+          </ul>
         </div>
-      </form>
-
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
+      </div>
+      
+      <Toast 
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        title={toast.title}
+        onClose={() => setToast({...toast, isVisible: false})} 
+        darkMode 
+      />
     </div>
   );
 }

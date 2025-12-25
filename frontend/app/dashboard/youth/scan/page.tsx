@@ -1,10 +1,31 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import CheckInScanner from '@/app/components/visits/CheckInScanner';
+import NavBar from '@/app/components/NavBar';
+import YouthSidebar from '@/app/components/youth/YouthSidebar';
+import { ScanPageSkeleton } from '@/app/components/ui/Skeleton';
+import YouthFooter from '@/app/components/youth/YouthFooter';
+import { X, QrCode, ArrowLeft } from 'lucide-react';
+
+// Minimum skeleton display time (in ms) for better UX
+const MIN_LOADING_TIME = 500;
 
 export default function ScanPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Show skeleton for minimum time before displaying scanner
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, MIN_LOADING_TIME);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSuccess = () => {
     // Redirect back to dashboard after successful check-in
@@ -14,20 +35,83 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 flex flex-col items-center pt-10">
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-800">Check In</h1>
-        <p className="text-slate-500">Point your camera at the screen at the entrance.</p>
-      </div>
-
-      <CheckInScanner onSuccess={handleSuccess} />
-
-      <button 
-        onClick={() => router.back()}
-        className="mt-8 text-slate-500 underline"
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <NavBar 
+        darkMode={true}
+        onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        showBackButton={true}
+      />
+      
+      {/* Mobile Sidebar Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${
+          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      
+      {/* Mobile Sidebar */}
+      <aside 
+        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] border-r border-[var(--dark-600)] transform transition-transform duration-300 md:hidden ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        Cancel and go back
-      </button>
+        <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
+          <YouthSidebar activePath={pathname} darkMode={true} />
+        </div>
+      </aside>
+      
+      {/* Main Layout */}
+      <div className="pt-14 sm:pt-16">
+        <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
+          {/* Desktop Sidebar - Fixed position aligned with container */}
+          <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+            <YouthSidebar activePath={pathname} darkMode={true} />
+          </aside>
+          
+          {/* Content wrapper with left margin for sidebar */}
+          <div className="md:ml-60">
+            <div className="pt-4 sm:pt-8 px-4 sm:px-0 pb-24 md:pb-8 flex flex-col items-center">
+              {isLoading ? (
+                <ScanPageSkeleton />
+              ) : (
+                <>
+                  {/* Header */}
+                  <div className="mb-6 sm:mb-8 text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--brand-primary)]/20 mb-4">
+                      <QrCode className="w-8 h-8 text-[var(--brand-primary)]" />
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">Check In</h1>
+                    <p className="text-[var(--brand-light)]/60 mt-2 text-sm sm:text-base">Point your camera at the screen at the entrance</p>
+                  </div>
+
+                  <CheckInScanner onSuccess={handleSuccess} darkMode={true} />
+
+                  <button 
+                    onClick={() => router.back()}
+                    className="mt-6 sm:mt-8 mb-4 flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors font-medium text-sm"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Cancel and go back
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <YouthFooter />
     </div>
   );
 }

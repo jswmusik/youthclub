@@ -19,9 +19,10 @@ interface QuestionnaireCardProps {
     total_questions?: number;
   };
   onComplete?: () => void; // Callback when questionnaire is completed
+  darkMode?: boolean;
 }
 
-export default function QuestionnaireCard({ questionnaire, onComplete }: QuestionnaireCardProps) {
+export default function QuestionnaireCard({ questionnaire, onComplete, darkMode = false }: QuestionnaireCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -217,9 +218,9 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
   // If finished, show success state
   if (isFinished) {
     return (
-      <div className="bg-white rounded-xl shadow-md border border-green-200 overflow-hidden relative">
+      <div className={`${darkMode ? 'bg-[var(--dark-600)] border-emerald-500/30' : 'bg-white border-green-200'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md'} border-y sm:border overflow-hidden relative`}>
         {/* Decorative gradient border with stars */}
-        <div className="h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 relative overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[var(--brand-purple)] via-[var(--brand-primary)] to-[var(--brand-third)] relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-between px-2">
             <span className="text-white text-xs">⭐</span>
             <span className="text-white text-xs">✨</span>
@@ -230,18 +231,18 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
         </div>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-2xl">
+            <div className={`w-12 h-12 ${darkMode ? 'bg-emerald-500/20' : 'bg-green-100'} rounded-lg flex items-center justify-center text-2xl`}>
               ✅
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Completed!</h3>
-              <p className="text-sm text-gray-600">Thank you for your feedback</p>
+              <h3 className={`text-lg font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Completed!</h3>
+              <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Thank you for your feedback</p>
             </div>
           </div>
           {rewardMessage && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <h4 className="font-bold text-yellow-800 mb-1">🎁 Reward Earned!</h4>
-              <p className="text-yellow-700 text-sm">{rewardMessage}</p>
+            <div className={`${darkMode ? 'bg-[var(--brand-third)]/20 border-[var(--brand-third)]/30' : 'bg-yellow-50 border-yellow-200'} border rounded-lg p-4 mb-4`}>
+              <h4 className={`font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-yellow-800'} mb-1`}>🎁 Reward Earned!</h4>
+              <p className={`${darkMode ? 'text-[var(--brand-third)]/80' : 'text-yellow-700'} text-sm`}>{rewardMessage}</p>
             </div>
           )}
         </div>
@@ -253,9 +254,9 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
   if (isExpanded) {
     if (loading) {
       return (
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden relative">
+        <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-gray-200'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md'} border-y sm:border overflow-hidden relative`}>
           {/* Decorative gradient border with stars */}
-          <div className="h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 relative overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-[var(--brand-purple)] via-[var(--brand-primary)] to-[var(--brand-third)] relative overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-between px-2">
               <span className="text-white text-xs">⭐</span>
               <span className="text-white text-xs">✨</span>
@@ -266,8 +267,8 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
           </div>
           <div className="p-6">
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-500">Loading questionnaire...</p>
+              <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${darkMode ? 'border-[var(--brand-primary)]' : 'border-blue-600'} mx-auto mb-4`}></div>
+              <p className={`${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Loading questionnaire...</p>
             </div>
           </div>
         </div>
@@ -276,9 +277,9 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
 
     if (!data || visibleQuestions.length === 0) {
       return (
-        <div className="bg-white rounded-xl shadow-md border border-red-200 overflow-hidden relative">
+        <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--brand-red)]/30' : 'bg-white border-red-200'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md'} border-y sm:border overflow-hidden relative`}>
           {/* Decorative gradient border with stars */}
-          <div className="h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 relative overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-[var(--brand-purple)] via-[var(--brand-primary)] to-[var(--brand-third)] relative overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-between px-2">
               <span className="text-white text-xs">⭐</span>
               <span className="text-white text-xs">✨</span>
@@ -288,10 +289,10 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
             </div>
           </div>
           <div className="p-6">
-            <p className="text-red-600">Failed to load questionnaire.</p>
+            <p className={`${darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'}`}>Failed to load questionnaire.</p>
             <button
               onClick={() => setIsExpanded(false)}
-              className="mt-4 text-blue-600 hover:underline"
+              className={`mt-4 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'} hover:underline`}
             >
               Go back
             </button>
@@ -304,9 +305,9 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
     const progress = ((currentStepIndex) / visibleQuestions.length) * 100;
 
     return (
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden relative">
+      <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-gray-200'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md'} border-y sm:border overflow-hidden relative`}>
         {/* Decorative gradient border with stars */}
-        <div className="h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 relative overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[var(--brand-purple)] via-[var(--brand-primary)] to-[var(--brand-third)] relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-between px-2">
             <span className="text-white text-xs">⭐</span>
             <span className="text-white text-xs">✨</span>
@@ -316,17 +317,17 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
           </div>
         </div>
         {/* Header */}
-        <div className="p-6 border-b border-gray-100">
+        <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">{data.title}</h3>
+              <h3 className={`text-lg font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{data.title}</h3>
               {data.description && (
-                <p className="text-sm text-gray-600 mt-1">{data.description}</p>
+                <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'} mt-1`}>{data.description}</p>
               )}
             </div>
             <button
               onClick={() => setIsExpanded(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className={`${darkMode ? 'text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]' : 'text-gray-400 hover:text-gray-600'}`}
             >
               ✕
             </button>
@@ -334,21 +335,21 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
           
           {/* Progress */}
           <div className="mt-4">
-            <div className="flex justify-between text-xs text-gray-500 mb-2">
+            <div className={`flex justify-between text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} mb-2`}>
               <span>Question {currentStepIndex + 1} of {visibleQuestions.length}</span>
               <span>{Math.round(progress)}% Completed</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${progress}%` }}></div>
+            <div className={`h-2 ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-gray-100'} rounded-full overflow-hidden`}>
+              <div className={`h-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-blue-600'} transition-all duration-300`} style={{ width: `${progress}%` }}></div>
             </div>
           </div>
         </div>
 
         {/* Question */}
         <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">{currentQ.text}</h2>
+          <h2 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'} mb-2`}>{currentQ.text}</h2>
           {currentQ.description && (
-            <p className="text-gray-500 mb-4">{currentQ.description}</p>
+            <p className={`${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} mb-4`}>{currentQ.description}</p>
           )}
 
 
@@ -358,22 +359,23 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
               question={currentQ}
               value={answers[currentQ.id]}
               onChange={(val) => handleAnswerChange(currentQ.id, val)}
+              darkMode={darkMode}
             />
           </div>
 
           {/* Navigation */}
-          <div className="flex gap-3 pt-4 border-t border-gray-100">
+          <div className={`flex gap-3 pt-4 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`}>
             <button
               onClick={handleBack}
               disabled={currentStepIndex === 0}
-              className="flex-1 py-2 px-4 rounded-lg font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`flex-1 py-2 px-4 rounded-lg font-semibold ${darkMode ? 'text-[var(--brand-light)]/80 bg-[var(--dark-500)] hover:bg-[var(--dark-400)]' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
             >
               Back
             </button>
             <button
               onClick={handleNext}
               disabled={!answers[currentQ.id] || submitting}
-              className="flex-1 py-2 px-4 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`flex-1 py-2 px-4 rounded-lg font-semibold ${darkMode ? 'text-[var(--dark-900)] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80' : 'text-white bg-blue-600 hover:bg-blue-700'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
             >
               {currentStepIndex === visibleQuestions.length - 1 
                 ? (submitting ? 'Submitting...' : 'Submit') 
@@ -392,9 +394,9 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
   const totalCount = questionnaire.total_questions || 0;
   
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow relative">
+    <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-gray-200'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md hover:shadow-lg'} border-y sm:border overflow-hidden transition-shadow relative`}>
       {/* Decorative gradient border with stars */}
-      <div className="h-3 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 relative overflow-hidden">
+      <div className="h-3 bg-gradient-to-r from-[var(--brand-purple)] via-[var(--brand-primary)] to-[var(--brand-third)] relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-between px-2">
           <span className="text-white text-xs">⭐</span>
           <span className="text-white text-xs">✨</span>
@@ -407,18 +409,18 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className={`h-12 w-12 ${isStarted ? 'bg-orange-100' : 'bg-blue-100'} rounded-lg flex items-center justify-center text-2xl`}>
+            <div className={`h-12 w-12 ${darkMode ? (isStarted ? 'bg-[var(--brand-peach)]/20' : 'bg-[var(--brand-secondary)]/20') : (isStarted ? 'bg-orange-100' : 'bg-blue-100')} rounded-lg flex items-center justify-center text-2xl`}>
               {isStarted ? '⏳' : '📋'}
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">{questionnaire.title}</h3>
-              <span className={`text-xs font-semibold uppercase tracking-wide ${isStarted ? 'text-orange-600' : 'text-blue-600'}`}>
+              <h3 className={`text-lg font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{questionnaire.title}</h3>
+              <span className={`text-xs font-semibold uppercase tracking-wide ${darkMode ? (isStarted ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-primary)]') : (isStarted ? 'text-orange-600' : 'text-blue-600')}`}>
                 {isStarted ? 'In Progress' : 'New Survey'}
               </span>
             </div>
           </div>
           {questionnaire.has_rewards && (
-            <div className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full">
+            <div className={`${darkMode ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)]' : 'bg-yellow-100 text-yellow-800'} text-xs font-bold px-2 py-1 rounded-full`}>
               🎁 Reward
             </div>
           )}
@@ -426,7 +428,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
 
         {/* Description */}
         {questionnaire.description && (
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+          <p className={`${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'} text-sm mb-4 line-clamp-2`}>
             {questionnaire.description}
           </p>
         )}
@@ -434,31 +436,31 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
         {/* Progress Bar (if started) */}
         {isStarted && totalCount > 0 && (
           <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+            <div className={`flex items-center justify-between text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'} mb-1`}>
               <span className="font-medium">Progress</span>
               <span className="font-bold">{progress}%</span>
             </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className={`h-2 ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-gray-200'} rounded-full overflow-hidden`}>
               <div 
-                className="h-full bg-orange-500 transition-all duration-300 rounded-full"
+                className={`h-full ${darkMode ? 'bg-[var(--brand-peach)]' : 'bg-orange-500'} transition-all duration-300 rounded-full`}
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'} mt-1`}>
               {answeredCount} of {totalCount} questions answered
             </div>
           </div>
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+        <div className={`flex items-center justify-between mt-4 pt-4 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`}>
           <div className="flex flex-col">
             {isStarted && (
-              <span className="text-xs text-orange-600 font-medium mb-1">In Progress</span>
+              <span className={`text-xs ${darkMode ? 'text-[var(--brand-peach)]' : 'text-orange-600'} font-medium mb-1`}>In Progress</span>
             )}
-            <div className="text-xs text-gray-500">
+            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
               {expirationDate ? (
-                <span className={isExpiringSoon ? 'text-orange-600 font-medium' : ''}>
+                <span className={isExpiringSoon ? (darkMode ? 'text-[var(--brand-peach)] font-medium' : 'text-orange-600 font-medium') : ''}>
                   {isExpiringSoon ? 'Expiring Soon' : `Expires: ${expirationDate.toLocaleDateString()}`}
                 </span>
               ) : (
@@ -468,7 +470,9 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
           </div>
           <button
             onClick={handleStart}
-            className={`${isStarted ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors`}
+            className={`${darkMode 
+              ? (isStarted ? 'bg-[var(--brand-peach)] hover:bg-[var(--brand-peach)]/80 text-[var(--dark-900)]' : 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-[var(--dark-900)]') 
+              : (isStarted ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')} px-4 py-2 rounded-lg text-sm font-bold transition-colors`}
           >
             {isStarted ? 'Continue Survey →' : 'Start Survey →'}
           </button>
@@ -479,11 +483,11 @@ export default function QuestionnaireCard({ questionnaire, onComplete }: Questio
 }
 
 // Question Input Component (same as QuestionnaireRunner)
-function QuestionInput({ question, value, onChange }: { question: any, value: any, onChange: (v: any) => void }) {
+function QuestionInput({ question, value, onChange, darkMode = false }: { question: any, value: any, onChange: (v: any) => void, darkMode?: boolean }) {
   if (question.question_type === 'FREE_TEXT') {
     return (
       <textarea
-        className="w-full h-40 border border-gray-300 rounded-xl p-4 text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+        className={`w-full h-40 border ${darkMode ? 'border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)]' : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500'} rounded-xl p-4 text-lg focus:ring-2 outline-none resize-none`}
         placeholder="Type your answer here..."
         value={value?.text_answer || ''}
         onChange={(e) => onChange({ text_answer: e.target.value })}
@@ -499,7 +503,7 @@ function QuestionInput({ question, value, onChange }: { question: any, value: an
             key={star}
             onClick={() => onChange({ rating_answer: star })}
             className={`text-4xl transition-transform hover:scale-110 ${
-              (value?.rating_answer || 0) >= star ? 'text-yellow-400' : 'text-gray-200'
+              (value?.rating_answer || 0) >= star ? 'text-[var(--brand-third)]' : (darkMode ? 'text-[var(--dark-400)]' : 'text-gray-200')
             }`}
           >
             ★
@@ -536,16 +540,22 @@ function QuestionInput({ question, value, onChange }: { question: any, value: an
               key={opt.id}
               onClick={() => toggleOption(opt.id)}
               className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${
-                isSelected
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'
+                darkMode
+                  ? (isSelected
+                      ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/20'
+                      : 'border-[var(--dark-400)] hover:border-[var(--brand-primary)]/50 hover:bg-[var(--dark-500)]')
+                  : (isSelected
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50')
               }`}
             >
-              <span className="font-medium text-lg">{opt.text}</span>
+              <span className={`font-medium text-lg ${darkMode ? (isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]') : ''}`}>{opt.text}</span>
               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                darkMode
+                  ? (isSelected ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]' : 'border-[var(--dark-400)]')
+                  : (isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300')
               }`}>
-                {isSelected && <span className="text-white text-xs">✓</span>}
+                {isSelected && <span className={`${darkMode ? 'text-[var(--dark-900)]' : 'text-white'} text-xs`}>✓</span>}
               </div>
             </button>
           );
@@ -554,5 +564,5 @@ function QuestionInput({ question, value, onChange }: { question: any, value: an
     );
   }
 
-  return <div>Unknown Question Type</div>;
+  return <div className={darkMode ? 'text-[var(--brand-light)]' : ''}>Unknown Question Type</div>;
 }

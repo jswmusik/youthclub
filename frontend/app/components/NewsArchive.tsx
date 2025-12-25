@@ -8,7 +8,6 @@ import { getMediaUrl } from '../../app/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 interface Tag { id: number; name: string; }
@@ -102,19 +101,19 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
     <div className="space-y-6">
       
       {/* --- FILTERS BAR --- */}
-      <Card className="border-none shadow-sm">
-        <CardContent className="p-4 sm:p-6">
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <div className="p-4 sm:p-6">
           <form onSubmit={handleSearchSubmit} className="flex flex-wrap gap-4 items-end">
             
             {/* Search Input */}
             <div className="flex-1 min-w-[200px]">
-              <Label className="text-xs font-bold uppercase mb-2">Search</Label>
+              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">Search</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                 <Input 
                   type="text" 
                   placeholder="Title, excerpt, or author..." 
-                  className="pl-9 bg-gray-50 border-0"
+                  className="pl-9 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-0"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -123,9 +122,15 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
 
             {/* Tag Dropdown */}
             <div className="w-full sm:w-48">
-              <Label className="text-xs font-bold uppercase mb-2">Tag</Label>
+              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">Tag</Label>
               <select 
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2"
+                className="flex h-10 w-full rounded-xl border-2 border-[var(--dark-500)] bg-[var(--dark-700)] px-3 py-2 text-sm text-[var(--brand-light)] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-[var(--brand-primary)] appearance-none cursor-pointer"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 1rem center',
+                  backgroundSize: '1rem'
+                }}
                 value={selectedTag}
                 onChange={(e) => { setSelectedTag(e.target.value); setPage(1); }}
               >
@@ -138,9 +143,15 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
 
             {/* Sort Dropdown */}
             <div className="w-full sm:w-48">
-              <Label className="text-xs font-bold uppercase mb-2">Sort By</Label>
+              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">Sort By</Label>
               <select 
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4D4DA4] focus-visible:ring-offset-2"
+                className="flex h-10 w-full rounded-xl border-2 border-[var(--dark-500)] bg-[var(--dark-700)] px-3 py-2 text-sm text-[var(--brand-light)] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-[var(--brand-primary)] appearance-none cursor-pointer"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 1rem center',
+                  backgroundSize: '1rem'
+                }}
                 value={sortOrder}
                 onChange={(e) => { setSortOrder(e.target.value); setPage(1); }}
               >
@@ -156,32 +167,32 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
               variant="ghost"
               size="sm"
               onClick={() => { setSearch(''); setSelectedTag(''); setSortOrder('-published_at'); setPage(1); }}
-              className="text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+              className="text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 gap-2"
             >
               <X className="h-4 w-4" />
               Clear
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* --- ARTICLES LIST --- */}
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground animate-pulse">Searching archives...</p>
+          <p className="text-[var(--brand-light)]/60 animate-pulse">Searching archives...</p>
         </div>
       ) : articles.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground">No articles found matching your filters.</p>
-          </CardContent>
-        </Card>
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="p-12 text-center">
+            <p className="text-[var(--brand-light)]/60">No articles found matching your filters.</p>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {articles.map(article => (
-            <Card key={article.id} className="border-none shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col md:flex-row group">
+            <div key={article.id} className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden hover:border-[var(--brand-primary)]/30 transition-all flex flex-col md:flex-row group">
               {/* Image (Left on desktop, Top on mobile) */}
-              <div className="md:w-64 h-48 md:h-auto relative flex-shrink-0 bg-[#EBEBFE]/30">
+              <div className="md:w-64 h-48 md:h-auto relative flex-shrink-0 bg-[var(--dark-700)]">
                 {article.hero_image ? (
                   <img 
                     src={getMediaUrl(article.hero_image) || ''} 
@@ -189,7 +200,7 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <div className="flex items-center justify-center h-full text-[var(--brand-light)]/30">
                     <div className="text-center">
                       <div className="text-4xl mb-2">📰</div>
                       <div className="text-sm">No Image</div>
@@ -199,54 +210,54 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
               </div>
 
               {/* Content */}
-              <CardContent className="p-6 flex flex-col flex-grow">
+              <div className="p-6 flex flex-col flex-grow">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                   <div className="flex flex-wrap gap-2">
                     {article.tags_details.map(tag => (
-                      <Badge key={tag.id} variant="outline" className="bg-[#EBEBFE]/30 text-[#4D4DA4] border-[#4D4DA4]/20 text-xs font-semibold uppercase">
+                      <Badge key={tag.id} variant="outline" className="bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border-[var(--brand-purple)]/30 text-xs font-semibold uppercase">
                         {tag.name}
                       </Badge>
                     ))}
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+                  <div className="flex items-center gap-1.5 text-xs text-[var(--brand-light)]/50 whitespace-nowrap">
                     <Calendar className="h-3 w-3" />
                     <span>{formatDate(article.published_at)}</span>
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-[#121213] mb-2 group-hover:text-[#4D4DA4] transition-colors">
-                  <Link href={`${basePath}/${article.id}`}>
+                <h3 className="text-xl font-bold text-[var(--brand-light)] mb-2 group-hover:text-[var(--brand-primary)] transition-colors">
+                  <Link href={`${basePath}/${article.id}`} className="hover:underline">
                     {article.title}
                   </Link>
                 </h3>
                 
-                <p className="text-gray-600 text-sm mb-4 flex-grow line-clamp-2">
+                <p className="text-[var(--brand-light)]/60 text-sm mb-4 flex-grow line-clamp-2">
                   {article.excerpt}
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-gray-100 mt-auto gap-3">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-[var(--dark-600)] mt-auto gap-3">
+                  <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/50">
                     <User className="h-3 w-3" />
                     <span>By {article.author_name}</span>
                   </div>
                   <Link href={`${basePath}/${article.id}`}>
-                    <Button variant="ghost" size="sm" className="text-[#4D4DA4] hover:text-[#FF5485] font-semibold gap-1 h-auto p-0">
+                    <Button variant="ghost" size="sm" className="text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 font-semibold gap-1 h-auto p-0 hover:bg-transparent">
                       Read Full Article
                       <ArrowRight className="h-3 w-3" />
                     </Button>
                   </Link>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
       {/* --- PAGINATION --- */}
       {totalCount > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100">
-          <p className="text-sm text-muted-foreground">
-            Showing <span className="font-bold text-[#121213]">{articles.length}</span> of <span className="font-bold text-[#121213]">{totalCount}</span> articles
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[var(--dark-600)]">
+          <p className="text-sm text-[var(--brand-light)]/60">
+            Showing <span className="font-bold text-[var(--brand-light)]">{articles.length}</span> of <span className="font-bold text-[var(--brand-light)]">{totalCount}</span> articles
           </p>
           
           <div className="flex items-center gap-2">
@@ -255,18 +266,18 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
               size="sm"
               disabled={page === 1}
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] border-[var(--dark-500)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Previous
             </Button>
-            <div className="text-sm text-gray-500">Page {page} of {totalPages}</div>
+            <div className="text-sm text-[var(--brand-light)]/50">Page {page} of {totalPages}</div>
             <Button
               variant="outline"
               size="sm"
               disabled={page >= totalPages}
               onClick={() => setPage(p => p + 1)}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] border-[var(--dark-500)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />

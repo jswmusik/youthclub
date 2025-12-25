@@ -76,6 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           console.error("Session expired", error);
+          // Save current pathname before session expires
+          if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            if (currentPath.startsWith('/admin/') || currentPath.startsWith('/dashboard/')) {
+              sessionStorage.setItem('redirectAfterLogin', currentPath);
+            }
+          }
           Cookies.remove('access_token');
           setMessageCount(0);
         }
@@ -146,7 +153,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Failed to log login event', logErr);
       }
 
-      // 3. Redirect based on Role
+      // 3. Check if there's a saved redirect path
+      const savedPath = typeof window !== 'undefined' ? sessionStorage.getItem('redirectAfterLogin') : null;
+      
+      if (savedPath) {
+        // Clear the saved path
+        sessionStorage.removeItem('redirectAfterLogin');
+        // Redirect to saved path
+        router.push(savedPath);
+        return;
+      }
+
+      // 4. Redirect based on Role (default behavior)
       switch (userData.role) {
         case 'SUPER_ADMIN':
           router.push('/admin/super');
@@ -173,6 +191,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Save current pathname before logout (only if we're in an admin or dashboard area)
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/admin/') || currentPath.startsWith('/dashboard/')) {
+        sessionStorage.setItem('redirectAfterLogin', currentPath);
+      }
+    }
+    
     Cookies.remove('access_token');
     Cookies.remove('refresh_token');
     setUser(null);

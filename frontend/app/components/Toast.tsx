@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, AlertCircle, Info, X, Sparkles } from 'lucide-react';
 
 interface ToastProps {
   message: string;
@@ -8,6 +9,8 @@ interface ToastProps {
   isVisible: boolean;
   onClose: () => void;
   duration?: number;
+  darkMode?: boolean;
+  title?: string;
 }
 
 export default function Toast({ 
@@ -15,55 +18,84 @@ export default function Toast({
   type = 'success', 
   isVisible, 
   onClose, 
-  duration = 3000 
+  duration = 1500,
+  darkMode = false,
+  title
 }: ToastProps) {
   const [isClosing, setIsClosing] = useState(false);
+  const [progress, setProgress] = useState(100);
 
   useEffect(() => {
     if (isVisible) {
       setIsClosing(false);
+      setProgress(100);
+      
+      // Progress bar animation
+      const startTime = Date.now();
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+        setProgress(remaining);
+      }, 50);
+
       const timer = setTimeout(() => {
         setIsClosing(true);
-        // Wait for slide-out animation to complete before calling onClose
         setTimeout(() => {
           onClose();
         }, 300);
       }, duration);
-      return () => clearTimeout(timer);
+
+      return () => {
+        clearTimeout(timer);
+        clearInterval(progressInterval);
+      };
     }
   }, [isVisible, duration, onClose]);
 
   if (!isVisible) return null;
 
-  const bgColors = {
-    success: 'bg-[#10B981]',
-    error: 'bg-red-500',
-    info: 'bg-blue-500',
-    warning: 'bg-yellow-500',
+  // Brand-themed color configurations
+  const configs = {
+    success: {
+      bg: darkMode ? 'bg-[var(--dark-700)]' : 'bg-white',
+      border: 'border-[var(--brand-third)]',
+      iconBg: 'bg-[var(--brand-third)]/20',
+      iconColor: 'text-[var(--brand-third)]',
+      progressBg: 'bg-[var(--brand-third)]',
+      title: title || 'Success!',
+      icon: CheckCircle2,
+    },
+    error: {
+      bg: darkMode ? 'bg-[var(--dark-700)]' : 'bg-white',
+      border: 'border-[var(--brand-red)]',
+      iconBg: 'bg-[var(--brand-red)]/20',
+      iconColor: 'text-[var(--brand-red)]',
+      progressBg: 'bg-[var(--brand-red)]',
+      title: title || 'Error',
+      icon: XCircle,
+    },
+    info: {
+      bg: darkMode ? 'bg-[var(--dark-700)]' : 'bg-white',
+      border: 'border-[var(--brand-blue)]',
+      iconBg: 'bg-[var(--brand-blue)]/20',
+      iconColor: 'text-[var(--brand-blue)]',
+      progressBg: 'bg-[var(--brand-blue)]',
+      title: title || 'Info',
+      icon: Info,
+    },
+    warning: {
+      bg: darkMode ? 'bg-[var(--dark-700)]' : 'bg-white',
+      border: 'border-[var(--brand-peach)]',
+      iconBg: 'bg-[var(--brand-peach)]/20',
+      iconColor: 'text-[var(--brand-peach)]',
+      progressBg: 'bg-[var(--brand-peach)]',
+      title: title || 'Warning',
+      icon: AlertCircle,
+    },
   };
 
-  const icons = {
-    success: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-      </svg>
-    ),
-    error: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    ),
-    info: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    warning: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-    ),
-  };
+  const config = configs[type];
+  const Icon = config.icon;
 
   const handleClose = () => {
     setIsClosing(true);
@@ -74,28 +106,89 @@ export default function Toast({
 
   return (
     <div 
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ease-in-out ${
+      className={`fixed top-4 right-4 z-[9999] transition-all duration-300 ease-out ${
         isClosing 
-          ? 'animate-out fade-out-0 slide-out-to-right-4' 
-          : 'animate-in fade-in-0 slide-in-from-right-4'
+          ? 'opacity-0 translate-x-4 scale-95' 
+          : 'opacity-100 translate-x-0 scale-100'
       }`}
+      role="alert"
+      aria-live="polite"
     >
-      <div className={`${bgColors[type]} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-md`}>
-        <div className="flex-shrink-0">
-          {icons[type]}
+      <div 
+        className={`
+          ${config.bg} 
+          ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}
+          rounded-2xl shadow-2xl 
+          border-l-4 ${config.border}
+          ${darkMode ? 'border-y border-r border-[var(--dark-500)]' : 'border-y border-r border-gray-100'}
+          min-w-[340px] max-w-md 
+          overflow-hidden
+          backdrop-blur-sm
+        `}
+      >
+        {/* Main Content */}
+        <div className="p-4 flex items-start gap-3">
+          {/* Icon */}
+          <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${config.iconBg} flex items-center justify-center`}>
+            <Icon className={`w-5 h-5 ${config.iconColor}`} />
+          </div>
+          
+          {/* Text Content */}
+          <div className="flex-1 min-w-0 pt-0.5">
+            <p className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
+              {config.title}
+            </p>
+            <p className={`text-sm mt-0.5 ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>
+              {message}
+            </p>
+          </div>
+          
+          {/* Close Button */}
+          <button
+            onClick={handleClose}
+            className={`
+              flex-shrink-0 w-8 h-8 rounded-lg 
+              ${darkMode ? 'hover:bg-[var(--dark-500)] text-[var(--brand-light)]/50 hover:text-[var(--brand-light)]' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}
+              transition-all flex items-center justify-center
+            `}
+            aria-label="Dismiss notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <p className="flex-1 font-medium">{message}</p>
-        <button
-          onClick={handleClose}
-          className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors"
-          aria-label="Close"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        
+        {/* Progress Bar */}
+        <div className={`h-1 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}>
+          <div 
+            className={`h-full ${config.progressBg} transition-all duration-100 ease-linear`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
+// Export a hook for easier toast management
+export interface ToastState {
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  isVisible: boolean;
+  title?: string;
+}
+
+export const initialToastState: ToastState = {
+  message: '',
+  type: 'success',
+  isVisible: false,
+  title: undefined
+};
+
+export function showToast(
+  setToast: React.Dispatch<React.SetStateAction<ToastState>>,
+  message: string,
+  type: 'success' | 'error' | 'info' | 'warning' = 'success',
+  title?: string
+) {
+  setToast({ message, type, isVisible: true, title });
+}

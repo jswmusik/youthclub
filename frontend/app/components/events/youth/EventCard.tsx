@@ -3,22 +3,24 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { MapPin, Calendar, Users, ChevronLeft, ChevronRight, X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { MapPin, Calendar, Users, ChevronLeft, ChevronRight, X, CheckCircle, Clock, AlertCircle, Repeat, ArrowRight } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
 import { Event } from '@/types/event';
 
-export default function EventCard({ event }: { event: Event }) {
+interface EventCardProps {
+    event: Event;
+    darkMode?: boolean;
+}
+
+export default function EventCard({ event, darkMode = false }: EventCardProps) {
     const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null);
     
-    // Calculate availability visual
     const isFull = event.max_seats > 0 && event.confirmed_participants_count >= event.max_seats;
     const seatsLeft = event.max_seats > 0 ? event.max_seats - event.confirmed_participants_count : 999;
     
-    // Get user registration status
     const userStatus = (event as any).user_registration_status;
     const isRegistered = !!userStatus && userStatus !== 'CANCELLED';
     
-    // Combine cover image and gallery images
     const allImages: Array<{ type: string; url: string | null }> = [];
     if (event.cover_image) {
         allImages.push({ type: 'cover', url: getMediaUrl(event.cover_image) });
@@ -34,42 +36,40 @@ export default function EventCard({ event }: { event: Event }) {
         e.stopPropagation();
         setCurrentImageIndex(index);
     };
+
+    // Format date nicely
+    const eventDate = new Date(event.start_date);
+    const dayName = format(eventDate, 'EEE');
+    const dayNum = format(eventDate, 'd');
+    const month = format(eventDate, 'MMM');
+    const time = format(eventDate, 'HH:mm');
     
     return (
         <>
             <Link href={`/dashboard/youth/events/${event.id}`} className="group block">
-                <div className="bg-white rounded-xl overflow-hidden shadow-md border-2 border-green-200 flex flex-row relative">
-                    {/* Event Ribbon/Header */}
-                    <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 relative overflow-hidden z-10">
-                        <div className="absolute inset-0 flex items-center justify-between px-2">
-                            <Calendar className="text-white w-2 h-2 opacity-60" />
-                            <Calendar className="text-white w-2 h-2 opacity-60" />
-                            <Calendar className="text-white w-2 h-2 opacity-60" />
-                            <Calendar className="text-white w-2 h-2 opacity-60" />
-                            <Calendar className="text-white w-2 h-2 opacity-60" />
+                <div className={`overflow-hidden transition-all duration-200 ${
+                    darkMode 
+                        ? 'bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' 
+                        : 'bg-white rounded-2xl border border-gray-200 hover:border-[#4D4DA4]/30 hover:shadow-lg'
+                }`}>
+                    <div className="flex">
+                        {/* Date Column */}
+                        <div className={`w-20 sm:w-24 flex-shrink-0 p-3 sm:p-4 flex flex-col items-center justify-center ${
+                            darkMode 
+                                ? 'bg-[var(--brand-secondary)] text-white' 
+                                : 'bg-[#4D4DA4] text-white'
+                        }`}>
+                            <span className="text-[10px] uppercase tracking-wider opacity-80">{dayName}</span>
+                            <span className="text-2xl sm:text-3xl font-bold leading-none my-1">{dayNum}</span>
+                            <span className="text-xs uppercase tracking-wide opacity-90">{month}</span>
+                            <div className="mt-2 pt-2 border-t border-white/20 w-full text-center">
+                                <span className="text-sm font-semibold">{time}</span>
+                            </div>
                         </div>
-                    </div>
-                    
-                    {/* Event Badge */}
-                    <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5">
-                        <span className="bg-green-600 text-white text-[10px] px-2 py-1 rounded-full uppercase tracking-wider font-bold shadow-lg flex items-center gap-1">
-                            <Calendar className="w-2.5 h-2.5" />
-                            EVENT
-                        </span>
-                        {event.is_recurring && (
-                            <span className="bg-purple-600 text-white text-[10px] px-2 py-1 rounded-full uppercase tracking-wider font-bold shadow-lg flex items-center gap-1">
-                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                RECURRING
-                            </span>
-                        )}
-                    </div>
-                    
-                    {/* Image Section - Avatar */}
-                    <div className="relative bg-gray-200 w-24 flex-shrink-0">
-                        {event.cover_image ? (
-                            <div className="relative h-full min-h-[120px]">
+
+                        {/* Image Section */}
+                        {event.cover_image && (
+                            <div className="w-28 sm:w-36 flex-shrink-0 relative">
                                 <img 
                                     src={getMediaUrl(event.cover_image) || ''} 
                                     alt={event.title} 
@@ -80,80 +80,117 @@ export default function EventCard({ event }: { event: Event }) {
                                         }
                                     }}
                                 />
-                            </div>
-                        ) : (
-                            <div className="w-full h-full min-h-[120px] flex items-center justify-center text-gray-400 bg-gray-100">
-                                <Calendar className="w-8 h-8 opacity-20" />
+                                {/* Recurring badge on image */}
+                                {event.is_recurring && (
+                                    <div className={`absolute top-2 left-2 text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                                        darkMode 
+                                            ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                                            : 'bg-[#4D4DA4] text-white'
+                                    }`}>
+                                        <Repeat className="w-2.5 h-2.5" />
+                                        <span className="font-medium">Series</span>
+                                    </div>
+                                )}
                             </div>
                         )}
-                    </div>
 
-                    {/* Content */}
-                    <div className="p-4 flex-1 flex flex-col bg-gradient-to-b from-white to-green-50/30 pt-6 relative">
-                        {/* Status Badge - Top Right */}
-                        <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 items-end">
-                            {/* User Registration Status */}
-                            {isRegistered && (
-                                <span className={`text-xs font-bold px-2.5 py-1 rounded-full shadow-lg backdrop-blur-sm flex items-center gap-1 ${
-                                    userStatus === 'APPROVED' 
-                                        ? 'bg-green-600 text-white' 
-                                        : userStatus === 'WAITLIST'
-                                        ? 'bg-orange-500 text-white'
-                                        : 'bg-yellow-500 text-white'
-                                }`}>
-                                    {userStatus === 'APPROVED' && <CheckCircle className="w-3 h-3" />}
-                                    {userStatus === 'WAITLIST' && <Clock className="w-3 h-3" />}
-                                    {(userStatus === 'PENDING_GUARDIAN' || userStatus === 'PENDING_ADMIN') && <AlertCircle className="w-3 h-3" />}
-                                    {userStatus === 'APPROVED' ? 'Confirmed' : 
-                                     userStatus === 'WAITLIST' ? 'On Waitlist' : 
-                                     'Pending'}
-                                </span>
-                            )}
-                            {/* Event Availability Status */}
-                            {!isRegistered && (
-                                <>
-                                    {isFull ? (
-                                        <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg backdrop-blur-sm">
-                                            Waitlist Only
-                                        </span>
-                                    ) : (
-                                        <span className="bg-green-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg backdrop-blur-sm">
-                                            Open
-                                        </span>
-                                    )}
-                                </>
-                            )}
-                        </div>
-
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="bg-green-100 p-1 rounded-lg">
-                                <Calendar className="w-3 h-3 text-green-600" />
+                        {/* Content */}
+                        <div className="flex-1 p-3 sm:p-4 flex flex-col min-w-0">
+                            {/* Top row: Status badges */}
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                {isRegistered ? (
+                                    <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                                        userStatus === 'APPROVED' 
+                                            ? darkMode ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-emerald-100 text-emerald-700'
+                                            : userStatus === 'WAITLIST'
+                                            ? darkMode ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)]' : 'bg-amber-100 text-amber-700'
+                                            : darkMode ? 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]' : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                        {userStatus === 'APPROVED' && <CheckCircle className="w-3 h-3" />}
+                                        {userStatus === 'WAITLIST' && <Clock className="w-3 h-3" />}
+                                        {(userStatus === 'PENDING_GUARDIAN' || userStatus === 'PENDING_ADMIN') && <AlertCircle className="w-3 h-3" />}
+                                        {userStatus === 'APPROVED' ? 'Registered' : 
+                                         userStatus === 'WAITLIST' ? 'Waitlist' : 
+                                         'Pending'}
+                                    </span>
+                                ) : (
+                                    <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                        isFull 
+                                            ? darkMode ? 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]' : 'bg-rose-100 text-rose-700'
+                                            : darkMode ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-emerald-100 text-emerald-700'
+                                    }`}>
+                                        {isFull ? 'Full' : 'Open'}
+                                    </span>
+                                )}
+                                
+                                {/* Recurring badge if no image */}
+                                {event.is_recurring && !event.cover_image && (
+                                    <span className={`text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                                        darkMode 
+                                            ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]' 
+                                            : 'bg-[#EBEBFE] text-[#4D4DA4]'
+                                    }`}>
+                                        <Repeat className="w-2.5 h-2.5" />
+                                        Recurring
+                                    </span>
+                                )}
                             </div>
-                            <div className="text-xs font-bold text-green-700 uppercase tracking-wide">
-                                {format(new Date(event.start_date), 'MMM d, HH:mm')}
-                            </div>
-                        </div>
-                        
-                        <h3 className="font-bold text-gray-900 mb-2 text-base line-clamp-2 pr-20">
-                            {event.title}
-                        </h3>
-                        
-                        <div className="flex items-center text-gray-600 text-xs mb-3 bg-green-50/50 px-2 py-1.5 rounded-md">
-                            <MapPin className="w-3.5 h-3.5 mr-1.5 text-green-600" />
-                            <span className="font-medium truncate">{event.location_name}</span>
-                        </div>
-
-                        <div className="mt-auto flex items-center justify-between text-xs border-t-2 border-green-200 pt-3">
-                            <span className={`font-semibold ${event.cost ? 'text-gray-700' : 'text-green-600'}`}>
-                                {event.cost ? `${event.cost} SEK` : '🆓 Free'}
-                            </span>
                             
-                            {event.allow_registration && event.max_seats > 0 && (
-                                <div className="flex items-center gap-1.5 text-gray-700 bg-green-50 px-2 py-1 rounded-full">
-                                    <Users className="w-3.5 h-3.5 text-green-600" />
-                                    <span className="font-semibold">{isFull ? `${event.waitlist_count} waiting` : `${seatsLeft} left`}</span>
-                                </div>
-                            )}
+                            {/* Title */}
+                            <h3 className={`font-semibold text-sm sm:text-base line-clamp-2 mb-2 transition-colors ${
+                                darkMode 
+                                    ? 'text-[var(--brand-light)] group-hover:text-[var(--brand-primary)]' 
+                                    : 'text-gray-900 group-hover:text-[#4D4DA4]'
+                            }`}>
+                                {event.title}
+                            </h3>
+                            
+                            {/* Location */}
+                            <div className={`flex items-center text-xs sm:text-sm mb-3 ${
+                                darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
+                            }`}>
+                                <MapPin className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                                <span className="truncate">{event.location_name}</span>
+                            </div>
+
+                            {/* Bottom row: Price & Availability */}
+                            <div className="flex items-center gap-3">
+                                {/* Price */}
+                                <span className={`text-sm font-bold ${
+                                    event.cost 
+                                        ? darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'
+                                        : darkMode ? 'text-[var(--brand-green)]' : 'text-emerald-600'
+                                }`}>
+                                    {event.cost ? `${event.cost} kr` : 'Free'}
+                                </span>
+                                
+                                {/* Seats */}
+                                {event.allow_registration && event.max_seats > 0 && (
+                                    <span className={`text-xs flex items-center gap-1 ${
+                                        darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
+                                    }`}>
+                                        <Users className="w-3.5 h-3.5" />
+                                        {isFull ? `${event.waitlist_count} waiting` : `${seatsLeft} spots`}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        
+                        {/* Arrow indicator - centered on right side */}
+                        <div className={`w-12 sm:w-14 flex-shrink-0 flex items-center justify-center ${
+                            darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+                        }`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                darkMode 
+                                    ? 'bg-[var(--dark-600)] group-hover:bg-[var(--brand-primary)]' 
+                                    : 'bg-gray-100 group-hover:bg-[#4D4DA4]'
+                            }`}>
+                                <ArrowRight className={`w-4 h-4 transition-colors ${
+                                    darkMode 
+                                        ? 'text-[var(--brand-light)]/40 group-hover:text-[var(--dark-900)]' 
+                                        : 'text-gray-400 group-hover:text-white'
+                                }`} />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -162,29 +199,26 @@ export default function EventCard({ event }: { event: Event }) {
             {/* Image Slideshow Modal */}
             {currentImageIndex !== null && allImages.length > 0 && (
                 <div 
-                    className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+                    className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
                     onClick={() => setCurrentImageIndex(null)}
                 >
                     <div 
                         className="relative max-w-4xl max-h-[90vh] w-full mx-4"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Close button */}
                         <button
                             onClick={() => setCurrentImageIndex(null)}
-                            className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
+                            className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 bg-black/50 rounded-full p-2"
                         >
                             <X className="w-6 h-6" />
                         </button>
                         
-                        {/* Current image */}
                         <img
                             src={allImages[currentImageIndex].url || ''}
                             alt={`${event.title} ${currentImageIndex + 1}`}
                             className="w-full h-auto max-h-[90vh] object-contain"
                         />
                         
-                        {/* Navigation arrows */}
                         {allImages.length > 1 && (
                             <>
                                 <button
@@ -194,7 +228,7 @@ export default function EventCard({ event }: { event: Event }) {
                                             prev !== null && prev > 0 ? prev - 1 : allImages.length - 1
                                         );
                                     }}
-                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black/50 rounded-full p-2"
                                 >
                                     <ChevronLeft className="w-6 h-6" />
                                 </button>
@@ -205,16 +239,15 @@ export default function EventCard({ event }: { event: Event }) {
                                             prev !== null && prev < allImages.length - 1 ? prev + 1 : 0
                                         );
                                     }}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black/50 rounded-full p-2"
                                 >
                                     <ChevronRight className="w-6 h-6" />
                                 </button>
                             </>
                         )}
                         
-                        {/* Image counter */}
                         {allImages.length > 1 && currentImageIndex !== null && (
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-50 text-white px-4 py-2 rounded-full text-sm">
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
                                 {currentImageIndex + 1} / {allImages.length}
                             </div>
                         )}
@@ -224,4 +257,3 @@ export default function EventCard({ event }: { event: Event }) {
         </>
     );
 }
-
