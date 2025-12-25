@@ -19,6 +19,8 @@ export const cmsApi = {
   // Pages
   getPages: () => api.get<PaginatedResponse<Page>>('/cms/pages/').then(res => extractResults(res.data)),
   getPage: (slug: string) => api.get<Page>(`/cms/pages/${slug}/`).then(res => res.data),
+  // Public page endpoint - only returns published pages
+  getPublicPage: (slug: string) => api.get<Page>(`/cms/pages/public/${slug}/`).then(res => res.data),
   createPage: (data: FormData) => api.post<Page>('/cms/pages/', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }).then(res => res.data),

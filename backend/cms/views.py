@@ -134,8 +134,15 @@ class MenuItemViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def public_menu(self, request):
-        """Get menu items organized by location."""
-        items = MenuItem.objects.select_related('page').order_by('order')
+        """Get menu items organized by location, excluding items linked to unpublished pages."""
+        from django.db.models import Q
+        
+        # Get all menu items, but exclude those linked to unpublished pages
+        # Include items with no linked page (external links) or linked to published pages
+        items = MenuItem.objects.select_related('page').filter(
+            Q(page__isnull=True) | Q(page__is_published=True)
+        ).order_by('order')
+        
         header = items.filter(location='header')
         footer = items.filter(location='footer')
         community_footer = items.filter(location='community_footer')

@@ -108,12 +108,12 @@ export default function DynamicCmsPage() {
     return processContentWithIds(page?.content, tocItems);
   }, [hasToc, page?.content, tocItems]);
 
-  // Fetch page data
+  // Fetch page data (using public endpoint that only returns published pages)
   useEffect(() => {
     async function load() {
       if (!slug) return;
       try {
-        const data = await cmsApi.getPage(Array.isArray(slug) ? slug[0] : slug);
+        const data = await cmsApi.getPublicPage(Array.isArray(slug) ? slug[0] : slug);
         setPage(data);
         
         if (data) {
@@ -303,6 +303,9 @@ export default function DynamicCmsPage() {
   const authorImageUrl = page.author_image ? getMediaUrl(page.author_image) : null;
   const isCreativePage = page.page_type === 'creative';
   const hasFeatures = isCreativePage && page.features_data && page.features_data.length > 0;
+  
+  // Only show hero section with full height if show_hero is true AND there's an actual image
+  const hasHeroImage = page.show_hero && heroImageUrl;
 
   return (
     <article className="min-h-screen bg-[var(--dark-900)]">
@@ -328,13 +331,17 @@ export default function DynamicCmsPage() {
         }}
       />
 
-      {/* Hero Section - Reduced height */}
-      <div className="relative min-h-[50vh] md:min-h-[60vh] flex items-end overflow-hidden">
+      {/* Hero Section - Full height only when there's a hero image */}
+      <div className={`relative flex items-end overflow-hidden ${
+        hasHeroImage 
+          ? 'min-h-[50vh] md:min-h-[60vh]' 
+          : 'pt-20 sm:pt-24'
+      }`}>
         {/* Background */}
-        {heroImageUrl ? (
+        {hasHeroImage ? (
           <>
             <motion.img 
-              src={heroImageUrl} 
+              src={heroImageUrl!} 
               alt={page.title}
               className="absolute inset-0 w-full h-full object-cover"
               initial={{ scale: 1.05 }}
@@ -346,9 +353,9 @@ export default function DynamicCmsPage() {
         ) : (
           <>
             <div className="absolute inset-0 bg-[var(--dark-900)]" />
-            {/* Gradient orbs for non-image hero */}
+            {/* Subtle gradient orbs for non-image hero - smaller and less prominent */}
             <motion.div 
-              className="absolute top-10 -left-20 w-[400px] h-[400px] rounded-full bg-[var(--brand-primary)]/15 blur-[120px]"
+              className="absolute top-0 -left-20 w-[300px] h-[300px] rounded-full bg-[var(--brand-primary)]/10 blur-[100px]"
               animate={{ 
                 x: [0, 20, 0],
                 y: [0, -15, 0],
@@ -356,7 +363,7 @@ export default function DynamicCmsPage() {
               transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
             />
             <motion.div 
-              className="absolute bottom-10 right-0 w-[350px] h-[350px] rounded-full bg-[var(--brand-purple)]/12 blur-[100px]"
+              className="absolute top-20 right-0 w-[250px] h-[250px] rounded-full bg-[var(--brand-purple)]/8 blur-[80px]"
               animate={{ 
                 x: [0, -15, 0],
                 y: [0, 20, 0],
@@ -367,7 +374,7 @@ export default function DynamicCmsPage() {
         )}
         
         {/* Content */}
-        <div className="relative z-10 w-full pb-12 pt-32">
+        <div className={`relative z-10 w-full pb-8 ${hasHeroImage ? 'pt-32' : 'pt-8'}`}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Breadcrumb - Simple text links, no box */}
             <motion.nav 

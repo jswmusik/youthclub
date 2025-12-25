@@ -35,7 +35,9 @@ import {
   Rss,
   LogIn,
   BookOpen,
-  History
+  History,
+  BarChart3,
+  TrendingUp
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -76,6 +78,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     inventory: false,
     bookings: false,
     learning: false,
+    analytics: false,
     settings: false,
   });
   
@@ -261,6 +264,14 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
       items: [
         { name: 'Knowledge Center', href: '/admin/municipality/knowledge', icon: GraduationCap },
         { name: 'Find a course', href: '/admin/municipality/knowledge/courses', icon: BookOpen },
+      ]
+    },
+    {
+      id: 'analytics',
+      title: 'Analytics',
+      icon: BarChart3,
+      items: [
+        { name: 'Municipality Overview', href: '/admin/municipality/analytics', icon: TrendingUp },
       ]
     },
     {

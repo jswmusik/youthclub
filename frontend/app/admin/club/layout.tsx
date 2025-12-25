@@ -35,7 +35,9 @@ import {
   Rss,
   LogIn,
   History,
-  BookOpen
+  BookOpen,
+  BarChart3,
+  TrendingUp
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -75,6 +77,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     inventory: false,
     bookings: false,
     learning: false,
+    analytics: false,
     settings: false,
   });
   
@@ -261,6 +264,15 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
       items: [
         { name: 'Knowledge Center', href: '/admin/club/knowledge', icon: GraduationCap },
         { name: 'Find a course', href: '/admin/club/knowledge/courses', icon: BookOpen },
+      ]
+    },
+    {
+      id: 'analytics',
+      title: 'Analytics',
+      icon: BarChart3,
+      items: [
+        { name: 'Dashboard', href: '/admin/club/analytics', icon: TrendingUp },
+        { name: 'Visit Analytics', href: '/admin/club/visits/analytics', icon: BarChart3 },
       ]
     },
     {

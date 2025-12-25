@@ -204,10 +204,10 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
       } else {
         await cmsApi.createPage(data);
         showToast("Page created successfully", "success");
-        router.push('/admin/super/cms/pages');
       }
       
-      router.refresh();
+      // Always redirect to pages list after successful save
+      router.push('/admin/super/cms/pages');
     } catch (error: any) {
       console.error('Full error:', error);
       console.error('Error response:', error.response?.data);
