@@ -44,7 +44,11 @@ import {
   Building2 as BuildingIcon,
   Clock,
   GraduationCap,
-  Megaphone
+  Megaphone,
+  Layers,
+  Navigation,
+  Sparkles,
+  Cookie
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -86,6 +90,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     bookings: false,
     learning: false,
     marketing: false,
+    cms: false,
     settings: false,
   });
   
@@ -282,6 +287,17 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       items: [
         { name: 'Homepage & SEO', href: '/admin/super/marketing', icon: Globe },
         { name: 'Customers', href: '/admin/super/marketing/customers', icon: Building2 },
+      ]
+    },
+    {
+      id: 'cms',
+      title: 'CMS',
+      icon: Layers,
+      items: [
+        { name: 'Pages', href: '/admin/super/cms/pages', icon: FileText },
+        { name: 'Navigation', href: '/admin/super/cms/navigation', icon: Navigation },
+        { name: 'Features', href: '/admin/super/cms/features', icon: Sparkles },
+        { name: 'Cookie Consent', href: '/admin/super/cms/cookies', icon: Cookie },
       ]
     },
     {

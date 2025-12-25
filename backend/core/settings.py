@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'messenger',
     'learning',
     'marketing',
+    'cms',
 ]
 
 MIDDLEWARE = [

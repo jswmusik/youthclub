@@ -1,16 +1,16 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
   Facebook, 
   Instagram, 
-  Mail, 
-  Phone, 
-  MapPin,
   Heart,
-  ExternalLink
+  ExternalLink as ExternalLinkIcon
 } from 'lucide-react';
+import { cmsApi } from '@/lib/cms-api';
+import { MenuItem } from '@/types/cms';
 
 // TikTok icon (not available in lucide-react)
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -23,41 +23,35 @@ const TikTokIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-interface FooterLink {
-  label: string;
-  href: string;
-  external?: boolean;
-}
-
-interface FooterSection {
-  title: string;
-  links: FooterLink[];
-}
-
 export default function YouthFooter() {
   const currentYear = new Date().getFullYear();
+  const [communityFooterItems, setCommunityFooterItems] = useState<MenuItem[]>([]);
 
-  const legalLinks: FooterLink[] = [
-    { label: 'Terms of Service', href: '/terms' },
-    { label: 'Privacy Policy', href: '/privacy' },
-    { label: 'GDPR Policy', href: '/gdpr' },
-    { label: 'Cookie Policy', href: '/cookies' },
-  ];
+  // Fetch CMS community footer items
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const menuData = await cmsApi.getPublicMenu();
+        setCommunityFooterItems(menuData.community_footer || []);
+      } catch (error) {
+        console.error('Failed to fetch menu items:', error);
+      }
+    };
+    fetchMenu();
+  }, []);
 
-  const quickLinks: FooterLink[] = [
-    { label: 'Dashboard', href: '/dashboard/youth' },
-    { label: 'Events', href: '/dashboard/youth/events' },
-    { label: 'Groups', href: '/dashboard/youth/groups' },
-    { label: 'News', href: '/dashboard/youth/news' },
-    { label: 'My Profile', href: '/dashboard/youth/profile' },
-  ];
+  // Helper to get the link href for a menu item
+  const getMenuItemHref = (item: MenuItem) => {
+    if (item.page && item.page_slug) {
+      return `/p/${item.page_slug}`;
+    }
+    return item.external_url || '#';
+  };
 
-  const supportLinks: FooterLink[] = [
-    { label: 'Help Center', href: '/help' },
-    { label: 'Contact Us', href: '/contact' },
-    { label: 'Report an Issue', href: '/report' },
-    { label: 'FAQ', href: '/faq' },
-  ];
+  // Helper to check if link is external
+  const isExternalLink = (item: MenuItem) => {
+    return !item.page && item.external_url;
+  };
 
   const socialLinks = [
     { 
@@ -84,7 +78,7 @@ export default function YouthFooter() {
     <footer className="bg-[var(--dark-800)] border-t border-[var(--dark-600)] mt-auto relative z-40">
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           
           {/* Brand Section */}
           <div className="lg:col-span-2">
@@ -122,62 +116,71 @@ export default function YouthFooter() {
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-[var(--brand-light)] font-bold text-sm uppercase tracking-wider mb-4">
-              Quick Links
-            </h3>
-            <ul className="space-y-3">
-              {quickLinks.map((link) => (
-                <li key={link.href}>
-                  <Link 
-                    href={link.href}
-                    className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] text-sm transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* CMS Community Footer Items - Column 1 */}
+          {communityFooterItems.length > 0 && (
+            <div>
+              <h3 className="text-[var(--brand-light)] font-bold text-sm uppercase tracking-wider mb-4">
+                Links
+              </h3>
+              <ul className="space-y-3">
+                {communityFooterItems.slice(0, Math.ceil(communityFooterItems.length / 2)).map((item) => (
+                  <li key={item.id}>
+                    {isExternalLink(item) ? (
+                      <a
+                        href={getMenuItemHref(item)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] text-sm transition-colors flex items-center gap-1"
+                      >
+                        {item.label}
+                        <ExternalLinkIcon className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <Link 
+                        href={getMenuItemHref(item)}
+                        className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] text-sm transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-          {/* Support */}
-          <div>
-            <h3 className="text-[var(--brand-light)] font-bold text-sm uppercase tracking-wider mb-4">
-              Support
-            </h3>
-            <ul className="space-y-3">
-              {supportLinks.map((link) => (
-                <li key={link.href}>
-                  <Link 
-                    href={link.href}
-                    className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] text-sm transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h3 className="text-[var(--brand-light)] font-bold text-sm uppercase tracking-wider mb-4">
-              Legal
-            </h3>
-            <ul className="space-y-3">
-              {legalLinks.map((link) => (
-                <li key={link.href}>
-                  <Link 
-                    href={link.href}
-                    className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] text-sm transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* CMS Community Footer Items - Column 2 */}
+          {communityFooterItems.length > 1 && (
+            <div>
+              <h3 className="text-[var(--brand-light)] font-bold text-sm uppercase tracking-wider mb-4">
+                More
+              </h3>
+              <ul className="space-y-3">
+                {communityFooterItems.slice(Math.ceil(communityFooterItems.length / 2)).map((item) => (
+                  <li key={item.id}>
+                    {isExternalLink(item) ? (
+                      <a
+                        href={getMenuItemHref(item)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] text-sm transition-colors flex items-center gap-1"
+                      >
+                        {item.label}
+                        <ExternalLinkIcon className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <Link 
+                        href={getMenuItemHref(item)}
+                        className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] text-sm transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Newsletter Section (Optional - for future use) */}
@@ -219,4 +222,3 @@ export default function YouthFooter() {
     </footer>
   );
 }
-
