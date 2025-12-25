@@ -43,7 +43,8 @@ import {
   ChevronDown,
   Building2 as BuildingIcon,
   Clock,
-  GraduationCap
+  GraduationCap,
+  Megaphone
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -84,6 +85,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     inventory: false,
     bookings: false,
     learning: false,
+    marketing: false,
     settings: false,
   });
   
@@ -271,6 +273,15 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       icon: GraduationCap,
       items: [
         { name: 'Courses', href: '/admin/super/knowledge/courses', icon: GraduationCap },
+      ]
+    },
+    {
+      id: 'marketing',
+      title: 'Marketing',
+      icon: Megaphone,
+      items: [
+        { name: 'Homepage & SEO', href: '/admin/super/marketing', icon: Globe },
+        { name: 'Customers', href: '/admin/super/marketing/customers', icon: Building2 },
       ]
     },
     {

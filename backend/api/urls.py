@@ -9,7 +9,7 @@ from custom_fields.views import CustomFieldDefinitionViewSet, PublicCustomFieldL
 from groups.views import GroupViewSet, GroupMembershipViewSet
 from rewards.views import RewardViewSet
 # Add this line at the top with other imports
-from posts.views import PostViewSet, PostCommentViewSet, PostTemplateViewSet
+from posts.views import PostViewSet, PostCommentViewSet, PostTemplateViewSet, PublicPostsView
 from learning.views import CourseViewSet, LearningCategoryViewSet, ChapterViewSet, ContentItemViewSet, upload_image
 
 router = DefaultRouter()
@@ -49,6 +49,9 @@ urlpatterns = [
     path('register/check-email/', CheckEmailView.as_view(), name='check-email'),
     
     path('custom-fields/public/', PublicCustomFieldListView.as_view(), name='public-custom-fields'),
+    
+    # Public Posts (for homepage)
+    path('public/posts/', PublicPostsView.as_view(), name='public-posts'),
     
     # --- LEARNING IMAGE UPLOAD ---
     path('learning/upload-image/', upload_image, name='learning-upload-image'),

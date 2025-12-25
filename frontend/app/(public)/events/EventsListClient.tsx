@@ -2,10 +2,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Calendar, MapPin, Clock, Users, ChevronRight, 
-  Navigation, Loader2, Search, Filter, X
+  Navigation, Loader2, Search, Filter, X, Sparkles
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -47,6 +48,25 @@ interface PublicEvent {
 interface Municipality {
   id: number;
   name: string;
+  slug: string;
+}
+
+interface Club {
+  id: number;
+  name: string;
+  slug: string;
+  municipality: number;
+  municipality_name?: string;
+  municipality_slug?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+interface Interest {
+  id: number;
+  name: string;
+  icon?: string;
+  avatar?: string;
 }
 
 function EventCard({ event }: { event: PublicEvent }) {
@@ -158,21 +178,64 @@ function EventCard({ event }: { event: PublicEvent }) {
   );
 }
 
-export default function EventsListClient() {
+interface EventsListClientProps {
+  initialFilters?: {
+    municipality_slug?: string;
+    club_slug?: string;
+    search?: string;
+    lat?: string;
+    lng?: string;
+    date?: string;
+    [key: string]: string | string[] | undefined;
+  };
+  showHeader?: boolean;
+}
+
+export default function EventsListClient({ 
+  initialFilters = {}, 
+  showHeader = true 
+}: EventsListClientProps) {
+  const searchParams = useSearchParams();
+  
   const [events, setEvents] = useState<PublicEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMunicipality, setSelectedMunicipality] = useState<string>('');
+  // Get initial values from URL params or initialFilters
+  const urlSearch = searchParams.get('search') || '';
+  const urlMunicipality = searchParams.get('municipality_slug') || searchParams.get('municipality') || '';
+  const urlClub = searchParams.get('club_slug') || searchParams.get('club') || '';
+  const urlLat = searchParams.get('lat');
+  const urlLng = searchParams.get('lng');
+  
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(
+    (initialFilters.lat && initialFilters.lng) 
+      ? { lat: parseFloat(initialFilters.lat as string), lng: parseFloat(initialFilters.lng as string) }
+      : (urlLat && urlLng)
+        ? { lat: parseFloat(urlLat), lng: parseFloat(urlLng) }
+        : null
+  );
+  const [searchQuery, setSearchQuery] = useState(
+    (initialFilters.search as string) || urlSearch || ''
+  );
+  const [selectedMunicipality, setSelectedMunicipality] = useState<string>(
+    (initialFilters.municipality_slug as string) || urlMunicipality || ''
+  );
+  const [selectedClub, setSelectedClub] = useState<string>(
+    (initialFilters.club_slug as string) || urlClub || ''
+  );
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [filteredClubs, setFilteredClubs] = useState<Club[]>([]);
+  const [interests, setInterests] = useState<Interest[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<number[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch municipalities
+  // Fetch municipalities, clubs, and interests
   useEffect(() => {
+    // Fetch municipalities
     fetch(`${API_URL}/municipalities/`)
       .then(res => res.json())
       .then(data => {
@@ -180,9 +243,115 @@ export default function EventsListClient() {
         setMunicipalities(muniList);
       })
       .catch(console.error);
+    
+    // Fetch clubs
+    fetch(`${API_URL}/clubs/`)
+      .then(res => res.json())
+      .then(data => {
+        const clubList = data.results || data;
+        setClubs(clubList);
+        setFilteredClubs(clubList);
+      })
+      .catch(console.error);
+    
+    // Fetch interests
+    fetch(`${API_URL}/interests/`)
+      .then(res => res.json())
+      .then(data => {
+        const interestList = data.results || data;
+        setInterests(interestList);
+      })
+      .catch(console.error);
   }, []);
 
-  // Try to get location
+  // Filter clubs when municipality changes
+  useEffect(() => {
+    if (selectedMunicipality) {
+      const muni = municipalities.find(m => m.slug === selectedMunicipality || m.id.toString() === selectedMunicipality);
+      if (muni) {
+        setFilteredClubs(clubs.filter(c => c.municipality === muni.id));
+      } else {
+        setFilteredClubs(clubs);
+      }
+    } else {
+      setFilteredClubs(clubs);
+    }
+    // Clear club selection when municipality changes (unless it's from initial filters)
+    if (!initialFilters.club_slug) {
+      setSelectedClub('');
+    }
+  }, [selectedMunicipality, clubs, municipalities]);
+
+  // Helper function to calculate distance between two points (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Find closest municipality based on clubs' coordinates
+  const findClosestMunicipality = (userLat: number, userLng: number, clubsList: Club[]): string | null => {
+    let closestMuniSlug: string | null = null;
+    let closestClubName: string | null = null;
+    let minDistance = Infinity;
+
+    console.log(`🌍 User location: ${userLat.toFixed(4)}, ${userLng.toFixed(4)}`);
+    console.log(`📍 Checking ${clubsList.length} clubs for closest match...`);
+
+    clubsList.forEach(club => {
+      if (club.latitude && club.longitude && club.municipality_slug) {
+        const distance = calculateDistance(userLat, userLng, club.latitude, club.longitude);
+        console.log(`  - ${club.name}: ${distance.toFixed(1)} km (coords: ${club.latitude}, ${club.longitude})`);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestMuniSlug = club.municipality_slug;
+          closestClubName = club.name;
+        }
+      }
+    });
+
+    console.log(`✅ Closest: ${closestClubName} in ${closestMuniSlug} (${minDistance.toFixed(1)} km)`);
+    return closestMuniSlug;
+  };
+
+  // State to track if we've already auto-selected municipality
+  const [hasAutoSelectedMunicipality, setHasAutoSelectedMunicipality] = useState(false);
+
+  // Function to refresh location (forces fresh GPS reading)
+  const refreshLocation = () => {
+    if (navigator.geolocation) {
+      // Reset auto-selection so it can re-select based on new location
+      setHasAutoSelectedMunicipality(false);
+      setSelectedMunicipality('');
+      setUserLocation(null);
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log('Geolocation error:', error.message);
+          alert('Kunde inte hämta din position. Kontrollera att platsåtkomst är aktiverad.');
+        },
+        { 
+          enableHighAccuracy: true,  // Use GPS for accuracy
+          timeout: 10000,            // 10 second timeout
+          maximumAge: 0              // Force fresh location (no cache)
+        }
+      );
+    }
+  };
+
+  // Try to get location on mount
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -192,11 +361,40 @@ export default function EventsListClient() {
             lng: position.coords.longitude,
           });
         },
-        () => {},
-        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+        () => {
+          // Geolocation denied or error - that's okay, we'll show all events
+          console.log('Geolocation not available or denied');
+        },
+        { 
+          enableHighAccuracy: true,  // Use GPS for better accuracy
+          timeout: 10000,            // 10 second timeout
+          maximumAge: 0              // Don't use cached location
+        }
       );
     }
   }, []);
+
+  // Auto-select closest municipality when we have both location and clubs
+  useEffect(() => {
+    // Don't auto-select if:
+    // - User already has a filter from URL or initial filters
+    // - We've already auto-selected
+    // - We don't have location or clubs yet
+    const hasExistingMunicipalityFilter = urlMunicipality || initialFilters.municipality_slug;
+    
+    if (
+      !hasExistingMunicipalityFilter && 
+      !hasAutoSelectedMunicipality && 
+      userLocation && 
+      clubs.length > 0
+    ) {
+      const closestMuniSlug = findClosestMunicipality(userLocation.lat, userLocation.lng, clubs);
+      if (closestMuniSlug) {
+        setSelectedMunicipality(closestMuniSlug);
+        setHasAutoSelectedMunicipality(true);
+      }
+    }
+  }, [userLocation, clubs, hasAutoSelectedMunicipality, urlMunicipality, initialFilters.municipality_slug]);
 
   // Fetch events
   const fetchEvents = async (pageNum: number, append: boolean = false) => {
@@ -212,7 +410,13 @@ export default function EventsListClient() {
         url += `&search=${encodeURIComponent(searchQuery)}`;
       }
       if (selectedMunicipality) {
-        url += `&municipality=${selectedMunicipality}`;
+        url += `&municipality_slug=${selectedMunicipality}`;
+      }
+      if (selectedClub) {
+        url += `&club_slug=${selectedClub}`;
+      }
+      if (selectedInterests.length > 0) {
+        url += `&interests=${selectedInterests.join(',')}`;
       }
 
       const res = await fetch(url);
@@ -240,7 +444,7 @@ export default function EventsListClient() {
   useEffect(() => {
     setPage(1);
     fetchEvents(1, false);
-  }, [userLocation, searchQuery, selectedMunicipality]);
+  }, [userLocation, searchQuery, selectedMunicipality, selectedClub, selectedInterests]);
 
   const loadMore = () => {
     const nextPage = page + 1;
@@ -250,23 +454,39 @@ export default function EventsListClient() {
 
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedMunicipality('');
+    setSelectedInterests([]);
+    // Don't clear municipality/club if they're from URL params (initial filters)
+    if (!initialFilters.municipality_slug) setSelectedMunicipality('');
+    if (!initialFilters.club_slug) setSelectedClub('');
   };
 
-  const hasActiveFilters = searchQuery || selectedMunicipality;
+  const toggleInterest = (interestId: number) => {
+    setSelectedInterests(prev => 
+      prev.includes(interestId)
+        ? prev.filter(id => id !== interestId)
+        : [...prev, interestId]
+    );
+  };
+
+  const hasActiveFilters = searchQuery || 
+    selectedInterests.length > 0 ||
+    (selectedMunicipality && !initialFilters.municipality_slug) || 
+    (selectedClub && !initialFilters.club_slug);
 
   return (
-    <div className="min-h-screen bg-[var(--dark-900)] pt-24 pb-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+    <div className={showHeader ? "min-h-screen bg-[var(--dark-900)] pt-24 pb-20" : ""}>
+      <div className={showHeader ? "max-w-4xl mx-auto px-4 sm:px-6" : ""}>
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-[var(--brand-light)] font-heading mb-2">
-            Alla aktiviteter
-          </h1>
-          <p className="text-[var(--brand-light)]/60">
-            Utforska kommande evenemang och aktiviteter
-          </p>
-        </div>
+        {showHeader && (
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold text-[var(--brand-light)] font-heading mb-2">
+              Alla aktiviteter
+            </h1>
+            <p className="text-[var(--brand-light)]/60">
+              Utforska kommande evenemang och aktiviteter
+            </p>
+          </div>
+        )}
 
         {/* Search & Filters */}
         <div className="mb-8 space-y-4">
@@ -281,6 +501,48 @@ export default function EventsListClient() {
               className="w-full pl-12 pr-4 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:outline-none focus:border-[var(--brand-primary)]"
             />
           </div>
+
+          {/* Interests Pills */}
+          {interests.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/60">
+                <Sparkles className="w-4 h-4" />
+                <span>Filtrera efter intresse</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {interests.map((interest) => {
+                  const isSelected = selectedInterests.includes(interest.id);
+                  const avatarUrl = interest.avatar ? getMediaUrl(interest.avatar) : null;
+                  
+                  return (
+                    <button
+                      key={interest.id}
+                      onClick={() => toggleInterest(interest.id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                        isSelected
+                          ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                          : 'bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)]/70 hover:border-[var(--brand-primary)] hover:text-[var(--brand-light)]'
+                      }`}
+                    >
+                      {avatarUrl ? (
+                        <img 
+                          src={avatarUrl} 
+                          alt={interest.name}
+                          className="w-4 h-4 rounded-full object-cover"
+                        />
+                      ) : interest.icon ? (
+                        <span className="text-sm">{interest.icon}</span>
+                      ) : null}
+                      {interest.name}
+                      {isSelected && (
+                        <X className="w-3 h-3" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Filter Toggle */}
           <div className="flex items-center gap-3">
@@ -309,33 +571,72 @@ export default function EventsListClient() {
               </button>
             )}
 
-            {userLocation && (
+            {userLocation ? (
               <div className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--brand-light)]/50">
                 <Navigation className="w-4 h-4 text-[var(--brand-sky)]" />
-                Sorterat efter avstånd
+                {hasAutoSelectedMunicipality && selectedMunicipality 
+                  ? 'Visar din närmaste kommun'
+                  : 'Sorterat efter avstånd'}
+                <button
+                  onClick={refreshLocation}
+                  className="ml-2 text-[var(--brand-sky)] hover:text-[var(--brand-primary)] underline"
+                  title="Uppdatera din position"
+                >
+                  Uppdatera
+                </button>
               </div>
+            ) : (
+              <button
+                onClick={refreshLocation}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--brand-sky)] hover:text-[var(--brand-primary)]"
+              >
+                <Navigation className="w-4 h-4" />
+                Hitta min position
+              </button>
             )}
           </div>
 
           {/* Filter Panel */}
           {showFilters && (
             <div className="p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] space-y-4">
-              <div>
-                <label className="block text-sm text-[var(--brand-light)]/70 mb-2">
-                  Kommun
-                </label>
-                <select
-                  value={selectedMunicipality}
-                  onChange={(e) => setSelectedMunicipality(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl bg-[var(--dark-600)] border border-[var(--dark-500)] text-[var(--brand-light)] focus:outline-none focus:border-[var(--brand-primary)]"
-                >
-                  <option value="">Alla kommuner</option>
-                  {municipalities.map((muni) => (
-                    <option key={muni.id} value={muni.id}>
-                      {muni.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Municipality Filter */}
+                <div>
+                  <label className="block text-sm text-[var(--brand-light)]/70 mb-2">
+                    Kommun
+                  </label>
+                  <select
+                    value={selectedMunicipality}
+                    onChange={(e) => setSelectedMunicipality(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl bg-[var(--dark-600)] border border-[var(--dark-500)] text-[var(--brand-light)] focus:outline-none focus:border-[var(--brand-primary)]"
+                  >
+                    <option value="">Alla kommuner</option>
+                    {municipalities.map((muni) => (
+                      <option key={muni.id} value={muni.slug}>
+                        {muni.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Club Filter */}
+                <div>
+                  <label className="block text-sm text-[var(--brand-light)]/70 mb-2">
+                    Fritidsgård
+                  </label>
+                  <select
+                    value={selectedClub}
+                    onChange={(e) => setSelectedClub(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl bg-[var(--dark-600)] border border-[var(--dark-500)] text-[var(--brand-light)] focus:outline-none focus:border-[var(--brand-primary)]"
+                  >
+                    <option value="">Alla fritidsgårdar</option>
+                    {filteredClubs.map((club) => (
+                      <option key={club.id} value={club.slug}>
+                        {club.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           )}

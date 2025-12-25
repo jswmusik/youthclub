@@ -55,6 +55,7 @@ class MunicipalitySerializer(serializers.ModelSerializer):
             'country_name',
             'country_code',
             'name',
+            'slug',
             'municipality_code',
             'description',
             'terms_and_conditions',
@@ -72,6 +73,7 @@ class MunicipalitySerializer(serializers.ModelSerializer):
 class ClubSerializer(serializers.ModelSerializer):
     # Include the related data nicely
     municipality_name = serializers.CharField(source='municipality.name', read_only=True)
+    municipality_slug = serializers.CharField(source='municipality.slug', read_only=True)
     
     # Nested Opening Hours (so we get them automatically when fetching a club)
     regular_hours = RegularOpeningHourSerializer(many=True, read_only=True)
@@ -85,7 +87,7 @@ class ClubSerializer(serializers.ModelSerializer):
     class Meta:
         model = Club
         fields = [
-            'id', 'name', 'municipality', 'municipality_name', 
+            'id', 'name', 'slug', 'municipality', 'municipality_name', 'municipality_slug',
             'description', 'email', 'phone', 
             'terms_and_conditions', 'club_policies',
             'avatar', 'hero_image', 'address', 

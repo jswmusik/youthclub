@@ -1,18 +1,114 @@
 from rest_framework import viewsets, permissions, status, parsers, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import PermissionDenied, NotFound
-from django.db.models import Q, Count, Exists, OuterRef
+from django.db.models import Q, Count, Exists, OuterRef, F
+from django.db.models.functions import Sqrt, Power
 from django.utils import timezone
 from datetime import timedelta
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Post, PostComment, PostReaction, PostTemplate
+from .models import Post, PostComment, PostReaction, PostTemplate, PostImage
 from .serializers import PostSerializer, PostCommentSerializer, PostTemplateSerializer, PostTemplateListSerializer
 from .engine import PostEngine
 
 # Import Reward models
 from rewards.models import RewardUsage
+
+
+class PublicPostsView(APIView):
+    """
+    Public endpoint for fetching posts for the homepage.
+    Returns published posts with images, targeting youth members,
+    not assigned to groups, sorted by distance if location provided.
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        now = timezone.now()
+        
+        # Base query: Published posts from clubs, targeting youth (or both), not group-specific
+        qs = Post.objects.filter(
+            status=Post.Status.PUBLISHED,
+            target_member_type__in=[Post.TargetMemberType.YOUTH, Post.TargetMemberType.BOTH],
+            # Only posts from clubs (owner_role is CLUB_ADMIN and has a club)
+            owner_role=Post.OwnerRole.CLUB_ADMIN,
+            club__isnull=False,
+        ).filter(
+            # Published and within visibility window
+            Q(published_at__isnull=True) | Q(published_at__lte=now),
+            Q(visibility_start_date__isnull=True) | Q(visibility_start_date__lte=now),
+            Q(visibility_end_date__isnull=True) | Q(visibility_end_date__gte=now),
+        ).filter(
+            # Only posts with at least one image
+            images__isnull=False
+        ).select_related('club', 'club__municipality', 'author').prefetch_related('images').distinct()
+        
+        # Exclude posts that target specific groups
+        qs = qs.annotate(
+            group_count=Count('target_groups')
+        ).filter(group_count=0)
+        
+        # Exclude activity posts and auto-generated posts
+        qs = qs.exclude(title__startswith='Borrowed ')
+        qs = qs.exclude(title__startswith='Returned ')
+        qs = qs.exclude(title__startswith='Completed Questionnaire: ')
+        qs = qs.exclude(title__startswith='Joined ')
+        qs = qs.exclude(title__startswith='Ny Grupp: ')  # Auto-generated group announcement posts
+        
+        # Geolocation filtering (sort by distance to club)
+        lat = request.query_params.get('lat')
+        lng = request.query_params.get('lng')
+        
+        if lat and lng:
+            try:
+                lat = float(lat)
+                lng = float(lng)
+                # Filter posts from clubs with coordinates and annotate with distance
+                qs = qs.filter(club__latitude__isnull=False, club__longitude__isnull=False)
+                qs = qs.annotate(
+                    distance=Sqrt(
+                        Power(F('club__latitude') - lat, 2) +
+                        Power(F('club__longitude') - lng, 2)
+                    )
+                ).order_by('distance', '-published_at', '-created_at')
+            except ValueError:
+                qs = qs.order_by('-is_pinned', '-published_at', '-created_at')
+        else:
+            qs = qs.order_by('-is_pinned', '-published_at', '-created_at')
+        
+        # Limit results
+        limit = int(request.query_params.get('limit', 6))
+        qs = qs[:limit]
+        
+        # Serialize
+        posts_data = []
+        for post in qs:
+            first_image = post.images.first()
+            # Get municipality from club if available
+            municipality = post.club.municipality if post.club else post.municipality
+            posts_data.append({
+                'id': post.id,
+                'title': post.title,
+                'content': post.content[:200] + '...' if len(post.content) > 200 else post.content,
+                'image': first_image.image.url if first_image else None,
+                'post_type': post.post_type,
+                'club_name': post.club.name if post.club else None,
+                'club_slug': post.club.slug if post.club else None,
+                'club_avatar': post.club.avatar.url if post.club and post.club.avatar else None,
+                'municipality_name': municipality.name if municipality else None,
+                'municipality_slug': municipality.slug if municipality else None,
+                'published_at': post.published_at.isoformat() if post.published_at else post.created_at.isoformat(),
+                'view_count': post.view_count,
+                'distance': getattr(post, 'distance', None),
+            })
+        
+        return Response({
+            'results': posts_data,
+            'count': len(posts_data)
+        })
 
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer

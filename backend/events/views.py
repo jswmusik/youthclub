@@ -693,7 +693,10 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
     - lat: Latitude for distance calculation
     - lng: Longitude for distance calculation
     - municipality: Filter by municipality ID
+    - municipality_slug: Filter by municipality slug (e.g. 'kramfors')
+    - club_slug: Filter by club slug (e.g. 'kramfors-fritidsgard')
     - search: Search in title, description, location
+    - date: Filter events on or after this date (YYYY-MM-DD)
     - upcoming: If 'true', only show future events (default)
     """
     permission_classes = [AllowAny]
@@ -719,10 +722,54 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
         if upcoming.lower() == 'true':
             qs = qs.filter(start_date__gte=now)
         
-        # Filter by municipality if provided
+        # Filter by municipality ID if provided
+        # Include events directly under municipality OR events from clubs in that municipality
         municipality_id = self.request.query_params.get('municipality')
         if municipality_id:
-            qs = qs.filter(municipality_id=municipality_id)
+            qs = qs.filter(
+                Q(municipality_id=municipality_id) | 
+                Q(club__municipality_id=municipality_id)
+            )
+        
+        # Filter by municipality slug if provided (for pretty URLs like /kramfors/events)
+        # Include events directly under municipality OR events from clubs in that municipality
+        municipality_slug = self.request.query_params.get('municipality_slug')
+        if municipality_slug:
+            qs = qs.filter(
+                Q(municipality__slug=municipality_slug) | 
+                Q(club__municipality__slug=municipality_slug)
+            )
+        
+        # Filter by club slug if provided (for pretty URLs like /kramfors/fritidsgard/events)
+        club_slug = self.request.query_params.get('club_slug')
+        if club_slug:
+            qs = qs.filter(club__slug=club_slug)
+        
+        # Filter by club ID if provided
+        club_id = self.request.query_params.get('club')
+        if club_id:
+            qs = qs.filter(club_id=club_id)
+        
+        # Filter by interests if provided (comma-separated IDs or single ID)
+        interests = self.request.query_params.get('interests')
+        if interests:
+            try:
+                interest_ids = [int(i.strip()) for i in interests.split(',') if i.strip()]
+                if interest_ids:
+                    # Filter events that have ANY of the specified interests
+                    qs = qs.filter(target_interests__id__in=interest_ids).distinct()
+            except ValueError:
+                pass  # Invalid interest IDs, ignore
+        
+        # Filter by specific date if provided
+        date_filter = self.request.query_params.get('date')
+        if date_filter:
+            try:
+                from datetime import datetime
+                filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+                qs = qs.filter(start_date__date__gte=filter_date)
+            except ValueError:
+                pass  # Invalid date format, ignore
         
         # Geolocation filtering and sorting
         lat = self.request.query_params.get('lat')

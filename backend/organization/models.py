@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import FileExtensionValidator
+from django.utils.text import slugify
 
 # Define allowed file types
 image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'svg', 'webp'])
@@ -39,6 +40,11 @@ class Municipality(models.Model):
     """
     country = models.ForeignKey(Country, on_delete=models.CASCADE, related_name='municipalities')
     name = models.CharField(max_length=100)
+    slug = models.SlugField(
+        unique=True, 
+        blank=True, 
+        help_text="URL-friendly identifier (e.g. 'kramfors')"
+    )
     description = models.TextField()
     terms_and_conditions = models.TextField()
     
@@ -75,12 +81,28 @@ class Municipality(models.Model):
     def __str__(self):
         return f"{self.name} ({self.country.country_code})"
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure uniqueness
+            original_slug = self.slug
+            counter = 1
+            while Municipality.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
+
 class Club(models.Model):
     """
     Represents a physical youth center.
     """
     municipality = models.ForeignKey(Municipality, on_delete=models.CASCADE, related_name='clubs')
     name = models.CharField(max_length=100)
+    slug = models.SlugField(
+        unique=True, 
+        blank=True, 
+        help_text="URL-friendly identifier (e.g. 'kramfors-fritidsgard')"
+    )
     description = models.TextField()
     email = models.EmailField()
     phone = models.CharField(max_length=50)
@@ -127,6 +149,19 @@ class Club(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.municipality.name})"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Create slug from club name and municipality for uniqueness
+            base_slug = slugify(self.name)
+            self.slug = base_slug
+            # Ensure uniqueness
+            original_slug = self.slug
+            counter = 1
+            while Club.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
     # Helper property to get the "Effective" setting easily in code
     @property

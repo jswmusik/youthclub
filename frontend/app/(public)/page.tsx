@@ -3,7 +3,9 @@ import { Metadata } from 'next';
 import HeroSection from './components/HeroSection';
 import KPITicker from './components/KPITicker';
 import EventsSection from './components/EventsSection';
+import PostsSection from './components/PostsSection';
 import TestimonialsSection from './components/TestimonialsSection';
+import CustomersSection from './components/CustomersSection';
 import CTASection from './components/CTASection';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.208:8000/api';
@@ -65,6 +67,11 @@ export default function PublicHomePage() {
         <EventsSection />
       </section>
 
+      {/* Latest Posts Section */}
+      <section id="posts">
+        <PostsSection />
+      </section>
+
       {/* Testimonials */}
       <TestimonialsSection />
 
@@ -118,6 +125,9 @@ export default function PublicHomePage() {
           </div>
         </div>
       </section>
+
+      {/* Customer Logos Section */}
+      <CustomersSection />
 
       {/* Final CTA */}
       <CTASection />
