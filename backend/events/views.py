@@ -1,15 +1,18 @@
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from django.core.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as django_filters
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, F
+from django.db.models.functions import Sqrt, Power
 from django.conf import settings
+from math import radians, cos, sin, asin, sqrt
 
 from .models import Event, EventRegistration, EventImage, EventDocument
-from .serializers import EventSerializer, EventRegistrationSerializer, EventImageSerializer, EventDocumentSerializer
+from .serializers import EventSerializer, EventRegistrationSerializer, EventImageSerializer, EventDocumentSerializer, PublicEventSerializer
 from .services import register_user_for_event, cancel_registration, generate_recurring_events, filter_events_by_targeting, is_user_eligible_for_event, admin_add_user_to_event
 from .permissions import IsEventOwnerOrReadOnly
 
@@ -675,3 +678,123 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
             "checked_in_at": ticket.checked_in_at.isoformat(),
             "ticket_code": ticket.ticket_code
         }, status=status.HTTP_200_OK)
+
+
+# =============================================================================
+# PUBLIC EVENTS VIEWSET - For the public startpage
+# =============================================================================
+
+class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public endpoint for events - no authentication required.
+    Supports geolocation-based sorting and filtering.
+    
+    Query Parameters:
+    - lat: Latitude for distance calculation
+    - lng: Longitude for distance calculation
+    - municipality: Filter by municipality ID
+    - search: Search in title, description, location
+    - upcoming: If 'true', only show future events (default)
+    """
+    permission_classes = [AllowAny]
+    serializer_class = PublicEventSerializer
+    lookup_field = 'slug'
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['title', 'description', 'location_name']
+    ordering_fields = ['start_date', 'distance']
+    
+    def get_queryset(self):
+        now = timezone.now()
+        
+        # Base query: Published events that are either global or have no specific group targeting
+        qs = Event.objects.filter(
+            status=Event.Status.PUBLISHED,
+        ).filter(
+            # Only show events that are open to public (global or no group targeting)
+            Q(is_global=True) | Q(target_groups__isnull=True)
+        ).select_related('club', 'municipality').distinct()
+        
+        # Filter for upcoming events by default
+        upcoming = self.request.query_params.get('upcoming', 'true')
+        if upcoming.lower() == 'true':
+            qs = qs.filter(start_date__gte=now)
+        
+        # Filter by municipality if provided
+        municipality_id = self.request.query_params.get('municipality')
+        if municipality_id:
+            qs = qs.filter(municipality_id=municipality_id)
+        
+        # Geolocation filtering and sorting
+        lat = self.request.query_params.get('lat')
+        lng = self.request.query_params.get('lng')
+        
+        if lat and lng:
+            try:
+                user_lat = float(lat)
+                user_lng = float(lng)
+                
+                # Filter out events without coordinates
+                qs = qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+                
+                # Annotate with approximate distance using Euclidean formula
+                # For more accuracy, use Haversine, but this works for sorting
+                # Note: This is a rough approximation; for production use PostGIS
+                qs = qs.annotate(
+                    distance=Sqrt(
+                        Power(F('latitude') - user_lat, 2) + 
+                        Power((F('longitude') - user_lng) * cos(radians(user_lat)), 2)
+                    ) * 111  # Approximate km conversion
+                ).order_by('distance', 'start_date')
+            except (ValueError, TypeError):
+                # Invalid coordinates, fall back to date ordering
+                qs = qs.order_by('start_date')
+        else:
+            # No location provided, order by date
+            qs = qs.order_by('start_date')
+        
+        return qs
+    
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Get single event by slug.
+        Also returns distance if lat/lng provided.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        
+        # Calculate distance if coordinates provided
+        lat = request.query_params.get('lat')
+        lng = request.query_params.get('lng')
+        
+        if lat and lng and instance.latitude and instance.longitude:
+            try:
+                user_lat = float(lat)
+                user_lng = float(lng)
+                distance = self._haversine(
+                    user_lat, user_lng, 
+                    instance.latitude, instance.longitude
+                )
+                data['distance_km'] = round(distance, 1)
+            except (ValueError, TypeError):
+                pass
+        
+        return Response(data)
+    
+    def _haversine(self, lat1, lon1, lat2, lon2):
+        """
+        Calculate the great circle distance in kilometers between two points 
+        on the earth (specified in decimal degrees).
+        """
+        # Convert decimal degrees to radians
+        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+        
+        # Haversine formula
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * asin(sqrt(a))
+        
+        # Radius of earth in kilometers
+        r = 6371
+        return c * r

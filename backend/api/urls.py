@@ -53,6 +53,9 @@ urlpatterns = [
     # --- LEARNING IMAGE UPLOAD ---
     path('learning/upload-image/', upload_image, name='learning-upload-image'),
     
+    # --- MARKETING / PUBLIC CONTENT ---
+    path('marketing/', include('marketing.urls')),
+    
     # --- ROUTER ENDPOINTS ---
     path('', include(router.urls)), 
     path('', include('organization.urls')),

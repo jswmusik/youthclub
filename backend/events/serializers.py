@@ -6,6 +6,143 @@ from organization.serializers import MunicipalitySerializer, ClubSerializer
 from organization.models import Municipality, Club
 from groups.serializers import GroupSerializer
 
+
+# =============================================================================
+# PUBLIC SERIALIZERS - For the public startpage (no auth required)
+# =============================================================================
+
+class PublicClubSerializer(serializers.Serializer):
+    """Minimal club info for public display"""
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    avatar = serializers.FileField(allow_null=True, required=False)
+    hero_image = serializers.FileField(allow_null=True, required=False)
+    email = serializers.EmailField(allow_null=True, required=False)
+    phone = serializers.CharField(allow_null=True, required=False)
+    address = serializers.CharField(allow_null=True, required=False)
+    description = serializers.CharField(allow_null=True, required=False)
+
+
+class PublicMunicipalitySerializer(serializers.Serializer):
+    """Minimal municipality info for public display"""
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    avatar = serializers.FileField(allow_null=True, required=False)
+    hero_image = serializers.FileField(allow_null=True, required=False)
+    description = serializers.CharField(allow_null=True, required=False)
+    email = serializers.EmailField(allow_null=True, required=False)
+    phone = serializers.CharField(allow_null=True, required=False)
+
+
+class PublicEventSerializer(serializers.ModelSerializer):
+    """
+    Simplified serializer for public events.
+    Excludes sensitive targeting data and admin-only fields.
+    """
+    club_detail = PublicClubSerializer(source='club', read_only=True)
+    municipality_detail = PublicMunicipalitySerializer(source='municipality', read_only=True)
+    images = serializers.SerializerMethodField()
+    
+    # Computed fields
+    is_free = serializers.SerializerMethodField()
+    spots_available = serializers.SerializerMethodField()
+    is_registration_open = serializers.SerializerMethodField()
+    organizer_display_name = serializers.SerializerMethodField()
+    
+    # Distance field (populated by ViewSet if coordinates provided)
+    distance_km = serializers.FloatField(read_only=True, required=False)
+    
+    class Meta:
+        model = Event
+        fields = [
+            # Basic info
+            'id', 'title', 'description', 'slug',
+            'cover_image', 'video_url',
+            
+            # Date/Time
+            'start_date', 'end_date',
+            'is_recurring', 'recurrence_pattern',
+            
+            # Location
+            'location_name', 'address', 
+            'latitude', 'longitude', 'is_map_visible',
+            
+            # Ownership
+            'municipality_detail', 'club_detail',
+            'organizer_name', 'organizer_display_name',
+            
+            # Registration info (public-safe)
+            'allow_registration', 'is_registration_open',
+            'registration_open_date', 'registration_close_date',
+            'max_seats', 'confirmed_participants_count',
+            'spots_available', 'is_free', 'cost',
+            
+            # Media
+            'images',
+            
+            # SEO
+            'meta_description', 'page_title',
+            'og_title', 'og_description', 'og_image',
+            
+            # Computed
+            'distance_km',
+            
+            # Timestamps
+            'created_at',
+        ]
+        read_only_fields = fields
+    
+    def get_images(self, obj):
+        """Get gallery images"""
+        return [
+            {'id': img.id, 'image': img.image.url if img.image else None, 'caption': img.caption}
+            for img in obj.images.all()[:5]  # Limit to 5 images
+        ]
+    
+    def get_is_free(self, obj):
+        """Check if event is free"""
+        return obj.cost is None or obj.cost == 0
+    
+    def get_spots_available(self, obj):
+        """Calculate available spots"""
+        if obj.max_seats == 0:
+            return None  # Unlimited
+        return max(0, obj.max_seats - obj.confirmed_participants_count)
+    
+    def get_is_registration_open(self, obj):
+        """Check if registration is currently open"""
+        from django.utils import timezone
+        now = timezone.now()
+        
+        if not obj.allow_registration:
+            return False
+        
+        # Check registration window
+        if obj.registration_open_date and now < obj.registration_open_date:
+            return False
+        if obj.registration_close_date and now > obj.registration_close_date:
+            return False
+        
+        # Check if event has started
+        if now > obj.start_date:
+            return False
+        
+        # Check capacity
+        if obj.max_seats > 0 and obj.confirmed_participants_count >= obj.max_seats:
+            return obj.max_waitlist > 0  # Can join waitlist
+        
+        return True
+    
+    def get_organizer_display_name(self, obj):
+        """Get display name for organizer"""
+        if obj.organizer_name:
+            return obj.organizer_name
+        if obj.club:
+            return obj.club.name
+        if obj.municipality:
+            return obj.municipality.name
+        return "Unknown Organizer"
+
 class EventImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventImage

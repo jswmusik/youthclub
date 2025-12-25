@@ -22,6 +22,8 @@ api.interceptors.request.use((config: any) => {
     '/register/youth/',
     '/register/check-guardian/',
     '/interests/',
+    '/marketing/public/',
+    '/public/events/',
   ];
   
   // Endpoints that are public only for GET requests (read-only public access)
@@ -514,3 +516,52 @@ export const rewards = {
 
 // --- GROUPS ---
 export const fetchRecommendedGroups = () => api.get('/groups/recommended/');
+
+// --- PUBLIC MARKETING ENDPOINTS ---
+export const marketing = {
+  // Get SEO settings for the startpage
+  getSeoSettings: () => 
+    api.get('/marketing/public/seo-settings/', { skipAuth: true } as any),
+  
+  // Get active testimonials
+  getTestimonials: () => 
+    api.get('/marketing/public/testimonials/', { skipAuth: true } as any),
+  
+  // Get platform KPIs
+  getKPIs: () => 
+    api.get('/marketing/public/kpi/', { skipAuth: true } as any),
+};
+
+// --- PUBLIC EVENTS ENDPOINTS ---
+export const publicEvents = {
+  // Get public events with optional geolocation
+  getEvents: (params?: { 
+    lat?: number; 
+    lng?: number; 
+    search?: string;
+    municipality?: number;
+    upcoming?: boolean;
+    page?: number;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.lat) queryParams.append('lat', params.lat.toString());
+    if (params?.lng) queryParams.append('lng', params.lng.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.municipality) queryParams.append('municipality', params.municipality.toString());
+    if (params?.upcoming !== false) queryParams.append('upcoming', 'true');
+    if (params?.page) queryParams.append('page', params.page.toString());
+    
+    const query = queryParams.toString();
+    return api.get(`/public/events/${query ? `?${query}` : ''}`, { skipAuth: true } as any);
+  },
+  
+  // Get single event by slug
+  getEventBySlug: (slug: string, lat?: number, lng?: number) => {
+    const queryParams = new URLSearchParams();
+    if (lat) queryParams.append('lat', lat.toString());
+    if (lng) queryParams.append('lng', lng.toString());
+    
+    const query = queryParams.toString();
+    return api.get(`/public/events/${slug}/${query ? `?${query}` : ''}`, { skipAuth: true } as any);
+  },
+};
