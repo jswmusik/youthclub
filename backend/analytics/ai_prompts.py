@@ -302,6 +302,70 @@ def format_interests_data(interests: list) -> str:
     return "\n".join(lines)
 
 
+def format_heatmap_data(heatmap: list) -> str:
+    """Format peak traffic hours heatmap data for the AI."""
+    if not heatmap:
+        return ""
+    
+    # Day names (Django: 1=Sunday, 2=Monday, etc.)
+    day_names = {1: 'Sunday', 2: 'Monday', 3: 'Tuesday', 4: 'Wednesday', 
+                 5: 'Thursday', 6: 'Friday', 7: 'Saturday'}
+    
+    # Aggregate data by day and find peak hours
+    day_totals = {}
+    hour_totals = {}
+    peak_slots = []
+    
+    for point in heatmap:
+        weekday = point.get('weekday', 0)
+        hour = point.get('hour', 0)
+        count = point.get('count', 0)
+        
+        if count > 0:
+            day_name = day_names.get(weekday, f'Day {weekday}')
+            day_totals[day_name] = day_totals.get(day_name, 0) + count
+            hour_totals[hour] = hour_totals.get(hour, 0) + count
+            peak_slots.append({'day': day_name, 'hour': hour, 'count': count})
+    
+    if not peak_slots:
+        return "## Peak Traffic Hours\nNo traffic data available for the selected period."
+    
+    # Sort to find busiest times
+    peak_slots.sort(key=lambda x: x['count'], reverse=True)
+    
+    # Find busiest days
+    busiest_days = sorted(day_totals.items(), key=lambda x: x[1], reverse=True)[:3]
+    
+    # Find busiest hours
+    busiest_hours = sorted(hour_totals.items(), key=lambda x: x[1], reverse=True)[:3]
+    
+    lines = ["## Peak Traffic Hours (Heatmap Analysis)"]
+    
+    # Busiest days
+    lines.append("\n### Busiest Days")
+    for day, count in busiest_days:
+        lines.append(f"- **{day}**: {count} visits")
+    
+    # Busiest hours
+    lines.append("\n### Busiest Hours")
+    for hour, count in busiest_hours:
+        hour_str = f"{hour:02d}:00-{hour+1:02d}:00"
+        lines.append(f"- **{hour_str}**: {count} visits")
+    
+    # Top 5 peak time slots
+    lines.append("\n### Top 5 Peak Time Slots")
+    for i, slot in enumerate(peak_slots[:5], 1):
+        hour_str = f"{slot['hour']:02d}:00-{slot['hour']+1:02d}:00"
+        lines.append(f"{i}. {slot['day']} {hour_str} - {slot['count']} visits")
+    
+    # Quiet times (if any)
+    quiet_days = [day for day in day_names.values() if day not in day_totals or day_totals.get(day, 0) == 0]
+    if quiet_days:
+        lines.append(f"\n*Note: No visits recorded on: {', '.join(quiet_days)}*")
+    
+    return "\n".join(lines)
+
+
 def format_questionnaire_data(questionnaires: Dict) -> str:
     """Format questionnaire analytics for the AI."""
     if not questionnaires:
@@ -444,6 +508,10 @@ def build_user_prompt(
     # Traffic/Metrics - includes total members
     if is_visible('metrics') and analytics_data.get('traffic'):
         sections.append(format_traffic_data(analytics_data['traffic'], total_members))
+    
+    # Peak Traffic Hours (Heatmap)
+    if is_visible('heatmap') and analytics_data.get('heatmap'):
+        sections.append(format_heatmap_data(analytics_data['heatmap']))
     
     # Demographics
     if is_visible('demographics') and analytics_data.get('demographics'):
