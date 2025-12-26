@@ -1,91 +1,186 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import { TrafficMetrics, InventoryMetrics } from '@/lib/analytics-api';
-import { Users, Clock, ArrowRightLeft, Package, UserCheck } from 'lucide-react';
+import { Users, Clock, ArrowRightLeft, Package, UserCheck, UsersRound } from 'lucide-react';
 
 interface Props {
+  totalMembers: number;
   traffic: TrafficMetrics;
   inventory: InventoryMetrics;
   network?: { nomad_percentage: number };
 }
 
-export default function MetricsGrid({ traffic, inventory, network }: Props) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+// Animated counter component
+function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  
+  useEffect(() => {
+    const duration = 1000;
+    const startTime = Date.now();
+    const startValue = 0;
+    
+    const animate = () => {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+      // Easing function for smooth animation
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.round(startValue + (value - startValue) * easeOut);
+      setDisplayValue(currentValue);
       
-      {/* 1. Total Traffic */}
-      <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-2 bg-blue-50 rounded-lg">
-            <Users className="w-5 h-5 text-blue-600" />
-          </div>
-          <span className="text-xs font-medium text-slate-400 uppercase">Visits</span>
-        </div>
-        <div className="flex items-baseline gap-2">
-          <h3 className="text-2xl font-bold text-slate-900">{traffic.total_visits}</h3>
-          <span className="text-sm text-slate-500">total</span>
-        </div>
-        <div className="mt-2 text-xs text-slate-400">
-          {traffic.unique_visitors} unique youths
-        </div>
-      </div>
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [value]);
+  
+  return (
+    <span>
+      {displayValue.toLocaleString()}{suffix}
+    </span>
+  );
+}
 
-      {/* 2. Engagement / Duration */}
-      <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-2 bg-emerald-50 rounded-lg">
-            <Clock className="w-5 h-5 text-emerald-600" />
-          </div>
-          <span className="text-xs font-medium text-slate-400 uppercase">Avg Stay</span>
-        </div>
-        <div className="flex items-baseline gap-2">
-          <h3 className="text-2xl font-bold text-slate-900">{traffic.avg_duration_minutes}m</h3>
-        </div>
-        <div className="mt-2 text-xs text-emerald-600">
-          Median time per visit
-        </div>
-      </div>
+interface MetricCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  suffix?: string;
+  subtitle?: string;
+  subtitleHighlight?: string;
+  gradientFrom: string;
+  gradientTo: string;
+  accentColor: string;
+  delay?: number;
+}
 
-      {/* 3. Retention */}
-      <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-2 bg-purple-50 rounded-lg">
-            <UserCheck className="w-5 h-5 text-purple-600" />
-          </div>
-          <span className="text-xs font-medium text-slate-400 uppercase">Retention</span>
+function MetricCard({ 
+  icon, 
+  label, 
+  value, 
+  suffix = '', 
+  subtitle, 
+  subtitleHighlight,
+  gradientFrom, 
+  gradientTo,
+  accentColor,
+  delay = 0 
+}: MetricCardProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+  
+  return (
+    <div 
+      className={`
+        bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] 
+        hover:border-[${accentColor}]/50 transition-all duration-300 group
+        transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}
+      `}
+      style={{ 
+        transitionDelay: `${delay}ms`,
+        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div 
+          className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradientFrom} ${gradientTo} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+          style={{ boxShadow: `0 4px 14px ${accentColor}33` }}
+        >
+          {icon}
         </div>
-        <div className="flex items-baseline gap-2">
-          <h3 className="text-2xl font-bold text-slate-900">{traffic.retention_rate}%</h3>
-        </div>
-        <div className="mt-2 text-xs text-slate-400">
-          Returned from prev. period
-        </div>
+        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/60 uppercase tracking-wide">
+          {label}
+        </span>
       </div>
-
-      {/* 4. Inventory or Nomad Metric */}
-      <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-2 bg-orange-50 rounded-lg">
-            {network ? (
-              <ArrowRightLeft className="w-5 h-5 text-orange-600" />
-            ) : (
-              <Package className="w-5 h-5 text-orange-600" />
-            )}
-          </div>
-          <span className="text-xs font-medium text-slate-400 uppercase">
-            {network ? 'Nomads' : 'Loans'}
-          </span>
-        </div>
-        <div className="flex items-baseline gap-2">
-          <h3 className="text-2xl font-bold text-slate-900">
-            {network ? `${network.nomad_percentage}%` : inventory.total_loans}
-          </h3>
-        </div>
-        <div className="mt-2 text-xs text-slate-400">
-          {network ? 'Visit >1 club' : 'Items borrowed'}
-        </div>
+      <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] mb-1" style={{ color: accentColor }}>
+        <AnimatedNumber value={value} suffix={suffix} />
       </div>
-
+      {subtitle && (
+        <div className="text-xs text-[var(--brand-light)]/40 flex items-center gap-1">
+          {subtitle}
+          {subtitleHighlight && (
+            <span className="text-[var(--brand-red)] font-medium">{subtitleHighlight}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
+export default function MetricsGrid({ totalMembers, traffic, inventory, network }: Props) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      
+      {/* 1. Total Members */}
+      <MetricCard
+        icon={<UsersRound className="w-5 h-5 text-white" />}
+        label="Members"
+        value={totalMembers}
+        subtitle="Based on current filters"
+        gradientFrom="from-[var(--brand-primary)]"
+        gradientTo="to-[var(--brand-purple)]"
+        accentColor="var(--brand-primary)"
+        delay={0}
+      />
+
+      {/* 2. Total Traffic */}
+      <MetricCard
+        icon={<Users className="w-5 h-5 text-white" />}
+        label="Visits"
+        value={traffic.total_visits}
+        subtitle={`${traffic.unique_visitors} unique youths`}
+        gradientFrom="from-[var(--brand-blue)]"
+        gradientTo="to-[#38BDF8]"
+        accentColor="var(--brand-blue)"
+        delay={50}
+      />
+
+      {/* 3. Average Stay Duration */}
+      <MetricCard
+        icon={<Clock className="w-5 h-5 text-[var(--dark-900)]" />}
+        label="Avg Stay"
+        value={traffic.avg_duration_minutes}
+        suffix="m"
+        subtitle="Median time per visit"
+        gradientFrom="from-[var(--brand-green)]"
+        gradientTo="to-[var(--brand-third)]"
+        accentColor="var(--brand-green)"
+        delay={100}
+      />
+
+      {/* 4. Retention Rate */}
+      <MetricCard
+        icon={<UserCheck className="w-5 h-5 text-white" />}
+        label="Retention"
+        value={traffic.retention_rate}
+        suffix="%"
+        subtitle="Returned from prev. period"
+        gradientFrom="from-[var(--brand-purple)]"
+        gradientTo="to-[#A78BFA]"
+        accentColor="var(--brand-purple)"
+        delay={150}
+      />
+
+      {/* 5. Inventory or Nomad Metric */}
+      <MetricCard
+        icon={network ? <ArrowRightLeft className="w-5 h-5 text-white" /> : <Package className="w-5 h-5 text-white" />}
+        label={network ? 'Nomads' : 'Loans'}
+        value={network ? network.nomad_percentage : inventory.total_loans}
+        suffix={network ? '%' : ''}
+        subtitle={network ? 'Visit >1 club' : 'Items borrowed'}
+        subtitleHighlight={!network && inventory.dust_collectors && inventory.dust_collectors > 0 ? `${inventory.dust_collectors} unused` : undefined}
+        gradientFrom="from-[#F97316]"
+        gradientTo="to-[#FB923C]"
+        accentColor="#F97316"
+        delay={200}
+      />
+
+    </div>
+  );
+}
