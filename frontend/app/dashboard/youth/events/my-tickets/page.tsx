@@ -3,9 +3,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { format, type Locale } from 'date-fns';
+import { enUS, sv, da, nb, fi } from 'date-fns/locale';
 
 import api from '@/lib/api';
-import { format } from 'date-fns';
 import { ChevronRight, ArrowLeft, Calendar, CheckCircle, Clock, AlertCircle, Ticket, X, MapPin } from 'lucide-react';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
@@ -16,6 +18,17 @@ type TabType = 'active' | 'history';
 
 export default function MyTicketsPage() {
     const pathname = usePathname();
+    const t = useTranslations('events');
+    const tSidebar = useTranslations('sidebar');
+    const locale = useLocale();
+    const localeMap: Record<string, Locale> = {
+        en: enUS,
+        sv: sv,
+        da: da,
+        nb: nb,
+        fi: fi,
+    };
+    const dateLocale = localeMap[locale] || enUS;
     const [registrations, setRegistrations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
@@ -155,9 +168,9 @@ export default function MyTicketsPage() {
         };
         return (
             <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${styles[status] || 'bg-[var(--dark-600)] text-[var(--brand-light)]/70'}`}>
-                {status === 'PENDING_GUARDIAN' ? 'Pending Guardian' :
-                 status === 'PENDING_ADMIN' ? 'Pending Admin' :
-                 status === 'ATTENDED' ? 'Attended' :
+                {status === 'PENDING_GUARDIAN' ? t('pendingGuardian') :
+                 status === 'PENDING_ADMIN' ? t('pendingAdmin') :
+                 status === 'ATTENDED' ? t('attended') :
                  status}
             </span>
         );
@@ -171,7 +184,7 @@ export default function MyTicketsPage() {
             await api.post(`/registrations/${selectedRegistration.id}/check_in/`);
             
             setCheckInState('SUCCESS');
-            setCheckInMessage(`Checked in at ${new Date().toLocaleTimeString()}`);
+            setCheckInMessage(`${t('checkedInAt')} ${format(new Date(), 'HH:mm', { locale: dateLocale })}`);
             
             // Refresh registrations after short delay
             setTimeout(() => {
@@ -180,7 +193,7 @@ export default function MyTicketsPage() {
         } catch (error: any) {
             console.error('Check-in failed:', error);
             setCheckInState('ERROR');
-            setCheckInMessage(error.response?.data?.error || 'Failed to check in. Please try again.');
+            setCheckInMessage(error.response?.data?.error || t('failedToCheckIn'));
         }
     };
 
@@ -235,7 +248,7 @@ export default function MyTicketsPage() {
                 }`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-light)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-light)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
@@ -262,12 +275,12 @@ export default function MyTicketsPage() {
                             <div className="px-4 sm:px-0 mb-4 sm:mb-6">
                                 <div className="flex items-center gap-3 mb-2">
                                     <Ticket className="w-7 h-7 text-[var(--brand-primary)]" />
-                                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">My Tickets</h1>
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">{t('myTickets')}</h1>
                                 </div>
                                 <p className="text-sm text-[var(--brand-light)]/60 pl-10">
                                     {selectedRegistration 
-                                        ? `Ticket for ${selectedRegistration.event_detail?.title || 'Event'}`
-                                        : 'Select an event to view your ticket'}
+                                        ? `${t('ticketFor')} ${selectedRegistration.event_detail?.title || t('eventBadge')}`
+                                        : t('selectEventToViewTicket')}
                                 </p>
                             </div>
 
@@ -285,7 +298,7 @@ export default function MyTicketsPage() {
                                                         : 'bg-[var(--dark-800)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]'
                                                 }`}
                                             >
-                                                Active ({activeEvents.length})
+                                                {t('active')} ({activeEvents.length})
                                             </button>
                                             <button
                                                 onClick={() => setActiveTab('history')}
@@ -295,7 +308,7 @@ export default function MyTicketsPage() {
                                                         : 'bg-[var(--dark-800)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]'
                                                 }`}
                                             >
-                                                History ({historyEvents.length})
+                                                {t('history')} ({historyEvents.length})
                                             </button>
                                         </div>
                                     </div>
@@ -303,7 +316,7 @@ export default function MyTicketsPage() {
                                     {/* Events List */}
                                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-3 sm:p-4">
                                         <h2 className="text-lg font-bold text-[var(--brand-light)] mb-3 font-heading">
-                                            {activeTab === 'active' ? 'Active Tickets' : 'Ticket History'}
+                                            {activeTab === 'active' ? t('activeTickets') : t('ticketHistory')}
                                         </h2>
                                         {loading ? (
                                             <div className="flex justify-center py-8">
@@ -314,8 +327,8 @@ export default function MyTicketsPage() {
                                                 <Ticket className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-3" />
                                                 <p className="text-sm text-[var(--brand-light)]/50 font-semibold">
                                                     {activeTab === 'active' 
-                                                        ? 'No active tickets'
-                                                        : 'No ticket history'}
+                                                        ? t('noActiveTickets')
+                                                        : t('noTicketHistory')}
                                                 </p>
                                             </div>
                                         ) : (
@@ -352,9 +365,9 @@ export default function MyTicketsPage() {
                                                                 </div>
                                                             </div>
                                                             <div className="text-xs text-[var(--brand-light)]/50 mt-1 font-medium">
-                                                                {format(new Date(event.start_date), 'MMM d, HH:mm')}
+                                                                {format(new Date(event.start_date), 'MMM d, HH:mm', { locale: dateLocale })}
                                                                 {isPast && activeTab === 'history' && (
-                                                                    <span className="ml-2 text-[var(--brand-light)]/30">• Past</span>
+                                                                    <span className="ml-2 text-[var(--brand-light)]/30">• {t('past')}</span>
                                                                 )}
                                                             </div>
                                                             <div className="mt-2">
@@ -366,7 +379,7 @@ export default function MyTicketsPage() {
                                                                             ? 'bg-[var(--brand-third)] text-[var(--dark-900)]'
                                                                             : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70'
                                                                     }`}>
-                                                                        {isAttended ? 'Attended' : 'Past Event'}
+                                                                        {isAttended ? t('attended') : t('pastEvent')}
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -383,23 +396,23 @@ export default function MyTicketsPage() {
                                     {loading ? (
                                         <div className="text-center py-12 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                                             <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-                                            <p className="text-[var(--brand-light)]/50 font-semibold">Loading tickets...</p>
+                                            <p className="text-[var(--brand-light)]/50 font-semibold">{t('loadingTickets')}</p>
                                         </div>
                                     ) : !selectedRegistration ? (
                                         <div className="text-center py-12 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                                             <div className="w-20 h-20 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
                                                 <Ticket className="w-10 h-10 text-[var(--brand-light)]/30" />
                                             </div>
-                                            <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">No ticket selected</p>
+                                            <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">{t('noTicketSelected')}</p>
                                             <p className="text-sm text-[var(--brand-light)]/60 mb-4">
-                                                Select an event from the {activeTab === 'active' ? 'active tickets' : 'history'} to view your ticket.
+                                                {t('selectEventFrom')} {activeTab === 'active' ? t('activeTickets').toLowerCase() : t('history').toLowerCase()} {t('toViewYourTicket')}
                                             </p>
                                             {currentEvents.length === 0 && (
                                                 <Link 
                                                     href="/dashboard/youth/events" 
                                                     className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all"
                                                 >
-                                                    Browse Events →
+                                                    {t('browseEvents')} →
                                                 </Link>
                                             )}
                                         </div>
@@ -419,13 +432,13 @@ export default function MyTicketsPage() {
                                             <div className="p-4 sm:p-6">
                                                 <div className="mb-6">
                                                     <h2 className="font-bold text-xl sm:text-2xl mb-3 text-[var(--brand-light)] font-heading">
-                                                        {selectedRegistration.event_detail?.title || 'Event'}
+                                                        {selectedRegistration.event_detail?.title || t('eventBadge')}
                                                     </h2>
                                                     <div className="flex flex-col gap-2 text-sm">
                                                         <div className="flex items-center gap-2 bg-[var(--dark-700)] p-3 rounded-xl border border-[var(--dark-600)]">
                                                             <Calendar className="w-4 h-4 text-[var(--brand-third)]" />
                                                             <span className="font-bold text-[var(--brand-light)]">
-                                                                {format(new Date(selectedRegistration.event_detail.start_date), 'EEEE, MMMM d, yyyy • HH:mm')}
+                                                                {format(new Date(selectedRegistration.event_detail.start_date), 'EEEE, MMMM d, yyyy • HH:mm', { locale: dateLocale })}
                                                             </span>
                                                         </div>
                                                         {selectedRegistration.event_detail?.location_name && (
@@ -443,7 +456,7 @@ export default function MyTicketsPage() {
                                                         <div className="text-center mb-6">
                                                             <div className="mb-4 flex items-center justify-center gap-2 text-[var(--brand-third)] font-bold text-lg">
                                                                 <CheckCircle className="w-6 h-6" />
-                                                                <span className="font-heading">Confirmed Seat</span>
+                                                                <span className="font-heading">{t('confirmedSeat')}</span>
                                                             </div>
                                                             <div className="bg-[var(--dark-700)] px-6 py-4 rounded-xl border-2 border-[var(--brand-third)] mb-4">
                                                                 <span className="text-lg sm:text-xl font-mono text-[var(--brand-light)] tracking-wider font-bold">
@@ -458,9 +471,9 @@ export default function MyTicketsPage() {
                                                                 <div className="w-20 h-20 bg-[var(--brand-third)] text-[var(--dark-900)] rounded-2xl flex items-center justify-center mx-auto mb-3">
                                                                     <CheckCircle className="w-10 h-10" />
                                                                 </div>
-                                                                <h4 className="text-lg font-bold text-[var(--brand-third)] text-center font-heading">Already Checked In</h4>
+                                                                <h4 className="text-lg font-bold text-[var(--brand-third)] text-center font-heading">{t('alreadyCheckedIn')}</h4>
                                                                 <p className="text-xs text-[var(--brand-light)]/60 mt-2 text-center font-semibold bg-[var(--dark-700)] px-3 py-2 rounded-lg inline-block">
-                                                                    {format(new Date(selectedRegistration.ticket.checked_in_at), 'MMM d, yyyy • h:mm a')}
+                                                                    {format(new Date(selectedRegistration.ticket.checked_in_at), 'MMM d, yyyy • HH:mm', { locale: dateLocale })}
                                                                 </p>
                                                             </div>
                                                         ) : (() => {
@@ -481,21 +494,21 @@ export default function MyTicketsPage() {
                                                                         <div className="w-full max-w-md space-y-3">
                                                                             {isTooEarly ? (
                                                                                 <div className="p-3 bg-[var(--dark-700)] text-[var(--brand-light)]/70 text-xs rounded-xl border border-[var(--dark-600)] text-center font-semibold">
-                                                                                    ⏰ Check-in opens {format(oneHourBeforeStart, 'MMM d • h:mm a')}
+                                                                                    ⏰ {t('checkInOpens')} {format(oneHourBeforeStart, 'MMM d • HH:mm', { locale: dateLocale })}
                                                                                 </div>
                                                                             ) : isTooLate ? (
                                                                                 <div className="p-3 bg-[var(--dark-700)] text-[var(--brand-light)]/70 text-xs rounded-xl border border-[var(--dark-600)] text-center font-semibold">
-                                                                                    ⏰ Event has ended. Check-in closed.
+                                                                                    ⏰ {t('eventEndedCheckInClosed')}
                                                                                 </div>
                                                                             ) : (
                                                                                 <div className="p-3 bg-[var(--brand-third)]/10 text-[var(--brand-third)] text-xs rounded-xl border border-[var(--brand-third)]/30 text-center font-bold">
-                                                                                    ⚠️ Show this to staff and swipe to check in
+                                                                                    ⚠️ {t('showToStaffAndSwipe')}
                                                                                 </div>
                                                                             )}
                                                                             <SwipeButton 
                                                                                 onSuccess={handleCheckIn} 
-                                                                                text="Swipe to Check In"
-                                                                                successText="Checked In!"
+                                                                                text={t('swipeToCheckIn')}
+                                                                                successText={t('checkedIn')}
                                                                                 color="green"
                                                                                 disabled={!canCheckIn}
                                                                             />
@@ -507,7 +520,7 @@ export default function MyTicketsPage() {
                                                                             <div className="w-20 h-20 bg-[var(--brand-third)] text-[var(--dark-900)] rounded-2xl flex items-center justify-center mx-auto mb-3">
                                                                                 <CheckCircle className="w-10 h-10" />
                                                                             </div>
-                                                                            <h4 className="text-lg font-bold text-[var(--brand-third)] text-center font-heading">Checked In!</h4>
+                                                                            <h4 className="text-lg font-bold text-[var(--brand-third)] text-center font-heading">{t('checkedIn')}</h4>
                                                                             <p className="text-xs text-[var(--brand-light)]/60 mt-2 text-center font-semibold bg-[var(--dark-700)] px-3 py-2 rounded-lg inline-block">{checkInMessage}</p>
                                                                         </div>
                                                                     )}
@@ -517,7 +530,7 @@ export default function MyTicketsPage() {
                                                                             <div className="w-20 h-20 bg-[var(--brand-red)] text-white rounded-2xl flex items-center justify-center mx-auto mb-3">
                                                                                 <AlertCircle className="w-10 h-10" />
                                                                             </div>
-                                                                            <p className="text-lg font-bold text-[var(--brand-red)] text-center mb-2 font-heading">Error!</p>
+                                                                            <p className="text-lg font-bold text-[var(--brand-red)] text-center mb-2 font-heading">{t('error')}</p>
                                                                             <p className="text-sm text-[var(--brand-light)]/60 text-center mb-3 bg-[var(--brand-red)]/10 px-3 py-2 rounded-lg">{checkInMessage}</p>
                                                                             <button 
                                                                                 onClick={() => {
@@ -526,7 +539,7 @@ export default function MyTicketsPage() {
                                                                                 }}
                                                                                 className="bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all mx-auto block"
                                                                             >
-                                                                                Try Again
+                                                                                {t('tryAgain')}
                                                                             </button>
                                                                         </div>
                                                                     )}
@@ -540,7 +553,7 @@ export default function MyTicketsPage() {
                                                                 <CheckCircle className="w-10 h-10 text-[var(--dark-900)]" />
                                                             </div>
                                                             <div className="mt-2 text-[var(--brand-third)] font-bold text-xl font-heading">
-                                                                Event Attended
+                                                                {t('eventAttended')}
                                                             </div>
                                                             {selectedRegistration.ticket && (
                                                                 <div className="mt-4">
@@ -558,10 +571,10 @@ export default function MyTicketsPage() {
                                                                 <Calendar className="w-10 h-10 text-[var(--brand-light)]/40" />
                                                             </div>
                                                             <div className="mt-2 text-[var(--brand-light)] font-bold text-xl font-heading">
-                                                                Past Event
+                                                                {t('pastEvent')}
                                                             </div>
                                                             <p className="text-sm text-[var(--brand-light)]/60 mt-2 font-semibold">
-                                                                This event has ended.
+                                                                {t('eventHasEnded')}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -585,17 +598,17 @@ export default function MyTicketsPage() {
                                                         <p className={`font-bold text-xl mb-3 font-heading ${
                                                             selectedRegistration.status === 'WAITLIST' ? 'text-[var(--brand-third)]' : 'text-[var(--brand-primary)]'
                                                         }`}>
-                                                            {selectedRegistration.status === 'WAITLIST' ? 'You are on the Waitlist' : 
-                                                             selectedRegistration.status === 'PENDING_GUARDIAN' ? 'Waiting for Guardian Approval' :
-                                                             selectedRegistration.status === 'PENDING_ADMIN' ? 'Waiting for Admin Approval' :
-                                                             'Pending Approval'}
+                                                            {selectedRegistration.status === 'WAITLIST' ? t('youAreOnWaitlist') : 
+                                                             selectedRegistration.status === 'PENDING_GUARDIAN' ? t('waitingForGuardianApproval') :
+                                                             selectedRegistration.status === 'PENDING_ADMIN' ? t('waitingForAdminApproval') :
+                                                             t('pendingApproval')}
                                                         </p>
                                                         <p className={`text-sm font-semibold bg-[var(--dark-700)] px-4 py-2 rounded-xl inline-block ${
                                                             selectedRegistration.status === 'WAITLIST' ? 'text-[var(--brand-third)]' : 'text-[var(--brand-primary)]'
                                                         }`}>
                                                             {selectedRegistration.status === 'WAITLIST' 
-                                                                ? "You'll be notified if a seat becomes available."
-                                                                : "You will receive a notification if your seat is confirmed."}
+                                                                ? t('notifiedIfSeatAvailable')
+                                                                : t('notifiedIfSeatConfirmed')}
                                                         </p>
                                                     </div>
                                                 )}
@@ -606,7 +619,7 @@ export default function MyTicketsPage() {
                                                         href={`/dashboard/youth/events/${selectedRegistration.event}`} 
                                                         className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all"
                                                     >
-                                                        View Event Details →
+                                                        {t('viewEventDetails')} →
                                                     </Link>
                                                 </div>
                                             </div>

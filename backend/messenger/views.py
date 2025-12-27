@@ -13,11 +13,21 @@ from django.contrib.auth import get_user_model
 from users.models import GuardianYouthLink
 from visits.models import CheckInSession
 from users.serializers import UserListSerializer
+from core.permissions import HasLicenseFeature
 
 User = get_user_model()
 
 class ConversationViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the messenger feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        
+        # Add the license feature gatekeeper
+        permission_classes.append(HasLicenseFeature('messenger')())
+        
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         if self.action == 'retrieve':

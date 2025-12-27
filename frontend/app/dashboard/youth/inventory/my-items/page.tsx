@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { inventoryApi, ItemCategory } from '@/lib/inventory-api';
 import ActiveTicket from '@/app/components/inventory/ActiveTicket';
 import { PackageOpen, History, Package, Clock, CheckCircle, AlertTriangle, X } from 'lucide-react';
@@ -15,6 +16,9 @@ import ConfirmationModal from '@/app/components/ConfirmationModal';
 
 export default function MyItemsPage() {
   const pathname = usePathname();
+  const t = useTranslations('inventory');
+  const tSidebar = useTranslations('sidebar');
+  const tCommon = useTranslations('common');
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
@@ -83,7 +87,7 @@ export default function MyItemsPage() {
         }`}
       >
         <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
-          <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
@@ -103,17 +107,17 @@ export default function MyItemsPage() {
           <aside className="w-full md:w-64 flex-shrink-0 space-y-8 md:sticky md:top-[72px] md:self-start md:max-h-[calc(100vh-88px)] md:overflow-y-auto">
             {/* Header */}
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">My Items</h1>
-              <p className="text-sm text-gray-500 mt-1">Borrowing History</p>
+              <h1 className="text-2xl font-bold text-gray-900">{t('myItems')}</h1>
+              <p className="text-sm text-gray-500 mt-1">{t('borrowingHistory')}</p>
             </div>
 
             {/* Search Input */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Search</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t('search')}</label>
               <div className="relative">
                 <input 
                   type="text" 
-                  placeholder="Find an item..." 
+                  placeholder={t('findItemPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
@@ -126,7 +130,7 @@ export default function MyItemsPage() {
 
             {/* Category Filters */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Category</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t('category')}</label>
               <div className="space-y-1">
                 <button
                   onClick={() => setSelectedCategory(null)}
@@ -136,7 +140,7 @@ export default function MyItemsPage() {
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  All Categories
+                  {t('allCategories')}
                 </button>
                 {categories.map((category) => (
                   <button
@@ -162,11 +166,11 @@ export default function MyItemsPage() {
             {/* SECTION 1: Active Tickets */}
             <div>
               <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <PackageOpen size={16} /> Active Now
+                <PackageOpen size={16} /> {t('activeNow')}
               </h2>
               
               {loading ? (
-                <div className="text-center py-8 text-gray-400">Loading...</div>
+                <div className="text-center py-8 text-gray-400">{t('loading')}</div>
               ) : activeSessions.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {activeSessions.map(session => (
@@ -180,13 +184,13 @@ export default function MyItemsPage() {
               ) : (
                 <div className="bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">
                   <p className="text-gray-500 mb-4">
-                    {searchTerm ? 'No active items found matching your search.' : 'You are not borrowing anything right now.'}
+                    {searchTerm ? t('noActiveItemsFound') : t('notBorrowingAnything')}
                   </p>
                   <Link 
                     href="/dashboard/youth/inventory"
                     className="inline-block px-4 py-2 bg-indigo-50 text-indigo-700 font-medium rounded-lg hover:bg-indigo-100 transition-colors"
                   >
-                    Browse Items
+                    {t('browseItems')}
                   </Link>
                 </div>
               )}
@@ -196,7 +200,7 @@ export default function MyItemsPage() {
             {pastSessions.length > 0 && (
               <div>
                 <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <History size={16} /> History
+                  <History size={16} /> {t('history')}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {pastSessions.map(session => (
@@ -208,12 +212,12 @@ export default function MyItemsPage() {
 
             {!loading && activeSessions.length === 0 && pastSessions.length === 0 && (
               <div className="bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">
-                <p className="text-gray-500 mb-4">No items found matching your search.</p>
+                <p className="text-gray-500 mb-4">{t('noItemsMatchingSearch')}</p>
                 <button 
                   onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
                   className="text-blue-600 font-medium hover:underline"
                 >
-                  Clear filters
+                  {t('clearFilters')}
                 </button>
               </div>
             )}
@@ -226,6 +230,8 @@ export default function MyItemsPage() {
 
 // Active Session Card Component (styled like InventoryCard)
 function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onReturnSuccess: () => void }) {
+  const t = useTranslations('inventory');
+  const tCommon = useTranslations('common');
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -245,7 +251,7 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
   }, [session.due_at]);
 
   const formatTimeLeft = (minutes: number): string => {
-    if (minutes < 0) return 'Overdue';
+    if (minutes < 0) return t('overdue');
     if (minutes > 60) {
       const hours = Math.floor(minutes / 60);
       const mins = Math.floor(minutes % 60);
@@ -255,7 +261,7 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
       const now = new Date();
       const due = parseISO(session.due_at);
       const secondsLeft = Math.floor((due.getTime() - now.getTime()) / 1000);
-      if (secondsLeft < 0) return 'Overdue';
+      if (secondsLeft < 0) return t('overdue');
       const mins = Math.floor(secondsLeft / 60);
       const secs = secondsLeft % 60;
       return `${mins}m ${secs}s`;
@@ -267,12 +273,12 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
     setLoading(true);
     try {
       await inventoryApi.returnItem(session.item);
-      toast.success("Item returned successfully!");
+      toast.success(t('itemReturnedSuccess'));
       setShowReturnModal(false);
       onReturnSuccess();
     } catch (error: any) {
       console.error(error);
-      const msg = error.response?.data?.error || "Failed to return item.";
+      const msg = error.response?.data?.error || t('failedToReturnItem');
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -300,7 +306,7 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
             <span className={`backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide font-medium ${
               isOverdue ? 'bg-red-500/90' : 'bg-green-500/90'
             }`}>
-              {isOverdue ? 'Overdue' : 'Active'}
+              {isOverdue ? t('overdue') : t('active')}
             </span>
           </div>
 
@@ -317,7 +323,10 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
           <div className="mb-3">
             <h3 className="font-bold text-gray-900 text-lg leading-tight">{session.item_title}</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Borrowed {borrowedDate.toLocaleDateString()} at {borrowedDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              {t('borrowedAt', { 
+                date: borrowedDate.toLocaleDateString(), 
+                time: borrowedDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+              })}
             </p>
           </div>
           
@@ -333,14 +342,14 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
               <Clock size={12} /> 
               {isOverdue ? (
                 <span className="flex items-center gap-1">
-                  <AlertTriangle size={12} /> Overdue
+                  <AlertTriangle size={12} /> {t('overdue')}
                 </span>
               ) : (
-                `${formatTimeLeft(timeLeft)} left`
+                `${formatTimeLeft(timeLeft)} ${t('left')}`
               )}
             </span>
             {session.is_guest && (
-              <span className="text-purple-600 font-medium">Guest Visit</span>
+              <span className="text-purple-600 font-medium">{t('guestVisit')}</span>
             )}
           </div>
 
@@ -349,7 +358,7 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
             <div className="mb-4 flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg w-fit">
               <AlertTriangle size={14} className="text-red-600" />
               <span className="text-red-600 font-bold text-xs uppercase tracking-wide">
-                Return Now!
+                {t('returnNow')}
               </span>
             </div>
           )}
@@ -365,7 +374,7 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
                   : 'bg-green-600 text-white hover:bg-green-700 hover:shadow'
               }`}
             >
-              {loading ? 'Processing...' : 'Return Item'}
+              {loading ? t('processing') : t('returnItem')}
             </button>
           </div>
         </div>
@@ -376,10 +385,10 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
         isVisible={showReturnModal}
         onClose={() => setShowReturnModal(false)}
         onConfirm={handleReturnConfirm}
-        title="Return Item"
-        message={`⚠️ Confirm Return:\n\nHave you handed "${session.item_title}" back to the staff?`}
-        confirmButtonText="Yes, Return"
-        cancelButtonText="Cancel"
+        title={t('returnItemTitle')}
+        message={t('returnItemConfirm', { itemTitle: session.item_title })}
+        confirmButtonText={t('yesReturn')}
+        cancelButtonText={tCommon('cancel')}
         isLoading={loading}
         variant="warning"
       />
@@ -389,6 +398,7 @@ function ActiveSessionCard({ session, onReturnSuccess }: { session: any, onRetur
 
 // Past Session Card Component (styled like InventoryCard)
 function PastSessionCard({ session }: { session: any }) {
+  const t = useTranslations('inventory');
   const borrowedDate = new Date(session.borrowed_at);
   const returnedDate = session.returned_at ? new Date(session.returned_at) : null;
   const isAutoReturned = session.status === 'RETURNED_SYSTEM';
@@ -408,7 +418,7 @@ function PastSessionCard({ session }: { session: any }) {
         {/* Status Badge */}
         <div className="absolute top-2 left-2">
           <span className="bg-gray-500/90 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide font-medium">
-            Returned
+            {t('returnedStatus')}
           </span>
         </div>
 
@@ -430,16 +440,16 @@ function PastSessionCard({ session }: { session: any }) {
         <div className="mb-4 space-y-2 text-xs text-gray-500">
           <div className="flex items-center gap-1">
             <Clock size={12} />
-            <span>Borrowed: {borrowedDate.toLocaleDateString()}</span>
+            <span>{t('borrowedLabel')} {borrowedDate.toLocaleDateString()}</span>
           </div>
           {returnedDate && (
             <div className="flex items-center gap-1">
               <CheckCircle size={12} className="text-green-600" />
-              <span>Returned: {returnedDate.toLocaleDateString()}</span>
+              <span>{t('returnedLabel')} {returnedDate.toLocaleDateString()}</span>
             </div>
           )}
           {session.is_guest && (
-            <span className="text-purple-600 font-medium">Guest Visit</span>
+            <span className="text-purple-600 font-medium">{t('guestVisit')}</span>
           )}
         </div>
 
@@ -450,7 +460,7 @@ function PastSessionCard({ session }: { session: any }) {
               ? 'bg-red-100 text-red-800' 
               : 'bg-gray-100 text-gray-800'
           }`}>
-            {isAutoReturned ? 'Auto-Returned' : 'Returned'}
+            {isAutoReturned ? t('autoReturned') : t('returnedStatus')}
           </span>
         </div>
       </div>

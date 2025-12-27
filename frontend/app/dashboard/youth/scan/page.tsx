@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import CheckInScanner from '@/app/components/visits/CheckInScanner';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
@@ -13,6 +14,8 @@ import { X, QrCode, ArrowLeft } from 'lucide-react';
 const MIN_LOADING_TIME = 500;
 
 export default function ScanPage() {
+  const t = useTranslations('visits');
+  const tNav = useTranslations('nav');
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -57,7 +60,7 @@ export default function ScanPage() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tNav('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
@@ -90,8 +93,8 @@ export default function ScanPage() {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--brand-primary)]/20 mb-4">
                       <QrCode className="w-8 h-8 text-[var(--brand-primary)]" />
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">Check In</h1>
-                    <p className="text-[var(--brand-light)]/60 mt-2 text-sm sm:text-base">Point your camera at the screen at the entrance</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">{t('checkIn')}</h1>
+                    <p className="text-[var(--brand-light)]/60 mt-2 text-sm sm:text-base">{t('scanInstructions')}</p>
                   </div>
 
                   <CheckInScanner onSuccess={handleSuccess} darkMode={true} />
@@ -101,7 +104,7 @@ export default function ScanPage() {
                     className="mt-6 sm:mt-8 mb-4 flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors font-medium text-sm"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Cancel and go back
+                    {t('cancelAndGoBack')}
                   </button>
                 </>
               )}

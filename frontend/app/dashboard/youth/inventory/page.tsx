@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { useAuth } from '@/context/AuthContext';
 import { inventoryApi, Item, ItemCategory } from '@/lib/inventory-api';
@@ -20,6 +21,8 @@ const MIN_LOADING_TIME = 400;
 export default function InventoryBrowserPage() {
   const { user } = useAuth();
   const pathname = usePathname();
+  const t = useTranslations('inventory');
+  const tSidebar = useTranslations('sidebar');
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,9 +174,9 @@ export default function InventoryBrowserPage() {
               <div className="w-16 h-16 bg-[var(--brand-peach)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <LogIn className="w-8 h-8 text-[var(--brand-peach)]" />
               </div>
-              <h3 className="text-2xl font-bold text-[var(--brand-light)] mb-3 font-heading">No Club Available</h3>
+              <h3 className="text-2xl font-bold text-[var(--brand-light)] mb-3 font-heading">{t('noClubAvailable')}</h3>
               <p className="text-[var(--brand-light)]/60">
-                You need to be checked in to a club or have a preferred club set to browse inventory items.
+                {t('noClubAvailableMessage')}
               </p>
             </div>
           </div>
@@ -201,7 +204,7 @@ export default function InventoryBrowserPage() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
@@ -234,7 +237,7 @@ export default function InventoryBrowserPage() {
                     <div className="flex items-center gap-2 sm:gap-3 mb-2">
                       <Package className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
                       <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
-                        Borrow Items
+                        {t('borrowItems')}
                       </h1>
                     </div>
                     {activeClubName && (
@@ -246,7 +249,7 @@ export default function InventoryBrowserPage() {
                         <span className={`text-xs sm:text-sm font-bold ${
                           isCheckedIn ? 'text-[var(--brand-third)]' : 'text-[var(--brand-light)]/60'
                         }`}>
-                          {isCheckedIn ? '✓ Checked in to' : 'Viewing'} {activeClubName}
+                          {isCheckedIn ? t('checkedInTo') : t('viewing')} {activeClubName}
                         </span>
                       </div>
                     )}
@@ -258,10 +261,10 @@ export default function InventoryBrowserPage() {
                       <LogIn className="w-5 h-5 text-[var(--brand-peach)] mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
                         <p className="text-sm font-bold text-[var(--brand-peach)] mb-1">
-                          Check in required to borrow
+                          {t('checkInRequired')}
                         </p>
                         <p className="text-xs text-[var(--brand-light)]/60">
-                          You're viewing items from your preferred club. Check in to {activeClubName} to borrow items.
+                          {t('checkInRequiredMessage', { clubName: activeClubName })}
                         </p>
                       </div>
                     </div>
@@ -274,7 +277,7 @@ export default function InventoryBrowserPage() {
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5" />
                       <input 
                         type="text" 
-                        placeholder="Search for an item..." 
+                        placeholder={t('searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl py-3 pl-12 pr-4 text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-all font-medium"
@@ -299,7 +302,7 @@ export default function InventoryBrowserPage() {
                             : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
                         }`}
                       >
-                        All Categories
+                        {t('allCategories')}
                       </button>
                       {categories.map((category) => (
                         <button
@@ -321,7 +324,7 @@ export default function InventoryBrowserPage() {
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all ml-auto"
                         >
                           <X className="w-3.5 h-3.5" />
-                          Clear
+                          {t('clear')}
                         </button>
                       )}
                     </div>
@@ -340,18 +343,18 @@ export default function InventoryBrowserPage() {
                       <div className="w-16 h-16 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
                       </div>
-                      <h3 className="text-xl font-bold text-[var(--brand-light)] mb-2 font-heading">No items found</h3>
+                      <h3 className="text-xl font-bold text-[var(--brand-light)] mb-2 font-heading">{t('noItemsFoundTitle')}</h3>
                       <p className="text-[var(--brand-light)]/60 max-w-sm mx-auto">
                         {searchTerm || selectedCategory 
-                          ? "Try adjusting your filters or search terms to find more items."
-                          : `No items available at ${activeClubName} right now.`}
+                          ? t('noItemsFoundMessage')
+                          : t('noItemsAvailableAtClub', { clubName: activeClubName })}
                       </p>
                       {(searchTerm || selectedCategory) && (
                         <button 
                           onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
                           className="mt-4 bg-[var(--brand-primary)] text-[var(--dark-900)] px-6 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95"
                         >
-                          Clear all filters
+                          {t('clearAllFilters')}
                         </button>
                       )}
                     </div>

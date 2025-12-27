@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
@@ -31,6 +32,7 @@ function stripInlineColors(html: string): string {
 
 // Countdown Timer Component
 function CountdownTimer({ targetDate, darkMode = false }: { targetDate: string; darkMode?: boolean }) {
+    const t = useTranslations('events');
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
     const [isExpired, setIsExpired] = useState(false);
 
@@ -61,10 +63,10 @@ function CountdownTimer({ targetDate, darkMode = false }: { targetDate: string; 
     return (
         <div className="flex items-center gap-3">
             {[
-                { value: timeLeft.days, label: 'Days' },
-                { value: timeLeft.hours, label: 'Hours' },
-                { value: timeLeft.minutes, label: 'Min' },
-                { value: timeLeft.seconds, label: 'Sec' }
+                { value: timeLeft.days, label: t('days') },
+                { value: timeLeft.hours, label: t('hours') },
+                { value: timeLeft.minutes, label: t('min') },
+                { value: timeLeft.seconds, label: t('sec') }
             ].map((item, idx) => (
                 <div key={idx} className="text-center">
                     <div className={`backdrop-blur-sm rounded-lg px-3 py-2 min-w-[50px] ${
@@ -87,6 +89,8 @@ export default function EventDetailPage() {
     const params = useParams();
     const router = useRouter();
     const { user } = useAuth();
+    const t = useTranslations('events');
+    const tSidebar = useTranslations('sidebar');
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
     const [isRegModalOpen, setRegModalOpen] = useState(false);
@@ -124,10 +128,10 @@ export default function EventDetailPage() {
             await api.post(`/events/${event.id}/cancel/`);
             await fetchEvent();
             setCancelModalOpen(false);
-            setToast({ message: 'Your registration has been cancelled successfully.', type: 'success', isVisible: true });
+            setToast({ message: t('registrationCancelled'), type: 'success', isVisible: true });
         } catch (err: any) {
             console.error(err);
-            setToast({ message: err.response?.data?.error || 'Failed to cancel registration. Please try again.', type: 'error', isVisible: true });
+            setToast({ message: err.response?.data?.error || t('failedToCancelRegistration'), type: 'error', isVisible: true });
         } finally {
             setIsCancelling(false);
         }
@@ -140,7 +144,7 @@ export default function EventDetailPage() {
                 <div className="pt-24 sm:pt-28 md:pt-32 flex items-center justify-center min-h-[60vh]">
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
-                        <p className="text-[var(--brand-light)]/60 font-medium">Loading event...</p>
+                        <p className="text-[var(--brand-light)]/60 font-medium">{t('loadingEvent')}</p>
                     </div>
                 </div>
             </div>
@@ -193,7 +197,7 @@ export default function EventDetailPage() {
                 }`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-light)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-light)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
@@ -267,14 +271,14 @@ export default function EventDetailPage() {
                                 className="inline-flex items-center gap-2 text-[var(--brand-light)]/80 hover:text-[var(--brand-light)] font-medium text-sm transition-colors mb-3"
                             >
                                 <ArrowLeft className="w-4 h-4" />
-                                All Events
+                                {t('allEvents')}
                             </Link>
                             
                             {/* Event badges */}
                             <div className="flex flex-wrap gap-2 mb-3">
                                 <span className="bg-[var(--brand-green)] text-[var(--dark-900)] text-xs px-3 py-1.5 rounded-full uppercase tracking-wider font-bold flex items-center gap-1.5">
                                     <Sparkles className="w-3.5 h-3.5" />
-                                    Event
+                                    {t('eventBadge')}
                                 </span>
                                 {event.cost ? (
                                     <span className="bg-[var(--dark-600)] text-[var(--brand-light)] text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
@@ -284,7 +288,7 @@ export default function EventDetailPage() {
                                 ) : (
                                     <span className="bg-[var(--brand-green)] text-[var(--dark-900)] text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
                                         <Gift className="w-3.5 h-3.5" />
-                                        Free
+                                        {t('free')}
                                     </span>
                                 )}
                                 {isRegistered && (
@@ -292,8 +296,8 @@ export default function EventDetailPage() {
                                         userStatus === 'APPROVED' ? 'bg-[var(--brand-green)] text-[var(--dark-900)]' : 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                                     }`}>
                                         <CheckCircle className="w-3.5 h-3.5" />
-                                        {userStatus === 'APPROVED' ? "You're going!" : 
-                                         userStatus === 'WAITLIST' ? 'On Waitlist' : 'Pending'}
+                                        {userStatus === 'APPROVED' ? t('youreGoing') : 
+                                         userStatus === 'WAITLIST' ? t('onWaitlist') : t('pending')}
                                     </span>
                                 )}
                             </div>
@@ -308,7 +312,7 @@ export default function EventDetailPage() {
                                 <div>
                                     <p className="text-[var(--brand-light)]/70 text-sm mb-2 flex items-center gap-2">
                                         <Timer className="w-4 h-4" />
-                                        Event starts in
+                                        {t('eventStartsIn')}
                                     </p>
                                     <CountdownTimer targetDate={event.start_date} darkMode={true} />
                                 </div>
@@ -331,7 +335,7 @@ export default function EventDetailPage() {
                                         <Calendar className="w-5 h-5 text-[var(--brand-light)]" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">Date</p>
+                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">{t('dateLabel')}</p>
                                         <p className="font-bold text-[var(--brand-light)]">
                                             {eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                         </p>
@@ -345,7 +349,7 @@ export default function EventDetailPage() {
                                         <Clock className="w-5 h-5 text-[var(--dark-900)]" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">Time</p>
+                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">{t('timeLabel')}</p>
                                         <p className="font-bold text-[var(--brand-light)]">
                                             {new Date(event.start_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - {new Date(event.end_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
                                         </p>
@@ -359,7 +363,7 @@ export default function EventDetailPage() {
                                         <MapPin className="w-5 h-5 text-[var(--dark-900)]" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">Location</p>
+                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">{t('locationLabel')}</p>
                                         <p className="font-bold text-[var(--brand-light)] truncate max-w-[150px]">{event.location_name}</p>
                                     </div>
                                 </div>
@@ -370,7 +374,7 @@ export default function EventDetailPage() {
                         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border border-[var(--dark-600)]">
                             <h2 className="text-xl font-bold text-[var(--brand-light)] mb-4 flex items-center gap-3 font-heading">
                                 <span className="w-1 h-6 bg-[var(--brand-primary)] rounded-full"></span>
-                                About this Event
+                                {t('aboutThisEvent')}
                             </h2>
                             <div 
                                 className="prose prose-invert max-w-none leading-relaxed event-description-content" 
@@ -383,7 +387,7 @@ export default function EventDetailPage() {
                             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border border-[var(--dark-600)]">
                                 <h2 className="text-xl font-bold text-[var(--brand-light)] mb-4 flex items-center gap-3 font-heading">
                                     <span className="w-1 h-6 bg-[var(--brand-green)] rounded-full"></span>
-                                    Location
+                                    {t('locationLabel')}
                                 </h2>
                                 
                                 <div className="flex flex-col md:flex-row gap-6">
@@ -403,7 +407,7 @@ export default function EventDetailPage() {
                                                 className="inline-flex items-center gap-2 text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-medium transition-colors"
                                             >
                                                 <MapPin className="w-4 h-4" />
-                                                Get Directions →
+                                                {t('getDirections')} →
                                             </a>
                                         )}
                                     </div>
@@ -432,7 +436,7 @@ export default function EventDetailPage() {
                                                         rel="noopener noreferrer"
                                                         className="text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-medium text-sm"
                                                     >
-                                                        Open in Google Maps →
+                                                        {t('openInGoogleMaps')} →
                                                     </a>
                                                 </div>
                                             )}
@@ -447,7 +451,7 @@ export default function EventDetailPage() {
                             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border border-[var(--dark-600)]">
                                 <h2 className="text-xl font-bold text-[var(--brand-light)] mb-4 flex items-center gap-3 font-heading">
                                     <span className="w-1 h-6 bg-[var(--brand-peach)] rounded-full"></span>
-                                    Documents & Resources
+                                    {t('documentsAndResources')}
                                 </h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {(event as any).documents.map((doc: any) => (
@@ -480,7 +484,7 @@ export default function EventDetailPage() {
                                 {/* Card Header - Purple theme */}
                                 <div className="bg-[var(--brand-purple)] p-6 text-[var(--brand-light)]">
                                     <div className="flex items-center justify-between mb-3">
-                                        <span className="text-sm font-medium text-[var(--brand-light)]/70">Event Price</span>
+                                        <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('eventPrice')}</span>
                                         <div className="flex gap-2">
                                             <button 
                                                 onClick={() => setIsLiked(!isLiked)}
@@ -497,7 +501,7 @@ export default function EventDetailPage() {
                                         {event.cost ? `${event.cost} SEK` : 'Free'}
                                     </div>
                                     {!event.cost && (
-                                        <p className="text-sm text-[var(--brand-light)]/70 mt-1">No registration fee</p>
+                                        <p className="text-sm text-[var(--brand-light)]/70 mt-1">{t('noRegistrationFee')}</p>
                                     )}
                                 </div>
                                 
@@ -507,10 +511,10 @@ export default function EventDetailPage() {
                                         <div className="flex items-center justify-between p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)]">
                                             <div className="flex items-center gap-2">
                                                 <Users className="w-4 h-4 text-[var(--brand-green)]" />
-                                                <span className="text-sm text-[var(--brand-light)]/60">Availability</span>
+                                                <span className="text-sm text-[var(--brand-light)]/60">{t('availability')}</span>
                                             </div>
                                             <span className={`font-bold text-sm ${isFull ? 'text-[var(--brand-red)]' : 'text-[var(--brand-green)]'}`}>
-                                                {isFull ? 'Full' : `${seatsLeft} spots left`}
+                                                {isFull ? t('full') : `${seatsLeft} ${t('spotsLeft')}`}
                                             </span>
                                         </div>
                                     )}
@@ -520,7 +524,7 @@ export default function EventDetailPage() {
                                         <div className="flex items-center justify-between p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)]">
                                             <div className="flex items-center gap-2">
                                                 <UserPlus className="w-4 h-4 text-[var(--brand-green)]" />
-                                                <span className="text-sm text-[var(--brand-light)]/60">Register by</span>
+                                                <span className="text-sm text-[var(--brand-light)]/60">{t('registerBy')}</span>
                                             </div>
                                             <span className="font-bold text-sm text-[var(--brand-light)]">
                                                 {new Date(event.registration_close_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -533,18 +537,18 @@ export default function EventDetailPage() {
                                         <div className="space-y-3">
                                             <div className="w-full bg-[var(--brand-primary)]/20 border-2 border-[var(--brand-primary)]/30 text-[var(--brand-primary)] font-bold py-4 rounded-xl text-center flex items-center justify-center gap-2">
                                                 <CheckCircle className="w-5 h-5" />
-                                                {userStatus === 'APPROVED' ? "You're going!" : 
-                                                 userStatus === 'WAITLIST' ? 'On the waitlist' :
-                                                 userStatus === 'PENDING_GUARDIAN' ? 'Awaiting guardian' :
-                                                 userStatus === 'PENDING_ADMIN' ? 'Awaiting approval' :
-                                                 'Application Sent'}
+                                                {userStatus === 'APPROVED' ? t('youreGoing') : 
+                                                 userStatus === 'WAITLIST' ? t('onTheWaitlist') :
+                                                 userStatus === 'PENDING_GUARDIAN' ? t('awaitingGuardian') :
+                                                 userStatus === 'PENDING_ADMIN' ? t('awaitingApproval') :
+                                                 t('applicationSent')}
                                             </div>
                                             <button 
                                                 onClick={() => setCancelModalOpen(true)}
                                                 className="w-full bg-[var(--dark-700)] text-[var(--brand-light)]/70 font-semibold py-3 rounded-xl hover:bg-[var(--brand-red)]/10 hover:text-[var(--brand-red)] transition-all flex items-center justify-center gap-2"
                                             >
                                                 <XCircle className="w-4 h-4" />
-                                                Cancel Registration
+                                                {t('cancelRegistration')}
                                             </button>
                                         </div>
                                     ) : (
@@ -553,9 +557,9 @@ export default function EventDetailPage() {
                                             disabled={!event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
                                             className="w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-4 rounded-xl hover:bg-[var(--brand-primary)]/90 disabled:opacity-50 disabled:bg-[var(--dark-600)] disabled:text-[var(--brand-light)]/50 disabled:cursor-not-allowed transition-all"
                                         >
-                                            {!event.allow_registration ? 'No Registration Required' : 
-                                             isRegistrationClosed ? 'Registration Closed' :
-                                             (event.max_seats > 0 && isFull) ? 'Join Waitlist' : 'Register Now'}
+                                            {!event.allow_registration ? t('noRegistrationRequired') : 
+                                             isRegistrationClosed ? t('registrationClosed') :
+                                             (event.max_seats > 0 && isFull) ? t('joinWaitlist') : t('registerNow')}
                                         </button>
                                     )}
                                 </div>
@@ -573,7 +577,7 @@ export default function EventDetailPage() {
                                             ))}
                                         </div>
                                         <p className="text-sm text-[var(--brand-light)]/60">
-                                            <span className="font-bold text-[var(--brand-green)]">{event.confirmed_participants_count}</span> {event.confirmed_participants_count === 1 ? 'person' : 'people'} going
+                                            <span className="font-bold text-[var(--brand-green)]">{event.confirmed_participants_count}</span> {event.confirmed_participants_count === 1 ? t('person') : t('people')} {t('going')}
                                         </p>
                                     </div>
                                 </div>
@@ -587,15 +591,15 @@ export default function EventDetailPage() {
             <div className="fixed bottom-0 left-0 right-0 bg-[var(--dark-800)] border-t border-[var(--dark-600)] p-4 lg:hidden z-40 safe-area-bottom">
                 <div className="flex items-center gap-3 max-w-lg mx-auto">
                     <div className="flex-shrink-0">
-                        <p className="text-xs text-[var(--brand-light)]/50">Price</p>
-                        <p className="font-bold text-lg text-[var(--brand-light)]">{event.cost ? `${event.cost} SEK` : 'Free'}</p>
+                        <p className="text-xs text-[var(--brand-light)]/50">{t('price')}</p>
+                        <p className="font-bold text-lg text-[var(--brand-light)]">{event.cost ? `${event.cost} SEK` : t('free')}</p>
                     </div>
                     <div className="flex-1">
                         {isRegistered ? (
                             <div className="flex gap-2">
                                 <div className="flex-1 bg-[var(--brand-primary)]/20 border border-[var(--brand-primary)]/30 text-[var(--brand-primary)] font-bold py-3 rounded-xl text-center text-sm flex items-center justify-center gap-1">
                                     <CheckCircle className="w-4 h-4" />
-                                    {userStatus === 'APPROVED' ? 'Going' : 'Pending'}
+                                    {userStatus === 'APPROVED' ? t('goingStatus') : t('pending')}
                                 </div>
                                 <button 
                                     onClick={() => setCancelModalOpen(true)}
@@ -610,9 +614,9 @@ export default function EventDetailPage() {
                                 disabled={!event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
                                 className="w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-3 rounded-xl disabled:opacity-50 disabled:bg-[var(--dark-600)] disabled:text-[var(--brand-light)]/50 disabled:cursor-not-allowed transition-all"
                             >
-                                {!event.allow_registration ? 'No Registration' : 
-                                 isRegistrationClosed ? 'Closed' :
-                                 (event.max_seats > 0 && isFull) ? 'Join Waitlist' : 'Register Now'}
+                                {!event.allow_registration ? t('noRegistration') : 
+                                 isRegistrationClosed ? t('closed') :
+                                 (event.max_seats > 0 && isFull) ? t('joinWaitlist') : t('registerNow')}
                             </button>
                         )}
                     </div>
@@ -641,13 +645,13 @@ export default function EventDetailPage() {
                         </div>
                         
                         <h3 className="text-2xl font-bold text-[var(--brand-light)] mb-3 text-center font-heading">
-                            Cancel Registration?
+                            {t('cancelRegistrationTitle')}
                         </h3>
                         
                         <p className="text-[var(--brand-light)]/70 mb-8 text-center leading-relaxed">
-                            Are you sure you want to cancel your registration for <span className="font-semibold text-[var(--brand-light)]">{event?.title}</span>?
-                            {userStatus === 'APPROVED' && ' Your seat will be released to others.'}
-                            {userStatus === 'WAITLIST' && ' You will be removed from the waitlist.'}
+                            {t('cancelRegistrationConfirm')} <span className="font-semibold text-[var(--brand-light)]">{event?.title}</span>?
+                            {userStatus === 'APPROVED' && ` ${t('seatWillBeReleased')}`}
+                            {userStatus === 'WAITLIST' && ` ${t('removedFromWaitlist')}`}
                         </p>
                         
                         <div className="flex flex-col sm:flex-row gap-3">
@@ -656,7 +660,7 @@ export default function EventDetailPage() {
                                 disabled={isCancelling}
                                 className="flex-1 py-4 px-6 font-semibold text-[var(--brand-light)]/70 bg-[var(--dark-700)] rounded-xl hover:bg-[var(--dark-600)] disabled:opacity-50 transition-all"
                             >
-                                Keep Registration
+                                {t('keepRegistration')}
                             </button>
                             <button 
                                 onClick={handleCancelRegistration}
@@ -668,7 +672,7 @@ export default function EventDetailPage() {
                                 ) : (
                                     <>
                                         <XCircle className="w-4 h-4" />
-                                        Cancel Registration
+                                        {t('cancelRegistration')}
                                     </>
                                 )}
                             </button>

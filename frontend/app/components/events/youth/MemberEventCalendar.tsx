@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { 
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
@@ -29,6 +30,7 @@ export default function MemberEventCalendar({
     onViewModeChange,
     darkMode = false
 }: MemberEventCalendarProps) {
+    const t = useTranslations('events');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
@@ -133,25 +135,25 @@ export default function MemberEventCalendar({
 
     const getEventStatusTooltip = (event: Event) => {
         if (isEventPast(event)) {
-            return 'This event has passed';
+            return t('eventPassed');
         }
 
         const userStatus = (event as any).user_registration_status;
         
         if (userStatus === 'APPROVED' || userStatus === 'ATTENDED') {
-            return 'You are confirmed for this event';
+            return t('confirmedForEvent');
         }
         
         if (userStatus === 'PENDING_ADMIN') {
-            return 'Waiting for admin approval';
+            return t('waitingAdminApproval');
         }
         
         if (userStatus === 'PENDING_GUARDIAN') {
-            return 'Waiting for guardian approval';
+            return t('waitingGuardianApproval');
         }
         
         if (userStatus === 'WAITLIST') {
-            return 'You are on the waitlist';
+            return t('onWaitlistTooltip');
         }
         
         return event.title;
@@ -169,7 +171,7 @@ export default function MemberEventCalendar({
             <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/10'} rounded-none sm:rounded-2xl border-y sm:border p-8`}>
                 <div className="flex flex-col items-center gap-3">
                     <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'}`}></div>
-                    <div className={`text-center ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Loading calendar...</div>
+                    <div className={`text-center ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('loadingCalendar')}</div>
                 </div>
             </div>
         );
@@ -223,7 +225,7 @@ export default function MemberEventCalendar({
                                                 : 'text-white hover:bg-white/10'
                                     }`}
                                 >
-                                    Week
+                                    {t('week')}
                                 </button>
                                 <button
                                     onClick={() => onViewModeChange('monthly')}
@@ -237,7 +239,7 @@ export default function MemberEventCalendar({
                                                 : 'text-white hover:bg-white/10'
                                     }`}
                                 >
-                                    Month
+                                    {t('month')}
                                 </button>
                             </div>
                         )}
@@ -247,20 +249,20 @@ export default function MemberEventCalendar({
                                 onClick={handleToday}
                                 className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold ${darkMode ? 'bg-[var(--dark-800)] hover:bg-[var(--dark-700)] text-[var(--brand-light)]' : 'bg-white/20 hover:bg-white/30'} backdrop-blur-sm rounded-xl transition-all`}
                             >
-                                Today
+                                {t('today')}
                             </button>
                             <div className="flex gap-2">
                                 <button 
                                     onClick={handlePrevious} 
                                     className={`p-2 ${darkMode ? 'bg-[var(--dark-800)] hover:bg-[var(--dark-700)]' : 'bg-white/20 hover:bg-white/30'} backdrop-blur-sm rounded-xl transition-all`}
-                                    aria-label="Previous"
+                                    aria-label={t('previous')}
                                 >
                                     <ChevronLeft className="w-5 h-5" />
                                 </button>
                                 <button 
                                     onClick={handleNext} 
                                     className={`p-2 ${darkMode ? 'bg-[var(--dark-800)] hover:bg-[var(--dark-700)]' : 'bg-white/20 hover:bg-white/30'} backdrop-blur-sm rounded-xl transition-all`}
-                                    aria-label="Next"
+                                    aria-label={t('next')}
                                 >
                                     <ChevronRight className="w-5 h-5" />
                                 </button>
@@ -272,18 +274,18 @@ export default function MemberEventCalendar({
 
             {/* Day Headers */}
             <div className={`hidden sm:grid grid-cols-7 ${darkMode ? 'bg-[var(--dark-700)] border-b border-[var(--dark-600)]' : 'bg-[#EBEBFE] border-b-2 border-[#4D4DA4]/10'}`}>
-                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d, index) => (
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((dayKey, index) => (
                     <div key={`day-header-${index}`} className={`py-3 text-center text-xs font-bold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-[#4D4DA4]'} uppercase tracking-wider`}>
-                        <span className="hidden lg:inline">{d}</span>
-                        <span className="lg:hidden">{d.substring(0, 3)}</span>
+                        <span className="hidden lg:inline">{t(`daysOfWeek.${dayKey}`)}</span>
+                        <span className="lg:hidden">{t(`daysOfWeek.${dayKey}`).substring(0, 3)}</span>
                     </div>
                 ))}
             </div>
             
             {/* Mobile Day Headers */}
             <div className={`grid sm:hidden grid-cols-7 ${darkMode ? 'bg-[var(--dark-700)] border-b border-[var(--dark-600)]' : 'bg-[#EBEBFE] border-b-2 border-[#4D4DA4]/10'}`}>
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, index) => (
-                    <div key={`day-header-mobile-${index}`} className={`py-2 text-center text-xs font-bold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-[#4D4DA4]'}`}>{d}</div>
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((dayKey, index) => (
+                    <div key={`day-header-mobile-${index}`} className={`py-2 text-center text-xs font-bold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-[#4D4DA4]'}`}>{t(`daysOfWeekShort.${dayKey}`)}</div>
                 ))}
             </div>
             
@@ -310,7 +312,7 @@ export default function MemberEventCalendar({
                             
                             <div className="flex-1 space-y-1 overflow-y-auto">
                                 {dayEvents.length === 0 ? (
-                                    <div className={`text-[10px] sm:text-xs ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'} text-center py-1 sm:py-2 italic`}>No events</div>
+                                    <div className={`text-[10px] sm:text-xs ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'} text-center py-1 sm:py-2 italic`}>{t('noEvents')}</div>
                                 ) : (
                                     dayEvents.map(event => {
                                         const isPast = isEventPast(event);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface ProfileTabsProps {
   activeTab: string;
@@ -11,13 +12,14 @@ interface ProfileTabsProps {
 }
 
 export default function ProfileTabs({ activeTab, onTabChange, isSticky = false, darkMode = false, isCheckedIn = false }: ProfileTabsProps) {
+  const t = useTranslations('profile');
   const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'clubs', label: 'Clubs & Groups' },
-    { id: 'inventory', label: 'Inventory History' },
-    { id: 'guardians', label: 'Guardians' },
-    { id: 'wallet', label: 'My Wallet' },
-    { id: 'timeline', label: 'Activity' },
+    { id: 'overview', label: t('overview') },
+    { id: 'clubs', label: t('clubsAndGroups') },
+    { id: 'inventory', label: t('inventoryHistory') },
+    { id: 'guardians', label: t('guardians') },
+    { id: 'wallet', label: t('myWallet') },
+    { id: 'timeline', label: t('activity') },
   ];
 
   // Refs for measuring tab positions

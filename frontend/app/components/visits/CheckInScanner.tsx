@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { visits } from '@/lib/api';
 import { toast } from 'react-hot-toast';
@@ -13,6 +14,7 @@ interface CheckInScannerProps {
 }
 
 export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInScannerProps) {
+  const t = useTranslations('visits');
   const router = useRouter();
   const [scanning, setScanning] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -29,6 +31,7 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
 
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
+    let observer: MutationObserver | null = null;
     
     // Initialize Scanner with mobile-friendly configuration
     const config = {
@@ -77,18 +80,47 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
           
           if (errorStr.includes('permission') || errorStr.includes('notallowed') || 
               errorObjStr.includes('notallowederror') || errorStr.includes('camera access denied')) {
-            setCameraError('Camera access denied. Please allow camera permissions in your browser settings. On iOS Safari, tap the "AA" icon in the address bar and enable Camera access.');
+            setCameraError(t('cameraAccessDenied'));
           } else if (errorStr.includes('notfound') || errorStr.includes('no camera') || 
                      errorObjStr.includes('notfounderror') || errorStr.includes('no devices found')) {
-            setCameraError('No camera found. Please use a device with a camera or use the file upload option.');
+            setCameraError(t('noCameraFound'));
           } else if (errorStr.includes('notreadable') || errorObjStr.includes('notreadableerror')) {
-            setCameraError('Camera is already in use by another application. Please close other apps using the camera and try again.');
+            setCameraError(t('cameraInUse'));
           } else {
-            setCameraError(`Unable to access camera: ${errorMessage || 'Unknown error'}. Please check your browser settings and try again.`);
+            setCameraError(t('cameraErrorGeneric', { error: errorMessage || t('unknownError') }));
           }
           setScanning(false);
         }
       );
+
+      // Update button texts after scanner renders
+      const updateButtonTexts = () => {
+        const cameraPermissionBtn = document.getElementById('html5-qrcode-button-camera-permission');
+        const fileSelectionBtn = document.getElementById('html5-qrcode-button-file-selection');
+        
+        if (cameraPermissionBtn) {
+          cameraPermissionBtn.textContent = t('requestCameraPermissions');
+        }
+        if (fileSelectionBtn) {
+          fileSelectionBtn.textContent = t('scanImageFile');
+        }
+      };
+
+      // Try immediately and also set up observer for when buttons are added
+      setTimeout(updateButtonTexts, 100);
+      
+      // Watch for when buttons are added to DOM
+      observer = new MutationObserver(() => {
+        updateButtonTexts();
+      });
+      
+      const readerElement = document.getElementById('reader');
+      if (readerElement) {
+        observer.observe(readerElement, {
+          childList: true,
+          subtree: true
+        });
+      }
 
       function onScanSuccess(decodedText: string) {
         // 1. Stop scanning immediately to prevent double-calls
@@ -112,7 +144,7 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
       }
     } catch (error: any) {
       console.error('Error initializing scanner:', error);
-      setCameraError('Failed to initialize scanner. Please refresh the page and try again.');
+      setCameraError(t('scannerInitFailed'));
       setScanning(false);
     }
 
@@ -121,18 +153,21 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
         if (scanner) {
           scanner.clear(); 
         }
+        if (observer) {
+          observer.disconnect();
+        }
       } catch (e) { 
         console.error('Error cleaning up scanner:', e);
       }
     };
-  }, []);
+  }, [t]);
 
   const handleCheckIn = async (token: string) => {
     setProcessing(true);
     try {
       const response = await visits.scan(token);
       // Extract club name from response if available
-      const clubNameFromResponse = response.data?.club_name || "the club";
+      const clubNameFromResponse = response.data?.club_name || t('theClub');
       setClubName(clubNameFromResponse);
       setShowSuccessModal(true);
       // Don't call onSuccess immediately - let modal handle it
@@ -157,12 +192,12 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
         console.log('Invalid QR code error, showing modal:', errorMsg);
         
         // Determine the specific error message
-        let displayMessage = "This QR code is invalid or expired.";
+        let displayMessage = t('invalidQRGeneric');
         if (typeof errorMsg === 'string') {
           if (errorMsg.toLowerCase().includes('expired')) {
-            displayMessage = "This QR code has expired. Please scan a fresh code from the kiosk screen.";
+            displayMessage = t('invalidQRExpired');
           } else if (errorMsg.toLowerCase().includes('invalid')) {
-            displayMessage = "This QR code is invalid. Please make sure you're scanning the correct code from the club's kiosk screen.";
+            displayMessage = t('invalidQRInvalid');
           } else {
             displayMessage = errorMsg;
           }
@@ -175,7 +210,7 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
       // Handle club not found errors (404 status)
       else if (status === 404) {
         console.log('Club not found error, showing modal');
-        setInvalidQRMessage("The club associated with this QR code could not be found. Please scan a valid code from the club's kiosk screen.");
+        setInvalidQRMessage(t('clubNotFound'));
         setShowInvalidQRModal(true);
         // Don't reload - let the modal handle it
       }
@@ -185,18 +220,18 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
         if (data.code === 'CLUB_CLOSED' || data.error === 'CLOSED' || 
             (typeof data.error === 'string' && data.error.toLowerCase().includes('closed'))) {
           console.log('Club is closed, showing modal with next opening:', data.next_opening);
-          setNextOpeningTime(data.next_opening || "Unknown");
+          setNextOpeningTime(data.next_opening || t('unknown'));
           setShowClosedModal(true);
           // Don't reload - let the modal handle it
         } else if (isEmpty) {
           // Empty response but 403 - likely a club closed scenario or permission issue
           // Show a generic closed message since we can't determine the exact reason
           console.log('Empty 403 response - showing generic closed message');
-          setNextOpeningTime("Please check club hours");
+          setNextOpeningTime(t('pleaseCheckClubHours'));
           setShowClosedModal(true);
         } else {
           // Standard 403 error (e.g., restricted age, invalid token)
-          const msg = data.error || data.detail || data.message || "Check-in failed. Please try again.";
+          const msg = data.error || data.detail || data.message || t('checkInFailed');
           console.log('Standard 403 error, showing toast:', msg);
           toast.error(msg);
           // Restart scanner for standard errors after a delay
@@ -208,7 +243,7 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
         }
       } else {
         // Other error statuses - show toast and restart scanner
-        const msg = data.error || data.detail || data.message || error.message || "Check-in failed";
+        const msg = data.error || data.detail || data.message || error.message || t('checkInFailed');
         console.log('Other error, showing toast:', msg);
         toast.error(msg);
         // Restart scanner for standard errors after a delay
@@ -254,7 +289,7 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
             ? 'bg-[var(--brand-purple)] text-[var(--brand-light)]' 
             : 'bg-[#4D4DA4] text-white'
         }`}>
-          <h3 className="font-bold text-lg font-heading">Scan Kiosk Code</h3>
+          <h3 className="font-bold text-lg font-heading">{t('scanKioskCode')}</h3>
         </div>
         
         <div className="p-4">
@@ -263,7 +298,7 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
               <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
                 darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'
               }`}></div>
-              <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}>Verifying check-in...</p>
+              <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}>{t('verifyingCheckIn')}</p>
             </div>
           ) : cameraError ? (
             <div className="h-64 flex flex-col items-center justify-center space-y-4 p-4 text-center">
@@ -288,10 +323,10 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
                       : 'bg-[#4D4DA4] hover:bg-[#6D6DD4] text-white'
                   }`}
                 >
-                  Try Again
+                  {t('tryAgain')}
                 </button>
                 <p className={`text-xs mt-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
-                  Tip: Make sure you're using Safari on iOS, and allow camera access when prompted.
+                  {t('cameraTip')}
                 </p>
               </div>
             </div>
@@ -307,10 +342,10 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
           isVisible={showClosedModal}
           onClose={handleCloseModal}
           onConfirm={handleCloseModal}
-          title="Club is Closed"
-          message={`We are currently closed. We open again: ${nextOpeningTime}`}
-          confirmButtonText="OK, Got it"
-          cancelButtonText="Close"
+          title={t('clubClosed')}
+          message={t('clubClosedMessage', { nextOpeningTime })}
+          confirmButtonText={t('okGotIt')}
+          cancelButtonText={t('close')}
           variant="warning"
           darkMode={darkMode}
         />
@@ -322,10 +357,10 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
           isVisible={showSuccessModal}
           onClose={handleSuccessModalClose}
           onConfirm={handleSuccessModalClose}
-          title="Welcome!"
-          message={`You have successfully checked in to ${clubName}. Enjoy your visit!`}
-          confirmButtonText="Great!"
-          cancelButtonText="Close"
+          title={t('welcome')}
+          message={t('checkInSuccess', { clubName })}
+          confirmButtonText={t('great')}
+          cancelButtonText={t('close')}
           variant="success"
           darkMode={darkMode}
         />
@@ -337,10 +372,10 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
           isVisible={showInvalidQRModal}
           onClose={handleInvalidQRModalClose}
           onConfirm={handleInvalidQRModalClose}
-          title="Invalid QR Code"
+          title={t('invalidQRCode')}
           message={invalidQRMessage}
-          confirmButtonText="OK, Try Again"
-          cancelButtonText="Close"
+          confirmButtonText={t('okTryAgain')}
+          cancelButtonText={t('close')}
           variant="danger"
           darkMode={darkMode}
         />

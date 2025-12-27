@@ -10,6 +10,7 @@ from .models import AnalyticsReport, AnalyticsPreference
 from organization.models import Club
 from groups.models import Group
 from custom_fields.models import CustomFieldDefinition
+from core.permissions import HasLicenseFeature
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,14 @@ class AnalyticsFilterOptionsView(APIView):
     Query params:
     - club_id: Optional. If provided, returns groups/custom_fields specific to that club.
     """
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the analytics feature.
+        """
+        permission_classes = [IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('analytics')())
+        return [permission() for permission in permission_classes]
 
     def get(self, request):
         user = request.user
@@ -129,7 +137,14 @@ class DashboardMetricsView(APIView):
     POST /api/analytics/dashboard/
     Calculates live metrics based on complex filters.
     """
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the analytics feature.
+        """
+        permission_classes = [IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('analytics')())
+        return [permission() for permission in permission_classes]
 
     def post(self, request):
         serializer = AnalyticsFilterSerializer(data=request.data)
@@ -180,7 +195,14 @@ class AnalyticsReportViewSet(viewsets.ModelViewSet):
     CRUD for saved reports.
     """
     serializer_class = AnalyticsReportSerializer
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the analytics feature.
+        """
+        permission_classes = [IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('analytics')())
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user
@@ -216,7 +238,14 @@ class AIReportGeneratorView(APIView):
         }
     }
     """
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the analytics feature.
+        """
+        permission_classes = [IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('analytics')())
+        return [permission() for permission in permission_classes]
     
     def post(self, request):
         # Validate request
@@ -326,7 +355,14 @@ class AIProvidersView(APIView):
     
     Returns list of available AI providers (those with configured API keys).
     """
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the analytics feature.
+        """
+        permission_classes = [IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('analytics')())
+        return [permission() for permission in permission_classes]
     
     def get(self, request):
         try:
@@ -357,7 +393,14 @@ class AnalyticsPreferencesView(APIView):
     PUT /api/analytics/preferences/
     Updates the user's analytics visibility preferences.
     """
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the analytics feature.
+        """
+        permission_classes = [IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('analytics')())
+        return [permission() for permission in permission_classes]
     
     def get(self, request):
         # Get or create preferences for the user

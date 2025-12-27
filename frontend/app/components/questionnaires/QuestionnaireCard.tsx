@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { questionnaireApi } from '../../../lib/questionnaire-api';
 
 interface QuestionnaireCardProps {
@@ -23,6 +24,8 @@ interface QuestionnaireCardProps {
 }
 
 export default function QuestionnaireCard({ questionnaire, onComplete, darkMode = false }: QuestionnaireCardProps) {
+  const t = useTranslations('questionnaires');
+  const tCommon = useTranslations('common');
   const [isExpanded, setIsExpanded] = useState(false);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -71,7 +74,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
       updateVisiblePath(existingAnswers, qData.questions);
     } catch (err) {
       console.error('Failed to load questionnaire:', err);
-      alert('Failed to load questionnaire. Please try again.');
+      alert(t('failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -207,10 +210,10 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
         }, 2000);
       }
       
-    } catch (err) {
-      console.error(err);
-      alert("Failed to submit. Please try again.");
-    } finally {
+      } catch (err) {
+        console.error(err);
+        alert(t('failedToSubmit'));
+      } finally {
       setSubmitting(false);
     }
   };
@@ -235,13 +238,13 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
               ✅
             </div>
             <div>
-              <h3 className={`text-lg font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Completed!</h3>
-              <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Thank you for your feedback</p>
+              <h3 className={`text-lg font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('completed')}</h3>
+              <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('thankYouFeedback')}</p>
             </div>
           </div>
           {rewardMessage && (
             <div className={`${darkMode ? 'bg-[var(--brand-third)]/20 border-[var(--brand-third)]/30' : 'bg-yellow-50 border-yellow-200'} border rounded-lg p-4 mb-4`}>
-              <h4 className={`font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-yellow-800'} mb-1`}>🎁 Reward Earned!</h4>
+              <h4 className={`font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-yellow-800'} mb-1`}>🎁 {t('rewardEarned')}</h4>
               <p className={`${darkMode ? 'text-[var(--brand-third)]/80' : 'text-yellow-700'} text-sm`}>{rewardMessage}</p>
             </div>
           )}
@@ -268,7 +271,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
           <div className="p-6">
             <div className="text-center py-8">
               <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${darkMode ? 'border-[var(--brand-primary)]' : 'border-blue-600'} mx-auto mb-4`}></div>
-              <p className={`${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Loading questionnaire...</p>
+              <p className={`${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('loadingQuestionnaire')}</p>
             </div>
           </div>
         </div>
@@ -289,12 +292,12 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
             </div>
           </div>
           <div className="p-6">
-            <p className={`${darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'}`}>Failed to load questionnaire.</p>
+            <p className={`${darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'}`}>{t('failedToLoad')}</p>
             <button
               onClick={() => setIsExpanded(false)}
               className={`mt-4 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'} hover:underline`}
             >
-              Go back
+              {t('goBack')}
             </button>
           </div>
         </div>
@@ -336,8 +339,8 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
           {/* Progress */}
           <div className="mt-4">
             <div className={`flex justify-between text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} mb-2`}>
-              <span>Question {currentStepIndex + 1} of {visibleQuestions.length}</span>
-              <span>{Math.round(progress)}% Completed</span>
+              <span>{t('question')} {currentStepIndex + 1} {t('of')} {visibleQuestions.length}</span>
+              <span>{Math.round(progress)}{t('completedPercent')}</span>
             </div>
             <div className={`h-2 ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-gray-100'} rounded-full overflow-hidden`}>
               <div className={`h-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-blue-600'} transition-all duration-300`} style={{ width: `${progress}%` }}></div>
@@ -370,7 +373,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
               disabled={currentStepIndex === 0}
               className={`flex-1 py-2 px-4 rounded-lg font-semibold ${darkMode ? 'text-[var(--brand-light)]/80 bg-[var(--dark-500)] hover:bg-[var(--dark-400)]' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
             >
-              Back
+              {t('back')}
             </button>
             <button
               onClick={handleNext}
@@ -378,8 +381,8 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
               className={`flex-1 py-2 px-4 rounded-lg font-semibold ${darkMode ? 'text-[var(--dark-900)] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80' : 'text-white bg-blue-600 hover:bg-blue-700'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
             >
               {currentStepIndex === visibleQuestions.length - 1 
-                ? (submitting ? 'Submitting...' : 'Submit') 
-                : 'Next'}
+                ? (submitting ? t('submitting') : t('submit')) 
+                : t('next')}
             </button>
           </div>
         </div>
@@ -415,13 +418,13 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
             <div>
               <h3 className={`text-lg font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{questionnaire.title}</h3>
               <span className={`text-xs font-semibold uppercase tracking-wide ${darkMode ? (isStarted ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-primary)]') : (isStarted ? 'text-orange-600' : 'text-blue-600')}`}>
-                {isStarted ? 'In Progress' : 'New Survey'}
+                {isStarted ? t('inProgress') : t('newSurvey')}
               </span>
             </div>
           </div>
           {questionnaire.has_rewards && (
             <div className={`${darkMode ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)]' : 'bg-yellow-100 text-yellow-800'} text-xs font-bold px-2 py-1 rounded-full`}>
-              🎁 Reward
+              🎁 {t('reward')}
             </div>
           )}
         </div>
@@ -437,7 +440,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
         {isStarted && totalCount > 0 && (
           <div className="mb-4">
             <div className={`flex items-center justify-between text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'} mb-1`}>
-              <span className="font-medium">Progress</span>
+              <span className="font-medium">{t('progress')}</span>
               <span className="font-bold">{progress}%</span>
             </div>
             <div className={`h-2 ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-gray-200'} rounded-full overflow-hidden`}>
@@ -447,7 +450,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
               ></div>
             </div>
             <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'} mt-1`}>
-              {answeredCount} of {totalCount} questions answered
+              {answeredCount} {t('of')} {totalCount} {t('questionsAnswered')}
             </div>
           </div>
         )}
@@ -456,15 +459,15 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
         <div className={`flex items-center justify-between mt-4 pt-4 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`}>
           <div className="flex flex-col">
             {isStarted && (
-              <span className={`text-xs ${darkMode ? 'text-[var(--brand-peach)]' : 'text-orange-600'} font-medium mb-1`}>In Progress</span>
+              <span className={`text-xs ${darkMode ? 'text-[var(--brand-peach)]' : 'text-orange-600'} font-medium mb-1`}>{t('inProgress')}</span>
             )}
             <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
               {expirationDate ? (
                 <span className={isExpiringSoon ? (darkMode ? 'text-[var(--brand-peach)] font-medium' : 'text-orange-600 font-medium') : ''}>
-                  {isExpiringSoon ? 'Expiring Soon' : `Expires: ${expirationDate.toLocaleDateString()}`}
+                  {isExpiringSoon ? t('expiringSoon') : `${t('expires')} ${expirationDate.toLocaleDateString()}`}
                 </span>
               ) : (
-                <span>No expiration</span>
+                <span>{t('noExpiration')}</span>
               )}
             </div>
           </div>
@@ -474,7 +477,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
               ? (isStarted ? 'bg-[var(--brand-peach)] hover:bg-[var(--brand-peach)]/80 text-[var(--dark-900)]' : 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-[var(--dark-900)]') 
               : (isStarted ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')} px-4 py-2 rounded-lg text-sm font-bold transition-colors`}
           >
-            {isStarted ? 'Continue Survey →' : 'Start Survey →'}
+            {isStarted ? t('continueSurvey') : t('startSurvey')}
           </button>
         </div>
       </div>
@@ -488,7 +491,7 @@ function QuestionInput({ question, value, onChange, darkMode = false }: { questi
     return (
       <textarea
         className={`w-full h-40 border ${darkMode ? 'border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)]' : 'border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500'} rounded-xl p-4 text-lg focus:ring-2 outline-none resize-none`}
-        placeholder="Type your answer here..."
+        placeholder={t('typeAnswer')}
         value={value?.text_answer || ''}
         onChange={(e) => onChange({ text_answer: e.target.value })}
       />
@@ -564,5 +567,5 @@ function QuestionInput({ question, value, onChange, darkMode = false }: { questi
     );
   }
 
-  return <div className={darkMode ? 'text-[var(--brand-light)]' : ''}>Unknown Question Type</div>;
+  return <div className={darkMode ? 'text-[var(--brand-light)]' : ''}>{t('unknownQuestionType')}</div>;
 }

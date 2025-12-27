@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import api from '../../../../lib/api';
@@ -24,6 +25,8 @@ export default function YouthBookingsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const t = useTranslations('bookings');
+  const tSidebar = useTranslations('sidebar');
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('upcoming');
@@ -137,7 +140,7 @@ export default function YouthBookingsPage() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
@@ -172,13 +175,13 @@ export default function YouthBookingsPage() {
                         <div className="flex items-center gap-2 sm:gap-3 mb-1">
                           <CalendarDays className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
                           <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
-                            My Bookings
+                            {t('myBookings')}
                           </h1>
                         </div>
                         <p className="text-[var(--brand-light)]/60 text-sm pl-8 sm:pl-10">
-                          {filter === 'upcoming' && 'Your upcoming reservations'}
-                          {filter === 'history' && 'Your past bookings'}
-                          {filter === 'cancelled' && 'Cancelled bookings'}
+                          {filter === 'upcoming' && t('upcomingReservations')}
+                          {filter === 'history' && t('pastBookings')}
+                          {filter === 'cancelled' && t('cancelledBookings')}
                         </p>
                       </div>
                       <Link 
@@ -186,7 +189,7 @@ export default function YouthBookingsPage() {
                         className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-4 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all text-sm"
                       >
                         <Plus className="w-4 h-4" />
-                        New Booking
+                        {t('newBooking')}
                       </Link>
                     </div>
 
@@ -202,7 +205,7 @@ export default function YouthBookingsPage() {
                           }`}
                         >
                           <Calendar className="w-3.5 h-3.5" />
-                          Upcoming
+                          {t('upcoming')}
                         </button>
                         
                         <button
@@ -214,7 +217,7 @@ export default function YouthBookingsPage() {
                           }`}
                         >
                           <Clock className="w-3.5 h-3.5" />
-                          History
+                          {t('history')}
                         </button>
                         
                         <button
@@ -226,7 +229,7 @@ export default function YouthBookingsPage() {
                           }`}
                         >
                           <XCircle className="w-3.5 h-3.5" />
-                          Cancelled
+                          {t('cancelled')}
                         </button>
                       </div>
                     </div>
@@ -240,13 +243,13 @@ export default function YouthBookingsPage() {
                         <div className="w-20 h-20 bg-[var(--brand-primary)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                           <Calendar className="w-10 h-10 text-[var(--brand-primary)]" />
                         </div>
-                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">No upcoming bookings</p>
-                        <p className="text-sm text-[var(--brand-light)]/60 mb-4">You don't have any upcoming reservations.</p>
+                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">{t('noUpcomingBookings')}</p>
+                        <p className="text-sm text-[var(--brand-light)]/60 mb-4">{t('noUpcomingBookingsMessage')}</p>
                         <Link 
                           href="/dashboard/youth/bookings/new"
                           className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all"
                         >
-                          Book a resource →
+                          {t('bookAResource')}
                         </Link>
                       </>
                     )}
@@ -255,8 +258,8 @@ export default function YouthBookingsPage() {
                         <div className="w-20 h-20 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
                           <Clock className="w-10 h-10 text-[var(--brand-light)]/40" />
                         </div>
-                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">No booking history</p>
-                        <p className="text-sm text-[var(--brand-light)]/60">You haven't completed any bookings yet.</p>
+                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">{t('noBookingHistory')}</p>
+                        <p className="text-sm text-[var(--brand-light)]/60">{t('noBookingHistoryMessage')}</p>
                       </>
                     )}
                     {filter === 'cancelled' && (
@@ -264,8 +267,8 @@ export default function YouthBookingsPage() {
                         <div className="w-20 h-20 bg-[var(--brand-red)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                           <XCircle className="w-10 h-10 text-[var(--brand-red)]" />
                         </div>
-                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">No cancelled bookings</p>
-                        <p className="text-sm text-[var(--brand-light)]/60">You haven't cancelled any bookings.</p>
+                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">{t('noCancelledBookings')}</p>
+                        <p className="text-sm text-[var(--brand-light)]/60">{t('noCancelledBookingsMessage')}</p>
                       </>
                     )}
                   </div>

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Post } from '../../../types/post';
 import { addPostReaction, updatePostReaction, removePostReaction, fetchPostComments, createPostComment, deletePostComment } from '../../../lib/api';
 import { getMediaUrl } from '../../utils';
@@ -193,6 +194,8 @@ const REACTION_COLORS: Record<ReactionType, string> = {
 export default function PostCard({ post, darkMode = false }: PostCardProps) {
     const { user } = useAuth();
     const router = useRouter();
+    const t = useTranslations('posts');
+    const tCommon = useTranslations('common');
     const [userReaction, setUserReaction] = useState<ReactionType | null>(post.user_reaction || null);
     const [reactionBreakdown, setReactionBreakdown] = useState(post.reaction_breakdown || {});
     const [totalReactions, setTotalReactions] = useState(post.reaction_count);
@@ -581,12 +584,12 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            Group
+                            {t('group')}
                         </span>
                     )}
                     {post.is_pinned && (
                         <span className={`${darkMode ? 'bg-[var(--brand-secondary)]/20 text-[var(--brand-purple)] border-[var(--brand-secondary)]/30' : 'bg-[#4D4DA4]/20 text-[#6D6DD4] border-[#4D4DA4]/30'} text-xs px-2 py-1 rounded-full font-bold border`}>
-                            Pinned
+                            {t('pinned')}
                         </span>
                     )}
                 </div>
@@ -608,7 +611,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                             onClick={() => setIsContentExpanded(!isContentExpanded)}
                             className={`mt-2 ${darkMode ? 'text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80' : 'text-[#6D6DD4] hover:text-[#7D7DE4]'} font-medium text-sm transition-colors`}
                         >
-                            {isContentExpanded ? 'Show less' : 'Show more'}
+                            {isContentExpanded ? t('showLess') : t('showMore')}
                         </button>
                     )}
                 </div>
@@ -629,7 +632,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                                 onClick={() => router.push(`/dashboard/youth/groups/${groupId}`)}
                                 className={`px-4 py-2 ${darkMode ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-[var(--dark-900)]' : 'bg-[#4D4DA4] hover:bg-[#5D5DB4] text-white shadow-lg shadow-[#4D4DA4]/20'} font-semibold rounded-lg transition-colors whitespace-nowrap flex-shrink-0`}
                             >
-                                View Group
+                                {t('viewGroup')}
                             </button>
                         )}
                     </div>
@@ -643,7 +646,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                         // Single image
                         <img 
                             src={getMediaUrl(post.images[0].image) || ''} 
-                            alt="Post content" 
+                            alt={t('postContent')}
                             className="w-full h-auto max-h-[500px] object-cover bg-black"
                         />
                     ) : post.images.length === 2 ? (
@@ -653,7 +656,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                                 <img
                                     key={img.id}
                                     src={getMediaUrl(img.image) || ''}
-                                    alt={`Post image ${idx + 1}`}
+                                    alt={`${t('postImage')} ${idx + 1}`}
                                     className="w-full h-[300px] object-cover bg-black cursor-pointer hover:opacity-90 transition-opacity"
                                     onClick={() => setCurrentImageIndex(idx)}
                                 />
@@ -795,7 +798,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                         className="absolute top-0 left-0 w-full h-full"
                         src={getYouTubeEmbedUrl(post.video_url)}
                         allowFullScreen 
-                        title="Post Video"
+                        title={t('postVideo')}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     />
                 </div>
@@ -942,7 +945,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                         <span className="font-medium">{commentCount}</span>
                     </button>
                 ) : (
-                    <div className={`flex items-center gap-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'} cursor-not-allowed ml-auto`} title="Comments are disabled for this post">
+                    <div className={`flex items-center gap-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'} cursor-not-allowed ml-auto`} title={t('commentsDisabled')}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
@@ -961,7 +964,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>
-                                Comments on this post are moderated and will be reviewed before being published.
+                                {t('commentsModerated')}
                             </p>
                         </div>
                     )}
@@ -973,7 +976,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <p className="text-sm text-emerald-400">
-                                Your comment has been submitted and is pending approval.
+                                {t('commentPendingApproval')}
                             </p>
                         </div>
                     )}
@@ -993,7 +996,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                                     ref={commentInputRef}
                                     value={newComment}
                                     onChange={(e) => setNewComment(e.target.value)}
-                                    placeholder="Write a comment..."
+                                    placeholder={t('writeComment')}
                                     className={`w-full px-3 py-2 border ${darkMode ? 'border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)]' : 'border-gray-200 bg-white text-gray-800 placeholder-gray-500 focus:ring-[#4D4DA4] focus:border-[#4D4DA4]'} rounded-lg resize-none focus:outline-none focus:ring-2`}
                                     rows={2}
                                     maxLength={1000}
@@ -1004,7 +1007,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                                         disabled={!newComment.trim() || submittingComment}
                                         className={`px-4 py-1.5 ${darkMode ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/80' : 'bg-[#4D4DA4] text-white hover:bg-[#5D5DB4] shadow-lg shadow-[#4D4DA4]/20'} rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
                                     >
-                                        {submittingComment ? 'Posting...' : 'Post'}
+                                        {submittingComment ? t('posting') : t('post')}
                                     </button>
                                 </div>
                             </div>
@@ -1013,9 +1016,9 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
 
                     {/* Comments List */}
                     {loadingComments ? (
-                        <div className={`text-center py-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'} text-sm`}>Loading comments...</div>
+                        <div className={`text-center py-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'} text-sm`}>{t('loadingComments')}</div>
                     ) : comments.length === 0 ? (
-                        <div className={`text-center py-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'} text-sm`}>No comments yet. Be the first to comment!</div>
+                        <div className={`text-center py-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'} text-sm`}>{t('noCommentsYet')}</div>
                     ) : (
                         <div className="space-y-4 max-h-[400px] overflow-y-auto">
                             {comments.map((comment) => (
@@ -1047,7 +1050,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                                                     <button
                                                         onClick={() => handleDeleteComment(comment.id, false)}
                                                         className={`${darkMode ? 'text-[var(--brand-light)]/50 hover:text-[var(--brand-red)]' : 'text-gray-600 hover:text-[#FF5485]'} transition-colors`}
-                                                        title="Delete comment"
+                                                        title={t('deleteComment')}
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1089,7 +1092,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                                                                         <button
                                                                             onClick={() => handleDeleteComment(reply.id, true)}
                                                                             className={`${darkMode ? 'text-[var(--brand-light)]/50 hover:text-[var(--brand-red)]' : 'text-gray-600 hover:text-[#FF5485]'} transition-colors`}
-                                                                            title="Delete reply"
+                                                                            title={t('deleteReply')}
                                                                         >
                                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1122,10 +1125,10 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                     }
                 }}
                 onConfirm={handleDeleteCommentConfirm}
-                title="Delete Comment"
-                message="Are you sure you want to delete this comment? This action cannot be undone."
-                confirmButtonText="Delete"
-                cancelButtonText="Cancel"
+                title={t('deleteComment')}
+                message={t('deleteCommentConfirm')}
+                confirmButtonText={tCommon('delete')}
+                cancelButtonText={tCommon('cancel')}
                 isLoading={isDeletingComment}
                 variant="danger"
             />

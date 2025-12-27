@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from django.http import QueryDict
+from django.utils import timezone
+from datetime import timedelta, datetime
 import json
 from .models import Country, Municipality, Club, RegularOpeningHour, ClubClosure, DateOverride, Interest
+from licensing.models import License, Plan
 
 # --- Opening Hours Serializers ---
 
@@ -47,6 +50,16 @@ class MunicipalitySerializer(serializers.ModelSerializer):
     country_name = serializers.CharField(source='country.name', read_only=True)
     country_code = serializers.CharField(source='country.country_code', read_only=True)
     
+    # --- WRITABLE FIELDS FOR SUPER ADMIN ---
+    plan_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    max_clubs = serializers.IntegerField(write_only=True, required=False)
+    license_end_date = serializers.DateField(write_only=True, required=False, allow_null=True)
+    license_is_active = serializers.BooleanField(write_only=True, required=False)
+    
+    # License-related fields for frontend feature gating
+    allowed_features = serializers.SerializerMethodField()
+    license_status = serializers.SerializerMethodField()
+    
     class Meta:
         model = Municipality
         fields = [
@@ -68,7 +81,140 @@ class MunicipalitySerializer(serializers.ModelSerializer):
             'allow_self_registration',
             'require_guardian_at_registration',
             'created_at',
+            # License fields
+            'allowed_features',
+            'license_status',
+            # Writable license fields (Super Admin)
+            'plan_id',
+            'max_clubs',
+            'license_end_date',
+            'license_is_active',
         ]
+    
+    def get_allowed_features(self, obj):
+        """Returns list of feature slugs the municipality has access to."""
+        if hasattr(obj, 'license') and obj.license.is_active:
+            return list(obj.license.get_active_features_slugs())
+        return []
+    
+    def get_license_status(self, obj):
+        """Returns details about the current subscription."""
+        if hasattr(obj, 'license'):
+            license = obj.license
+            return {
+                'plan_id': license.plan.id,
+                'plan_name': license.plan.name,
+                'plan_monthly_price': float(license.plan.monthly_price_sek),
+                'max_clubs': license.max_clubs,
+                'clubs_used': obj.clubs.count(),
+                'has_analytics': license.has_analytics,
+                'expires_at': license.end_date,
+                'is_active': license.is_active,
+            }
+        return None
+    
+    def create(self, validated_data):
+        """Create municipality and optionally assign a license."""
+        # Extract license data before creating municipality
+        plan_id = validated_data.pop('plan_id', None)
+        max_clubs_override = validated_data.pop('max_clubs', 3)
+        license_end_date = validated_data.pop('license_end_date', None)
+        license_is_active = validated_data.pop('license_is_active', True)
+        
+        # Create Municipality (signal will auto-create a default license)
+        municipality = super().create(validated_data)
+        
+        # If a specific plan_id was provided, update the license with the specified values
+        # The signal already created a default license, so we just update it
+        if plan_id:
+            try:
+                plan = Plan.objects.get(id=plan_id)
+                # Calculate end date
+                end_date = license_end_date if license_end_date else (timezone.now().date() + timedelta(days=365))
+                
+                # Get the license (signal should have created it)
+                # Use get_or_create as a safety fallback
+                license, created = License.objects.get_or_create(
+                    municipality=municipality,
+                    defaults={
+                        'plan': plan,
+                        'max_clubs': max_clubs_override,
+                        'start_date': timezone.now().date(),
+                        'end_date': end_date,
+                        'is_active': license_is_active,
+                        'auto_renew': True
+                    }
+                )
+                
+                if not created:
+                    # License existed (from signal), update it with the specified values
+                    license.plan = plan
+                    license.max_clubs = max_clubs_override
+                    license.end_date = end_date
+                    license.is_active = license_is_active
+                    license.save()
+                    
+            except Plan.DoesNotExist:
+                pass  # Signal already created a default license
+        
+        return municipality
+    
+    def update(self, instance, validated_data):
+        """Update municipality and optionally update license."""
+        # Extract license data
+        plan_id = validated_data.pop('plan_id', None)
+        max_clubs_override = validated_data.pop('max_clubs', None)
+        license_end_date = validated_data.pop('license_end_date', None)
+        license_is_active = validated_data.pop('license_is_active', None)
+        
+        # Update Municipality
+        instance = super().update(instance, validated_data)
+        
+        # Update License if any license field was provided
+        has_license_updates = any([
+            plan_id, 
+            max_clubs_override is not None, 
+            license_end_date, 
+            license_is_active is not None
+        ])
+        
+        if has_license_updates:
+            # Check if license exists using database query (more reliable)
+            license_exists = License.objects.filter(municipality=instance).exists()
+            
+            if license_exists:
+                # Update existing license
+                license = instance.license
+                if plan_id:
+                    try:
+                        plan = Plan.objects.get(id=plan_id)
+                        license.plan = plan
+                    except Plan.DoesNotExist:
+                        pass
+                if max_clubs_override is not None:
+                    license.max_clubs = max_clubs_override
+                if license_end_date:
+                    license.end_date = license_end_date
+                if license_is_active is not None:
+                    license.is_active = license_is_active
+                license.save()
+            elif plan_id:
+                # No license exists, create one if plan_id was provided
+                try:
+                    plan = Plan.objects.get(id=plan_id)
+                    License.objects.create(
+                        municipality=instance,
+                        plan=plan,
+                        max_clubs=max_clubs_override if max_clubs_override is not None else 3,
+                        start_date=timezone.now().date(),
+                        end_date=license_end_date if license_end_date else (timezone.now().date() + timedelta(days=365)),
+                        is_active=license_is_active if license_is_active is not None else True,
+                        auto_renew=True
+                    )
+                except Plan.DoesNotExist:
+                    pass
+        
+        return instance
 
 class ClubSerializer(serializers.ModelSerializer):
     # Include the related data nicely
@@ -138,6 +284,46 @@ class ClubManagementSerializer(serializers.ModelSerializer):
             data = data.copy()
             data['require_guardian_override'] = None
         return super().to_internal_value(data)
+    
+    def validate(self, data):
+        """
+        Validate club creation against license limits.
+        Only check on creation (not editing existing clubs).
+        """
+        # Only check on creation (not editing)
+        if not self.instance:
+            request = self.context.get('request')
+            municipality = data.get('municipality')
+            
+            # If municipality is provided in data, use it; otherwise try to get from user
+            if not municipality and request and request.user:
+                municipality = getattr(request.user, 'assigned_municipality', None)
+            
+            if municipality:
+                if hasattr(municipality, 'license'):
+                    license = municipality.license
+                    
+                    if not license.is_active:
+                        raise serializers.ValidationError(
+                            "The municipality's license is not active. Please contact support."
+                        )
+                    
+                    current_count = municipality.clubs.count()
+                    max_allowed = license.max_clubs
+                    
+                    if current_count >= max_allowed:
+                        raise serializers.ValidationError(
+                            f"Your license allows for a maximum of {max_allowed} clubs. "
+                            f"You currently have {current_count} clubs. "
+                            "Please upgrade your plan to add more."
+                        )
+                else:
+                    # Optional: Block creation if no license exists at all
+                    raise serializers.ValidationError(
+                        "No active license found for this municipality. Please contact support."
+                    )
+        
+        return data
 
     def create(self, validated_data):
         hours_json = validated_data.pop('regular_hours_data', None)

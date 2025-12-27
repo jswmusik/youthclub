@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import ProfileTabs from './ProfileTabs';
 import { getMediaUrl } from '@/app/utils';
 import ActivityFeed from './tabs/ActivityFeed';
@@ -10,7 +11,8 @@ import WalletGrid from './tabs/WalletGrid';
 import YouthGuardianManager from '../youth/guardians/YouthGuardianManager';
 import { inventoryApi } from '@/lib/inventory-api';
 import { Package, Clock, CheckCircle, AlertCircle, Building2, GraduationCap, Calendar, CalendarDays, Activity } from 'lucide-react';
-import { differenceInMinutes, parseISO } from 'date-fns';
+import { differenceInMinutes, parseISO, format, type Locale } from 'date-fns';
+import { enUS, sv, da, nb, fi } from 'date-fns/locale';
 
 const VALID_TABS = ['overview', 'clubs', 'guardians', 'wallet', 'timeline', 'inventory'];
 
@@ -128,6 +130,8 @@ export default function ProfileContent({ user, darkMode = false, isCheckedIn = f
 // --- SUB-COMPONENTS (We can move these to separate files later) ---
 
 function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: any, getAge: (d: string) => number | null, onSwitchTab: (t: string) => void, darkMode?: boolean }) {
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       
@@ -144,7 +148,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
             darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
           }`}>
             <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[#4D4DA4]'}`}></span>
-            About
+            {t('about')}
           </h3>
           
           <div className="space-y-4 text-sm">
@@ -154,7 +158,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                 : 'text-gray-700 bg-white border-gray-200 shadow-sm'
             }`}>
               <Building2 className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
-              <span>Member of <strong className={darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}>{user.preferred_club?.name || 'No Club'}</strong></span>
+              <span>{t('memberOf')} <strong className={darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}>{user.preferred_club?.name || t('noClub')}</strong></span>
             </div>
             
             {user.grade && (
@@ -164,7 +168,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                   : 'text-gray-700 bg-white border-gray-200 shadow-sm'
               }`}>
                 <GraduationCap className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
-                <span>Grade <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{user.grade}</strong></span>
+                <span>{t('grade')} <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{user.grade}</strong></span>
               </div>
             )}
 
@@ -175,7 +179,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                   : 'text-gray-700 bg-white border-gray-200 shadow-sm'
               }`}>
                 <Calendar className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
-                <span><strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{getAge(user.date_of_birth)}</strong> years old</span>
+                <span><strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{getAge(user.date_of_birth)}</strong> {t('yearsOld')}</span>
               </div>
             )}
             
@@ -185,7 +189,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                 : 'text-gray-700 bg-white border-gray-200 shadow-sm'
             }`}>
               <CalendarDays className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
-              <span>Joined <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{new Date(user.date_joined).toLocaleDateString()}</strong></span>
+              <span>{t('joined')} <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{new Date(user.date_joined).toLocaleDateString()}</strong></span>
             </div>
           </div>
         </div>
@@ -201,11 +205,11 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                 darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
               }`}>
                 <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[#FF5485]'}`}></span>
-                Interests
+                {t('interests')}
               </h3>
               <span className={`text-xs font-bold cursor-pointer transition-colors ${
                 darkMode ? 'text-[var(--brand-primary)] hover:text-[var(--brand-purple)]' : 'text-[#FF5485] hover:text-[#4D4DA4]'
-              }`}>Edit</span>
+              }`}>{tCommon('edit')}</span>
            </div>
            <div className="flex flex-wrap gap-2">
               {(!user.interests || user.interests.length === 0) && (
@@ -213,7 +217,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                   darkMode 
                     ? 'text-[var(--brand-light)]/50 bg-[var(--dark-700)] border-[var(--dark-500)]' 
                     : 'text-gray-600 bg-white border-gray-200'
-                }`}>No interests added yet.</p>
+                }`}>{t('noInterestsAdded')}</p>
               )}
               {/* Render interest chips - interests should now come as objects with name property */}
               {user.interests && user.interests.map((interest: any) => {
@@ -245,7 +249,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
               darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
             }`}>
               <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-third)]' : 'bg-[#10B981]'}`}></span>
-              My Guardians
+              {t('myGuardians')}
             </h3>
             {/* Manage Button */}
             <button 
@@ -254,7 +258,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                   darkMode ? 'text-[var(--brand-primary)] hover:text-[var(--brand-purple)]' : 'text-[#FF5485] hover:text-[#4D4DA4]'
                 }`}
             >
-                Manage
+                {t('manage')}
             </button>
           </div>
           
@@ -266,7 +270,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                    ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
                    : 'bg-white border-[#4D4DA4]/30'
                }`}>
-                  <p className={`text-sm mb-3 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>No guardians linked.</p>
+                  <p className={`text-sm mb-3 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('noGuardiansLinked')}</p>
                   <button 
                     onClick={() => onSwitchTab('guardians')}
                     className={`text-xs px-4 py-2 rounded-xl font-bold transition-all ${
@@ -275,7 +279,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                         : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md hover:shadow-lg'
                     }`}
                   >
-                    Add Guardian
+                    {t('addGuardian')}
                   </button>
                </div>
             ) : (
@@ -317,7 +321,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                      )}
                      <div>
                        <p className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`}>{fullName}</p>
-                       <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Parent/Guardian</p>
+                       <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('parentGuardian')}</p>
                      </div>
                    </div>
                  );
@@ -339,6 +343,17 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
 type TimeFilter = 'day' | 'week' | 'month' | 'forever';
 
 function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
+  const t = useTranslations('inventory');
+  const locale = useLocale();
+  const localeMap: Record<string, Locale> = {
+    en: enUS,
+    sv: sv,
+    da: da,
+    nb: nb,
+    fi: fi,
+  };
+  const dateLocale = localeMap[locale] || enUS;
+  
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]); // Store all sessions for filtering
   const [loading, setLoading] = useState(true);
@@ -525,7 +540,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
 
   const formatTimeLeft = (minutes: number | null | undefined, dueAt?: string): string => {
     if (minutes === null || minutes === undefined) return '';
-    if (minutes < 0) return 'Overdue';
+    if (minutes < 0) return t('overdue');
     if (minutes > 60) {
       const hours = Math.floor(minutes / 60);
       const mins = Math.floor(minutes % 60);
@@ -537,7 +552,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
         const now = new Date();
         const due = parseISO(dueAt);
         const secondsLeft = Math.floor((due.getTime() - now.getTime()) / 1000);
-        if (secondsLeft < 0) return 'Overdue';
+        if (secondsLeft < 0) return t('overdue');
         const mins = Math.floor(secondsLeft / 60);
         const secs = secondsLeft % 60;
         return `${mins}m ${secs}s`;
@@ -549,10 +564,10 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
   };
 
   const timeFilterOptions: { value: TimeFilter; label: string }[] = [
-    { value: 'day', label: 'Last Day' },
-    { value: 'week', label: 'Last Week' },
-    { value: 'month', label: 'Last Month' },
-    { value: 'forever', label: 'Forever' },
+    { value: 'day', label: t('lastDay') },
+    { value: 'week', label: t('lastWeek') },
+    { value: 'month', label: t('lastMonth') },
+    { value: 'forever', label: t('forever') },
   ];
 
   if (loading) {
@@ -602,7 +617,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
           ? 'bg-[var(--dark-800)] border-[var(--dark-500)] text-[var(--brand-light)]/60' 
           : 'bg-white border-gray-300 text-gray-600'
       }`}>
-        <p className="mb-2">You haven't borrowed any items yet.</p>
+        <p className="mb-2">{t('noItemsBorrowed')}</p>
       </div>
     );
   }
@@ -622,7 +637,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
               darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
             }`}>
               <Calendar className="w-5 h-5" />
-              Search by Date
+              {t('searchByDate')}
             </h3>
             <input
               type="date"
@@ -644,7 +659,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                     : 'text-[#4D4DA4] hover:text-[#FF5485] bg-white hover:bg-[#EBEBFE] border-[#4D4DA4]/20'
                 }`}
               >
-                Clear date filter
+                {t('clearDateFilter')}
               </button>
             )}
           </div>
@@ -655,7 +670,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
               darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
             }`}>
               <Clock className="w-5 h-5" />
-              Time Period
+              {t('timePeriod')}
             </h3>
             <div className="space-y-2">
               {timeFilterOptions.map((option) => (
@@ -685,7 +700,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
               <p className={`mt-3 text-xs italic p-2 rounded-lg ${
                 darkMode ? 'text-[var(--brand-light)]/40 bg-[var(--dark-700)]' : 'text-gray-500 bg-white/60'
               }`}>
-                Clear date filter to use time period
+                {t('clearDateFilterToUseTimePeriod')}
               </p>
             )}
           </div>
@@ -703,7 +718,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
             <Package className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 ${
               darkMode ? 'text-[var(--brand-light)]/30' : 'text-[#4D4DA4]/40'
             }`} />
-            <p className={`text-sm sm:text-base ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>No items found for the selected time period.</p>
+            <p className={`text-sm sm:text-base ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('noItemsFound')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -769,20 +784,15 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                           <div className={`flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-xs mb-2 ${
                             darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
                           }`}>
-                            <span>{borrowedDate.toLocaleDateString('en-US', { 
-                              weekday: 'short', 
-                              year: 'numeric', 
-                              month: 'short', 
-                              day: 'numeric' 
-                            })}</span>
+                            <span>{format(borrowedDate, 'EEE, MMM d, yyyy', { locale: dateLocale })}</span>
                             <span>•</span>
-                            <span>{borrowedDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span>{format(borrowedDate, 'HH:mm', { locale: dateLocale })}</span>
                             {session.is_guest && (
                               <>
                                 <span className="hidden sm:inline">•</span>
                                 <span className={`font-medium w-full sm:w-auto ${
                                   darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
-                                }`}>Guest Visit</span>
+                                }`}>{t('guestVisit')}</span>
                               </>
                             )}
                           </div>
@@ -800,10 +810,10 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                                 <Clock size={14} /> 
                                 {isOverdue ? (
                                   <span className="flex items-center gap-1">
-                                    <AlertCircle size={14} /> Overdue
+                                    <AlertCircle size={14} /> {t('overdue')}
                                   </span>
                                 ) : (
-                                  `${formatTimeLeft(timeLeft, session.due_at)} left`
+                                  `${formatTimeLeft(timeLeft, session.due_at)} ${t('left')}`
                                 )}
                               </span>
                             </div>
@@ -814,7 +824,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                             <div className="mt-2 sm:mt-3 flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-[var(--brand-red)] to-red-600 rounded-lg sm:rounded-xl w-fit">
                               <AlertCircle size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
                               <span className="text-white font-bold text-xs sm:text-sm uppercase tracking-wide">
-                                Return Now!
+                                {t('returnNow')}
                               </span>
                             </div>
                           )}
@@ -826,7 +836,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                                 ? 'text-[var(--brand-light)]/60 bg-[var(--dark-700)]' 
                                 : 'text-gray-600 bg-white/60'
                             }`}>
-                              <span className="font-semibold">Returned:</span> {returnedDate.toLocaleDateString()} at {returnedDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              <span className="font-semibold">{t('returned')}</span> {format(returnedDate, 'MMM d, yyyy', { locale: dateLocale })} {t('at')} {format(returnedDate, 'HH:mm', { locale: dateLocale })}
                             </div>
                           )}
                         </div>
@@ -842,7 +852,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                                 ? 'bg-[var(--brand-third)] text-[var(--dark-900)]'
                                 : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md'
                           }`}>
-                            {isOverdue ? 'Overdue' : 'Active'}
+                            {isOverdue ? t('overdue') : t('active')}
                           </span>
                         ) : (
                           <span className={`inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold ${
@@ -850,7 +860,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                               ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/70' 
                               : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 shadow-sm'
                           }`}>
-                            Returned
+                            {t('returnedStatus')}
                           </span>
                         )}
                       </div>
@@ -868,12 +878,12 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                     <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${
                       darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'
                     }`}></div>
-                    <span className="text-sm">Loading more items...</span>
+                    <span className="text-sm">{t('loadingMoreItems')}</span>
                   </div>
                 )}
                 {!hasMore && sessions.length > 0 && (
                   <p className={`text-sm text-center ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
-                    No more items to load
+                    {t('noMoreItemsToLoad')}
                   </p>
                 )}
               </div>

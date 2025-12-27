@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { NewsPageSkeleton } from '@/app/components/ui/Skeleton';
@@ -16,6 +17,8 @@ import { Search, X, Newspaper } from 'lucide-react';
 const MIN_LOADING_TIME = 400;
 
 export default function YouthNewsPage() {
+    const t = useTranslations('news');
+    const tNav = useTranslations('nav');
     const pathname = usePathname();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [heroArticle, setHeroArticle] = useState<NewsArticle | null>(null);
@@ -149,7 +152,7 @@ export default function YouthNewsPage() {
                 }`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tNav('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
@@ -182,11 +185,11 @@ export default function YouthNewsPage() {
                                         <div className="flex items-center gap-3 mb-1">
                                             <Newspaper className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
                                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--brand-light)] font-heading">
-                                                News & Updates
+                                                {t('title')}
                                             </h1>
                                         </div>
                                         <p className="text-[var(--brand-light)]/60 pl-9 sm:pl-10">
-                                            Latest stories from your club and municipality
+                                            {t('subtitle')}
                                         </p>
                                     </div>
 
@@ -198,7 +201,7 @@ export default function YouthNewsPage() {
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--brand-light)]/40" />
                                         <input 
                                             type="text" 
-                                            placeholder="Search news..." 
+                                            placeholder={t('searchPlaceholder')} 
                                             className="w-full pl-10 pr-4 py-3 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] outline-none transition-all"
                                             value={searchInput}
                                             onChange={(e) => setSearchInput(e.target.value)}
@@ -234,7 +237,7 @@ export default function YouthNewsPage() {
                                                 : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
                                         }`}
                                     >
-                                        All Stories
+                                        {t('allStories')}
                                     </button>
                                     {tags.map(tag => (
                                         <button
@@ -259,7 +262,7 @@ export default function YouthNewsPage() {
                                             className="text-sm text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 font-medium flex items-center gap-1"
                                         >
                                             <X className="w-4 h-4" />
-                                            Clear all filters
+                                            {t('clearAllFilters')}
                                         </button>
                                     </div>
                                 )}
@@ -283,13 +286,13 @@ export default function YouthNewsPage() {
                                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--dark-700)] mb-4">
                                                 <Newspaper className="w-8 h-8 text-[var(--brand-light)]/40" />
                                             </div>
-                                            <p className="text-[var(--brand-light)]/60 text-lg">No news articles found.</p>
+                                            <p className="text-[var(--brand-light)]/60 text-lg">{t('noArticlesFound')}</p>
                                             {hasActiveFilters && (
                                                 <button
                                                     onClick={clearFilters}
                                                     className="mt-4 text-[var(--brand-primary)] hover:underline"
                                                 >
-                                                    Clear filters and try again
+                                                    {t('clearFiltersAndTryAgain')}
                                                 </button>
                                             )}
                                         </div>
@@ -306,10 +309,10 @@ export default function YouthNewsPage() {
                                                 {loadingMore ? (
                                                     <span className="flex items-center gap-2">
                                                         <div className="w-4 h-4 border-2 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin"></div>
-                                                        Loading...
+                                                        {t('loading')}
                                                     </span>
                                                 ) : (
-                                                    'Load More News'
+                                                    t('loadMoreNews')
                                                 )}
                                             </button>
                                         </div>

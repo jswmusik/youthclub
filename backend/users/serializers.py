@@ -106,6 +106,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
     # This sends the full club objects, not just IDs, so we can show them in the profile
     followed_clubs = ClubSerializer(many=True, read_only=True)
     followed_clubs_ids = serializers.SerializerMethodField()
+    
+    # --- LICENSING FIELD ---
+    allowed_features = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -125,9 +128,42 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'my_rewards',
             'notification_email_enabled',
             'followed_clubs',
-            'followed_clubs_ids'
+            'followed_clubs_ids',
+            # --- LICENSING ---
+            'allowed_features'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
+
+    def get_allowed_features(self, obj):
+        """
+        Determines what features this user can access based on their
+        associated municipality's license.
+        """
+        municipality = None
+
+        # 1. If Admin/Staff, use assigned municipality
+        if obj.assigned_municipality:
+            municipality = obj.assigned_municipality
+        elif obj.assigned_club and obj.assigned_club.municipality:
+            municipality = obj.assigned_club.municipality
+            
+        # 2. If Youth, use preferred club's municipality
+        elif obj.role == 'YOUTH_MEMBER' and obj.preferred_club:
+            municipality = obj.preferred_club.municipality
+            
+        # 3. If Guardian (Edge case: Guardians might not belong to one muni)
+        # For now, we return empty or check their first youth child's muni if critical.
+        # But generally, Guardians access features via the context of the child they are viewing.
+        # However, for the main sidebar "Messages", we might check the first linked youth.
+        elif obj.role == 'GUARDIAN':
+            first_link = obj.youth_links.first()
+            if first_link and first_link.youth.preferred_club:
+                municipality = first_link.youth.preferred_club.municipality
+
+        if municipality and hasattr(municipality, 'license') and municipality.license.is_active:
+            return list(municipality.license.get_active_features_slugs())
+        
+        return []
 
     def get_followed_clubs_ids(self, obj):
         return list(obj.followed_clubs.values_list('id', flat=True))

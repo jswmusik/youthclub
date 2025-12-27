@@ -21,6 +21,14 @@ interface User {
   verification_status: string; // Useful for the badge
   // ------------------
 
+  // --- I18N FIELD ---
+  preferred_language?: string; // User's preferred language code (e.g., 'en', 'sv', 'ar')
+  // ------------------
+
+  // --- LICENSING FIELD ---
+  allowed_features?: string[]; // List of feature slugs like ['events', 'messenger']
+  // -----------------------
+
   assigned_municipality?: number | { id: number } | null;
   assigned_club?: number | { id: number } | null;
   // Type it loosely or strictly depending on your API response depth

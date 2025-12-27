@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { format } from 'date-fns';
+import { enUS, sv, da, nb, fi, type Locale } from 'date-fns/locale';
 
 import { fetchUserActivityFeed, visits, rewards } from '@/lib/api';
 import api from '@/lib/api';
@@ -9,6 +12,18 @@ import PostCard from '@/app/components/posts/PostCard';
 import { Post } from '@/types/post';
 import { getMediaUrl } from '@/app/utils';
 import { Users, Package, CheckCircle2, ClipboardCheck, Calendar, Gift, ChevronRight, QrCode, Activity, Clock } from 'lucide-react';
+
+// Map locale codes to date-fns locales
+const localeMap: Record<string, Locale> = {
+  en: enUS,
+  sv: sv,
+  da: da,
+  nb: nb,
+  fi: fi,
+  ar: enUS,
+  so: enUS,
+  prs: enUS,
+};
 
 
 type TimeFilter = 'day' | 'week' | 'month' | 'forever';
@@ -59,6 +74,9 @@ type TimelineItem = {
 
 export default function ActivityFeed({ showTimeFilter = true, darkMode = false }: ActivityFeedProps) {
   const router = useRouter();
+  const t = useTranslations('activity');
+  const locale = useLocale();
+  const dateLocale = localeMap[locale] || enUS;
   const [posts, setPosts] = useState<Post[]>([]);
   const [visitsData, setVisitsData] = useState<Visit[]>([]);
   const [rewardRedemptions, setRewardRedemptions] = useState<RewardRedemption[]>([]);
@@ -158,7 +176,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
       setHasMore(!!postsRes.data.next);
     } catch (err) {
       console.error("Failed to load activity feed", err);
-      setError("Could not load activity history.");
+      setError(t('couldNotLoadHistory'));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -256,10 +274,10 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
   }, [posts, visitsData, rewardRedemptions, bookings]);
 
   const timeFilterOptions: { value: TimeFilter; label: string }[] = [
-    { value: 'day', label: 'Last Day' },
-    { value: 'week', label: 'Last Week' },
-    { value: 'month', label: 'Last Month' },
-    { value: 'forever', label: 'Forever' },
+    { value: 'day', label: t('lastDay') },
+    { value: 'week', label: t('lastWeek') },
+    { value: 'month', label: t('lastMonth') },
+    { value: 'forever', label: t('forever') },
   ];
 
   if (loading) {
@@ -336,7 +354,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
               darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
             }`}>
               <Clock className="w-5 h-5" />
-              Time Period
+              {t('timePeriod')}
             </h3>
             <div className="space-y-2">
               {timeFilterOptions.map((option) => (
@@ -369,8 +387,8 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
               ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
               : 'bg-white shadow-sm border-gray-200'
           }`}>
-            <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}>No recent activity found.</p>
-            <p className={`text-sm mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>Join a club to see posts here!</p>
+            <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}>{t('noRecentActivity')}</p>
+            <p className={`text-sm mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>{t('joinClubToSeePosts')}</p>
           </div>
         ) : (
           <div>
@@ -378,16 +396,16 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
               darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
             }`}>
               <Activity className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
-              Latest Activity
+              {t('latestActivity')}
             </h3>
             {timelineItems.map((item) => {
               if (item.type === 'group_join') {
                 const groupPost = item.data as Post;
                 const groupName = groupPost.title.replace('Joined ', '');
                 const joinDate = item.date;
-                const weekday = joinDate.toLocaleDateString('en-US', { weekday: 'long' });
-                const dateStr = joinDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                const timeStr = joinDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const weekday = format(joinDate, 'EEEE', { locale: dateLocale });
+                const dateStr = format(joinDate, 'MMMM d, yyyy', { locale: dateLocale });
+                const timeStr = format(joinDate, 'HH:mm');
                 
                 const groupImage = groupPost.images && groupPost.images.length > 0 
                   ? groupPost.images[0].image 
@@ -429,11 +447,11 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                 ? 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30'
                                 : 'bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30'
                             }`}>
-                              Joined
+                              {t('joined')}
                             </span>
                           </div>
                           <p className={`text-sm mb-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                            {weekday}, {dateStr} at {timeStr}
+                            {weekday}, {dateStr} {t('at')} {timeStr}
                           </p>
                           {groupUrl && (
                             <button
@@ -444,7 +462,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                   : 'text-[#6D6DD4] hover:text-[#FF5485]'
                               }`}
                             >
-                              View Group
+                              {t('viewGroup')}
                               <ChevronRight className="w-4 h-4" />
                             </button>
                           )}
@@ -473,12 +491,12 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                 if (isComplete && inventoryPost.content) {
                   const returnMatch = inventoryPost.content.match(/Returned to[^<]*on ([^<]+) at ([^<]+)/);
                   if (returnMatch) {
-                    returnDateStr = `${returnMatch[1]} at ${returnMatch[2]}`;
+                    returnDateStr = `${returnMatch[1]} ${t('at')} ${returnMatch[2]}`;
                   }
                 }
-                const weekday = actionDate.toLocaleDateString('en-US', { weekday: 'long' });
-                const dateStr = actionDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                const timeStr = actionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const weekday = format(actionDate, 'EEEE', { locale: dateLocale });
+                const dateStr = format(actionDate, 'MMMM d, yyyy', { locale: dateLocale });
+                const timeStr = format(actionDate, 'HH:mm');
                 
                 const itemImage = inventoryPost.images && inventoryPost.images.length > 0 
                   ? inventoryPost.images[0].image 
@@ -534,14 +552,14 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                     ? 'bg-[var(--brand-sky)]/20 text-[var(--brand-sky)] border border-[var(--brand-sky)]/30'
                                     : 'bg-[#6D6DD4]/20 text-[#6D6DD4] border border-[#6D6DD4]/30'
                                 }`}>
-                                  Borrowed
+                                  {t('borrowed')}
                                 </span>
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                   darkMode 
                                     ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30'
                                     : 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30'
                                 }`}>
-                                  Returned
+                                  {t('returned')}
                                 </span>
                               </>
                             ) : (
@@ -550,22 +568,22 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                   ? (darkMode ? 'bg-[var(--brand-sky)]/20 text-[var(--brand-sky)] border border-[var(--brand-sky)]/30' : 'bg-[#6D6DD4]/20 text-[#6D6DD4] border border-[#6D6DD4]/30')
                                   : (darkMode ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30' : 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30')
                               }`}>
-                                {isBorrow ? 'Borrowed' : 'Returned'}
+                                {isBorrow ? t('borrowed') : t('returned')}
                               </span>
                             )}
                           </div>
                           {isComplete && returnDateStr ? (
                             <div className="space-y-1">
                               <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                                <span className={`font-medium ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>Borrowed:</span> {weekday}, {dateStr} at {timeStr}
+                                <span className={`font-medium ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>{t('borrowed')}:</span> {weekday}, {dateStr} {t('at')} {timeStr}
                               </p>
                               <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                                <span className={`font-medium ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>Returned:</span> {returnDateStr}
+                                <span className={`font-medium ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>{t('returned')}:</span> {returnDateStr}
                               </p>
                             </div>
                           ) : (
                             <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                              {weekday}, {dateStr} at {timeStr}
+                              {weekday}, {dateStr} {t('at')} {timeStr}
                             </p>
                           )}
                         </div>
@@ -595,9 +613,9 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
               } else if (item.type === 'questionnaire_complete') {
                 const questionnairePost = item.data as Post;
                 const questionnaireDate = new Date(questionnairePost.published_at || questionnairePost.created_at);
-                const weekday = questionnaireDate.toLocaleDateString('en-US', { weekday: 'long' });
-                const dateStr = questionnaireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                const timeStr = questionnaireDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const weekday = format(questionnaireDate, 'EEEE', { locale: dateLocale });
+                const dateStr = format(questionnaireDate, 'MMMM d, yyyy', { locale: dateLocale });
+                const timeStr = format(questionnaireDate, 'HH:mm');
                 
                 const questionnaireTitle = questionnairePost.title.replace('Completed Questionnaire: ', '');
                 
@@ -624,7 +642,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                 ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30'
                                 : 'bg-[#4D4DA4]/20 text-[#6D6DD4] border border-[#4D4DA4]/30'
                             }`}>
-                              Completed
+                              {t('completed')}
                             </span>
                           </div>
                           <p className={`text-sm mb-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
@@ -662,11 +680,11 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
               } else if (item.type === 'booking_confirmed') {
                 const booking = item.data as Booking;
                 const bookingDate = new Date(booking.start_time);
-                const weekday = bookingDate.toLocaleDateString('en-US', { weekday: 'long' });
-                const dateStr = bookingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                const startTimeStr = bookingDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const weekday = format(bookingDate, 'EEEE', { locale: dateLocale });
+                const dateStr = format(bookingDate, 'MMMM d, yyyy', { locale: dateLocale });
+                const startTimeStr = format(bookingDate, 'HH:mm');
                 const endDate = new Date(booking.end_time);
-                const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const endTimeStr = format(endDate, 'HH:mm');
                 
                 return (
                   <div key={`booking-${booking.id}`} className="mb-4">
@@ -688,7 +706,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                 ? 'bg-[var(--brand-sky)]/20 text-[var(--brand-sky)] border border-[var(--brand-sky)]/30'
                                 : 'bg-[#0EA5E9]/20 text-[#0EA5E9] border border-[#0EA5E9]/30'
                             }`}>
-                              Confirmed
+                              {t('confirmed')}
                             </span>
                           </div>
                           {booking.club_name && (
@@ -710,7 +728,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                 : 'text-[#0EA5E9] hover:text-[#0284C7]'
                             }`}
                           >
-                            View Booking
+                            {t('viewBooking')}
                             <ChevronRight className="w-4 h-4" />
                           </button>
                         </div>
@@ -729,9 +747,9 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
               } else if (item.type === 'reward_redemption') {
                 const redemption = item.data as RewardRedemption;
                 const redemptionDate = new Date(redemption.redeemed_at);
-                const weekday = redemptionDate.toLocaleDateString('en-US', { weekday: 'long' });
-                const dateStr = redemptionDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                const timeStr = redemptionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const weekday = format(redemptionDate, 'EEEE', { locale: dateLocale });
+                const dateStr = format(redemptionDate, 'MMMM d, yyyy', { locale: dateLocale });
+                const timeStr = format(redemptionDate, 'HH:mm');
                 
                 return (
                   <div key={`reward-${redemption.id}`} className="mb-4">
@@ -766,7 +784,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                 ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30'
                                 : 'bg-[#FF5485]/20 text-[#FF5485] border border-[#FF5485]/30'
                             }`}>
-                              Redeemed
+                              {t('redeemed')}
                             </span>
                           </div>
                           {redemption.reward_description && (
@@ -776,11 +794,11 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                           )}
                           {redemption.sponsor && (
                             <p className={`text-xs mb-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
-                              Sponsored by: {redemption.sponsor}
+                              {t('sponsoredBy')} {redemption.sponsor}
                             </p>
                           )}
                           <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                            {weekday}, {dateStr} at {timeStr}
+                            {weekday}, {dateStr} {t('at')} {timeStr}
                           </p>
                         </div>
                         
@@ -798,9 +816,9 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
               } else {
                 const visit = item.data as Visit;
                 const visitDate = new Date(visit.check_in_at);
-                const weekday = visitDate.toLocaleDateString('en-US', { weekday: 'long' });
-                const dateStr = visitDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                const timeStr = visitDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const weekday = format(visitDate, 'EEEE', { locale: dateLocale });
+                const dateStr = format(visitDate, 'MMMM d, yyyy', { locale: dateLocale });
+                const timeStr = format(visitDate, 'HH:mm');
                 
                 return (
                   <div key={`visit-${visit.id}`} className="mb-4">
@@ -831,21 +849,21 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                         
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{visit.club_name || 'Club Visit'}</h4>
+                            <h4 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{visit.club_name || t('clubVisit')}</h4>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                               darkMode 
                                 ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30'
                                 : 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30'
                             }`}>
-                              Check-in
+                              {t('checkIn')}
                             </span>
                           </div>
                           <p className={`text-sm mb-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                            {weekday}, {dateStr} at {timeStr}
+                            {weekday}, {dateStr} {t('at')} {timeStr}
                           </p>
                           {visit.check_out_at && (
                             <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
-                              Checked out: {new Date(visit.check_out_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                              {t('checkedOut')} {format(new Date(visit.check_out_at), 'HH:mm')}
                             </p>
                           )}
                           {!visit.check_out_at && (
@@ -854,7 +872,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                 ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30'
                                 : 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30'
                             }`}>
-                              Active Now
+                              {t('activeNow')}
                             </span>
                           )}
                         </div>
@@ -880,12 +898,12 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                   <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${
                     darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'
                   }`}></div>
-                  <span className="text-sm">Loading more posts...</span>
+                  <span className="text-sm">{t('loadingMorePosts')}</span>
                 </div>
               )}
               {!hasMore && timelineItems.length > 0 && (
                 <div className={`text-center pt-4 pb-8 text-sm ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>
-                  End of timeline
+                  {t('endOfTimeline')}
                 </div>
               )}
             </div>

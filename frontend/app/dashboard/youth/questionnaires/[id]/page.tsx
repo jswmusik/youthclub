@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/context/AuthContext';
 import Cookies from 'js-cookie';
 import NavBar from '@/app/components/NavBar';
@@ -14,6 +15,7 @@ export default function QuestionnaireRunnerPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const tSidebar = useTranslations('sidebar');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function QuestionnaireRunnerPage() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"

@@ -3,11 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
+import { format, type Locale } from 'date-fns';
+import { enUS, sv, da, nb, fi } from 'date-fns/locale';
 
 import api from '@/lib/api';
 import { Event } from '@/types/event';
 import { CheckCircle, AlertTriangle, Clock, X, Calendar, ExternalLink, MapPin, Send } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
+import Toast from '@/app/components/Toast';
 
 
 interface ModalProps {
@@ -30,9 +34,20 @@ function stripInlineColors(html: string): string {
 
 export default function EventRegistrationModal({ event, isOpen, onClose, onSuccess, darkMode = false }: ModalProps) {
     const router = useRouter();
+    const t = useTranslations('events');
+    const locale = useLocale();
+    const localeMap: Record<string, Locale> = {
+        en: enUS,
+        sv: sv,
+        da: da,
+        nb: nb,
+        fi: fi,
+    };
+    const dateLocale = localeMap[locale] || enUS;
     const [step, setStep] = useState<'CONFIRM' | 'PROCESSING' | 'RESULT' | 'CANCELLING'>('CONFIRM');
     const [result, setResult] = useState<{ status: string; message?: string } | null>(null);
     const [error, setError] = useState('');
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({ message: '', type: 'success', isVisible: false });
 
     if (!isOpen) return null;
 
@@ -57,21 +72,26 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
             
             // Determine user feedback based on status
             if (reg.status === 'APPROVED') {
-                setResult({ status: 'APPROVED', message: "You have secured a seat! 🎉" });
+                setResult({ status: 'APPROVED', message: t('youHaveSecuredSeat') });
+                setToast({ message: t('youHaveSecuredSeat'), type: 'success', isVisible: true });
             } else if (reg.status === 'WAITLIST') {
-                setResult({ status: 'WAITLIST', message: "The event is full. You've been added to the waitlist." });
+                setResult({ status: 'WAITLIST', message: t('eventFullAddedToWaitlist') });
+                setToast({ message: t('eventFullAddedToWaitlist'), type: 'info', isVisible: true });
             } else if (reg.status === 'PENDING_GUARDIAN') {
-                setResult({ status: 'PENDING', message: "Registration received! We've sent a request to your guardian for approval." });
+                setResult({ status: 'PENDING', message: t('registrationReceivedGuardian') });
+                setToast({ message: t('registrationReceivedGuardian'), type: 'success', isVisible: true });
             } else if (reg.status === 'PENDING_ADMIN') {
-                setResult({ status: 'PENDING', message: "Application received. An admin will review it shortly." });
+                setResult({ status: 'PENDING', message: t('applicationReceivedAdmin') });
+                setToast({ message: t('applicationReceivedAdmin'), type: 'success', isVisible: true });
             }
             
             setStep('RESULT');
             onSuccess(); // Refresh parent data in background
         } catch (err: any) {
             console.error('Registration error:', err);
-            const errorMessage = err.response?.data?.error || err.response?.data?.detail || err.message || "Registration failed. Please try again.";
+            const errorMessage = err.response?.data?.error || err.response?.data?.detail || err.message || t('registrationFailed');
             setError(errorMessage);
+            setToast({ message: errorMessage, type: 'error', isVisible: true });
             setStep('CONFIRM');
         }
     };
@@ -82,13 +102,15 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
         
         try {
             await api.post(`/events/${event.id}/cancel/`);
-            setResult({ status: 'CANCELLED', message: "You have successfully cancelled your registration." });
+            setResult({ status: 'CANCELLED', message: t('successfullyCancelled') });
+            setToast({ message: t('successfullyCancelled'), type: 'success', isVisible: true });
             setStep('RESULT');
             onSuccess(); // Refresh parent data in background
         } catch (err: any) {
             console.error('Cancellation error:', err);
-            const errorMessage = err.response?.data?.error || err.response?.data?.detail || err.message || "Failed to cancel registration. Please try again.";
+            const errorMessage = err.response?.data?.error || err.response?.data?.detail || err.message || t('failedToCancel');
             setError(errorMessage);
+            setToast({ message: errorMessage, type: 'error', isVisible: true });
             setStep('CONFIRM');
         }
     };
@@ -110,10 +132,10 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                     </div>
                     
                     <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-2 font-heading`}>
-                        {result.status === 'APPROVED' ? 'You are going!' : 
-                         result.status === 'WAITLIST' ? 'Waitlist Joined' : 
-                         result.status === 'CANCELLED' ? 'Cancelled' :
-                         'Request Sent'}
+                        {result.status === 'APPROVED' ? t('youAreGoing') : 
+                         result.status === 'WAITLIST' ? t('waitlistJoined') : 
+                         result.status === 'CANCELLED' ? t('cancelled') :
+                         t('requestSent')}
                     </h3>
                     
                     <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'} mb-4`}>{result.message}</p>
@@ -123,14 +145,14 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                         <h4 className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading line-clamp-1`}>{event.title}</h4>
                         <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
                             <Calendar className="w-3 h-3" />
-                            {new Date(event.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            {format(new Date(event.start_date), 'EEE, MMM d', { locale: dateLocale })}
                         </div>
                         <Link 
                             href={`/dashboard/youth/events/${event.id}`}
                             onClick={onClose}
                             className="inline-flex items-center gap-1 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-bold mt-2 transition-colors"
                         >
-                            View details
+                            {t('viewDetails')}
                             <ExternalLink className="w-3 h-3" />
                         </Link>
                     </div>
@@ -139,7 +161,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                         onClick={onClose}
                         className="w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-2.5 text-sm rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all"
                     >
-                        Close
+                        {t('close')}
                     </button>
                 </div>
             </div>
@@ -152,7 +174,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
                 <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>You're Confirmed!</h3>
+                        <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>{t('youreConfirmed')}</h3>
                         <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                     </div>
 
@@ -162,7 +184,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                             <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
                             <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
                                 <Calendar className="w-3.5 h-3.5" />
-                                {new Date(event.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {format(new Date(event.start_date), 'EEE, MMM d, HH:mm', { locale: dateLocale })}
                             </div>
                             {event.location_name && (
                                 <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
@@ -175,14 +197,14 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                                 onClick={onClose}
                                 className="inline-flex items-center gap-1 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-bold mt-2 transition-colors"
                             >
-                                View full details
+                                {t('viewFullDetails')}
                                 <ExternalLink className="w-3 h-3" />
                             </Link>
                         </div>
 
                         <div className={`${darkMode ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' : 'bg-emerald-50 border-emerald-200'} border p-3 rounded-xl flex items-center gap-3`}>
                             <CheckCircle className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-600'} shrink-0`} />
-                            <p className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-700'}`}>You have a confirmed seat!</p>
+                            <p className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-700'}`}>{t('youHaveConfirmedSeat')}</p>
                         </div>
 
                         {error && <div className={`text-xs p-2 rounded ${darkMode ? 'text-[var(--brand-red)] bg-[var(--brand-red)]/10' : 'text-red-600 bg-red-50'}`}>{error}</div>}
@@ -193,7 +215,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                             onClick={onClose} 
                             className={`flex-1 py-2.5 text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}
                         >
-                            Close
+                            {t('close')}
                         </button>
                         <button 
                             onClick={handleCancelRegistration} 
@@ -203,7 +225,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                             {step === 'CANCELLING' ? (
                                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                                'Cancel'
+                                t('cancel')
                             )}
                         </button>
                     </div>
@@ -230,13 +252,13 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
             };
 
             if (userStatus === 'PENDING_GUARDIAN') {
-                return { ...baseColors, title: 'Waiting for Guardian Approval', message: 'Your registration has been submitted and is waiting for your guardian\'s approval. Once approved, you\'ll be confirmed for this event.', icon: AlertTriangle };
+                return { ...baseColors, title: t('waitingForGuardianApproval'), message: t('waitingForGuardianMessage'), icon: AlertTriangle };
             } else if (userStatus === 'PENDING_ADMIN') {
-                return { ...baseColors, title: 'Waiting for Admin Approval', message: 'Your registration has been submitted and is waiting for admin review. You\'ll be notified once a decision is made.', icon: Clock };
+                return { ...baseColors, title: t('waitingForAdminApproval'), message: t('waitingForAdminMessage'), icon: Clock };
             } else if (userStatus === 'WAITLIST') {
-                return { ...baseColors, title: 'You\'re on the Waitlist', message: 'The event is currently full, but you\'ve been added to the waitlist. If a spot becomes available, you\'ll be automatically confirmed.', icon: Clock };
+                return { ...baseColors, title: t('youreOnWaitlist'), message: t('waitlistMessage'), icon: Clock };
             }
-            return { ...baseColors, title: 'Registration Pending', message: 'Your registration is being processed.', icon: Clock };
+            return { ...baseColors, title: t('registrationPending'), message: t('registrationBeingProcessed'), icon: Clock };
         };
 
         const pendingInfo = getPendingMessage();
@@ -246,7 +268,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
                 <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>Registration Status</h3>
+                        <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>{t('registrationStatus')}</h3>
                         <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                     </div>
 
@@ -256,7 +278,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                             <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
                             <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
                                 <Calendar className="w-3.5 h-3.5" />
-                                {new Date(event.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {format(new Date(event.start_date), 'EEE, MMM d, HH:mm', { locale: dateLocale })}
                             </div>
                             {event.location_name && (
                                 <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
@@ -269,7 +291,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                                 onClick={onClose}
                                 className="inline-flex items-center gap-1 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-bold mt-2 transition-colors"
                             >
-                                View full details
+                                {t('viewFullDetails')}
                                 <ExternalLink className="w-3 h-3" />
                             </Link>
                         </div>
@@ -290,7 +312,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                             onClick={onClose} 
                             className={`flex-1 py-2.5 text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}
                         >
-                            Close
+                            {t('close')}
                         </button>
                         <button 
                             onClick={handleCancelRegistration} 
@@ -300,7 +322,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                             {step === 'CANCELLING' ? (
                                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                                'Cancel'
+                                t('cancel')
                             )}
                         </button>
                     </div>
@@ -314,7 +336,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
             <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>Confirm Registration</h3>
+                    <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>{t('confirmRegistration')}</h3>
                     <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                 </div>
 
@@ -324,7 +346,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                         <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
                         <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
                             <Calendar className="w-3.5 h-3.5" />
-                            {new Date(event.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            {format(new Date(event.start_date), 'EEE, MMM d, HH:mm', { locale: dateLocale })}
                         </div>
                         {event.location_name && (
                             <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
@@ -337,7 +359,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                             onClick={onClose}
                             className="inline-flex items-center gap-1 text-xs text-[var(--brand-primary)] hover:text-[var(--brand-purple)] font-bold mt-2 transition-colors"
                         >
-                            View full details
+                            {t('viewFullDetails')}
                             <ExternalLink className="w-3 h-3" />
                         </Link>
                     </div>
@@ -346,7 +368,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                     {isRegistrationClosed && (
                         <div className="bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30 p-2.5 rounded-lg flex gap-2 text-xs text-[var(--brand-red)]">
                             <AlertTriangle className="w-4 h-4 shrink-0" />
-                            <span className="font-bold">Registration is closed.</span>
+                            <span className="font-bold">{t('registrationClosed')}</span>
                         </div>
                     )}
 
@@ -354,13 +376,13 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                     {event.requires_guardian_approval && (
                         <div className="bg-[var(--brand-third)]/10 border border-[var(--brand-third)]/30 p-2.5 rounded-lg flex gap-2 text-xs text-[var(--brand-third)]">
                             <AlertTriangle className="w-4 h-4 shrink-0" />
-                            <span className="font-bold">Guardian approval required</span>
+                            <span className="font-bold">{t('guardianApprovalRequired')}</span>
                         </div>
                     )}
                     
                     {event.cost && parseFloat(event.cost) > 0 && (
                         <div className="bg-[var(--brand-sky)]/10 border border-[var(--brand-sky)]/30 p-2.5 rounded-lg flex justify-between items-center text-[var(--brand-sky)]">
-                            <span className="font-bold text-xs">Cost</span>
+                            <span className="font-bold text-xs">{t('cost')}</span>
                             <span className="font-bold">{event.cost} SEK</span>
                         </div>
                     )}
@@ -370,7 +392,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
 
                 <div className="flex gap-3">
                     <button onClick={onClose} className={`flex-1 py-2.5 px-4 font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}>
-                        Cancel
+                        {t('cancel')}
                     </button>
                     <button 
                         onClick={handleRegister} 
@@ -380,11 +402,20 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                         {step === 'PROCESSING' ? (
                             <span className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
                         ) : (
-                            <span>Register</span>
+                            <span>{t('register')}</span>
                         )}
                     </button>
                 </div>
             </div>
+            
+            {/* Toast notification */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={() => setToast({ ...toast, isVisible: false })}
+                darkMode={darkMode}
+            />
         </div>
     );
 }

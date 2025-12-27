@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Club } from '@/types/organization';
 import { getMediaUrl } from '../../utils';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +15,7 @@ interface ClubHeaderProps {
 
 export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) {
   const { user, refreshUser } = useAuth();
+  const t = useTranslations('club.header');
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
@@ -37,10 +39,10 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
     try {
       if (isFollowing) {
         await unfollowClub(club.id);
-        setToast({ message: `Unfollowed ${club.name}`, type: 'success', isVisible: true });
+        setToast({ message: t('unfollowed', { name: club.name }), type: 'success', isVisible: true });
       } else {
         await followClub(club.id);
-        setToast({ message: `Following ${club.name}`, type: 'success', isVisible: true });
+        setToast({ message: t('following', { name: club.name }), type: 'success', isVisible: true });
       }
       
       // Update local state
@@ -51,7 +53,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
       
     } catch (error) {
       console.error('Failed to toggle follow status', error);
-      setToast({ message: 'Something went wrong', type: 'error', isVisible: true });
+      setToast({ message: t('somethingWentWrong'), type: 'error', isVisible: true });
     } finally {
       setLoading(false);
     }
@@ -147,7 +149,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
                         : 'bg-blue-600 hover:bg-blue-700 text-white border-none'
                   }`}
                 >
-                  {loading ? 'Processing...' : isFollowing ? 'Unfollow' : 'Follow'}
+                  {loading ? t('processing') : isFollowing ? t('unfollow') : t('follow')}
                 </button>
               )}
               
@@ -158,7 +160,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
                     ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
                     : 'bg-green-500 text-white shadow-sm'
                 }`}>
-                  Your Home Club
+                  {t('yourHomeClub')}
                 </span>
               )}
             </div>

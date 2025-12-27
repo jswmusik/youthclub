@@ -44,6 +44,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
 import RoleGuard from '../../components/RoleGuard';
 import api from '../../../lib/api';
+// License hook for feature gating
+import { useLicense } from '../../../hooks/useLicense';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -63,6 +65,8 @@ const getInitials = (first?: string | null, last?: string | null) => {
 export default function ClubAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
+  // License hook for feature gating
+  const { hasFeature } = useLicense();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   
@@ -87,12 +91,13 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
   const [pendingEventApplicationsCount, setPendingEventApplicationsCount] = useState(0);
 
   // Keep your existing useEffects logic exactly as it was
+  // Only fetch counts if feature is enabled to avoid 403s
   useEffect(() => {
     refreshMessageCount();
-    refreshPendingRequestsCount();
-    refreshPendingBookingsCount();
-    refreshPendingEventApplicationsCount();
-  }, [refreshMessageCount]);
+    if (hasFeature('groups')) refreshPendingRequestsCount();
+    if (hasFeature('bookings')) refreshPendingBookingsCount();
+    if (hasFeature('events')) refreshPendingEventApplicationsCount();
+  }, [refreshMessageCount, hasFeature]);
 
   // Auto-open groups when navigating to a page within that group
   useEffect(() => {
@@ -173,19 +178,21 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     }
   };
 
-  // Navigation structure with groups
-  const navigationGroups = [
+  // Navigation structure with groups - FILTERED BY LICENSE
+  const allNavigationGroups = [
     {
       id: 'main',
+      // Always show Overview. Inbox depends on 'messenger'
       items: [
         { name: 'Overview', href: '/admin/club', icon: LayoutDashboard },
-        { name: 'Inbox', href: '/admin/club/inbox', showBadge: true, icon: MessageSquare },
+        ...(hasFeature('messenger') ? [{ name: 'Inbox', href: '/admin/club/inbox', showBadge: true, icon: MessageSquare }] : []),
       ]
     },
     {
       id: 'club',
       title: 'Club Management',
       icon: Building2,
+      // Visits is usually core
       items: [
         { name: 'Visits & Kiosk', href: '/admin/club/visits', icon: LogIn },
         { name: 'Club Details', href: '/admin/club/details', icon: Building2 },
@@ -202,7 +209,8 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
         { name: 'Manage Guardians', href: '/admin/club/guardians', icon: Shield },
       ]
     },
-    {
+    // --- FEATURE GATED GROUPS ---
+    ...(hasFeature('posts') ? [{
       id: 'content',
       title: 'Content',
       icon: Newspaper,
@@ -210,8 +218,9 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
         { name: 'News Feed', href: '/admin/club/news-feed', icon: Rss },
         { name: 'Manage Posts', href: '/admin/club/posts', icon: FileEdit },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('events') ? [{
       id: 'events',
       title: 'Events',
       icon: Calendar,
@@ -220,8 +229,9 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
         { name: 'Event Calendar', href: '/admin/club/events/calendar', icon: CalendarDays },
         { name: 'Event Applications', href: '/admin/club/events/applications', icon: ClipboardList },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('groups') ? [{
       id: 'groups',
       title: 'Groups & Social',
       icon: UsersRound,
@@ -229,16 +239,18 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
         { name: 'Groups', href: '/admin/club/groups', icon: UsersRound },
         { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true, icon: FileText },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('rewards') ? [{
       id: 'rewards',
       title: 'Rewards and Loyalty',
       icon: Gift,
       items: [
         { name: 'Manage Rewards', href: '/admin/club/rewards', icon: Gift },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('inventory') ? [{
       id: 'inventory',
       title: 'Inventory',
       icon: Box,
@@ -246,8 +258,9 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
         { name: 'Inventory', href: '/admin/club/inventory', icon: Box },
         { name: 'Inventory History', href: '/admin/club/inventory/history', icon: History },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('bookings') ? [{
       id: 'bookings',
       title: 'Bookings',
       icon: FileText,
@@ -256,8 +269,9 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
         { name: 'Booking Calendar', href: '/admin/club/bookings/calendar', icon: CalendarDays },
         { name: 'Booking Resources', href: '/admin/club/bookings/resources', icon: Package },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('learning') ? [{
       id: 'learning',
       title: 'Learning Center',
       icon: GraduationCap,
@@ -265,8 +279,9 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
         { name: 'Knowledge Center', href: '/admin/club/knowledge', icon: GraduationCap },
         { name: 'Find a course', href: '/admin/club/knowledge/courses', icon: BookOpen },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('analytics') ? [{
       id: 'analytics',
       title: 'Analytics',
       icon: BarChart3,
@@ -274,18 +289,23 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
         { name: 'Dashboard', href: '/admin/club/analytics', icon: TrendingUp },
         { name: 'Visit Analytics', href: '/admin/club/visits/analytics', icon: BarChart3 },
       ]
-    },
+    }] : []),
+
     {
       id: 'settings',
       title: 'Settings & Configuration',
       icon: Wrench,
       items: [
-        { name: 'Message Board', href: '/admin/club/msgboard', showBadge: true, icon: MessageCircle },
-        { name: 'Custom Fields', href: '/admin/club/custom-fields', icon: Wrench },
-        { name: 'Questionnaires', href: '/admin/club/questionnaires', icon: FileText },
+        // Filter individual items inside Settings
+        ...(hasFeature('messenger') ? [{ name: 'Message Board', href: '/admin/club/msgboard', showBadge: true, icon: MessageCircle }] : []),
+        ...(hasFeature('custom_fields') ? [{ name: 'Custom Fields', href: '/admin/club/custom-fields', icon: Wrench }] : []),
+        ...(hasFeature('questionnaires') ? [{ name: 'Questionnaires', href: '/admin/club/questionnaires', icon: FileText }] : []),
       ]
     },
   ];
+
+  // Remove empty groups (e.g. Settings if nothing is enabled)
+  const navigationGroups = allNavigationGroups.filter(g => g.items.length > 0);
 
   const SidebarContent = ({ isCollapsed = false }: { isCollapsed?: boolean }) => (
     <div className="flex flex-col h-full bg-[var(--dark-800)] border-r border-[var(--dark-600)] w-full">

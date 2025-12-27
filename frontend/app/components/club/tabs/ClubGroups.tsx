@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Group } from '@/types/organization';
 
@@ -12,6 +13,7 @@ interface ClubGroupsProps {
 
 // Helper Component: Badges (same as groups search page)
 const StatusBadge = ({ status, darkMode = false }: { status: string; darkMode?: boolean }) => {
+    const t = useTranslations('club.groups');
     const styles = darkMode ? {
         APPROVED: "bg-[var(--brand-third)]/20 text-[var(--brand-third)] border-[var(--brand-third)]/30",
         PENDING: "bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border-[var(--brand-peach)]/30",
@@ -23,34 +25,38 @@ const StatusBadge = ({ status, darkMode = false }: { status: string; darkMode?: 
     };
     return (
         <span className={`text-xs px-2 py-1 rounded border font-medium ${styles[status as keyof typeof styles] || (darkMode ? "bg-[var(--dark-700)]" : "bg-gray-100")}`}>
-            {status === 'APPROVED' ? 'Member' : status}
+            {status === 'APPROVED' ? t('member') : status === 'PENDING' ? t('pending') : status === 'REJECTED' ? t('rejected') : status}
         </span>
     );
 };
 
-const IneligibleTooltip = ({ reasons, darkMode = false }: { reasons: string[]; darkMode?: boolean }) => (
-    <div className="absolute top-2 right-2 group z-10">
-        <div className={`text-xs px-2 py-1 rounded border cursor-help shadow-sm flex items-center gap-1 ${
-          darkMode 
-            ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]' 
-            : 'bg-gray-100 text-gray-500 border-gray-200'
-        }`}>
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-            <span>Restricted</span>
+const IneligibleTooltip = ({ reasons, darkMode = false }: { reasons: string[]; darkMode?: boolean }) => {
+    const t = useTranslations('club.groups');
+    return (
+        <div className="absolute top-2 right-2 group z-10">
+            <div className={`text-xs px-2 py-1 rounded border cursor-help shadow-sm flex items-center gap-1 ${
+              darkMode 
+                ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]' 
+                : 'bg-gray-100 text-gray-500 border-gray-200'
+            }`}>
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                <span>{t('restricted')}</span>
+            </div>
+            <div className={`absolute right-0 mt-1 w-48 p-3 text-xs rounded-md shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${
+              darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-800 text-white'
+            }`}>
+                <p className="font-bold mb-1">{t('requirementsNotMet')}</p>
+                <ul className="list-disc pl-3 space-y-1">
+                    {reasons.map((r, i) => <li key={i}>{r}</li>)}
+                </ul>
+            </div>
         </div>
-        <div className={`absolute right-0 mt-1 w-48 p-3 text-xs rounded-md shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${
-          darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-800 text-white'
-        }`}>
-            <p className="font-bold mb-1">Requirements not met:</p>
-            <ul className="list-disc pl-3 space-y-1">
-                {reasons.map((r, i) => <li key={i}>{r}</li>)}
-            </ul>
-        </div>
-    </div>
-);
+    );
+};
 
 export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps) {
   const router = useRouter();
+  const t = useTranslations('club.groups');
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,11 +83,11 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
   const handleJoin = async (groupId: number) => {
     try {
       const res = await api.post(`/groups/${groupId}/join/`);
-      alert(res.data.message || "Successfully joined group!");
+      alert(res.data.message || t('successfullyJoined'));
       // Refresh groups to update membership status
       fetchGroups();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to join group");
+      alert(err.response?.data?.message || t('failedToJoin'));
     }
   };
 
@@ -90,7 +96,7 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
       <div className={`rounded-full h-12 w-12 border-t-2 border-b-2 mx-auto animate-spin ${
         darkMode ? 'border-[var(--brand-primary)]' : 'border-blue-500'
       }`}></div>
-      <p className="mt-4">Loading groups...</p>
+      <p className="mt-4">{t('loadingGroups')}</p>
     </div>
   );
 
@@ -108,8 +114,8 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-3-3H5a3 3 0 00-3 3v2h5m2-16a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2H9a2 2 0 01-2-2V4z" />
           </svg>
         </div>
-        <h3 className={`text-lg font-medium ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>No Groups Found</h3>
-        <p className={`mt-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>This club hasn't created any groups yet.</p>
+        <h3 className={`text-lg font-medium ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('noGroupsFound')}</h3>
+        <p className={`mt-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('noGroupsMessage')}</p>
       </div>
     );
   }
@@ -117,8 +123,8 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
   return (
     <div className="px-4 sm:px-0">
       <div className="mb-6">
-        <h2 className={`text-xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Groups & Activities</h2>
-        <p className={`text-sm mt-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Join a group to connect with others sharing your interests.</p>
+        <h2 className={`text-xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('title')}</h2>
+        <p className={`text-sm mt-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('description')}</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
@@ -174,7 +180,7 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
                                     ? 'bg-[var(--dark-900)]/70 text-[var(--brand-light)]' 
                                     : 'bg-black/50 text-white'
                                 }`}>
-                                    {group.group_type === 'CLOSED' ? 'Private' : 'Application'}
+                                    {group.group_type === 'CLOSED' ? t('private') : t('application')}
                                 </span>
                             )}
                         </div>
@@ -195,7 +201,7 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
                                 <p className={`text-xs font-medium mt-1 ${
                                   darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'
                                 }`}>
-                                    Club: {group.club_name}
+                                    {t('club')} {group.club_name}
                                 </p>
                             )}
                         </div>
@@ -203,7 +209,7 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
                         <p className={`text-sm mb-4 line-clamp-2 flex-1 ${
                           darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
                         }`}>
-                            {group.description || <span className={`italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>No description available.</span>}
+                            {group.description || <span className={`italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>{t('noDescriptionAvailable')}</span>}
                         </p>
 
                         {/* Footer Action */}
@@ -217,7 +223,7 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
                                           darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'
                                         }`}
                                     >
-                                        Visit Group
+                                        {t('visitGroup')}
                                     </button>
                                 </div>
                             ) : (
@@ -235,8 +241,8 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
                                     }`}
                                 >
                                     {isEligible 
-                                        ? (group.group_type === 'OPEN' ? 'Join Group' : 'Apply to Join') 
-                                        : 'Unavailable'}
+                                        ? (group.group_type === 'OPEN' ? t('joinGroup') : t('applyToJoin')) 
+                                        : t('unavailable')}
                                 </button>
                             )}
                         </div>

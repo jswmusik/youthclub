@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { fetchYouthFeed } from '../../../lib/api';
 import PostCard from '../../components/posts/PostCard';
 import QuestionnaireCard from '../../components/questionnaires/QuestionnaireCard';
@@ -31,6 +32,8 @@ interface FeedItem {
 }
 
 export default function YouthDashboard() {
+    const t = useTranslations('dashboard');
+    const tErrors = useTranslations('errors');
     const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -44,34 +47,70 @@ export default function YouthDashboard() {
     const [unfinishedCount, setUnfinishedCount] = useState(0);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const observerTarget = useRef<HTMLDivElement>(null);
+    const pageRef = useRef(1);
+    const hasMoreRef = useRef(true);
+    const loadingMoreRef = useRef(false);
+    const loadingRef = useRef(false);
     const router = useRouter();
     const pathname = usePathname();
     const { user } = useAuth();
 
-    useEffect(() => {
-        // Check if user is authenticated
-        const token = Cookies.get('access_token');
-        if (!token) {
-            router.push('/login');
-            return;
+    const loadFeed = useCallback(async (pageNum: number, append: boolean = false) => {
+        try {
+            if (append) {
+                setLoadingMore(true);
+                loadingMoreRef.current = true;
+            } else {
+                setError(null);
+                setLoading(true);
+                loadingRef.current = true;
+            }
+            
+            const res = await fetchYouthFeed(pageNum);
+            
+            // Handle pagination response structure
+            const newItems = res.data.results || res.data;
+            
+            // DEBUG: Log feed items
+            console.log('[FEED DEBUG] Feed response:', res.data);
+            console.log('[FEED DEBUG] New items count:', newItems.length);
+            console.log('[FEED DEBUG] Has next page:', !!res.data.next);
+            const questionnaireItems = newItems.filter((item: any) => item.feed_type === 'QUESTIONNAIRE');
+            console.log('[FEED DEBUG] Questionnaire items:', questionnaireItems);
+            console.log('[FEED DEBUG] All feed types:', newItems.map((item: any) => item.feed_type));
+            
+            if (append) {
+                setFeedItems(prev => [...prev, ...newItems]);
+            } else {
+                setFeedItems(newItems);
+            }
+            
+            // Check if there are more pages
+            const hasNext = !!res.data.next;
+            setHasMore(hasNext);
+            hasMoreRef.current = hasNext;
+        } catch (err: any) {
+            console.error('Failed to load feed:', err);
+            if (err?.response?.status === 401) {
+                // Unauthorized - redirect to login
+                Cookies.remove('access_token');
+                Cookies.remove('refresh_token');
+                setError(tErrors('sessionExpired'));
+                setTimeout(() => {
+                    router.push('/login');
+                }, 2000);
+            } else {
+                setError(tErrors('serverError'));
+            }
+            setHasMore(false);
+            hasMoreRef.current = false;
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+            loadingRef.current = false;
+            loadingMoreRef.current = false;
         }
-        
-        // Check if user has correct role
-        if (user && user.role !== 'YOUTH_MEMBER') {
-            router.push('/login');
-            return;
-        }
-        
-        // Start minimum loading timer
-        const minLoadingTimer = setTimeout(() => {
-            setMinLoadingComplete(true);
-        }, MIN_LOADING_TIME);
-        
-        loadFeed(1, false);
-        loadUnfinishedCount();
-        
-        return () => clearTimeout(minLoadingTimer);
-    }, [user, router]);
+    }, [router, tErrors]);
 
     const loadUnfinishedCount = async () => {
         try {
@@ -110,53 +149,34 @@ export default function YouthDashboard() {
         }
     };
 
-    const loadFeed = useCallback(async (pageNum: number, append: boolean = false) => {
-        try {
-            if (append) {
-                setLoadingMore(true);
-            } else {
-                setError(null);
-                setLoading(true);
-            }
-            
-            const res = await fetchYouthFeed(pageNum);
-            
-            // Handle pagination response structure
-            const newItems = res.data.results || res.data;
-            
-            // DEBUG: Log feed items
-            console.log('[FEED DEBUG] Feed response:', res.data);
-            console.log('[FEED DEBUG] New items count:', newItems.length);
-            const questionnaireItems = newItems.filter((item: any) => item.feed_type === 'QUESTIONNAIRE');
-            console.log('[FEED DEBUG] Questionnaire items:', questionnaireItems);
-            console.log('[FEED DEBUG] All feed types:', newItems.map((item: any) => item.feed_type));
-            
-            if (append) {
-                setFeedItems(prev => [...prev, ...newItems]);
-            } else {
-                setFeedItems(newItems);
-            }
-            
-            // Check if there are more pages
-            setHasMore(!!res.data.next);
-        } catch (err: any) {
-            console.error('Failed to load feed:', err);
-            if (err?.response?.status === 401) {
-                // Unauthorized - redirect to login
-                Cookies.remove('access_token');
-                Cookies.remove('refresh_token');
-                setError('Your session has expired. Please log in again.');
-                setTimeout(() => {
-                    router.push('/login');
-                }, 2000);
-            } else {
-                setError('Failed to load your feed. Please try again later.');
-            }
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
+    useEffect(() => {
+        // Check if user is authenticated
+        const token = Cookies.get('access_token');
+        if (!token) {
+            router.push('/login');
+            return;
         }
-    }, [router]);
+        
+        // Check if user has correct role
+        if (user && user.role !== 'YOUTH_MEMBER') {
+            router.push('/login');
+            return;
+        }
+        
+        // Start minimum loading timer
+        const minLoadingTimer = setTimeout(() => {
+            setMinLoadingComplete(true);
+        }, MIN_LOADING_TIME);
+        
+        pageRef.current = 1;
+        hasMoreRef.current = true;
+        setPage(1);
+        setHasMore(true);
+        loadFeed(1, false);
+        loadUnfinishedCount();
+        
+        return () => clearTimeout(minLoadingTimer);
+    }, [user, router, loadFeed]);
 
     const handleQuestionnaireComplete = useCallback(() => {
         // Reload feed and unfinished count when a questionnaire is completed
@@ -166,28 +186,61 @@ export default function YouthDashboard() {
 
     // Intersection Observer for infinite scroll
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-                    const nextPage = page + 1;
-                    setPage(nextPage);
-                    loadFeed(nextPage, true);
-                }
-            },
-            { threshold: 0.1 }
-        );
+        // Update refs when state changes
+        pageRef.current = page;
+        hasMoreRef.current = hasMore;
+        loadingMoreRef.current = loadingMore;
+        loadingRef.current = loading;
+    }, [page, hasMore, loadingMore, loading]);
 
-        const currentTarget = observerTarget.current;
-        if (currentTarget) {
-            observer.observe(currentTarget);
+    useEffect(() => {
+        // Only set up observer if we have feed items and potentially more to load
+        if (feedItems.length === 0 || !hasMore) {
+            return;
         }
 
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const target = entries[0];
+                if (target.isIntersecting) {
+                    console.log('[SCROLL DEBUG] Observer triggered:', {
+                        hasMore: hasMoreRef.current,
+                        loadingMore: loadingMoreRef.current,
+                        loading: loadingRef.current,
+                        currentPage: pageRef.current
+                    });
+                    
+                    if (hasMoreRef.current && !loadingMoreRef.current && !loadingRef.current) {
+                        const nextPage = pageRef.current + 1;
+                        console.log('[SCROLL DEBUG] Loading page:', nextPage);
+                        pageRef.current = nextPage;
+                        setPage(nextPage);
+                        loadFeed(nextPage, true);
+                    }
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        // Use a small delay to ensure the DOM element is rendered
+        const timeoutId = setTimeout(() => {
+            const currentTarget = observerTarget.current;
+            if (currentTarget) {
+                console.log('[SCROLL DEBUG] Observing target element');
+                observer.observe(currentTarget);
+            } else {
+                console.log('[SCROLL DEBUG] Observer target not found!');
+            }
+        }, 100);
+
         return () => {
+            clearTimeout(timeoutId);
+            const currentTarget = observerTarget.current;
             if (currentTarget) {
                 observer.unobserve(currentTarget);
             }
         };
-    }, [hasMore, loadingMore, loading, page, loadFeed]);
+    }, [loadFeed, feedItems.length, hasMore]);
 
 
     return (
@@ -209,7 +262,7 @@ export default function YouthDashboard() {
                 }`}
             >
                 <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">{t('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
@@ -242,8 +295,8 @@ export default function YouthDashboard() {
                                         {/* Subtle glow effect */}
                                         <div className="absolute -top-20 -right-20 w-40 h-40 bg-[var(--brand-primary)] opacity-10 rounded-full blur-3xl" />
                                         <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[var(--brand-purple)] opacity-10 rounded-full blur-3xl" />
-                                        <h1 className="text-2xl font-bold mb-2 text-[var(--brand-light)] relative z-10">Welcome back! 👋</h1>
-                                        <p className="text-[var(--brand-light)]/70 relative z-10">Here is what's happening in your club today.</p>
+                                        <h1 className="text-2xl font-bold mb-2 text-[var(--brand-light)] relative z-10">{t('welcomeBack')}</h1>
+                                        <p className="text-[var(--brand-light)]/70 relative z-10">{t('whatsHappening')}</p>
                                     </div>
 
                                     {(loading || !minLoadingComplete) ? (
@@ -254,7 +307,7 @@ export default function YouthDashboard() {
                                         </div>
                                     ) : feedItems.length === 0 ? (
                                         <div className="text-center py-10 bg-[var(--dark-700)] rounded-xl border border-dashed border-[var(--dark-500)]">
-                                            <p className="text-[var(--brand-light)]/60">No posts yet. Join some groups to see more!</p>
+                                            <p className="text-[var(--brand-light)]/60">{t('noPostsYet')}</p>
                                         </div>
                                     ) : (
                                         <div>
@@ -272,7 +325,7 @@ export default function YouthDashboard() {
                                         {/* Gradient accent */}
                                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--brand-third)] via-[var(--brand-primary)] to-[var(--brand-purple)]" />
                                         <div className="absolute top-0 right-0 bg-[var(--brand-third)] text-[var(--dark-900)] px-3 py-1 rounded-bl-lg text-xs font-bold">
-                                            NEW REWARD
+                                            {t('newReward')}
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <div className="h-16 w-16 bg-[var(--dark-500)] rounded-lg flex items-center justify-center text-3xl border border-[var(--brand-third)]/30">
@@ -282,7 +335,7 @@ export default function YouthDashboard() {
                                                 <h3 className="text-xl font-bold text-[var(--brand-light)]">{item.title}</h3>
                                                 <p className="text-[var(--brand-light)]/70 text-sm mt-1">{item.description}</p>
                                                 {item.sponsor && (
-                                                    <p className="text-xs text-[var(--brand-light)]/50 mt-2">Sponsored by: {item.sponsor}</p>
+                                                    <p className="text-xs text-[var(--brand-light)]/50 mt-2">{t('sponsoredBy')} {item.sponsor}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -290,7 +343,7 @@ export default function YouthDashboard() {
                                             onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
                                             className="mt-4 w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-2 rounded-lg hover:bg-[var(--brand-primary)]/80 transition-colors"
                                         >
-                                            Claim in Wallet
+                                            {t('claimInWallet')}
                                         </button>
                                     </div>
                                 );
@@ -335,13 +388,16 @@ export default function YouthDashboard() {
                                                 <div className="my-6"><RecommendedGroups darkMode /></div>
                                             )}
                                             
-                                            {/* Loading More Indicator */}
-                                            <div ref={observerTarget} className="h-10 flex items-center justify-center">
+                                            {/* Loading More Indicator / Observer Target */}
+                                            <div ref={observerTarget} className="h-20 flex items-center justify-center py-4">
                                                 {loadingMore && (
                                                     <div className="flex items-center gap-2 text-[var(--brand-light)]/50">
                                                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--brand-primary)]"></div>
-                                                        <span className="text-sm">Loading more...</span>
+                                                        <span className="text-sm">{t('loadingMore')}</span>
                                                     </div>
+                                                )}
+                                                {!hasMore && feedItems.length > 0 && (
+                                                    <p className="text-sm text-[var(--brand-light)]/40">{t('noMorePosts') || 'No more posts'}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -363,8 +419,8 @@ export default function YouthDashboard() {
                                                 
                                                 {/* Placeholders for upcoming features */}
                                                 <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] p-6">
-                                                    <h3 className="font-bold text-[var(--brand-light)] mb-4">Upcoming Events</h3>
-                                                    <p className="text-sm text-[var(--brand-light)]/60">No events scheduled.</p>
+                                                    <h3 className="font-bold text-[var(--brand-light)] mb-4">{t('upcomingEvents')}</h3>
+                                                    <p className="text-sm text-[var(--brand-light)]/60">{t('noEventsScheduled')}</p>
                                                 </div>
                                             </>
                                         )}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { 
   Facebook, 
   Instagram, 
@@ -24,6 +25,7 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 );
 
 export default function YouthFooter() {
+  const t = useTranslations('footer');
   const currentYear = new Date().getFullYear();
   const [communityFooterItems, setCommunityFooterItems] = useState<MenuItem[]>([]);
 
@@ -92,8 +94,7 @@ export default function YouthFooter() {
               />
             </Link>
             <p className="text-[var(--brand-light)]/60 text-sm leading-relaxed mb-6 max-w-sm">
-              Connecting youth with their local clubs, events, and communities. 
-              Join activities, earn rewards, and make lasting friendships.
+              {t('description')}
             </p>
             
             {/* Social Links */}
@@ -120,7 +121,7 @@ export default function YouthFooter() {
           {communityFooterItems.length > 0 && (
             <div>
               <h3 className="text-[var(--brand-light)] font-bold text-sm uppercase tracking-wider mb-4">
-                Links
+                {t('links')}
               </h3>
               <ul className="space-y-3">
                 {communityFooterItems.slice(0, Math.ceil(communityFooterItems.length / 2)).map((item) => (
@@ -153,7 +154,7 @@ export default function YouthFooter() {
           {communityFooterItems.length > 1 && (
             <div>
               <h3 className="text-[var(--brand-light)] font-bold text-sm uppercase tracking-wider mb-4">
-                More
+                {t('more')}
               </h3>
               <ul className="space-y-3">
                 {communityFooterItems.slice(Math.ceil(communityFooterItems.length / 2)).map((item) => (
@@ -187,19 +188,19 @@ export default function YouthFooter() {
         <div className="mt-12 pt-8 border-t border-[var(--dark-600)]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
-              <h3 className="text-[var(--brand-light)] font-bold mb-1">Stay Updated</h3>
+              <h3 className="text-[var(--brand-light)] font-bold mb-1">{t('stayUpdated')}</h3>
               <p className="text-[var(--brand-light)]/60 text-sm">
-                Get the latest news and updates from your community.
+                {t('getLatestNews')}
               </p>
             </div>
             <div className="flex gap-2 max-w-md w-full md:w-auto">
               <input
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('enterEmail')}
                 className="flex-1 md:w-64 px-4 py-2.5 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] outline-none transition-all"
               />
               <button className="px-5 py-2.5 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold text-sm rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all whitespace-nowrap">
-                Subscribe
+                {t('subscribe')}
               </button>
             </div>
           </div>
@@ -211,10 +212,10 @@ export default function YouthFooter() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
             <p className="text-[var(--brand-light)]/50 text-center sm:text-left">
-              © {currentYear} Youth App. All rights reserved.
+              © {currentYear} Youth App. {t('allRightsReserved')}
             </p>
             <p className="text-[var(--brand-light)]/50 flex items-center gap-1">
-              Made with <Heart className="w-4 h-4 text-[var(--brand-primary)] fill-[var(--brand-primary)]" /> for the community
+              {t('madeWithLove')} <Heart className="w-4 h-4 text-[var(--brand-primary)] fill-[var(--brand-primary)]" /> {t('forCommunity')}
             </p>
           </div>
         </div>

@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { updateUserProfile, saveCustomFieldValues } from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
 import api from '@/lib/api';
 import Toast from '@/app/components/Toast';
-import { Camera, User, X, Search, Sparkles } from 'lucide-react';
+import { Camera, User, X, Search, Sparkles, Globe, Check } from 'lucide-react';
+import { localeOptions, type Locale } from '@/i18n/config';
+import { useLocale } from '@/context/LocaleContext';
 
 interface CustomField {
   id: number;
@@ -25,6 +28,9 @@ interface ProfileEditFormProps {
 
 export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFormProps) {
   const router = useRouter();
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
+  const { setLocale } = useLocale();
   const [loading, setLoading] = useState(false);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
@@ -265,7 +271,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
       }
       
       // Show success toast
-      setToast({ message: 'Profile updated successfully!', type: 'success', isVisible: true });
+      setToast({ message: t('profileUpdated'), type: 'success', isVisible: true });
       
       // Redirect after a short delay to show the toast
       setTimeout(() => {
@@ -274,7 +280,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
       }, 1500);
     } catch (error) {
       console.error("Update failed", error);
-      setToast({ message: 'Failed to update profile. Please try again.', type: 'error', isVisible: true });
+      setToast({ message: t('updateFailed'), type: 'error', isVisible: true });
       setLoading(false);
     }
   };
@@ -317,7 +323,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
             />
             <span className={`ml-3 text-base font-medium ${
               darkMode ? 'text-[var(--brand-light)]' : 'text-gray-700'
-            }`}>Yes</span>
+            }`}>{t('yes')}</span>
           </div>
         )}
         
@@ -394,7 +400,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
       <div className="space-y-6">
         {/* Cover Image */}
         <div>
-          <label className={labelClasses}>Cover Image</label>
+          <label className={labelClasses}>{t('coverImage')}</label>
           <div 
             className={`relative h-40 sm:h-48 rounded-xl bg-cover bg-center overflow-hidden ${
               darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-100'
@@ -415,7 +421,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
                   : 'bg-white/90 text-gray-700 hover:bg-white'
               }`}>
                 <Camera className="w-4 h-4" />
-                Change Cover
+                {t('changeCover')}
                 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'bg')} />
               </label>
             </div>
@@ -424,7 +430,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
 
         {/* Avatar */}
         <div>
-          <label className={labelClasses}>Profile Picture</label>
+          <label className={labelClasses}>{t('profilePicture')}</label>
           <div className="flex items-center gap-6">
             <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 ${
               darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-gray-200 bg-gray-100'
@@ -443,7 +449,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
                 : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}>
               <Camera className="w-4 h-4" />
-              Upload New
+              {t('uploadNew')}
               <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar')} />
             </label>
           </div>
@@ -455,7 +461,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
       {/* TEXT FIELDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className={labelClasses}>First Name</label>
+          <label className={labelClasses}>{t('firstName')}</label>
           <input 
             type="text" 
             name="first_name" 
@@ -465,7 +471,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
           />
         </div>
         <div>
-          <label className={labelClasses}>Last Name</label>
+          <label className={labelClasses}>{t('lastName')}</label>
           <input 
             type="text" 
             name="last_name" 
@@ -476,7 +482,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         </div>
 
         <div>
-          <label className={labelClasses}>Nickname (Display Name)</label>
+          <label className={labelClasses}>{t('nickname')}</label>
           <div className={`flex rounded-xl overflow-hidden border ${
             darkMode 
               ? 'border-[var(--dark-500)] focus-within:border-[var(--brand-primary)] focus-within:ring-2 focus-within:ring-[var(--brand-primary)]/20'
@@ -502,11 +508,11 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         </div>
 
         <div>
-          <label className={labelClasses}>Status / Mood</label>
+          <label className={labelClasses}>{t('statusMood')}</label>
           <input 
             type="text" 
             name="mood_status" 
-            placeholder="e.g. Playing FIFA..."
+            placeholder={t('statusPlaceholder')}
             value={formData.mood_status} 
             onChange={handleChange}
             className={inputClasses}
@@ -514,7 +520,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         </div>
 
         <div>
-          <label className={labelClasses}>Phone Number</label>
+          <label className={labelClasses}>{t('phoneNumber')}</label>
           <input 
             type="tel" 
             name="phone_number" 
@@ -524,21 +530,44 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
           />
         </div>
 
-        <div>
-          <label className={labelClasses}>Preferred Language</label>
-          <select 
-            name="preferred_language" 
-            value={formData.preferred_language} 
-            onChange={handleChange}
-            className={`${inputClasses} appearance-none`}
-          >
-            <option value="sv">Swedish</option>
-            <option value="en">English</option>
-          </select>
+        <div className="md:col-span-2">
+          <label className={`${labelClasses} flex items-center gap-2`}>
+            <Globe className="w-4 h-4 text-[var(--brand-primary)]" />
+            {t('preferredLanguage')}
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {localeOptions.map((option) => (
+              <button
+                key={option.code}
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, preferred_language: option.code }));
+                }}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
+                  formData.preferred_language === option.code
+                    ? darkMode
+                      ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] border-[var(--brand-primary)]'
+                      : 'bg-[#4D4DA4] text-white border-[#4D4DA4]'
+                    : darkMode
+                      ? 'bg-[var(--dark-700)] text-[var(--brand-light)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-[#4D4DA4]/50'
+                }`}
+              >
+                <span className="text-lg">{option.flag}</span>
+                <span className="flex-1 text-left">{option.name}</span>
+                {formData.preferred_language === option.code && (
+                  <Check className="w-4 h-4" />
+                )}
+              </button>
+            ))}
+          </div>
+          <p className={`text-xs mt-2 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
+            {t('languageNote')}
+          </p>
         </div>
 
         <div>
-          <label className={labelClasses}>Date of Birth</label>
+          <label className={labelClasses}>{t('dateOfBirth')}</label>
           <input 
             type="date" 
             name="date_of_birth" 
@@ -550,7 +579,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         </div>
 
         <div>
-          <label className={labelClasses}>Grade</label>
+          <label className={labelClasses}>{t('grade')}</label>
           <input 
             type="number" 
             name="grade" 
@@ -563,26 +592,26 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         </div>
 
         <div>
-          <label className={labelClasses}>Legal Gender</label>
+          <label className={labelClasses}>{t('legalGender')}</label>
           <select 
             name="legal_gender" 
             value={formData.legal_gender} 
             onChange={handleChange}
             className={`${inputClasses} appearance-none`}
           >
-            <option value="">Select...</option>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-            <option value="OTHER">Other</option>
+            <option value="">{t('select')}</option>
+            <option value="MALE">{t('male')}</option>
+            <option value="FEMALE">{t('female')}</option>
+            <option value="OTHER">{t('other')}</option>
           </select>
         </div>
 
         <div>
-          <label className={labelClasses}>Preferred Gender</label>
+          <label className={labelClasses}>{t('preferredGender')}</label>
           <input 
             type="text" 
             name="preferred_gender" 
-            placeholder="e.g. They/Them"
+            placeholder={t('preferredGenderPlaceholder')}
             value={formData.preferred_gender} 
             onChange={handleChange}
             className={inputClasses}
@@ -594,7 +623,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
       <div className="mt-8">
         <label className={`${labelClasses} flex items-center gap-2`}>
           <Sparkles className="w-4 h-4 text-[var(--brand-primary)]" />
-          Interests
+          {t('interests')}
         </label>
         
         {/* Selected Interests Display */}
@@ -628,7 +657,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
           <div className="relative">
             <input
               type="text"
-              placeholder="Search interests by name..."
+              placeholder={t('searchInterests')}
               value={interestSearchTerm}
               onChange={(e) => {
                 setInterestSearchTerm(e.target.value);
@@ -673,15 +702,15 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
                   <div className={`px-4 py-3 text-sm text-center ${
                     darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
                   }`}>
-                    No interests found matching "{interestSearchTerm}"
+                    {t('noInterestsFound')} "{interestSearchTerm}"
                   </div>
                 ) : (
                   <div className={`px-4 py-3 text-sm text-center ${
                     darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
                   }`}>
                     {formData.interests.length === 0 
-                      ? 'No interests available. Create interests in the admin panel first.'
-                      : 'All interests are already selected.'}
+                      ? t('noInterestsAvailable')
+                      : t('allInterestsSelected')}
                   </div>
                 )}
               </div>
@@ -709,14 +738,14 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         <label htmlFor="notification_email" className={`ml-3 block text-base font-medium ${
           darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
         }`}>
-          Enable email notifications
+          {t('emailNotifications')}
         </label>
       </div>
 
       {/* CUSTOM FIELDS SECTION */}
       {loadingFields ? (
         <div className={`text-base py-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
-          Loading custom fields...
+          {t('loadingCustomFields')}
         </div>
       ) : customFields.length > 0 && (
         <>
@@ -724,7 +753,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
           <div>
             <h3 className={`text-xl font-bold mb-6 ${
               darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
-            }`}>Additional Information</h3>
+            }`}>{t('additionalInfo')}</h3>
             <div className="space-y-6">
               {customFields.map(field => renderCustomField(field))}
             </div>
@@ -745,14 +774,14 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
               : 'border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
           }`}
         >
-          Cancel
+          {tCommon('cancel')}
         </button>
         <button 
           type="submit"
           disabled={loading}
           className="px-8 py-3 bg-[var(--brand-primary)] text-[var(--dark-900)] rounded-xl text-base font-bold hover:bg-[var(--brand-primary)]/90 disabled:opacity-50 transition active:scale-95"
         >
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? t('saving') : t('saveChanges')}
         </button>
       </div>
       

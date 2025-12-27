@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import api from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
 import { Building2, Home, MapPin, Users } from 'lucide-react';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
 
 
 interface Club {
@@ -32,6 +34,8 @@ interface ClubsAndGroupsProps {
 
 export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroupsProps) {
   const router = useRouter();
+  const t = useTranslations('clubsAndGroups');
+  const tCommon = useTranslations('common');
   const [leavingGroupId, setLeavingGroupId] = useState<number | null>(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<{ id: number; membershipId: number; name: string } | null>(null);
@@ -62,7 +66,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
       router.refresh();
     } catch (error) {
       console.error('Failed to leave group:', error);
-      alert('Failed to leave group. Please try again.');
+      alert(t('failedToLeaveGroup'));
     } finally {
       setLeavingGroupId(null);
     }
@@ -77,7 +81,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
           darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
         }`}>
           <Building2 className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
-          My Clubs
+          {t('myClubs')}
         </h3>
 
         <div className="grid grid-cols-1 gap-6">
@@ -93,7 +97,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                   ? 'bg-[var(--brand-secondary)] text-[var(--brand-light)]' 
                   : 'bg-[#4D4DA4] text-white'
               }`}>
-                HOME CLUB
+                {t('homeClub')}
               </div>
               <div className="h-32 relative">
                 {homeClub.hero_image ? (
@@ -138,7 +142,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                         : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'
                     }`}
                   >
-                    Visit Page
+                    {t('visitPage')}
                   </button>
                 </div>
               </div>
@@ -148,7 +152,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
               darkMode 
                 ? 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30' 
                 : 'bg-yellow-500/20 text-yellow-600 border border-yellow-500/30'
-            }`}>No Home Club selected.</div>
+            }`}>{t('noHomeClubSelected')}</div>
           )}
 
           {/* FOLLOWED CLUBS (Smaller Cards) */}
@@ -156,7 +160,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
             <div>
               <h4 className={`text-sm font-bold uppercase tracking-wide mb-3 ${
                 darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
-              }`}>Following</h4>
+              }`}>{t('following')}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {followedClubs.map((club: Club) => (
                   <div 
@@ -204,7 +208,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
              darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
            }`}>
              <Users className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
-             My Groups
+             {t('myGroups')}
            </h3>
            {activeGroups.length > 0 && (
              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
@@ -212,7 +216,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                  ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border border-[var(--brand-primary)]/30' 
                  : 'bg-[#FF5485]/20 text-[#FF5485] border border-[#FF5485]/30'
              }`}>
-               {activeGroups.length} Active
+               {activeGroups.length} {t('active')}
              </span>
            )}
         </div>
@@ -246,7 +250,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                         ? 'text-[var(--brand-light)] group-hover:text-[var(--brand-primary)]' 
                         : 'text-gray-800 group-hover:text-[#FF5485]'
                     }`}>{membership.group_name}</h5>
-                    <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{membership.role === 'ADMIN' ? 'Group Admin' : 'Member'}</p>
+                    <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{membership.role === 'ADMIN' ? t('groupAdmin') : t('member')}</p>
                   </div>
                 </div>
                 <button
@@ -261,7 +265,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                       : 'text-gray-600 hover:text-red-600 bg-gray-50 hover:bg-red-50 border border-gray-200 hover:border-red-300'
                   }`}
                 >
-                  Leave Group
+                  {t('leaveGroup')}
                 </button>
               </div>
             ))}
@@ -272,7 +276,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
               ? 'bg-[var(--dark-700)] border-[var(--dark-400)]' 
               : 'bg-white border-gray-300'
           }`}>
-             <p className={darkMode ? 'text-[var(--brand-light)]/60 mb-2' : 'text-gray-600 mb-2'}>You haven't joined any groups yet.</p>
+             <p className={darkMode ? 'text-[var(--brand-light)]/60 mb-2' : 'text-gray-600 mb-2'}>{t('noGroupsJoined')}</p>
           </div>
         )}
         
@@ -281,7 +285,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
           <div className="mt-6">
             <h4 className={`text-sm font-bold uppercase tracking-wide mb-3 ${
               darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
-            }`}>Pending Approvals</h4>
+            }`}>{t('pendingApprovals')}</h4>
             <div className="space-y-3">
                {pendingGroups.map(membership => (
                  <div key={membership.id} className={`flex items-center justify-between p-3 rounded-lg ${
@@ -308,7 +312,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                         ? 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30' 
                         : 'bg-yellow-500/20 text-yellow-600 border border-yellow-500/30'
                     }`}>
-                       Pending
+                       {t('pending')}
                     </span>
                  </div>
                ))}
@@ -318,52 +322,23 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
       </section>
 
       {/* Leave Group Confirmation Modal */}
-      {showLeaveModal && selectedGroup && (
-        <div className={`fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4 ${
-          darkMode ? 'bg-black/70' : 'bg-black/50'
-        }`}>
-          <div className={`max-w-md w-full p-6 animate-in fade-in zoom-in duration-200 ${
-            darkMode 
-              ? 'bg-[var(--dark-800)] rounded-xl border border-[var(--dark-500)]' 
-              : 'bg-white rounded-2xl shadow-2xl'
-          }`}>
-            <h3 className={`text-xl font-bold mb-2 font-heading ${
-              darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
-            }`}>Leave Group?</h3>
-            <p className={`mb-6 ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>
-              Are you sure you want to leave <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{selectedGroup.name}</span>? 
-              You'll need to request to join again if you change your mind.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowLeaveModal(false);
-                  setSelectedGroup(null);
-                }}
-                disabled={leavingGroupId === selectedGroup.id}
-                className={`flex-1 px-4 py-2.5 font-medium rounded-xl transition disabled:opacity-50 ${
-                  darkMode 
-                    ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)]/80 border border-[var(--dark-400)]' 
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLeaveGroup}
-                disabled={leavingGroupId === selectedGroup.id}
-                className={`flex-1 px-4 py-2.5 font-medium rounded-xl transition disabled:opacity-50 ${
-                  darkMode 
-                    ? 'bg-[var(--brand-red)] hover:bg-[var(--brand-red)]/80 text-white' 
-                    : 'bg-red-500 hover:bg-red-600 text-white'
-                }`}
-              >
-                {leavingGroupId === selectedGroup.id ? 'Leaving...' : 'Leave Group'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isVisible={showLeaveModal}
+        onClose={() => {
+          if (leavingGroupId !== selectedGroup?.id) {
+            setShowLeaveModal(false);
+            setSelectedGroup(null);
+          }
+        }}
+        onConfirm={handleLeaveGroup}
+        title={t('leaveGroupConfirm')}
+        message={selectedGroup ? `${t('leaveGroupMessage')} ${selectedGroup.name}? ${t('leaveGroupWarning')}` : ''}
+        confirmButtonText={leavingGroupId === selectedGroup?.id ? t('leaving') : t('leaveGroup')}
+        cancelButtonText={tCommon('cancel')}
+        isLoading={leavingGroupId === selectedGroup?.id}
+        variant="danger"
+        darkMode={darkMode}
+      />
     </div>
   );
 }

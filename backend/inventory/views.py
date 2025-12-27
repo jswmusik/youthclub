@@ -16,6 +16,7 @@ from .serializers import (
 from organization.models import Club
 from visits.models import CheckInSession
 from notifications.models import Notification
+from core.permissions import HasLicenseFeature
 
 # --- Custom Permissions ---
 class IsClubAdminOrReadOnly(permissions.BasePermission):
@@ -29,10 +30,30 @@ class ItemViewSet(viewsets.ModelViewSet):
     Main ViewSet for managing Inventory Items.
     """
     serializer_class = ItemSerializer
-    permission_classes = [IsAuthenticated, IsClubAdminOrReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'tags__name', 'category__name']
     ordering_fields = ['created_at', 'title']
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the inventory feature.
+        User actions (borrow, return_item, join_queue, leave_queue) should be available to all authenticated users.
+        Admin actions require club admin permissions.
+        """
+        # User actions that should be available to all authenticated users
+        user_actions = ['borrow', 'return_item', 'join_queue', 'leave_queue']
+        
+        if self.action in user_actions:
+            # For user actions, only require authentication and license feature
+            permission_classes = [IsAuthenticated]
+        else:
+            # For admin actions (create, update, delete, etc.), require admin permissions
+            permission_classes = [IsAuthenticated, IsClubAdminOrReadOnly]
+        
+        # Add the license feature gatekeeper
+        permission_classes.append(HasLicenseFeature('inventory')())
+        
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user

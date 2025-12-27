@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Event } from '@/types/event';
 import EventCard from '@/app/components/events/youth/EventCard';
@@ -14,6 +15,7 @@ interface ClubEventsProps {
 
 export default function ClubEvents({ clubId, darkMode = false }: ClubEventsProps) {
   const router = useRouter();
+  const t = useTranslations('club.events');
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,7 +41,7 @@ export default function ClubEvents({ clubId, darkMode = false }: ClubEventsProps
       setEvents(Array.isArray(eventsData) ? eventsData : []);
     } catch (err) {
       console.error('Error fetching club events:', err);
-      setError('Failed to load events.');
+      setError(t('failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ export default function ClubEvents({ clubId, darkMode = false }: ClubEventsProps
         <div className={`rounded-full h-12 w-12 border-t-2 border-b-2 mx-auto animate-spin ${
           darkMode ? 'border-[var(--brand-primary)]' : 'border-blue-500'
         }`}></div>
-        <p className="mt-4">Loading events...</p>
+        <p className="mt-4">{t('loadingEvents')}</p>
       </div>
     );
   }
@@ -82,11 +84,11 @@ export default function ClubEvents({ clubId, darkMode = false }: ClubEventsProps
         </div>
         <h3 className={`text-lg font-bold font-heading ${
           darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
-        }`}>No Upcoming Events</h3>
+        }`}>{t('noUpcomingEvents')}</h3>
         <p className={`mt-2 max-w-md mx-auto ${
           darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
         }`}>
-          This club doesn't have any upcoming events at the moment. Check back later!
+          {t('noUpcomingEventsMessage')}
         </p>
       </div>
     );
@@ -100,11 +102,11 @@ export default function ClubEvents({ clubId, darkMode = false }: ClubEventsProps
           <div>
             <h2 className={`text-xl font-bold font-heading ${
               darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
-            }`}>Upcoming Events</h2>
+            }`}>{t('upcomingEvents')}</h2>
             <p className={`text-sm mt-1 ${
               darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
             }`}>
-              {events.length} event{events.length !== 1 ? 's' : ''} coming up
+              {t('eventsComingUp', { count: events.length, plural: events.length !== 1 ? 's' : '' })}
             </p>
           </div>
           <button
@@ -115,7 +117,7 @@ export default function ClubEvents({ clubId, darkMode = false }: ClubEventsProps
                 : 'text-blue-600 hover:text-blue-700'
             }`}
           >
-            View All Events
+            {t('viewAllEvents')}
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>

@@ -8,10 +8,18 @@ from datetime import timedelta
 
 from .models import Reward, RewardUsage
 from .serializers import RewardSerializer, RewardUsageSerializer
+from core.permissions import HasLicenseFeature
 
 class RewardViewSet(viewsets.ModelViewSet):
     serializer_class = RewardSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the rewards feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('rewards')())
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         """

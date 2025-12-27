@@ -2,10 +2,24 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
 import { format } from 'date-fns';
+import { enUS, sv, da, nb, fi, type Locale } from 'date-fns/locale';
 import { MapPin, Calendar, Users, ChevronLeft, ChevronRight, X, CheckCircle, Clock, AlertCircle, Repeat, ArrowRight } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
 import { Event } from '@/types/event';
+
+// Map locale codes to date-fns locales
+const localeMap: Record<string, Locale> = {
+  en: enUS,
+  sv: sv,
+  da: da,
+  nb: nb,
+  fi: fi,
+  ar: enUS, // Arabic not available in date-fns, fallback to English
+  so: enUS, // Somali not available in date-fns, fallback to English
+  prs: enUS, // Dari not available in date-fns, fallback to English
+};
 
 interface EventCardProps {
     event: Event;
@@ -13,6 +27,9 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, darkMode = false }: EventCardProps) {
+    const t = useTranslations('eventCard');
+    const locale = useLocale();
+    const dateLocale = localeMap[locale] || enUS;
     const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null);
     
     const isFull = event.max_seats > 0 && event.confirmed_participants_count >= event.max_seats;
@@ -37,11 +54,11 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
         setCurrentImageIndex(index);
     };
 
-    // Format date nicely
+    // Format date nicely with locale support
     const eventDate = new Date(event.start_date);
-    const dayName = format(eventDate, 'EEE');
+    const dayName = format(eventDate, 'EEE', { locale: dateLocale });
     const dayNum = format(eventDate, 'd');
-    const month = format(eventDate, 'MMM');
+    const month = format(eventDate, 'MMM', { locale: dateLocale });
     const time = format(eventDate, 'HH:mm');
     
     return (
@@ -88,7 +105,7 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
                                             : 'bg-[#4D4DA4] text-white'
                                     }`}>
                                         <Repeat className="w-2.5 h-2.5" />
-                                        <span className="font-medium">Series</span>
+                                        <span className="font-medium">{t('series')}</span>
                                     </div>
                                 )}
                             </div>
@@ -109,9 +126,9 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
                                         {userStatus === 'APPROVED' && <CheckCircle className="w-3 h-3" />}
                                         {userStatus === 'WAITLIST' && <Clock className="w-3 h-3" />}
                                         {(userStatus === 'PENDING_GUARDIAN' || userStatus === 'PENDING_ADMIN') && <AlertCircle className="w-3 h-3" />}
-                                        {userStatus === 'APPROVED' ? 'Registered' : 
-                                         userStatus === 'WAITLIST' ? 'Waitlist' : 
-                                         'Pending'}
+                                        {userStatus === 'APPROVED' ? t('registered') : 
+                                         userStatus === 'WAITLIST' ? t('waitlist') : 
+                                         t('pending')}
                                     </span>
                                 ) : (
                                     <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -119,7 +136,7 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
                                             ? darkMode ? 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]' : 'bg-rose-100 text-rose-700'
                                             : darkMode ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-emerald-100 text-emerald-700'
                                     }`}>
-                                        {isFull ? 'Full' : 'Open'}
+                                        {isFull ? t('full') : t('open')}
                                     </span>
                                 )}
                                 
@@ -131,7 +148,7 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
                                             : 'bg-[#EBEBFE] text-[#4D4DA4]'
                                     }`}>
                                         <Repeat className="w-2.5 h-2.5" />
-                                        Recurring
+                                        {t('recurring')}
                                     </span>
                                 )}
                             </div>
@@ -161,7 +178,7 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
                                         ? darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'
                                         : darkMode ? 'text-[var(--brand-green)]' : 'text-emerald-600'
                                 }`}>
-                                    {event.cost ? `${event.cost} kr` : 'Free'}
+                                    {event.cost ? `${event.cost} ${t('kr')}` : t('free')}
                                 </span>
                                 
                                 {/* Seats */}
@@ -170,7 +187,7 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
                                         darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
                                     }`}>
                                         <Users className="w-3.5 h-3.5" />
-                                        {isFull ? `${event.waitlist_count} waiting` : `${seatsLeft} spots`}
+                                        {isFull ? `${event.waitlist_count} ${t('waiting')}` : `${seatsLeft} ${t('spots')}`}
                                     </span>
                                 )}
                             </div>

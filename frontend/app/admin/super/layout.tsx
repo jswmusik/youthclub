@@ -48,7 +48,8 @@ import {
   Layers,
   Navigation,
   Sparkles,
-  Cookie
+  Cookie,
+  Crown
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -134,7 +135,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
       setPendingRequestsCount(data.length);
     } catch (err: any) {
-      if (err?.response?.status === 401) {
+      // Handle 401 (unauthorized) and 403 (forbidden/license) errors silently
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
         setPendingRequestsCount(0);
         return;
       }
@@ -154,7 +156,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
       setPendingBookingsCount(data.length);
     } catch (err: any) {
-      if (err?.response?.status === 401) {
+      // Handle 401 (unauthorized) and 403 (forbidden/license) errors silently
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
         setPendingBookingsCount(0);
         return;
       }
@@ -177,7 +180,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       );
       setPendingEventApplicationsCount(pending.length);
     } catch (err: any) {
-      if (err?.response?.status === 401) {
+      // Handle 401 (unauthorized) and 403 (forbidden/license) errors silently
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
         setPendingEventApplicationsCount(0);
         return;
       }
@@ -203,6 +207,9 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: 'Manage Countries', href: '/admin/super/countries', icon: Flag },
         { name: 'Manage Municipalities', href: '/admin/super/municipalities', icon: MapPinned },
         { name: 'Manage Clubs', href: '/admin/super/clubs', icon: Building },
+        { name: 'Plan Builder', href: '/admin/super/plans', icon: Package },
+        { name: 'License Management', href: '/admin/super/licenses', icon: Crown },
+        { name: 'Feature Pricing', href: '/admin/super/licensing/features', icon: Tag },
       ]
     },
     {

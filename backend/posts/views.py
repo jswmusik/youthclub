@@ -16,6 +16,7 @@ from .engine import PostEngine
 
 # Import Reward models
 from rewards.models import RewardUsage
+from core.permissions import HasLicenseFeature
 
 
 class PublicPostsView(APIView):
@@ -112,8 +113,15 @@ class PublicPostsView(APIView):
 
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
-    permission_classes = [permissions.IsAuthenticated]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the posts feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('posts')())
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         """
@@ -944,7 +952,14 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class PostCommentViewSet(viewsets.ModelViewSet):
     serializer_class = PostCommentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the posts feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('posts')())
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         queryset = PostComment.objects.all().order_by('-created_at')
@@ -972,11 +987,18 @@ class PostTemplateViewSet(viewsets.ModelViewSet):
     ViewSet for managing Post Templates.
     Admins can create, edit, and delete templates for quick post creation.
     """
-    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'usage_count', 'created_at', 'updated_at']
     ordering = ['-usage_count', '-created_at']
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the posts feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('posts')())
+        return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
         """Use list serializer for list action, full serializer otherwise."""

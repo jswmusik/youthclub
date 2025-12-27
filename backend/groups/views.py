@@ -13,14 +13,22 @@ from .permissions import IsGroupAdminOrReadOnly, IsGroupMembershipAdmin
 from users.models import User
 from users.serializers import CustomUserSerializer
 from custom_fields.models import CustomFieldValue
+from core.permissions import HasLicenseFeature
 
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
-    permission_classes = [IsGroupAdminOrReadOnly]
     
     # --- ADDED SEARCH CAPABILITY ---
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description', 'municipality__name']
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the groups feature.
+        """
+        permission_classes = [IsGroupAdminOrReadOnly]
+        permission_classes.append(HasLicenseFeature('groups')())
+        return [permission() for permission in permission_classes]
 
     def get_object(self):
         """
@@ -561,7 +569,14 @@ class GroupMembershipViewSet(viewsets.ModelViewSet):
     Dedicated endpoint for managing pending join requests across ALL groups.
     """
     serializer_class = GroupMembershipSerializer
-    permission_classes = [IsGroupMembershipAdmin]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the groups feature.
+        """
+        permission_classes = [IsGroupMembershipAdmin]
+        permission_classes.append(HasLicenseFeature('groups')())
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user

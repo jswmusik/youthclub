@@ -37,13 +37,17 @@ import {
   BookOpen,
   History,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Crown
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
 import RoleGuard from '../../components/RoleGuard';
+import { ToastProvider } from '../../components/ToastProvider';
 import api from '../../../lib/api';
+// License hook for feature gating
+import { useLicense } from '../../../hooks/useLicense';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -63,6 +67,8 @@ const getInitials = (first?: string | null, last?: string | null) => {
 export default function MunicipalityAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
+  // License hook for feature gating
+  const { hasFeature } = useLicense();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -88,12 +94,13 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
   const [pendingEventApplicationsCount, setPendingEventApplicationsCount] = useState(0);
 
   // Keep your existing useEffects logic exactly as it was
+  // Only fetch counts if feature is enabled to avoid 403s
   useEffect(() => {
     refreshMessageCount();
-    refreshPendingRequestsCount();
-    refreshPendingBookingsCount();
-    refreshPendingEventApplicationsCount();
-  }, [refreshMessageCount]);
+    if (hasFeature('groups')) refreshPendingRequestsCount();
+    if (hasFeature('bookings')) refreshPendingBookingsCount();
+    if (hasFeature('events')) refreshPendingEventApplicationsCount();
+  }, [refreshMessageCount, hasFeature]);
 
   // Auto-open groups when navigating to a page within that group
   useEffect(() => {
@@ -174,13 +181,14 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     }
   };
 
-  // Navigation structure with groups
-  const navigationGroups = [
+  // Navigation structure with groups - FILTERED BY LICENSE
+  const allNavigationGroups = [
     {
       id: 'main',
+      // Always show Overview. Inbox depends on 'messenger'
       items: [
         { name: 'Overview', href: '/admin/municipality', icon: LayoutDashboard },
-        { name: 'Inbox', href: '/admin/municipality/inbox', showBadge: true, icon: MessageSquare },
+        ...(hasFeature('messenger') ? [{ name: 'Inbox', href: '/admin/municipality/inbox', showBadge: true, icon: MessageSquare }] : []),
       ]
     },
     {
@@ -190,6 +198,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
       items: [
         { name: 'My Municipality', href: '/admin/municipality/settings', icon: Settings },
         { name: 'Manage Clubs', href: '/admin/municipality/clubs', icon: Building2 },
+        { name: 'My Membership', href: '/admin/municipality/settings/membership', icon: Crown },
       ]
     },
     {
@@ -202,7 +211,8 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
         { name: 'Manage Guardians', href: '/admin/municipality/guardians', icon: Shield },
       ]
     },
-    {
+    // --- FEATURE GATED GROUPS ---
+    ...(hasFeature('posts') ? [{
       id: 'content',
       title: 'Content',
       icon: Newspaper,
@@ -210,8 +220,9 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
         { name: 'News Feed', href: '/admin/municipality/news-feed', icon: Rss },
         { name: 'Manage Posts', href: '/admin/municipality/posts', icon: FileEdit },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('events') ? [{
       id: 'events',
       title: 'Events',
       icon: Calendar,
@@ -220,8 +231,9 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
         { name: 'Event Calendar', href: '/admin/municipality/events/calendar', icon: CalendarDays },
         { name: 'Event Applications', href: '/admin/municipality/events/applications', icon: ClipboardList },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('groups') ? [{
       id: 'groups',
       title: 'Groups & Social',
       icon: UsersRound,
@@ -229,16 +241,18 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
         { name: 'Groups', href: '/admin/municipality/groups', icon: UsersRound },
         { name: 'Applications', href: '/admin/municipality/groups/requests', showBadge: true, icon: FileText },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('rewards') ? [{
       id: 'rewards',
       title: 'Rewards and Loyalty',
       icon: Gift,
       items: [
         { name: 'Manage Rewards', href: '/admin/municipality/rewards', icon: Gift },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('inventory') ? [{
       id: 'inventory',
       title: 'Inventory',
       icon: Box,
@@ -246,8 +260,9 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
         { name: 'Inventory', href: '/admin/municipality/inventory', icon: Box },
         { name: 'Inventory History', href: '/admin/municipality/inventory/history', icon: History },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('bookings') ? [{
       id: 'bookings',
       title: 'Bookings',
       icon: FileText,
@@ -256,8 +271,9 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
         { name: 'Booking Calendar', href: '/admin/municipality/bookings/calendar', icon: CalendarDays },
         { name: 'Booking Resources', href: '/admin/municipality/bookings/resources', icon: Package },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('learning') ? [{
       id: 'learning',
       title: 'Learning Center',
       icon: GraduationCap,
@@ -265,26 +281,32 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
         { name: 'Knowledge Center', href: '/admin/municipality/knowledge', icon: GraduationCap },
         { name: 'Find a course', href: '/admin/municipality/knowledge/courses', icon: BookOpen },
       ]
-    },
-    {
+    }] : []),
+
+    ...(hasFeature('analytics') ? [{
       id: 'analytics',
       title: 'Analytics',
       icon: BarChart3,
       items: [
         { name: 'Municipality Overview', href: '/admin/municipality/analytics', icon: TrendingUp },
       ]
-    },
+    }] : []),
+
     {
       id: 'settings',
       title: 'Settings & Configuration',
       icon: Wrench,
       items: [
-        { name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true, icon: MessageCircle },
-        { name: 'Custom Fields', href: '/admin/municipality/custom-fields', icon: Wrench },
-        { name: 'Questionnaires', href: '/admin/municipality/questionnaires', icon: FileText },
+        // Filter individual items inside Settings
+        ...(hasFeature('messenger') ? [{ name: 'Message Board', href: '/admin/municipality/msgboard', showBadge: true, icon: MessageCircle }] : []),
+        ...(hasFeature('custom_fields') ? [{ name: 'Custom Fields', href: '/admin/municipality/custom-fields', icon: Wrench }] : []),
+        ...(hasFeature('questionnaires') ? [{ name: 'Questionnaires', href: '/admin/municipality/questionnaires', icon: FileText }] : []),
       ]
     },
   ];
+
+  // Remove empty groups (e.g. Settings if nothing is enabled)
+  const navigationGroups = allNavigationGroups.filter(g => g.items.length > 0);
 
   const SidebarContent = ({ isCollapsed = false }: { isCollapsed?: boolean }) => (
     <div className="flex flex-col h-full bg-[var(--dark-800)] border-r border-[var(--dark-600)] w-full">
@@ -651,7 +673,9 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
           {/* MAIN CONTENT - Add padding-top on mobile to account for fixed header */}
           <main className="flex-1 pt-16 md:pt-3 px-0 sm:px-4 md:px-6 lg:px-8 pb-3 sm:pb-4 md:pb-6 lg:pb-8 overflow-y-auto overflow-x-hidden bg-[var(--dark-900)]">
             <div className="mx-auto max-w-7xl w-full min-w-0">
-              {children}
+              <ToastProvider>
+                {children}
+              </ToastProvider>
             </div>
           </main>
         </div>

@@ -7,10 +7,18 @@ from django.db.models import Q
 # Import User to check roles if needed, though request.user is sufficient
 from .models import CustomFieldDefinition, CustomFieldValue
 from .serializers import CustomFieldDefinitionSerializer, CustomFieldUserViewSerializer, CustomFieldValueSerializer
+from core.permissions import HasLicenseFeature
 
 class CustomFieldDefinitionViewSet(viewsets.ModelViewSet):
     serializer_class = CustomFieldDefinitionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the custom_fields feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('custom_fields')())
+        return [permission() for permission in permission_classes]
     
     def get_queryset(self):
         """

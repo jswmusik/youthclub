@@ -2,6 +2,7 @@
 
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 import api from '../../../../../../lib/api';
 import { getMediaUrl } from '../../../../../utils';
@@ -18,6 +19,10 @@ export default function BookingWizardPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const t = useTranslations('bookings.resourceDetail');
+  const tCard = useTranslations('bookings.resourceCard');
+  const tSidebar = useTranslations('sidebar');
+  const tResourceTypes = useTranslations('bookings.resourceTypes');
   const [resource, setResource] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -67,7 +72,7 @@ export default function BookingWizardPage() {
       <div className="min-h-screen bg-[var(--dark-900)]">
         <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
         <div className="pt-20 text-center py-12">
-          <p className="text-[var(--brand-light)]/60 font-semibold">Resource not found.</p>
+          <p className="text-[var(--brand-light)]/60 font-semibold">{t('resourceNotFound')}</p>
         </div>
       </div>
     );
@@ -92,7 +97,7 @@ export default function BookingWizardPage() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
@@ -159,12 +164,12 @@ export default function BookingWizardPage() {
                     {resource.max_participants && (
                       <div className="flex items-center gap-2 bg-[var(--dark-700)] px-4 py-2.5 rounded-xl border border-[var(--dark-600)]">
                         <Users className="w-4 h-4 text-[var(--brand-purple)]" />
-                        <span className="text-sm font-bold text-[var(--brand-light)]/80">Max {resource.max_participants} people</span>
+                        <span className="text-sm font-bold text-[var(--brand-light)]/80">{tCard('maxPeople', { count: resource.max_participants })}</span>
                       </div>
                     )}
                     {resource.resource_type && (
                       <div className="px-4 py-2.5 bg-[var(--brand-primary)]/10 rounded-xl text-xs font-bold text-[var(--brand-primary)] border border-[var(--brand-primary)]/20">
-                        {resource.resource_type}
+                        {tResourceTypes(resource.resource_type as 'ROOM' | 'EQUIPMENT')}
                       </div>
                     )}
                   </div>
@@ -174,9 +179,9 @@ export default function BookingWizardPage() {
                     <div className="mt-4 bg-[var(--brand-peach)]/10 border border-[var(--brand-peach)]/30 p-4 rounded-xl flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 text-[var(--brand-peach)] flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-bold text-[var(--brand-peach)] mb-1">License Required</p>
+                        <p className="text-sm font-bold text-[var(--brand-peach)] mb-1">{t('licenseRequired')}</p>
                         <p className="text-xs text-[var(--brand-light)]/60 font-semibold">
-                          This resource requires a license or training. Ensure you are qualified before booking.
+                          {t('licenseRequiredMessage')}
                         </p>
                       </div>
                     </div>

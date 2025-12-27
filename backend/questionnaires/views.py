@@ -15,6 +15,7 @@ from .permissions import IsQuestionnaireOwnerOrHigher
 from .utils import generate_response_pdf
 from rewards.models import RewardUsage
 from users.models import User
+from core.permissions import HasLicenseFeature
 
 
 def create_questionnaire_completion_activity_post(response):
@@ -107,11 +108,18 @@ class QuestionnaireAdminViewSet(viewsets.ModelViewSet):
     """
     Viewset for Admins to Manage Questionnaires.
     """
-    permission_classes = [permissions.IsAuthenticated, IsQuestionnaireOwnerOrHigher]
     serializer_class = QuestionnaireAdminSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title']
     ordering_fields = ['created_at', 'start_date']
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the questionnaires feature.
+        """
+        permission_classes = [permissions.IsAuthenticated, IsQuestionnaireOwnerOrHigher]
+        permission_classes.append(HasLicenseFeature('questionnaires')())
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user
@@ -377,7 +385,14 @@ class UserQuestionnaireViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Viewset for Members (Youth/Guardians) to list and take questionnaires.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the questionnaires feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('questionnaires')())
+        return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
         if self.action == 'retrieve':

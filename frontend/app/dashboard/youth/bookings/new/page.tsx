@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import api from '../../../../../lib/api';
 import BookingResourceCard from '../../../../components/bookings/youth/BookingResourceCard';
@@ -22,6 +23,8 @@ export default function BrowseResourcesPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const t = useTranslations('bookings.browseResources');
+  const tSidebar = useTranslations('sidebar');
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('CLUB');
@@ -111,7 +114,7 @@ export default function BrowseResourcesPage() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
@@ -146,13 +149,13 @@ export default function BrowseResourcesPage() {
                         <div className="flex items-center gap-2 sm:gap-3 mb-1">
                           <CalendarDays className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
                           <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
-                            New Booking
+                            {t('title')}
                           </h1>
                         </div>
                         <p className="text-[var(--brand-light)]/60 text-sm pl-8 sm:pl-10">
                           {filter === 'CLUB' 
-                            ? 'Browse bookable resources from your club'
-                            : 'Browse bookable resources from your municipality'}
+                            ? t('browseClubResources')
+                            : t('browseMunicipalityResources')}
                         </p>
                       </div>
                     </div>
@@ -164,7 +167,7 @@ export default function BrowseResourcesPage() {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5" />
                         <input 
                           type="text" 
-                          placeholder="Search resources by name..." 
+                          placeholder={t('searchPlaceholder')} 
                           className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl py-3 pl-12 pr-4 text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] transition-all"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
@@ -190,7 +193,7 @@ export default function BrowseResourcesPage() {
                           }`}
                         >
                           <Building2 className="w-3.5 h-3.5" />
-                          My Club
+                          {t('myClub')}
                         </button>
                         
                         <button
@@ -202,7 +205,7 @@ export default function BrowseResourcesPage() {
                           }`}
                         >
                           <Building2 className="w-3.5 h-3.5" />
-                          Municipality
+                          {t('municipality')}
                         </button>
                       </div>
                     </div>
@@ -216,17 +219,17 @@ export default function BrowseResourcesPage() {
                     </div>
                     <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">
                       {searchQuery 
-                        ? `No resources found matching "${searchQuery}"`
+                        ? t('noResourcesFound', { query: searchQuery })
                         : filter === 'CLUB'
-                          ? 'No resources available in your club'
-                          : 'No resources available in your municipality'}
+                          ? t('noClubResources')
+                          : t('noMunicipalityResources')}
                     </p>
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
                         className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all mt-4"
                       >
-                        Clear search
+                        {t('clearSearch')}
                       </button>
                     )}
                   </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { getMediaUrl } from '../../../utils';
 import { Calendar, Users, AlertCircle, Building2 } from 'lucide-react';
@@ -22,6 +23,8 @@ interface BookingResourceCardProps {
 }
 
 export default function BookingResourceCard({ resource, darkMode = false }: BookingResourceCardProps) {
+  const t = useTranslations('bookings.resourceCard');
+  
   return (
     <Link href={`/dashboard/youth/bookings/resource/${resource.id}`} className="block group">
       <div className={`overflow-hidden transition-all duration-300 group-active:scale-95 ${
@@ -52,7 +55,7 @@ export default function BookingResourceCard({ resource, darkMode = false }: Book
                 : 'bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg'
             }`}>
               <AlertCircle className="w-3.5 h-3.5" />
-              License Req.
+              {t('licenseRequired')}
             </div>
           )}
         </div>
@@ -80,7 +83,7 @@ export default function BookingResourceCard({ resource, darkMode = false }: Book
               : 'bg-gradient-to-r from-[#EBEBFE]/30 to-[#EBEBFE]/50 border-[#4D4DA4]/10'
           }`}>
             <Users className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
-            <span className={`text-xs font-bold ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>Max {resource.max_participants} people</span>
+            <span className={`text-xs font-bold ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>{t('maxPeople', { count: resource.max_participants })}</span>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { Club } from '@/types/organization';
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 
@@ -14,6 +15,8 @@ const mapContainerStyle = {
 };
 
 export default function ClubContact({ club, darkMode = false }: ClubContactProps) {
+  const t = useTranslations('club.contact');
+  
   // Default to a central location if coords are missing (e.g., Stockholm)
   const center = {
     lat: club.latitude || 59.3293,
@@ -33,7 +36,7 @@ export default function ClubContact({ club, darkMode = false }: ClubContactProps
         }`}>
           <h3 className={`text-lg font-bold mb-6 font-heading ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
-          }`}>Contact Details</h3>
+          }`}>{t('contactDetails')}</h3>
           
           <div className="space-y-4">
             {club.address && (
@@ -51,7 +54,7 @@ export default function ClubContact({ club, darkMode = false }: ClubContactProps
                 <div>
                   <p className={`text-xs uppercase font-semibold ${
                     darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
-                  }`}>Address</p>
+                  }`}>{t('address')}</p>
                   <p className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}>{club.address}</p>
                 </div>
               </div>
@@ -71,7 +74,7 @@ export default function ClubContact({ club, darkMode = false }: ClubContactProps
                 <div>
                   <p className={`text-xs uppercase font-semibold ${
                     darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
-                  }`}>Email</p>
+                  }`}>{t('email')}</p>
                   <a href={`mailto:${club.email}`} className={`hover:underline break-all ${
                     darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'
                   }`}>{club.email}</a>
@@ -93,7 +96,7 @@ export default function ClubContact({ club, darkMode = false }: ClubContactProps
                 <div>
                   <p className={`text-xs uppercase font-semibold ${
                     darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
-                  }`}>Phone</p>
+                  }`}>{t('phone')}</p>
                   <a href={`tel:${club.phone}`} className={`hover:underline ${
                     darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'
                   }`}>{club.phone}</a>
@@ -130,7 +133,7 @@ export default function ClubContact({ club, darkMode = false }: ClubContactProps
                 <svg className="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 01-.806-.984A1 1 0 0021 6.618l-5.447 2.724A1 1 0 0015 16.382V5.618a1 1 0 011.447-.894L9 7m0 13V7" />
                 </svg>
-                <p>No coordinates available for map view.</p>
+                <p>{t('noCoordinates')}</p>
              </div>
            )}
         </div>

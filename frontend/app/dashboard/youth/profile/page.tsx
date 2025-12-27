@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api, { visits } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import NavBar from '@/app/components/NavBar';
@@ -15,6 +16,7 @@ export default function YouthProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const tSidebar = useTranslations('sidebar');
   
   // We might want to fetch "fresher" data than what's in context, 
   // specifically if we need relations like full Club objects.
@@ -98,7 +100,7 @@ export default function YouthProfilePage() {
         }`}
       >
         <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
-          <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"

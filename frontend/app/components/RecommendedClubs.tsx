@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { fetchClubsByMunicipality, followClub, unfollowClub } from '../../lib/api';
 import { getMediaUrl } from '../utils';
 import { useAuth } from '../../context/AuthContext';
@@ -25,6 +26,7 @@ interface RecommendedClubsProps {
 export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {}) {
     const router = useRouter();
     const { user, refreshUser } = useAuth();
+    const t = useTranslations('recommended');
     const [clubs, setClubs] = useState<Club[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -114,11 +116,11 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
             if (previouslyFollowing) {
                 // It was true, so now we are UNFOLLOWING
                 await unfollowClub(clubId);
-                setToast({ message: 'Unfollowed club', type: 'success', isVisible: true });
+                setToast({ message: t('unfollowedClub'), type: 'success', isVisible: true });
             } else {
                 // It was false/undefined, so now we are FOLLOWING
                 await followClub(clubId);
-                setToast({ message: 'Following club', type: 'success', isVisible: true });
+                setToast({ message: t('followingClub'), type: 'success', isVisible: true });
             }
             
             // Refresh user context to sync the 'followed_clubs_ids' array
@@ -126,7 +128,7 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
             
         } catch (error) {
             console.error("Follow action failed", error);
-            setToast({ message: 'Action failed', type: 'error', isVisible: true });
+            setToast({ message: t('actionFailed'), type: 'error', isVisible: true });
             // Revert UI on error
             setIsFollowing(prev => ({ ...prev, [clubId]: previouslyFollowing }));
         }
@@ -159,7 +161,7 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
                 <div className="flex items-center justify-between mb-4">
                     <h3 className={`text-lg font-bold ${
                         darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'
-                    }`}>Recommended Clubs</h3>
+                    }`}>{t('recommendedClubs')}</h3>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrevious}
@@ -287,7 +289,7 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
                                                 : 'bg-[#4D4DA4] text-white hover:bg-[#5D5DB4] shadow-lg shadow-[#4D4DA4]/20'
                                     }`}
                                 >
-                                    {isFollowing[club.id] ? 'Following' : 'Follow'}
+                                    {isFollowing[club.id] ? t('following') : t('follow')}
                                 </button>
                             </div>
                         </div>

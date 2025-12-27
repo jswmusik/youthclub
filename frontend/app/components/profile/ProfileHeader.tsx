@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { updateUserProfile } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Camera, User, MessageCircle, Pencil, Calendar, CheckCircle2, Clock, XCircle, Settings } from 'lucide-react';
@@ -17,6 +18,8 @@ interface ProfileHeaderProps {
 export default function ProfileHeader({ user, primaryClub, darkMode = false }: ProfileHeaderProps) {
   const router = useRouter();
   const { refreshMessageCount } = useAuth(); // Optional: trigger context refresh if needed
+  const t = useTranslations('profile');
+  const tNav = useTranslations('nav');
   
   // Local state for UI feedback
   const [isUploading, setIsUploading] = useState(false);
@@ -86,7 +89,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
               : 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30'
           }`}>
             <CheckCircle2 className="w-3 h-3" />
-            Verified Member
+            {t('verifiedMember')}
           </span>
         );
       case 'PENDING':
@@ -97,7 +100,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
               : 'bg-yellow-500/20 text-yellow-600 border border-yellow-500/30'
           }`}>
             <Clock className="w-3 h-3" />
-            Verification Pending
+            {t('verificationPending')}
           </span>
         );
       default:
@@ -108,7 +111,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
               : 'bg-red-500/20 text-red-500 border border-red-500/30 hover:bg-red-500/30'
           }`}>
             <XCircle className="w-3 h-3" />
-             Unverified
+             {t('unverified')}
           </span>
         );
     }
@@ -145,7 +148,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
               ? 'bg-[var(--dark-700)]/90 hover:bg-[var(--dark-600)] text-[var(--brand-light)] border border-[var(--dark-500)]'
               : 'bg-white/90 hover:bg-white text-gray-700 shadow-sm border border-gray-200'
           }`}
-          title="Change Cover Photo"
+          title={t('changeCover')}
         >
           <Camera className="w-5 h-5" />
         </button>
@@ -215,7 +218,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
             {/* Nickname & Grade */}
             <p className={`text-sm mb-3 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
               {user.nickname && <span className="mr-2">@{user.nickname}</span>}
-              {user.grade && <span className={`px-2 border-l ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-300'}`}>Grade {user.grade}</span>}
+              {user.grade && <span className={`px-2 border-l ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-300'}`}>{t('grade')} {user.grade}</span>}
             </p>
 
             {/* MOOD STATUS */}
@@ -229,7 +232,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
                     onChange={(e) => setMood(e.target.value)}
                     onBlur={saveMood}
                     onKeyDown={(e) => e.key === 'Enter' && saveMood()}
-                    placeholder="What's on your mind?"
+                    placeholder={t('whatsOnYourMind')}
                     className={`w-full px-3 py-1 text-sm border rounded-lg outline-none ${
                       darkMode
                         ? 'border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)]'
@@ -251,7 +254,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
                      ? `italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}` 
                      : `font-medium ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-700'}`
                    }>
-                     {mood || "Set a status..."}
+                     {mood || t('setStatus')}
                    </span>
                    <Pencil className={`w-3 h-3 opacity-0 group-hover:opacity-100 ml-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`} />
                  </div>
@@ -271,7 +274,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
                }`}
              >
                <Calendar className="w-4 h-4" />
-               Check In
+               {tNav('checkIn')}
              </button>
              
              {/* Edit Profile Button */}
@@ -284,7 +287,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
                }`}
              >
                 <Settings className="w-4 h-4" />
-                Edit Profile
+                {t('editProfile')}
              </button>
           </div>
 

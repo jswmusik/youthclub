@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import api from '../../../../lib/api';
 import { format } from 'date-fns';
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export default function BookingDetailModal({ booking, onClose, onUpdate, darkMode = false }: Props) {
+  const t = useTranslations('bookings');
+  const tCommon = useTranslations('common');
   const [notes, setNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
@@ -36,12 +39,9 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
       await api.post(`/bookings/bookings/${booking.id}/cancel/`, payload);
       
       // Show success toast
-      let message = '';
-      if (cancelSeries) {
-        message = 'Recurring booking series cancelled successfully.';
-      } else {
-        message = 'Booking cancelled successfully. The time slot is now available again.';
-      }
+      const message = cancelSeries 
+        ? t('seriesCancelledSuccess')
+        : t('bookingCancelledSuccess');
       
       setToast({ 
         message, 
@@ -55,7 +55,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
         onClose();
       }, 1500);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'Failed to cancel booking';
+      const errorMessage = err.response?.data?.error || err.response?.data?.detail || t('failedToCancelBooking');
       setToast({ 
         message: errorMessage, 
         type: 'error', 
@@ -106,8 +106,8 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
           darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white'
         }`}>
           <div>
-            <h3 className={`text-xl sm:text-2xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'}`}>Booking Details</h3>
-            <p className={`text-xs sm:text-sm font-semibold mt-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>#{booking.id} • {format(new Date(booking.created_at), 'MMM d, yyyy')}</p>
+            <h3 className={`text-xl sm:text-2xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'}`}>{t('bookingDetails')}</h3>
+            <p className={`text-xs sm:text-sm font-semibold mt-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('bookingId', { id: booking.id, date: format(new Date(booking.created_at), 'MMM d, yyyy') })}</p>
           </div>
           <button 
             onClick={onClose}
@@ -127,7 +127,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
           {/* Status Badge */}
           <div className="flex justify-center">
             <span className={`text-xs uppercase font-bold px-4 py-2 rounded-xl ${getStatusStyle(booking.status)}`}>
-              {booking.status}
+              {t(`status.${booking.status.toLowerCase()}`)}
             </span>
           </div>
 
@@ -142,7 +142,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                 <Calendar className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <span className={`font-bold block mb-0.5 sm:mb-1 text-xs sm:text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Resource</span>
+                <span className={`font-bold block mb-0.5 sm:mb-1 text-xs sm:text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('resource')}</span>
                 <span className={`font-bold text-sm sm:text-base font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'}`}>{booking.resource_name}</span>
               </div>
             </div>
@@ -155,7 +155,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                   <MapPin className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#FF5485]'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className={`font-bold block mb-0.5 sm:mb-1 text-xs sm:text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Club</span>
+                  <span className={`font-bold block mb-0.5 sm:mb-1 text-xs sm:text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('club')}</span>
                   <span className={`font-bold text-sm sm:text-base ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{booking.club_name}</span>
                 </div>
               </div>
@@ -168,7 +168,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                 <Clock className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <span className={`font-bold block mb-0.5 sm:mb-1 text-xs sm:text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Time</span>
+                <span className={`font-bold block mb-0.5 sm:mb-1 text-xs sm:text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('time')}</span>
                 <span className={`font-bold text-xs sm:text-sm break-words ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                   {format(new Date(booking.start_time), 'MMM d, yyyy')} • {format(new Date(booking.start_time), 'HH:mm')} - {format(new Date(booking.end_time), 'HH:mm')}
                 </span>
@@ -183,7 +183,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                   }`}>
                     <Users className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'}`} />
                   </div>
-                  <span className={`text-xs sm:text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>Participants</span>
+                  <span className={`text-xs sm:text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>{t('participants')}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {booking.participants.map((p: any) => (
@@ -209,7 +209,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
             }`}>
               <span className="text-xl sm:text-2xl">🔄</span>
               <p className={`text-xs sm:text-sm font-bold ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`}>
-                This is a recurring booking
+                {t('recurringBooking')}
               </p>
             </div>
           )}
@@ -223,7 +223,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
             }`}>
               <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                 <AlertCircle className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'}`} />
-                <p className={`text-xs font-bold uppercase ${darkMode ? 'text-[var(--brand-red)]' : 'text-red-800'}`}>Admin Note</p>
+                <p className={`text-xs font-bold uppercase ${darkMode ? 'text-[var(--brand-red)]' : 'text-red-800'}`}>{t('adminNote')}</p>
               </div>
               <p className={`text-xs sm:text-sm font-semibold ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-red-700'}`}>{booking.internal_notes}</p>
             </div>
@@ -234,7 +234,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
             <div className="space-y-2 sm:space-y-3">
               {!showCancelOptions ? (
                 <>
-                  <label className={`block text-xs sm:text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>Cancellation Note (Optional)</label>
+                  <label className={`block text-xs sm:text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>{t('cancellationNote')}</label>
                   <textarea 
                     className={`w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm font-medium transition-all ${
                       darkMode 
@@ -242,7 +242,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                         : 'border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF8C42]/20 focus:border-[#FF8C42]'
                     }`} 
                     rows={2}
-                    placeholder="Reason for cancellation..."
+                    placeholder={t('cancellationNotePlaceholder')}
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
                     disabled={processing}
@@ -252,7 +252,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                       if (isRecurringBooking) {
                         setShowCancelOptions(true);
                       } else {
-                        if (window.confirm('Are you sure you want to cancel this booking? The time slot will become available again.')) {
+                        if (window.confirm(t('confirmCancelBooking'))) {
                           handleCancel(false);
                         }
                       }
@@ -264,7 +264,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                         : 'border-2 border-[#FF8C42]/30 text-[#FF8C42] bg-[#FF8C42]/10 hover:bg-[#FF8C42]/20 hover:border-[#FF8C42]/50 shadow-sm'
                     }`}
                   >
-                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5" /> Cancel Booking
+                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5" /> {t('cancelBooking')}
                   </button>
                 </>
               ) : (
@@ -274,14 +274,14 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                       ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' 
                       : 'bg-gradient-to-r from-[#4D4DA4]/10 to-[#4D4DA4]/5 border-2 border-[#4D4DA4]/30 shadow-sm'
                   }`}>
-                    <h4 className={`font-bold mb-2 sm:mb-3 text-base sm:text-lg font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'}`}>Cancel Recurring Booking</h4>
+                    <h4 className={`font-bold mb-2 sm:mb-3 text-base sm:text-lg font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'}`}>{t('cancelRecurringBooking')}</h4>
                     <p className={`text-xs sm:text-sm mb-3 sm:mb-4 font-semibold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-700'}`}>
-                      This booking is part of a recurring series. What would you like to cancel?
+                      {t('cancelRecurringBookingMessage')}
                     </p>
                     <div className="space-y-2 sm:space-y-3">
                       <button
                         onClick={() => {
-                          if (window.confirm('Cancel only this instance? The rest of the series will remain.')) {
+                          if (window.confirm(t('confirmCancelInstance'))) {
                             handleCancel(false);
                           }
                         }}
@@ -292,12 +292,12 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                             : 'bg-white border-2 border-[#4D4DA4]/30 text-[#4D4DA4] hover:bg-[#4D4DA4]/10 hover:border-[#4D4DA4]/50 shadow-sm'
                         }`}
                       >
-                        <div className="font-bold text-sm sm:text-base">Cancel This Instance Only</div>
-                        <div className={`text-xs mt-0.5 sm:mt-1 font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Only this booking will be cancelled</div>
+                        <div className="font-bold text-sm sm:text-base">{t('cancelThisInstanceOnly')}</div>
+                        <div className={`text-xs mt-0.5 sm:mt-1 font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('cancelThisInstanceOnlyMessage')}</div>
                       </button>
                       <button
                         onClick={() => {
-                          if (window.confirm('Cancel this instance and all future instances? This cannot be undone.')) {
+                          if (window.confirm(t('confirmCancelSeries'))) {
                             handleCancel(true);
                           }
                         }}
@@ -308,8 +308,8 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                             : 'bg-[#FF8C42]/10 border-2 border-[#FF8C42]/30 text-[#FF8C42] hover:bg-[#FF8C42]/20 hover:border-[#FF8C42]/50 shadow-sm'
                         }`}
                       >
-                        <div className="font-bold text-sm sm:text-base">Cancel Entire Series</div>
-                        <div className={`text-xs mt-0.5 sm:mt-1 font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>This instance and all future instances will be cancelled</div>
+                        <div className="font-bold text-sm sm:text-base">{t('cancelEntireSeries')}</div>
+                        <div className={`text-xs mt-0.5 sm:mt-1 font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('cancelEntireSeriesMessage')}</div>
                       </button>
                     </div>
                   </div>
@@ -320,7 +320,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                       darkMode ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]' : 'text-gray-600 hover:text-[#4D4DA4]'
                     }`}
                   >
-                    ← Back
+                    {t('back')}
                   </button>
                 </>
               )}
@@ -342,7 +342,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                   ? 'bg-gradient-to-r from-red-100 to-red-50 text-red-700 border-2 border-red-300' 
                   : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
             }`}>
-              This booking is {booking.status}
+              {t('thisBookingIs', { status: t(`status.${booking.status.toLowerCase()}`) })}
             </div>
           )}
         </div>

@@ -3,11 +3,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from './posts/PostCard';
 import { fetchUnreadNotificationCount, visits } from '../../lib/api';
 import { messengerApi } from '../../lib/messenger-api';
 import ActiveVisitModal from './visits/ActiveVisitModal';
+import { useLicense } from '@/hooks/useLicense';
 import { 
     Menu, 
     Calendar, 
@@ -38,6 +40,9 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
     const router = useRouter();
     const pathname = usePathname();
     const { user, logout } = useAuth();
+    const { hasFeature } = useLicense();
+    const t = useTranslations('nav');
+    const tVisits = useTranslations('visits');
     const [showMenu, setShowMenu] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [messageUnreadCount, setMessageUnreadCount] = useState(0);
@@ -127,7 +132,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                         ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' 
                                         : 'text-gray-600 hover:bg-gray-100'
                                 }`}
-                                title="Go back"
+                                title={t('goBack')}
                             >
                                 <ChevronLeft className="w-6 h-6" />
                             </button>
@@ -141,7 +146,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                             ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' 
                                             : 'text-gray-600 hover:bg-gray-100'
                                     }`}
-                                    title="Menu"
+                                    title={t('menu')}
                                 >
                                     <Menu className="w-5 h-5" />
                                 </button>
@@ -156,7 +161,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                             ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)] hover:text-[var(--brand-primary)]' 
                                             : 'text-gray-600 hover:bg-[#EBEBFE] hover:text-[#4D4DA4]'
                                     }`}
-                                    title="Menu"
+                                    title={t('menu')}
                                 >
                                     <Menu className="w-5 h-5" />
                                 </button>
@@ -191,10 +196,11 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                 }`}
                             >
                                 <QrCode className="w-5 h-5" />
-                                <span>Check In</span>
+                                <span>{t('checkIn')}</span>
                             </button>
 
-                            {/* Events Button - Secondary CTA */}
+                            {/* Events Button - Secondary CTA - Only show if events feature is enabled */}
+                            {hasFeature('events') && (
                             <button
                                 onClick={() => router.push('/dashboard/youth/events')}
                                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 ${
@@ -208,10 +214,12 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                 }`}
                             >
                                 <Calendar className="w-5 h-5" />
-                                <span>Events</span>
+                                <span>{t('events')}</span>
                             </button>
+                            )}
 
-                            {/* Rewards */}
+                            {/* Rewards - Only show if rewards feature is enabled */}
+                            {hasFeature('rewards') && (
                             <button
                                 onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
                                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95 ${
@@ -225,10 +233,12 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                 }`}
                             >
                                 <Gift className="w-5 h-5" />
-                                <span className="hidden lg:inline">Rewards</span>
+                                <span className="hidden lg:inline">{t('rewards')}</span>
                             </button>
+                            )}
 
-                            {/* Borrow */}
+                            {/* Borrow - Only show if inventory feature is enabled */}
+                            {hasFeature('inventory') && (
                             <button
                                 onClick={() => router.push('/dashboard/youth/inventory')}
                                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95 ${
@@ -242,13 +252,15 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                 }`}
                             >
                                 <Package className="w-5 h-5" />
-                                <span className="hidden lg:inline">Borrow</span>
+                                <span className="hidden lg:inline">{t('borrow')}</span>
                             </button>
+                            )}
                         </div>
 
                         {/* Right Section: Notifications, Profile, Menu */}
                         <div className="flex items-center gap-2 sm:gap-3">
-                            {/* Messages */}
+                            {/* Messages - Only show if messenger feature is enabled */}
+                            {hasFeature('messenger') && (
                             <button
                                 onClick={() => router.push('/dashboard/youth/messages')}
                                 className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95 ${
@@ -256,7 +268,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                         ? 'text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-primary)]'
                                         : 'text-gray-600 hover:bg-gray-100 hover:text-[#4D4DA4]'
                                 }`}
-                                title="Messages"
+                                title={t('messages')}
                             >
                                 <Mail className="w-5 h-5" />
                                 {messageUnreadCount > 0 && (
@@ -269,6 +281,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                     </span>
                                 )}
                             </button>
+                            )}
                             
                             {/* Notifications */}
                             <button
@@ -278,7 +291,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                         ? 'text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-primary)]'
                                         : 'text-gray-600 hover:bg-gray-100 hover:text-[#4D4DA4]'
                                 }`}
-                                title="Notifications"
+                                title={t('notifications')}
                             >
                                 <Bell className="w-5 h-5" />
                                 {unreadCount > 0 && (
@@ -334,7 +347,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                                 ? 'bg-gray-100 text-[#4D4DA4]' 
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-[#4D4DA4]'
                                     }`}
-                                    title="More options"
+                                    title={t('moreOptions')}
                                 >
                                     <MoreVertical className="w-5 h-5" />
                                 </button>
@@ -363,7 +376,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                                 }`}
                                             >
                                                 <Settings className="w-5 h-5" />
-                                                <span className="font-medium">Settings</span>
+                                                <span className="font-medium">{t('settings')}</span>
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -377,7 +390,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                                 }`}
                                             >
                                                 <HelpCircle className="w-5 h-5" />
-                                                <span className="font-medium">Help & Support</span>
+                                                <span className="font-medium">{t('help')}</span>
                                             </button>
                                             <hr className={`my-2 ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`} />
                                             <button
@@ -392,7 +405,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                                 }`}
                                             >
                                                 <LogOut className="w-5 h-5" />
-                                                <span className="font-medium">Logout</span>
+                                                <span className="font-medium">{t('logout')}</span>
                                             </button>
                                         </div>
                                     </>
@@ -416,8 +429,8 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--brand-green)] opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--brand-green)]"></span>
                         </div>
-                        <span>Checked in at <strong>{activeVisit.club_name}</strong></span>
-                        <span className="opacity-60">• Tap to check out</span>
+                        <span>{tVisits('checkedInAt')} <strong>{activeVisit.club_name}</strong></span>
+                        <span className="opacity-60">• {tVisits('tapToCheckOut')}</span>
                     </button>
                 )}
                 
@@ -440,20 +453,22 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                     {/* Home */}
                     <MobileNavItem
                         icon={<Home className="w-5 h-5" />}
-                        label="Home"
+                        label={t('home')}
                         isActive={pathname === '/dashboard/youth'}
                         onClick={() => router.push('/dashboard/youth')}
                         darkMode={darkMode}
                     />
 
-                    {/* Events */}
+                    {/* Events - Only show if events feature is enabled */}
+                    {hasFeature('events') && (
                     <MobileNavItem
                         icon={<Calendar className="w-5 h-5" />}
-                        label="Events"
+                        label={t('events')}
                         isActive={isActive('/dashboard/youth/events')}
                         onClick={() => router.push('/dashboard/youth/events')}
                         darkMode={darkMode}
                     />
+                    )}
 
                     {/* Scan - Center Primary Button */}
                     <button
@@ -473,7 +488,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                         </div>
                         <span className={`text-[10px] font-semibold mt-1 ${
                             darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF8C42]'
-                        }`}>Check In</span>
+                        }`}>{t('checkIn')}</span>
                         {/* Active visit indicator on scan button */}
                         {activeVisit?.is_checked_in && (
                             <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center ${
@@ -487,23 +502,27 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                         )}
                     </button>
 
-                    {/* Rewards */}
+                    {/* Rewards - Only show if rewards feature is enabled */}
+                    {hasFeature('rewards') && (
                     <MobileNavItem
                         icon={<Gift className="w-5 h-5" />}
-                        label="Rewards"
+                        label={t('rewards')}
                         isActive={isActive('/dashboard/youth/profile') && pathname?.includes('tab=wallet')}
                         onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
                         darkMode={darkMode}
                     />
+                    )}
 
-                    {/* Groups */}
+                    {/* Groups - Only show if groups feature is enabled */}
+                    {hasFeature('groups') && (
                     <MobileNavItem
                         icon={<Users className="w-5 h-5" />}
-                        label="Groups"
+                        label={t('groups')}
                         isActive={isActive('/dashboard/youth/groups')}
                         onClick={() => router.push('/dashboard/youth/groups')}
                         darkMode={darkMode}
                     />
+                    )}
                 </div>
             </div>
             )}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { fetchNewsDetail } from '@/lib/api';
@@ -10,6 +11,8 @@ import { getMediaUrl } from '@/app/utils';
 import { ArrowLeft, Calendar, User, Clock, Share2, X } from 'lucide-react';
 
 export default function NewsDetailPage() {
+    const t = useTranslations('news');
+    const tNav = useTranslations('nav');
     const { id } = useParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -56,7 +59,7 @@ export default function NewsDetailPage() {
             <div className="pt-14 sm:pt-16 flex items-center justify-center min-h-[50vh]">
                 <div className="text-center">
                     <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto"></div>
-                    <p className="mt-4 text-[var(--brand-light)]/60">Loading article...</p>
+                    <p className="mt-4 text-[var(--brand-light)]/60">{t('loadingArticle')}</p>
                 </div>
             </div>
         </div>
@@ -67,12 +70,12 @@ export default function NewsDetailPage() {
             <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
             <div className="pt-14 sm:pt-16 flex items-center justify-center min-h-[50vh]">
                 <div className="text-center">
-                    <p className="text-[var(--brand-light)]/60 text-lg">Article not found</p>
+                    <p className="text-[var(--brand-light)]/60 text-lg">{t('articleNotFound')}</p>
                     <button
                         onClick={() => router.push('/dashboard/youth/news')}
                         className="mt-4 text-[var(--brand-primary)] hover:underline"
                     >
-                        Back to News
+                        {t('backToNews')}
                     </button>
                 </div>
             </div>
@@ -101,7 +104,7 @@ export default function NewsDetailPage() {
                     />
                     <div className="absolute left-0 top-0 bottom-0 w-72 bg-[var(--dark-800)] border-r border-[var(--dark-600)] p-4 overflow-y-auto">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-[var(--brand-light)]">Menu</h2>
+                            <h2 className="text-lg font-bold text-[var(--brand-light)]">{tNav('menu')}</h2>
                             <button
                                 onClick={() => setIsSidebarOpen(false)}
                                 className="p-2 hover:bg-[var(--dark-700)] text-[var(--brand-light)]/60"
@@ -134,7 +137,7 @@ export default function NewsDetailPage() {
                     className="absolute top-20 sm:top-24 left-4 sm:left-8 flex items-center gap-2 px-4 py-2 bg-[var(--dark-800)]/80 backdrop-blur-sm text-[var(--brand-light)] text-sm font-medium transition-all hover:bg-[var(--dark-800)]"
                 >
                     <ArrowLeft className="w-4 h-4" />
-                    Back to News
+                    {t('backToNews')}
                 </button>
             </div>
 
@@ -168,7 +171,7 @@ export default function NewsDetailPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-semibold text-[var(--brand-light)]">{article.author_name}</p>
-                                <p className="text-xs text-[var(--brand-light)]/50">Author</p>
+                                <p className="text-xs text-[var(--brand-light)]/50">{t('author')}</p>
                             </div>
                         </div>
 
@@ -190,7 +193,7 @@ export default function NewsDetailPage() {
                         {/* Reading Time */}
                         <div className="flex items-center gap-2 text-[var(--brand-light)]/60">
                             <Clock className="w-4 h-4" />
-                            <span className="text-sm">{readingTime} min read</span>
+                            <span className="text-sm">{readingTime} {t('minRead')}</span>
                         </div>
                     </div>
 
@@ -228,7 +231,7 @@ export default function NewsDetailPage() {
                                 className="flex items-center gap-2 text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 font-medium text-sm transition-colors"
                             >
                                 <ArrowLeft className="w-4 h-4" />
-                                Back to all news
+                                {t('backToAllNews')}
                             </button>
                         </div>
                     </div>

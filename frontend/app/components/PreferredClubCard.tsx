@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { getMediaUrl } from '../utils';
 
 interface RegularOpeningHour {
@@ -25,6 +26,8 @@ interface PreferredClubCardProps {
 
 export default function PreferredClubCard({ club, darkMode }: PreferredClubCardProps) {
     const router = useRouter();
+    const t = useTranslations('club');
+    const tTime = useTranslations('time');
 
     if (!club) {
         return null;
@@ -68,7 +71,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
             
             if (laterToday) {
                 return {
-                    day: 'Today',
+                    day: t('today'),
                     time: laterToday.open_time.slice(0, 5)
                 };
             }
@@ -94,7 +97,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
                 const firstHour = dayHours.sort((a, b) => 
                     a.open_time.localeCompare(b.open_time)
                 )[0];
-                const dayName = dayOffset === 1 ? 'Tomorrow' : checkDate.toLocaleDateString('en-US', { weekday: 'long' });
+                const dayName = dayOffset === 1 ? t('tomorrow') : checkDate.toLocaleDateString('en-US', { weekday: 'long' });
                 return {
                     day: dayName,
                     time: firstHour.open_time.slice(0, 5)
@@ -157,7 +160,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
                     }`}>{club.name}</h3>
                     <p className={`text-sm ${
                         darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
-                    }`}>My Club</p>
+                    }`}>{t('myClub')}</p>
                 </div>
             </div>
 
@@ -170,7 +173,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
                         <div className={`w-2 h-2 rounded-full ${
                             darkMode ? 'bg-[var(--brand-light)]/40' : 'bg-gray-400'
                         }`}></div>
-                        <span className="text-sm font-medium">Closed today</span>
+                        <span className="text-sm font-medium">{t('closedToday')}</span>
                     </div>
                 ) : isOpen ? (
                     <div className={`flex items-center gap-2 ${
@@ -179,7 +182,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
                         <div className={`w-2 h-2 rounded-full animate-pulse ${
                             darkMode ? 'bg-[var(--brand-third)]' : 'bg-emerald-500'
                         }`}></div>
-                        <span className="text-sm font-semibold">Open now</span>
+                        <span className="text-sm font-semibold">{t('openNow')}</span>
                     </div>
                 ) : (
                     <div className={`flex items-center gap-2 ${
@@ -188,7 +191,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
                         <div className={`w-2 h-2 rounded-full ${
                             darkMode ? 'bg-[var(--brand-light)]/40' : 'bg-gray-400'
                         }`}></div>
-                        <span className="text-sm font-medium">Closed</span>
+                        <span className="text-sm font-medium">{t('closed')}</span>
                     </div>
                 )}
 
@@ -213,7 +216,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
                     <div className={`mt-2 text-xs ${
                         darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
                     }`}>
-                        Opens {nextOpening.day} at {formatTime(nextOpening.time)}
+                        {t('opens')} {nextOpening.day} {t('at')} {formatTime(nextOpening.time)}
                     </div>
                 )}
             </div>
@@ -227,7 +230,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
                         : 'bg-[#FF5485] text-white hover:bg-[#FF6595] shadow-lg shadow-[#FF5485]/30'
                 }`}
             >
-                View Club
+                {t('viewClub')}
             </button>
         </div>
     );

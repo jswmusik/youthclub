@@ -1,6 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import { Calendar, Clock, MapPin } from 'lucide-react';
 
 interface BookingProps {
@@ -20,6 +21,7 @@ interface MyBookingCardProps {
 }
 
 export default function MyBookingCard({ booking, onClick, darkMode = false }: MyBookingCardProps) {
+  const t = useTranslations('bookings');
   const startDate = new Date(booking.start_time);
   const endDate = new Date(booking.end_time);
 
@@ -60,7 +62,7 @@ export default function MyBookingCard({ booking, onClick, darkMode = false }: My
           )}
         </div>
         <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded border ${getStatusStyle(booking.status)}`}>
-          {booking.status}
+          {t(`status.${booking.status.toLowerCase()}`)}
         </span>
       </div>
 

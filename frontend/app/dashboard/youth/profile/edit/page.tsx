@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import NavBar from '@/app/components/NavBar';
@@ -13,6 +14,8 @@ export default function EditProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations('profile');
+  const tSidebar = useTranslations('sidebar');
   const [profileData, setProfileData] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -50,7 +53,7 @@ export default function EditProfilePage() {
         }`}
       >
         <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
-          <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
@@ -71,9 +74,9 @@ export default function EditProfilePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--brand-light)] mb-2 sm:mb-3 font-heading">Edit Profile</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--brand-light)] mb-2 sm:mb-3 font-heading">{t('editProfile')}</h1>
           <p className="text-[var(--brand-light)]/60 text-sm sm:text-base max-w-xl mx-auto">
-            Update your personal information, profile picture, and preferences.
+            {t('editProfileDescription')}
           </p>
         </div>
         

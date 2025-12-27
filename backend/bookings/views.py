@@ -13,6 +13,7 @@ from groups.models import GroupMembership
 # Import notification service
 from notifications.services import send_notification
 from notifications.models import Notification
+from core.permissions import HasLicenseFeature
 
 class BookingResourceViewSet(viewsets.ModelViewSet):
     """
@@ -20,7 +21,17 @@ class BookingResourceViewSet(viewsets.ModelViewSet):
     """
     queryset = BookingResource.objects.all()
     serializer_class = BookingResourceSerializer
-    permission_classes = [permissions.IsAuthenticated] # Adjust based on your role needs
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the bookings feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        
+        # Add the license feature gatekeeper
+        permission_classes.append(HasLicenseFeature('bookings')())
+        
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user
@@ -134,7 +145,17 @@ class BookingScheduleViewSet(viewsets.ModelViewSet):
     """
     queryset = BookingSchedule.objects.all()
     serializer_class = BookingScheduleSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the bookings feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        
+        # Add the license feature gatekeeper
+        permission_classes.append(HasLicenseFeature('bookings')())
+        
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         # Optional: Filter by resource if passed in query params
@@ -150,10 +171,20 @@ class BookingViewSet(viewsets.ModelViewSet):
     Supports filtering by date range for calendars and status for dashboards.
     """
     serializer_class = BookingSerializer
-    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['start_time', 'created_at']
     ordering = ['start_time']
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the bookings feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        
+        # Add the license feature gatekeeper
+        permission_classes.append(HasLicenseFeature('bookings')())
+        
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user

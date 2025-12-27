@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '../../context/AuthContext';
 import { AlertCircle, Sparkles, Users, Calendar, Gift, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const t = useTranslations('auth');
+  const tLanding = useTranslations('landing');
+  const tCommon = useTranslations('common');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,7 +31,7 @@ export default function LoginPage() {
       await login(email, password);
       // Redirect happens automatically in AuthContext
     } catch (err) {
-      setError('Invalid email or password');
+      setError(t('invalidCredentials'));
       setIsLoading(false);
     }
   };
@@ -68,11 +72,11 @@ export default function LoginPage() {
           <div className="space-y-8">
             <div className={`transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white leading-tight font-heading">
-                Where Youth
-                <span className="block text-[var(--brand-primary)]">Come Together</span>
+                {tLanding('heroTitle')}
+                <span className="block text-[var(--brand-primary)]">{tLanding('heroTitleHighlight')}</span>
               </h1>
               <p className="mt-6 text-lg xl:text-xl text-white/70 max-w-lg leading-relaxed">
-                Connect with your local youth club, discover events, earn rewards, and be part of an amazing community.
+                {tLanding('heroDescription')}
               </p>
             </div>
             
@@ -80,26 +84,26 @@ export default function LoginPage() {
             <div className={`grid grid-cols-2 gap-4 max-w-lg transition-all duration-700 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <FeatureCard 
                 icon={<Users className="w-5 h-5" />}
-                title="Join Groups"
-                description="Connect with others"
+                title={tLanding('joinGroups')}
+                description={tLanding('joinGroupsDesc')}
                 color="var(--brand-primary)"
               />
               <FeatureCard 
                 icon={<Calendar className="w-5 h-5" />}
-                title="Events"
-                description="Never miss out"
+                title={tLanding('eventsTitle')}
+                description={tLanding('eventsDesc')}
                 color="var(--brand-purple)"
               />
               <FeatureCard 
                 icon={<Gift className="w-5 h-5" />}
-                title="Rewards"
-                description="Earn while you engage"
+                title={tLanding('rewardsTitle')}
+                description={tLanding('rewardsDesc')}
                 color="var(--brand-third)"
               />
               <FeatureCard 
                 icon={<Sparkles className="w-5 h-5" />}
-                title="Activities"
-                description="Explore & discover"
+                title={tLanding('activitiesTitle')}
+                description={tLanding('activitiesDesc')}
                 color="var(--brand-peach)"
               />
             </div>
@@ -108,7 +112,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className={`transition-all duration-700 delay-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
             <p className="text-white/40 text-sm">
-              © {new Date().getFullYear()} Ungdomsappen. All rights reserved.
+              © {new Date().getFullYear()} Ungdomsappen. {tCommon('allRightsReserved')}
             </p>
           </div>
         </div>
@@ -132,10 +136,10 @@ export default function LoginPage() {
           {/* Welcome Text */}
           <div className="text-center lg:text-left mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">
-              Welcome back
+              {t('welcomeBack')}
             </h2>
             <p className="mt-2 text-[var(--brand-light)]/60">
-              Sign in to continue to your dashboard
+              {t('signInToContinue')}
             </p>
           </div>
           
@@ -154,7 +158,7 @@ export default function LoginPage() {
             {/* Email Field */}
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-bold text-[var(--brand-light)]">
-                Email Address
+                {t('email')}
               </label>
               <input
                 id="email"
@@ -163,14 +167,14 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-14 px-4 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition-all outline-none"
-                placeholder="your@email.com"
+                placeholder={t('emailPlaceholder')}
               />
             </div>
             
             {/* Password Field */}
             <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-bold text-[var(--brand-light)]">
-                Password
+                {t('password')}
               </label>
               <div className="relative">
                 <input
@@ -180,7 +184,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full h-14 px-4 pr-12 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 transition-all outline-none"
-                  placeholder="••••••••"
+                  placeholder={t('passwordPlaceholder')}
                 />
                 <button
                   type="button"
@@ -200,14 +204,14 @@ export default function LoginPage() {
                   className="w-4 h-4 rounded border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)] focus:ring-offset-0"
                 />
                 <span className="text-sm text-[var(--brand-light)]/60 group-hover:text-[var(--brand-light)] transition-colors">
-                  Remember me
+                  {t('rememberMe')}
                 </span>
               </label>
               <a 
                 href="#" 
                 className="text-sm text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 transition-colors font-medium"
               >
-                Forgot password?
+                {t('forgotPassword')}
               </a>
             </div>
             
@@ -220,11 +224,11 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                  <span>Signing in...</span>
+                  <span>{t('signingIn')}</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>{t('login')}</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -238,7 +242,7 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center">
               <span className="px-4 bg-[var(--dark-900)] text-[var(--brand-light)]/40 text-sm">
-                New to Ungdomsappen?
+                {t('newToApp')}
               </span>
             </div>
           </div>
@@ -248,13 +252,13 @@ export default function LoginPage() {
             href="/register"
             className="w-full h-14 border-2 border-[var(--dark-500)] hover:border-[var(--brand-primary)] text-[var(--brand-light)] hover:text-[var(--brand-primary)] font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group"
           >
-            <span>Create an Account</span>
+            <span>{t('createAccount')}</span>
             <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
           </a>
           
           {/* Mobile Footer */}
           <p className="lg:hidden text-center text-[var(--brand-light)]/40 text-xs mt-8">
-            © {new Date().getFullYear()} Ungdomsappen. All rights reserved.
+            © {new Date().getFullYear()} Ungdomsappen. {tCommon('allRightsReserved')}
           </p>
         </div>
       </div>

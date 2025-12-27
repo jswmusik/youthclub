@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { questionnaireApi } from '../../../lib/questionnaire-api';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
@@ -16,6 +17,7 @@ interface Props {
 
 export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, darkMode = false }: Props) {
   const router = useRouter();
+  const t = useTranslations('questionnaires');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -76,7 +78,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
       // Check if questionnaire was deleted (404) or unauthorized (401)
       if (err.response?.status === 404 || err.response?.status === 401) {
         // Questionnaire doesn't exist or was deleted
-        setError('This questionnaire no longer exists. It may have been deleted.');
+        setError(t('questionnaireDeleted'));
         setLoading(false);
         
         // Redirect to notifications page after showing message
@@ -85,7 +87,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
         }, 3000);
       } else {
         // Other errors
-        setError('Failed to load questionnaire. Please try again later.');
+        setError(t('failedToLoadQuestionnaire'));
         setLoading(false);
       }
     }
@@ -272,7 +274,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
         
     } catch (err) {
         console.error(err);
-        alert("Failed to submit. Please try again.");
+        alert(t('failedToSubmit'));
     } finally {
         setSubmitting(false);
     }
@@ -310,9 +312,9 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
           </div>
           <h2 className={`text-2xl font-bold mb-2 font-heading ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
-          }`}>Questionnaire Not Found</h2>
+          }`}>{t('questionnaireNotFound')}</h2>
           <p className={`mb-6 font-semibold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>{error}</p>
-          <p className={`text-sm mb-6 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Redirecting you back to notifications...</p>
+          <p className={`text-sm mb-6 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('redirectingToNotifications')}</p>
           <button
             onClick={() => router.push('/dashboard/youth/notifications')}
             className={`px-6 py-3 rounded-xl font-bold transition-all active:scale-95 ${
@@ -321,7 +323,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
                 : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-lg'
             }`}
           >
-            Go to Notifications
+            {t('goToNotifications')}
           </button>
         </div>
       </div>
@@ -334,7 +336,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
   if (!data) {
     return (
       <div className={`p-8 text-center ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
-        No questions available.
+        {t('noQuestionsAvailable')}
       </div>
     );
   }
@@ -343,7 +345,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
   if (!isCompleted && visibleQuestions.length === 0) {
     return (
       <div className={`p-8 text-center ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
-        No questions available.
+        {t('noQuestionsAvailable')}
       </div>
     );
   }
@@ -371,10 +373,10 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
             <div>
               <h2 className={`text-xl font-bold font-heading ${
                 darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
-              }`}>Questionnaire Completed</h2>
+              }`}>{t('questionnaireCompleted')}</h2>
               <p className={`text-sm font-semibold ${
                 darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-700'
-              }`}>You have already completed this questionnaire. Your answers are shown below.</p>
+              }`}>{t('alreadyCompletedMessage')}</p>
             </div>
           </div>
         </div>
@@ -414,7 +416,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
                       {answer ? (
                         <ReadOnlyAnswer question={q} answer={answer} darkMode={darkMode} />
                       ) : (
-                        <p className={`italic font-medium ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>No answer provided</p>
+                        <p className={`italic font-medium ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>{t('noAnswerProvided')}</p>
                       )}
                     </div>
                   </div>
@@ -438,8 +440,8 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
         <div className={`flex justify-between text-xs sm:text-sm font-bold mb-3 ${
           darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
         }`}>
-            <span>Question {currentStepIndex + 1} of {visibleQuestions.length}</span>
-            <span className={darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}>{Math.round(progress)}% Completed</span>
+            <span>{t('questionOf', { current: currentStepIndex + 1, total: visibleQuestions.length })}</span>
+            <span className={darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}>{t('percentCompleted', { percent: Math.round(progress) })}</span>
         </div>
         <div className={`h-3 rounded-full overflow-hidden ${
           darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-200 shadow-inner'
@@ -494,7 +496,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
                     : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
                 }`}
             >
-                Back
+                {t('back')}
             </button>
             <button 
                 onClick={handleNext}
@@ -505,7 +507,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
                     : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-lg hover:shadow-xl'
                 }`}
             >
-                {currentStepIndex === visibleQuestions.length - 1 ? (submitting ? 'Sending...' : 'Finish') : 'Next'}
+                {currentStepIndex === visibleQuestions.length - 1 ? (submitting ? t('sending') : t('finish')) : t('next')}
             </button>
         </div>
       </div>
@@ -516,6 +518,7 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
 // --- Sub-components ---
 
 function ReadOnlyAnswer({ question, answer, darkMode = false }: { question: any, answer: any, darkMode?: boolean }) {
+  const t = useTranslations('questionnaires');
   if (question.question_type === 'RATING' && answer.rating_answer) {
     return (
       <div className="flex items-center gap-3">
@@ -550,10 +553,11 @@ function ReadOnlyAnswer({ question, answer, darkMode = false }: { question: any,
     return <p className={`whitespace-pre-wrap ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{answer.text_answer}</p>;
   }
   
-  return <p className={`italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>No answer provided</p>;
+  return <p className={`italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>{t('noAnswerProvided')}</p>;
 }
 
 function QuestionInput({ question, value, onChange, darkMode = false }: { question: any, value: any, onChange: (v: any) => void, darkMode?: boolean }) {
+    const t = useTranslations('questionnaires');
     
     if (question.question_type === 'FREE_TEXT') {
         return (
@@ -563,7 +567,7 @@ function QuestionInput({ question, value, onChange, darkMode = false }: { questi
                     ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)]' 
                     : 'border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                 }`}
-                placeholder="Type your answer here..."
+                placeholder={t('typeAnswer')}
                 value={value?.text_answer || ''}
                 onChange={(e) => onChange({ text_answer: e.target.value })}
             />
@@ -645,10 +649,12 @@ function QuestionInput({ question, value, onChange, darkMode = false }: { questi
         );
     }
 
-    return <div>Unknown Question Type</div>;
+    return <div>{t('unknownQuestionType')}</div>;
 }
 
 function SuccessScreen({ rewardMessage, router, darkMode = false }: { rewardMessage: string | null, router: any, darkMode?: boolean }) {
+    const t = useTranslations('questionnaires');
+    
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
             <div className={`w-24 h-24 rounded-2xl flex items-center justify-center mb-6 text-5xl animate-bounce ${
@@ -660,11 +666,11 @@ function SuccessScreen({ rewardMessage, router, darkMode = false }: { rewardMess
             </div>
             <h1 className={`text-3xl sm:text-4xl font-bold mb-3 font-heading ${
               darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
-            }`}>Thank you!</h1>
+            }`}>{t('thankYou')}</h1>
             <p className={`mb-8 max-w-md font-semibold text-base sm:text-lg ${
               darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-700'
             }`}>
-                Your answers have been submitted successfully. Your feedback helps us make the club better for everyone.
+                {t('submissionSuccessMessage')}
             </p>
 
             {rewardMessage && (
@@ -676,10 +682,10 @@ function SuccessScreen({ rewardMessage, router, darkMode = false }: { rewardMess
                     <h3 className={`font-bold mb-2 text-xl flex items-center justify-center gap-2 font-heading ${
                       darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
                     }`}>
-                        <span className="text-2xl">🎁</span> Reward Earned!
+                        <span className="text-2xl">🎁</span> {t('rewardEarned')}
                     </h3>
                     <p className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{rewardMessage}</p>
-                    <p className={`text-xs mt-2 font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Check your profile wallet to redeem.</p>
+                    <p className={`text-xs mt-2 font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('checkWalletToRedeem')}</p>
                 </div>
             )}
 
@@ -691,7 +697,7 @@ function SuccessScreen({ rewardMessage, router, darkMode = false }: { rewardMess
                     : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-lg hover:shadow-xl'
                 }`}
             >
-                Back to Questionnaires
+                {t('backToQuestionnaires')}
             </button>
         </div>
     );

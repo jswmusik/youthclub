@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { Club, OpeningHour } from '@/types/organization';
 
 interface ClubHoursProps {
@@ -7,7 +8,18 @@ interface ClubHoursProps {
 }
 
 export default function ClubHours({ club, darkMode = false }: ClubHoursProps) {
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const t = useTranslations('club.hours');
+  const tDays = useTranslations('club.daysOfWeek');
+  
+  const days = [
+    tDays('monday'),
+    tDays('tuesday'),
+    tDays('wednesday'),
+    tDays('thursday'),
+    tDays('friday'),
+    tDays('saturday'),
+    tDays('sunday')
+  ];
   
   // Get current day index (0=Sunday in JS, but API uses 1=Monday...7=Sunday)
   // Let's normalize to 1-7 for comparison
@@ -19,15 +31,15 @@ export default function ClubHours({ club, darkMode = false }: ClubHoursProps) {
     const parts = [];
     if (hour.gender_restriction && hour.gender_restriction !== 'ALL') {
       parts.push(
-        hour.gender_restriction === 'GIRLS' ? 'Girls Only' : 
-        hour.gender_restriction === 'BOYS' ? 'Boys Only' : 'Other Gender'
+        hour.gender_restriction === 'GIRLS' ? t('girlsOnly') : 
+        hour.gender_restriction === 'BOYS' ? t('boysOnly') : t('otherGender')
       );
     }
     
     if (hour.restriction_mode === 'AGE' && hour.min_value && hour.max_value) {
-      parts.push(`Age ${hour.min_value}-${hour.max_value}`);
+      parts.push(`${t('age')} ${hour.min_value}-${hour.max_value}`);
     } else if (hour.restriction_mode === 'GRADE' && hour.min_value && hour.max_value) {
-      parts.push(`Grades ${hour.min_value}-${hour.max_value}`);
+      parts.push(`${t('grades')} ${hour.min_value}-${hour.max_value}`);
     }
     
     return parts.length > 0 ? parts.join(' • ') : null;
@@ -47,8 +59,8 @@ export default function ClubHours({ club, darkMode = false }: ClubHoursProps) {
         : 'bg-white shadow-sm border-gray-100'
     }`}>
       <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'}`}>
-        <h2 className={`text-xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Opening Hours</h2>
-        <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Regular weekly schedule</p>
+        <h2 className={`text-xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('title')}</h2>
+        <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('subtitle')}</p>
       </div>
       
       <div className={`divide-y ${darkMode ? 'divide-[var(--dark-600)]' : 'divide-gray-100'}`}>
@@ -89,7 +101,7 @@ export default function ClubHours({ club, darkMode = false }: ClubHoursProps) {
                       ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                       : 'bg-blue-100 text-blue-700'
                   }`}>
-                    Today
+                    {t('today')}
                   </span>
                 )}
               </div>
@@ -125,7 +137,7 @@ export default function ClubHours({ club, darkMode = false }: ClubHoursProps) {
                     );
                   })
                 ) : (
-                  <span className={`text-sm italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>Closed</span>
+                  <span className={`text-sm italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>{t('closed')}</span>
                 )}
               </div>
             </div>

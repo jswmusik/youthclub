@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { questionnaireApi } from '../../../lib/questionnaire-api';
 import { useRouter } from 'next/navigation';
@@ -13,6 +14,7 @@ interface QuestionnaireFeedProps {
 }
 
 export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFeedProps) {
+  const t = useTranslations('questionnaires');
   const [questionnaires, setQuestionnaires] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -124,7 +126,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
           }`}>
             <ClipboardList className="w-5 h-5" />
           </div>
-          Available Questionnaires
+          {t('availableQuestionnaires')}
         </h2>
         
         {available.length === 0 ? (
@@ -134,8 +136,8 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
               : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300'
           }`}>
             <ClipboardList className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-[var(--brand-light)]/20' : 'text-gray-300'}`} />
-            <p className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>No new questionnaires available at the moment.</p>
-            <p className={`text-xs mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>Check back soon for new surveys!</p>
+            <p className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('noNewQuestionnaires')}</p>
+            <p className={`text-xs mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>{t('checkBackSoon')}</p>
           </div>
         ) : (
           <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
@@ -157,7 +159,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                         : 'bg-gradient-to-br from-[#FF5485] to-[#FF7AA5] text-white shadow-lg'
                     }`}>
                       <Sparkles className="w-3 h-3" />
-                      Reward Inside
+                      {t('rewardInside')}
                     </div>
                   )}
                   
@@ -187,7 +189,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                           : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-md hover:shadow-lg'
                       }`}
                     >
-                      Start Survey →
+                      {t('startSurvey')}
                     </Link>
                   </div>
                 </div>
@@ -210,7 +212,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
             }`}>
               <Clock className="w-5 h-5" />
             </div>
-            In Progress
+            {t('inProgress')}
           </h2>
           <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             {started.map(q => {
@@ -244,7 +246,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                     <div className={`flex items-center justify-between text-xs mb-2 ${
                       darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
                     }`}>
-                      <span className="font-bold">Progress</span>
+                      <span className="font-bold">{t('progress')}</span>
                       <span className={`font-bold ${darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'}`}>{progress}%</span>
                     </div>
                     <div className={`h-2.5 rounded-full overflow-hidden ${
@@ -262,20 +264,20 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                     <div className={`text-xs mt-1.5 font-semibold ${
                       darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
                     }`}>
-                      {answeredCount} of {totalCount} questions answered
+                      {answeredCount} {t('of')} {totalCount} {t('questionsAnswered')}
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between mt-auto">
                     <div className="flex flex-col gap-0.5">
-                      <span className={`text-xs font-bold ${darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'}`}>In Progress</span>
+                      <span className={`text-xs font-bold ${darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'}`}>{t('inProgress')}</span>
                       <span className={`text-xs font-semibold flex items-center gap-1 ${
                         isExpired 
                           ? darkMode ? 'text-[var(--brand-red)]' : 'text-red-500' 
                           : darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
                       }`}>
                         <Clock className="w-3 h-3" />
-                        {isExpired ? 'Expired' : expirationDate.toLocaleDateString()}
+                        {isExpired ? t('expired') : expirationDate.toLocaleDateString()}
                       </span>
                     </div>
                     <Link 
@@ -286,7 +288,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                           : 'bg-gradient-to-r from-[#FF8C42] to-[#FFA05C] text-white hover:from-[#FF7A28] hover:to-[#FF9048] shadow-md hover:shadow-lg'
                       }`}
                     >
-                      Continue →
+                      {t('continue')}
                     </Link>
                   </div>
                 </div>
@@ -309,7 +311,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
             }`}>
               <CheckCircle className="w-5 h-5" />
             </div>
-            Completed
+            {t('completedLabel')}
           </h2>
           <div className="space-y-3">
             {completed.map(q => (
@@ -327,7 +329,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                       darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'
                     }`}>
                       <CheckCircle className="w-3.5 h-3.5" />
-                      Completed
+                      {t('completedLabel')}
                     </span>
                     <span className={`text-xs font-semibold flex items-center gap-1 ${
                       darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
@@ -345,7 +347,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                       : 'bg-white border-2 border-[#4D4DA4] text-[#4D4DA4] hover:bg-[#4D4DA4] hover:text-white shadow-sm hover:shadow-md'
                   }`}
                 >
-                  View Details →
+                  {t('viewDetails')}
                 </Link>
               </div>
             ))}

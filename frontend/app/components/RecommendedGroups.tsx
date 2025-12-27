@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { fetchRecommendedGroups } from '../../lib/api';
 import { getMediaUrl } from '../utils';
 
@@ -22,6 +23,7 @@ interface RecommendedGroupsProps {
 
 export default function RecommendedGroups({ darkMode }: RecommendedGroupsProps = {}) {
     const router = useRouter();
+    const t = useTranslations('recommended');
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -97,11 +99,11 @@ export default function RecommendedGroups({ darkMode }: RecommendedGroupsProps =
                         }`} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
                         </svg>
-                        Groups for You
+                        {t('groupsForYou')}
                     </h3>
                     <p className={`text-xs mt-1 ${
                         darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
-                    }`}>Based on your age, interests & club</p>
+                    }`}>{t('basedOnAgeInterests')}</p>
                 </div>
 
                 {/* Navigation Arrows (Only if more than 2) */}
@@ -184,7 +186,7 @@ export default function RecommendedGroups({ darkMode }: RecommendedGroupsProps =
                                             ? 'bg-emerald-500/90 text-white' 
                                             : 'bg-[#4D4DA4]/90 text-white'
                                 }`}>
-                                    {group.group_type === 'OPEN' ? 'Join Now' : 'Apply'}
+                                    {group.group_type === 'OPEN' ? t('joinNow') : t('apply')}
                                 </span>
                             </div>
                         </div>
@@ -224,7 +226,7 @@ export default function RecommendedGroups({ darkMode }: RecommendedGroupsProps =
                             <p className={`text-xs line-clamp-2 mt-1 mb-3 flex-1 ${
                                 darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
                             }`}>
-                                {group.description || 'No description available.'}
+                                {group.description || t('noDescriptionAvailable')}
                             </p>
 
                             <button className={`w-full py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -232,7 +234,7 @@ export default function RecommendedGroups({ darkMode }: RecommendedGroupsProps =
                                     ? 'bg-[var(--dark-500)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/80 border border-[var(--dark-400)] hover:border-[var(--brand-primary)]'
                                     : 'bg-gray-100 hover:bg-[#4D4DA4] hover:text-white text-gray-700 border border-gray-200 hover:border-[#4D4DA4]'
                             }`}>
-                                View Group
+                                {t('viewGroup')}
                             </button>
                         </div>
                     </div>

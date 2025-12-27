@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api, { visits } from '@/lib/api';
 import { Club } from '@/types/organization';
 import ClubHeader from '@/app/components/club/ClubHeader';
@@ -24,6 +25,8 @@ export default function ClubDetailsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const t = useTranslations('club.errors');
+  const tNav = useTranslations('nav');
   const id = params?.id;
 
   const [club, setClub] = useState<Club | null>(null);
@@ -77,7 +80,7 @@ export default function ClubDetailsPage() {
         setClub(response.data);
       } catch (err) {
         console.error("Failed to fetch club", err);
-        setError('Could not load club details.');
+        setError(t('couldNotLoadClub'));
       } finally {
         setLoading(false);
       }
@@ -163,7 +166,7 @@ export default function ClubDetailsPage() {
   if (error || !club) return (
     <div className="min-h-screen bg-[var(--dark-900)]">
       <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
-      <div className="pt-14 sm:pt-16 text-center py-12 text-[var(--brand-red)]">{error || 'Club not found'}</div>
+      <div className="pt-14 sm:pt-16 text-center py-12 text-[var(--brand-red)]">{error || t('clubNotFound')}</div>
     </div>
   );
 
@@ -191,7 +194,7 @@ export default function ClubDetailsPage() {
         }`}
       >
         <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
-          <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tNav('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"

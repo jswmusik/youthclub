@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { NewsArticle } from '../../../types/news';
 import { getMediaUrl } from '../../utils';
 
@@ -8,6 +11,7 @@ interface Props {
 }
 
 export default function NewsCard({ article, darkMode = false }: Props) {
+    const t = useTranslations('news');
     const heroImageUrl = article.hero_image ? getMediaUrl(article.hero_image) : null;
 
     return (
@@ -86,7 +90,7 @@ export default function NewsCard({ article, darkMode = false }: Props) {
                     <span className={`font-medium flex items-center gap-1 group-hover:translate-x-1 transition-transform ${
                         darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-500'
                     }`}>
-                        Read more →
+                        {t('readMore')}
                     </span>
                 </div>
             </div>

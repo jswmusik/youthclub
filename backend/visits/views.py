@@ -11,12 +11,20 @@ from .serializers import CheckInSessionSerializer, QRCodeScanSerializer, ManualC
 from .services import CheckInService
 from organization.models import Club
 from users.models import User
+from core.permissions import HasLicenseFeature
 
 class KioskTokenView(views.APIView):
     """
     Endpoint for the Club Admin Kiosk to get a fresh QR token every 30s.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the visits feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('visits')())
+        return [permission() for permission in permission_classes]
 
     def get(self, request):
         # Ensure the user is actually an admin of a club
@@ -56,7 +64,14 @@ class KioskTokenView(views.APIView):
 class VisitViewSet(viewsets.ModelViewSet):
     queryset = CheckInSession.objects.all()
     serializer_class = CheckInSessionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the visits feature.
+        """
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('visits')())
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { useAuth } from '../../../../context/AuthContext';
 import Cookies from 'js-cookie';
@@ -16,6 +17,8 @@ export default function QuestionnaireFeedPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const t = useTranslations('questionnaires');
+  const tSidebar = useTranslations('sidebar');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -52,7 +55,7 @@ export default function QuestionnaireFeedPage() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">Menu</h1>
+          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
@@ -81,11 +84,11 @@ export default function QuestionnaireFeedPage() {
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                   <ClipboardList className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
                   <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
-                    My Questionnaires
+                    {t('myQuestionnaires')}
                   </h1>
                 </div>
                 <p className="text-[var(--brand-light)]/60 text-sm sm:text-base pl-8 sm:pl-10 font-semibold">
-                  Share your opinion and earn rewards!
+                  {t('shareOpinionEarnRewards')}
                 </p>
               </div>
               

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 
 type TabType = 'overview' | 'groups' | 'visits' | 'hours' | 'events' | 'policies' | 'contact';
 
@@ -14,14 +15,16 @@ interface ClubTabsProps {
 }
 
 export default function ClubTabs({ activeTab, onChange, excludeTabs = [], darkMode = false, isCheckedIn = false, isSticky = false }: ClubTabsProps) {
+  const t = useTranslations('club.tabs');
+  
   const allTabs: { id: TabType; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'groups', label: 'Groups' },
-    { id: 'visits', label: 'Visits & Attendance' },
-    { id: 'hours', label: 'Opening Hours' },
-    { id: 'events', label: 'Events' },
-    { id: 'policies', label: 'Info & Policies' },
-    { id: 'contact', label: 'Contact' },
+    { id: 'overview', label: t('overview') },
+    { id: 'groups', label: t('groups') },
+    { id: 'visits', label: t('visits') },
+    { id: 'hours', label: t('hours') },
+    { id: 'events', label: t('events') },
+    { id: 'policies', label: t('policies') },
+    { id: 'contact', label: t('contact') },
   ];
   
   // Filter out excluded tabs

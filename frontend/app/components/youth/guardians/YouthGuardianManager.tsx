@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { fetchMyGuardians, removeGuardianLink } from '@/lib/api';
 import { GuardianLink } from '@/types/user';
@@ -14,6 +15,7 @@ import { Users } from 'lucide-react';
 
 export default function YouthGuardianManager({ darkMode = false }: { darkMode?: boolean } = {}) {
     const router = useRouter();
+    const t = useTranslations('guardians');
     const [links, setLinks] = useState<GuardianLink[]>([]);
     const [loading, setLoading] = useState(true);
     
@@ -90,7 +92,7 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
             console.error('Error loading guardians:', err);
             console.error('Error response:', err.response?.data);
             setToast({ 
-                message: err.response?.data?.detail || err.response?.data?.error || 'Failed to load guardians', 
+                message: err.response?.data?.detail || err.response?.data?.error || t('failedToLoadGuardians'), 
                 type: 'error', 
                 isVisible: true 
             });
@@ -105,10 +107,10 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
         try {
             await removeGuardianLink(linkToDelete.id);
             setLinks(prev => prev.filter(l => l.id !== linkToDelete.id));
-            setToast({ message: 'Guardian removed', type: 'success', isVisible: true });
+            setToast({ message: t('guardianRemoved'), type: 'success', isVisible: true });
             setLinkToDelete(null);
         } catch (err) {
-            setToast({ message: 'Failed to remove guardian', type: 'error', isVisible: true });
+            setToast({ message: t('failedToRemoveGuardian'), type: 'error', isVisible: true });
         } finally {
             setIsDeleting(false);
         }
@@ -123,9 +125,9 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
                         darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
                     }`}>
                         <Users className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
-                        My Guardians
+                        {t('myGuardians')}
                     </h1>
-                    <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Manage who has access to your account</p>
+                    <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('manageAccess')}</p>
                 </div>
                 <button 
                     onClick={() => router.push('/dashboard/youth/guardians/create')}
@@ -138,8 +140,8 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    <span className="hidden sm:inline">Add Guardian</span>
-                    <span className="sm:hidden">Add</span>
+                    <span className="hidden sm:inline">{t('addGuardian')}</span>
+                    <span className="sm:hidden">{t('add')}</span>
                 </button>
             </div>
 
@@ -149,7 +151,7 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
                     <div className={`inline-block animate-spin rounded-full h-12 w-12 border-b-2 mb-4 ${
                         darkMode ? 'border-[var(--brand-primary)]' : 'border-[#4D4DA4]'
                     }`}></div>
-                    <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}>Loading guardians...</p>
+                    <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}>{t('loadingGuardians')}</p>
                 </div>
             ) : links.length === 0 ? (
                 <div className={`text-center py-16 rounded-none sm:rounded-2xl border-2 border-dashed ${
@@ -166,8 +168,8 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
                     </div>
                     <h3 className={`text-xl font-bold mb-2 font-heading ${
                         darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
-                    }`}>No guardians yet</h3>
-                    <p className={`mb-6 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Add a parent or guardian to stay connected.</p>
+                    }`}>{t('noGuardiansYet')}</h3>
+                    <p className={`mb-6 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('addParentOrGuardian')}</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -199,10 +201,10 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
                     }
                 }}
                 onConfirm={handleDelete}
-                title="Remove Guardian"
-                message={linkToDelete ? `Are you sure you want to remove ${linkToDelete.guardian.first_name} ${linkToDelete.guardian.last_name} as your guardian?` : 'Are you sure you want to remove this guardian?'}
-                confirmButtonText="Remove"
-                cancelButtonText="Cancel"
+                title={t('removeGuardian')}
+                message={linkToDelete ? `${t('removeGuardianConfirm')} ${linkToDelete.guardian.first_name} ${linkToDelete.guardian.last_name} ${t('removeGuardianConfirmSuffix')}` : t('removeGuardianConfirmGeneric')}
+                confirmButtonText={t('remove')}
+                cancelButtonText={t('cancel')}
                 isLoading={isDeleting}
                 variant="danger"
                 darkMode={darkMode}

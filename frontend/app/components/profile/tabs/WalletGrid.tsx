@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { getMediaUrl } from '@/app/utils';
 import api from '@/lib/api';
@@ -27,6 +28,7 @@ interface Reward {
 
 export default function WalletGrid({ user, darkMode = false }: { user: any; darkMode?: boolean }) {
   const router = useRouter();
+  const t = useTranslations('wallet');
   const rewards: Reward[] = user?.my_rewards || [];
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [showSkeleton, setShowSkeleton] = useState(true);
@@ -68,7 +70,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
       await api.post(`/rewards/${selectedReward.reward_id}/redeem/`);
       
       setRedeemState('SUCCESS');
-      setFeedbackMsg(`Used at ${new Date().toLocaleTimeString()}`);
+      setFeedbackMsg(`${t('usedAt')} ${new Date().toLocaleTimeString()}`);
       
       // Refresh page data after short delay so the user sees the "Used" state
       setTimeout(() => {
@@ -83,7 +85,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
     } catch (error) {
       console.error("Redemption failed", error);
       setRedeemState('ERROR');
-      setFeedbackMsg("Failed to process. Please try again.");
+      setFeedbackMsg(t('failedToProcess'));
     }
   };
 
@@ -94,14 +96,14 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
           darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
         }`}>
           <Wallet className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
-          My Wallet
+          {t('myWallet')}
         </h3>
         <span className={`px-4 py-2 text-sm font-bold rounded-xl ${
           darkMode 
             ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
             : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md'
         }`}>
-          {rewards.filter(r => !r.is_redeemed).length} Available
+          {rewards.filter(r => !r.is_redeemed).length} {t('available')}
         </span>
       </div>
 
@@ -154,14 +156,14 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                         darkMode 
                           ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border border-[var(--dark-400)]' 
                           : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 shadow-md'
-                      }`}>USED</span>
+                      }`}>{t('used')}</span>
                     )}
                     {expired && !reward.is_redeemed && (
                       <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${
                         darkMode 
                           ? 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30' 
                           : 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md'
-                      }`}>EXPIRED</span>
+                      }`}>{t('expired')}</span>
                     )}
                   </div>
                   
@@ -174,7 +176,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                           : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md'
                       }`}>
                         <Sparkles className="w-3 h-3" />
-                        READY
+                        {t('ready')}
                       </span>
                     </div>
                   )}
@@ -219,7 +221,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                         ? 'bg-[var(--brand-secondary)] text-[var(--brand-light)]' 
                         : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md'
                     }`}>
-                      Tap to Redeem
+                      {t('tapToRedeem')}
                     </div>
                   )}
                 </div>
@@ -242,8 +244,8 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
            </div>
            <p className={`font-bold text-xl mb-2 font-heading ${
              darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
-           }`}>Your wallet is empty.</p>
-           <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>Join events and club activities to earn rewards!</p>
+           }`}>{t('walletEmpty')}</p>
+           <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('joinEventsToEarn')}</p>
         </div>
       )}
 
@@ -281,7 +283,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                   darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
                 }`}>
                   <Gift className="w-4 h-4" />
-                  Sponsored by {selectedReward.sponsor}
+                  {t('sponsoredBy')} {selectedReward.sponsor}
                 </p>
               )}
               
@@ -294,12 +296,12 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                            ? 'bg-[var(--brand-peach)]/10 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30' 
                            : 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-2 border-amber-200'
                        }`}>
-                          ⚠️ Show this screen to the staff before swiping.
+                          ⚠️ {t('showScreenToStaff')}
                        </div>
                        
                        <SwipeButton 
                           onSuccess={handleRedeem} 
-                          text="Slide to Redeem"
+                          text={t('slideToRedeem')}
                           color="blue"
                        />
                     </div>
@@ -316,7 +318,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                         </div>
                         <h4 className={`text-2xl font-bold mb-2 font-heading ${
                           darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-500'
-                        }`}>Redeemed!</h4>
+                        }`}>{t('redeemed')}</h4>
                         <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{feedbackMsg}</p>
                     </div>
                  )}
@@ -332,7 +334,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                        </div>
                        <p className={`text-xl font-bold mb-2 font-heading ${
                          darkMode ? 'text-[var(--brand-red)]' : 'text-red-500'
-                       }`}>Error!</p>
+                       }`}>{t('error')}</p>
                        <p className={`text-sm mb-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{feedbackMsg}</p>
                        <button 
                          onClick={() => setRedeemState('IDLE')}
@@ -342,7 +344,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                              : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md'
                          }`}
                        >
-                         Try Again
+                         {t('tryAgain')}
                        </button>
                     </div>
                  )}
@@ -356,7 +358,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                 }`}
               >
-                Close
+                {t('close')}
               </button>
            </div>
         </div>

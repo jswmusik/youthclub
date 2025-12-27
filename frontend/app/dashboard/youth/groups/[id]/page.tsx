@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -21,6 +22,9 @@ export default function GroupDetailPage() {
     const router = useRouter();
     const pathname = usePathname();
     const { user } = useAuth();
+    const t = useTranslations('groups');
+    const tSidebar = useTranslations('sidebar');
+    const tCommon = useTranslations('common');
     const groupId = id as string;
 
     const [group, setGroup] = useState<Group | null>(null);
@@ -116,14 +120,14 @@ export default function GroupDetailPage() {
         if (!group) return;
         try {
             const res = await api.post(`/groups/${group.id}/join/`);
-            setSuccessMessage(res.data.message || 'Successfully joined group!');
+            setSuccessMessage(res.data.message || t('successfullyJoinedGroup'));
             setShowSuccessModal(true);
             await fetchGroupDetails();
             if (res.data.status === 'APPROVED') {
                 fetchPosts();
             }
         } catch (err: any) {
-            setErrorMessage(err.response?.data?.message || "Failed to join group. Please try again.");
+            setErrorMessage(err.response?.data?.message || t('failedToJoinGroup'));
             setShowErrorModal(true);
         }
     };
@@ -137,7 +141,7 @@ export default function GroupDetailPage() {
         setIsLeaving(true);
         try {
             await api.post(`/groups/${group.id}/leave/`);
-            setSuccessMessage('Successfully left the group.');
+            setSuccessMessage(t('successfullyLeftGroup'));
             setShowSuccessModal(true);
             setShowLeaveConfirmModal(false);
             setTimeout(() => {
@@ -146,7 +150,7 @@ export default function GroupDetailPage() {
         } catch (err: any) {
             setIsLeaving(false);
             setShowLeaveConfirmModal(false);
-            setErrorMessage(err.response?.data?.message || "Failed to leave group. Please try again.");
+            setErrorMessage(err.response?.data?.message || t('failedToLeaveGroup'));
             setShowErrorModal(true);
         }
     };
@@ -171,12 +175,12 @@ export default function GroupDetailPage() {
                     <div className="w-20 h-20 bg-[var(--brand-red)]/20 rounded-none sm:rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <AlertCircle className="w-10 h-10 text-[var(--brand-red)]" />
                     </div>
-                    <p className="text-[var(--brand-red)] text-xl font-bold mb-4 font-heading">Group not found</p>
+                    <p className="text-[var(--brand-red)] text-xl font-bold mb-4 font-heading">{t('groupNotFound')}</p>
                     <button 
                         onClick={() => router.back()}
                         className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-none sm:rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all"
                     >
-                        <ArrowLeft className="w-4 h-4" /> Go Back
+                        <ArrowLeft className="w-4 h-4" /> {t('goBack')}
                     </button>
                 </div>
             </div>
@@ -216,7 +220,7 @@ export default function GroupDetailPage() {
                 }`}
             >
                 <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
@@ -285,7 +289,7 @@ export default function GroupDetailPage() {
                                                 ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]'
                                                 : 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30'
                                         }`}>
-                                            {group.group_type === 'CLOSED' ? 'Private' : group.group_type}
+                                            {group.group_type === 'CLOSED' ? t('private') : group.group_type}
                                         </span>
                                     </div>
                                     
@@ -308,7 +312,7 @@ export default function GroupDetailPage() {
                                             <>
                                                 <Globe className="w-4 h-4 text-[var(--brand-purple)]" />
                                                 <p className="text-sm text-[var(--brand-purple)] font-bold">
-                                                    Global Group
+                                                    {t('globalGroup')}
                                                 </p>
                                             </>
                                         )}
@@ -325,7 +329,7 @@ export default function GroupDetailPage() {
                                         <div className="bg-[var(--brand-peach)]/10 border border-[var(--brand-peach)]/30 rounded-none sm:rounded-xl p-3 mb-3">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <AlertCircle className="w-4 h-4 text-[var(--brand-peach)]" />
-                                                <p className="text-sm font-bold text-[var(--brand-peach)]">Requirements not met</p>
+                                                <p className="text-sm font-bold text-[var(--brand-peach)]">{t('requirementsNotMetTitle')}</p>
                                             </div>
                                             <ul className="text-sm text-[var(--brand-light)]/70 space-y-1">
                                                 {group.eligibility.reasons.map((reason, i) => (
@@ -346,15 +350,15 @@ export default function GroupDetailPage() {
                                             onClick={handleLeaveClick}
                                             className="flex-1 md:flex-initial px-6 py-2.5 bg-[var(--brand-peach)] hover:bg-[var(--brand-peach)]/90 text-[var(--dark-900)] rounded-none sm:rounded-xl font-bold transition active:scale-95"
                                         >
-                                            Leave Group
+                                            {t('leaveGroup')}
                                         </button>
                                     ) : isPending ? (
                                         <span className="flex-1 md:flex-initial px-6 py-2.5 bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30 rounded-none sm:rounded-xl font-bold text-center">
-                                            Application Pending
+                                            {t('applicationPending')}
                                         </span>
                                     ) : maxRejectionsReached ? (
                                         <span className="flex-1 md:flex-initial px-6 py-2.5 bg-[var(--dark-700)] text-[var(--brand-light)]/50 border border-[var(--dark-500)] rounded-none sm:rounded-xl font-bold cursor-not-allowed text-center">
-                                            Max Applications Reached
+                                            {t('maxApplicationsReached')}
                                         </span>
                                     ) : (
                                         <button 
@@ -367,8 +371,8 @@ export default function GroupDetailPage() {
                                             }`}
                                         >
                                             {group.eligibility.is_eligible 
-                                                ? (group.group_type === 'OPEN' ? 'Join Group' : 'Apply to Join')
-                                                : 'Not Eligible'}
+                                                ? (group.group_type === 'OPEN' ? t('joinGroup') : t('applyToJoin'))
+                                                : t('notEligible')}
                                         </button>
                                     )}
                                 </div>
@@ -386,7 +390,7 @@ export default function GroupDetailPage() {
                             {/* LEFT COLUMN - About Info (Sticky) */}
                             <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[72px] lg:self-start lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto">
                                 <div className="bg-[var(--dark-800)] p-4 sm:p-6 rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] space-y-4 sm:space-y-6">
-                                    <h3 className="text-xl font-bold text-[var(--brand-light)] font-heading">About</h3>
+                                    <h3 className="text-xl font-bold text-[var(--brand-light)] font-heading">{t('about')}</h3>
                                     
                                     {group.description && (
                                         <div>
@@ -400,10 +404,10 @@ export default function GroupDetailPage() {
                                         <div className="p-3 bg-[var(--dark-700)] rounded-none sm:rounded-xl border border-[var(--dark-600)]">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Shield className="w-4 h-4 text-[var(--brand-purple)]" />
-                                                <span className="font-bold text-[var(--brand-light)]">Group Type</span>
+                                                <span className="font-bold text-[var(--brand-light)]">{t('groupType')}</span>
                                             </div>
                                             <span className="text-[var(--brand-light)]/70 font-semibold">
-                                                {group.group_type === 'OPEN' ? 'Open Group' : group.group_type === 'CLOSED' ? 'Private Group' : 'Application Required'}
+                                                {group.group_type === 'OPEN' ? t('openGroup') : group.group_type === 'CLOSED' ? t('privateGroup') : t('applicationRequired')}
                                             </span>
                                         </div>
 
@@ -411,21 +415,21 @@ export default function GroupDetailPage() {
                                             <div className="p-3 bg-[var(--dark-700)] rounded-none sm:rounded-xl border border-[var(--dark-600)]">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <UserCheck className="w-4 h-4 text-[var(--brand-green)]" />
-                                                    <span className="font-bold text-[var(--brand-light)]">Age Range</span>
+                                                    <span className="font-bold text-[var(--brand-light)]">{t('ageRange')}</span>
                                                 </div>
                                                 <span className="text-[var(--brand-light)]/70 font-semibold">
-                                                    {group.min_age || 0} - {group.max_age || 'Any'} years
+                                                    {group.min_age || 0} - {group.max_age || tCommon('all')} {t('years')}
                                                 </span>
                                             </div>
                                         )}
 
                                         {group.grades && group.grades.length > 0 && (
                                             <div className="p-3 bg-[var(--dark-700)] rounded-none sm:rounded-xl border border-[var(--dark-600)]">
-                                                <span className="font-bold text-[var(--brand-light)] block mb-2">Allowed Grades</span>
+                                                <span className="font-bold text-[var(--brand-light)] block mb-2">{t('allowedGrades')}</span>
                                                 <div className="flex flex-wrap gap-2">
                                                     {group.grades.map((grade) => (
                                                         <span key={grade} className="px-2.5 py-1 bg-[var(--brand-purple)] text-white rounded-lg text-xs font-bold">
-                                                            Grade {grade}
+                                                            {t('grade')} {grade}
                                                         </span>
                                                     ))}
                                                 </div>
@@ -434,7 +438,7 @@ export default function GroupDetailPage() {
 
                                         {group.genders && group.genders.length > 0 && (
                                             <div className="p-3 bg-[var(--dark-700)] rounded-none sm:rounded-xl border border-[var(--dark-600)]">
-                                                <span className="font-bold text-[var(--brand-light)] block mb-2">Allowed Genders</span>
+                                                <span className="font-bold text-[var(--brand-light)] block mb-2">{t('allowedGenders')}</span>
                                                 <div className="flex flex-wrap gap-2">
                                                     {group.genders.map((gender) => (
                                                         <span key={gender} className="px-2.5 py-1 bg-[var(--brand-primary)] text-[var(--dark-900)] rounded-lg text-xs font-bold">
@@ -448,7 +452,7 @@ export default function GroupDetailPage() {
                                         <div className="p-3 bg-[var(--dark-700)] rounded-none sm:rounded-xl border border-[var(--dark-600)]">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Calendar className="w-4 h-4 text-[var(--brand-peach)]" />
-                                                <span className="font-bold text-[var(--brand-light)]">Created</span>
+                                                <span className="font-bold text-[var(--brand-light)]">{t('created')}</span>
                                             </div>
                                             <span className="text-[var(--brand-light)]/70 font-semibold">
                                                 {new Date(group.created_at).toLocaleDateString()}
@@ -461,7 +465,7 @@ export default function GroupDetailPage() {
                                         <div className="p-4 bg-[var(--brand-peach)]/10 border border-[var(--brand-peach)]/30 rounded-none sm:rounded-xl">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <AlertCircle className="w-4 h-4 text-[var(--brand-peach)]" />
-                                                <p className="text-sm font-bold text-[var(--brand-peach)]">Requirements not met</p>
+                                                <p className="text-sm font-bold text-[var(--brand-peach)]">{t('requirementsNotMetTitle')}</p>
                                             </div>
                                             <ul className="text-sm text-[var(--brand-light)]/70 space-y-1.5">
                                                 {group.eligibility.reasons.map((reason, i) => (
@@ -483,15 +487,15 @@ export default function GroupDetailPage() {
                                         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[var(--dark-700)] rounded-none sm:rounded-2xl flex items-center justify-center mx-auto mb-4">
                                             <Users className="w-8 h-8 sm:w-10 sm:h-10 text-[var(--brand-light)]/40" />
                                         </div>
-                                        <p className="text-[var(--brand-light)] font-bold text-lg mb-2 font-heading">Members Only</p>
-                                        <p className="text-[var(--brand-light)]/60 font-medium">Join this group to see posts and events.</p>
+                                        <p className="text-[var(--brand-light)] font-bold text-lg mb-2 font-heading">{t('membersOnly')}</p>
+                                        <p className="text-[var(--brand-light)]/60 font-medium">{t('joinToSeePosts')}</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
                                         {loadingPosts ? (
                                             <div className="text-center py-12 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                                                 <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto"></div>
-                                                <p className="text-[var(--brand-light)]/60 font-semibold mt-4">Loading posts...</p>
+                                                <p className="text-[var(--brand-light)]/60 font-semibold mt-4">{t('loadingPosts')}</p>
                                             </div>
                                         ) : posts.length > 0 ? (
                                             posts.map(post => (
@@ -506,8 +510,8 @@ export default function GroupDetailPage() {
                                                 <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[var(--dark-700)] rounded-none sm:rounded-2xl flex items-center justify-center mx-auto mb-4">
                                                     <Users className="w-8 h-8 sm:w-10 sm:h-10 text-[var(--brand-light)]/40" />
                                                 </div>
-                                                <p className="text-[var(--brand-light)] font-bold text-lg mb-2 font-heading">No posts yet</p>
-                                                <p className="text-[var(--brand-light)]/60 font-medium">Be the first to say hello!</p>
+                                                <p className="text-[var(--brand-light)] font-bold text-lg mb-2 font-heading">{t('noPostsYet')}</p>
+                                                <p className="text-[var(--brand-light)]/60 font-medium">{t('beFirstToSayHello')}</p>
                                             </div>
                                         )}
                                     </div>
@@ -524,7 +528,7 @@ export default function GroupDetailPage() {
                 isVisible={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
                 message={successMessage}
-                title="Success!"
+                title={t('success')}
                 darkMode={true}
             />
             
@@ -533,10 +537,10 @@ export default function GroupDetailPage() {
                 isVisible={showLeaveConfirmModal}
                 onClose={() => setShowLeaveConfirmModal(false)}
                 onConfirm={handleLeaveConfirm}
-                title="Leave Group?"
-                message="Are you sure you want to leave this group? You'll need to join again to see posts and events."
-                confirmButtonText="Leave Group"
-                cancelButtonText="Cancel"
+                title={t('leaveGroupConfirm')}
+                message={t('leaveGroupMessage')}
+                confirmButtonText={t('leaveGroupButton')}
+                cancelButtonText={tCommon('cancel')}
                 isLoading={isLeaving}
                 variant="warning"
                 darkMode={true}
@@ -553,7 +557,7 @@ export default function GroupDetailPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </div>
-                            <h2 className="text-2xl font-bold font-heading">Error</h2>
+                            <h2 className="text-2xl font-bold font-heading">{t('error')}</h2>
                         </div>
 
                         {/* Message */}
@@ -569,7 +573,7 @@ export default function GroupDetailPage() {
                                 onClick={() => setShowErrorModal(false)}
                                 className="w-full bg-[var(--brand-red)] hover:bg-[var(--brand-red)]/90 text-white font-bold py-3 rounded-none sm:rounded-xl transition-colors"
                             >
-                                OK
+                                {t('ok')}
                             </button>
                         </div>
                     </div>

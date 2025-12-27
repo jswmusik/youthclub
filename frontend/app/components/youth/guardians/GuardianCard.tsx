@@ -1,5 +1,6 @@
 import { GuardianLink } from '@/types/user';
 import { getMediaUrl } from '@/app/utils';
+import { useTranslations } from 'next-intl';
 
 import { Shield, Trash2 } from 'lucide-react';
 
@@ -12,7 +13,28 @@ interface GuardianCardProps {
 }
 
 export default function GuardianCard({ link, onView, onRemove, darkMode = false }: GuardianCardProps) {
+    const t = useTranslations('guardians');
     const { guardian, status, relationship_type } = link;
+    
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'ACTIVE':
+                return t('verified');
+            case 'PENDING':
+                return t('pending');
+            case 'REJECTED':
+                return t('rejected');
+            default:
+                return status;
+        }
+    };
+    
+    const getRelationshipLabel = (type: string) => {
+        const typeLower = type.toLowerCase();
+        if (typeLower === 'guardian') return t('relationshipTypes.guardian');
+        if (typeLower === 'parent') return t('relationshipTypes.parent');
+        return t('relationshipTypes.other');
+    };
     
     // Status Badge Colors
     const statusStyles = darkMode ? {
@@ -53,7 +75,7 @@ export default function GuardianCard({ link, onView, onRemove, darkMode = false 
                     )}
                 </div>
                 <span className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider ${statusStyles[status] || (darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60' : 'bg-gray-100')}`}>
-                    {status === 'ACTIVE' ? 'Verified' : status}
+                    {getStatusLabel(status)}
                 </span>
             </div>
 
@@ -68,7 +90,7 @@ export default function GuardianCard({ link, onView, onRemove, darkMode = false 
                     darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
                 }`}>
                     <Shield className="w-4 h-4" />
-                    {relationship_type.toLowerCase()}
+                    {getRelationshipLabel(relationship_type)}
                 </p>
                 <p className={`text-xs truncate px-2 py-1 rounded-lg ${
                     darkMode 
@@ -87,7 +109,7 @@ export default function GuardianCard({ link, onView, onRemove, darkMode = false 
                             : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-md shadow-[#4D4DA4]/20'
                     }`}
                 >
-                    View Details
+                    {t('viewDetails')}
                 </button>
                 <button 
                     onClick={() => onRemove(link)}
@@ -96,7 +118,7 @@ export default function GuardianCard({ link, onView, onRemove, darkMode = false 
                             ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:bg-[var(--brand-red)]/20 hover:text-[var(--brand-red)]' 
                             : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
                     }`}
-                    title="Remove Guardian"
+                    title={t('removeGuardian')}
                 >
                     <Trash2 className="w-5 h-5" />
                 </button>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import api from '@/lib/api';
@@ -24,6 +25,9 @@ export default function YouthEventsPage() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { user } = useAuth();
+    const t = useTranslations('events');
+    const tSidebar = useTranslations('sidebar');
+    const tCommon = useTranslations('common');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
@@ -237,7 +241,7 @@ export default function YouthEventsPage() {
                 }`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-light)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-light)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
@@ -274,13 +278,13 @@ export default function YouthEventsPage() {
                                             <div className="flex items-center gap-2 sm:gap-3 mb-1">
                                                 <CalendarDays className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
                                                 <h1 className={`text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold`}>
-                                                    Discover Events
+                                                    {t('discoverEvents')}
                                                 </h1>
                                             </div>
                                             <p className="text-[var(--brand-light)]/60 text-sm pl-9">
                                                 {hasActiveFilters 
-                                                    ? `${filteredAndSortedEvents.length} event${filteredAndSortedEvents.length !== 1 ? 's' : ''} found`
-                                                    : `${upcomingEvents.length} upcoming events near you`}
+                                                    ? `${filteredAndSortedEvents.length} ${filteredAndSortedEvents.length !== 1 ? t('eventsFoundPlural') : t('eventsFound')} ${t('found')}`
+                                                    : `${upcomingEvents.length} ${t('upcomingEventsNearYou')}`}
                                             </p>
                                         </div>
                                         <div className="flex flex-wrap gap-3">
@@ -289,14 +293,14 @@ export default function YouthEventsPage() {
                                                 className="inline-flex items-center gap-2 bg-[var(--brand-green)] text-[var(--dark-900)] px-4 py-2.5 rounded-xl font-semibold hover:bg-[var(--brand-green)]/90 transition-all text-sm"
                                             >
                                                 <Calendar className="w-4 h-4" />
-                                                Event Calendar
+                                                {t('eventCalendar')}
                                             </Link>
                                             <Link 
                                                 href="/dashboard/youth/events/my-tickets"
                                                 className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-4 py-2.5 rounded-xl font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm"
                                             >
                                                 <Ticket className="w-4 h-4" />
-                                                My Tickets
+                                                {t('myTickets')}
                                             </Link>
                                         </div>
                                     </div>
@@ -308,7 +312,7 @@ export default function YouthEventsPage() {
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5" />
                                     <input 
                                         type="text" 
-                                        placeholder="Search events by name or location..." 
+                                        placeholder={t('searchEventsPlaceholder')}
                                         className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl py-3 pl-12 pr-4 text-sm text-[var(--brand-light)] placeholder:text-[var(--brand-light)]/40 outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 transition-all"
                                         value={search}
                                         onChange={e => setSearch(e.target.value)}
@@ -337,7 +341,7 @@ export default function YouthEventsPage() {
                                             }`}
                                         >
                                             <Clock className="w-3 h-3" />
-                                            Soonest
+                                            {t('soonest')}
                                         </button>
                                         <button
                                             onClick={() => setSortBy('newest')}
@@ -348,7 +352,7 @@ export default function YouthEventsPage() {
                                             }`}
                                         >
                                             <Sparkles className="w-3 h-3" />
-                                            Newest
+                                            {t('newest')}
                                         </button>
                                         <button
                                             onClick={() => setSortBy('recurring')}
@@ -359,7 +363,7 @@ export default function YouthEventsPage() {
                                             }`}
                                         >
                                             <Repeat className="w-3 h-3" />
-                                            Recurring
+                                            {t('recurring')}
                                         </button>
                                     </div>
 
@@ -373,7 +377,7 @@ export default function YouthEventsPage() {
                                         }`}
                                     >
                                         <Calendar className="w-3.5 h-3.5" />
-                                        Date
+                                        {t('date')}
                                         {(fromDate || toDate) && <span className="ml-0.5">•</span>}
                                     </button>
 
@@ -387,7 +391,7 @@ export default function YouthEventsPage() {
                                             }`}
                                         >
                                             <Building2 className="w-3.5 h-3.5" />
-                                            My Club
+                                            {t('myClub')}
                                         </button>
                                     )}
 
@@ -401,7 +405,7 @@ export default function YouthEventsPage() {
                                             }`}
                                         >
                                             <MapPin className="w-3.5 h-3.5" />
-                                            My Area
+                                            {t('myArea')}
                                         </button>
                                     )}
 
@@ -414,7 +418,7 @@ export default function YouthEventsPage() {
                                         }`}
                                     >
                                         <UserCheck className="w-3.5 h-3.5" />
-                                        Attending
+                                        {t('attending')}
                                     </button>
 
                                     {hasActiveFilters && (
@@ -423,7 +427,7 @@ export default function YouthEventsPage() {
                                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all ml-auto"
                                         >
                                             <X className="w-3.5 h-3.5" />
-                                            Clear ({activeFilterCount})
+                                            {t('clear')} ({activeFilterCount})
                                         </button>
                                     )}
                                 </div>
@@ -432,7 +436,7 @@ export default function YouthEventsPage() {
                                         {showDateFilters && (
                                             <div className="mt-3 pt-3 border-t border-[var(--dark-600)] flex flex-col sm:flex-row gap-3 sm:gap-3">
                                                 <div className="flex-1 min-w-0 sm:min-w-[140px]">
-                                                    <label className="block text-xs text-[var(--brand-light)]/60 mb-1">From</label>
+                                                    <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('from')}</label>
                                                     <input
                                                         type="date"
                                                         className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-lg py-2 px-3 text-sm text-[var(--brand-light)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30"
@@ -441,7 +445,7 @@ export default function YouthEventsPage() {
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0 sm:min-w-[140px]">
-                                                    <label className="block text-xs text-[var(--brand-light)]/60 mb-1">To</label>
+                                                    <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('to')}</label>
                                                     <input
                                                         type="date"
                                                         className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-lg py-2 px-3 text-sm text-[var(--brand-light)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30"
@@ -455,7 +459,7 @@ export default function YouthEventsPage() {
                                                         onClick={() => { setFromDate(''); setToDate(''); }}
                                                         className="self-start sm:self-end px-3 py-2 text-xs text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] whitespace-nowrap"
                                                     >
-                                                        Clear dates
+                                                        {t('clearDates')}
                                                     </button>
                                                 )}
                                             </div>
@@ -470,18 +474,18 @@ export default function YouthEventsPage() {
                                             <div className="w-16 h-16 bg-[var(--dark-700)] rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <Calendar className="w-8 h-8 text-[var(--brand-light)]/40" />
                                             </div>
-                                            <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No events found</h3>
+                                            <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('noEventsFound')}</h3>
                                             <p className="text-sm text-[var(--brand-light)]/60 mb-4">
                                                 {hasActiveFilters 
-                                                    ? 'Try adjusting your filters to see more events.' 
-                                                    : 'Check back later for new events!'}
+                                                    ? t('tryAdjustingFilters')
+                                                    : t('checkBackLater')}
                                             </p>
                                             {hasActiveFilters && (
                                                 <button
                                                     onClick={clearFilters}
                                                     className="inline-flex items-center gap-2 text-[var(--brand-primary)] font-semibold hover:underline"
                                                 >
-                                                    Clear all filters
+                                                    {t('clearAllFilters')}
                                                     <span>→</span>
                                                 </button>
                                             )}

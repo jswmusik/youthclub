@@ -1,8 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-
+import { useTranslations } from 'next-intl';
 import { useAuth } from '../../../context/AuthContext';
+// License hook for feature gating
+import { useLicense } from '../../../hooks/useLicense';
 import { 
     Home, 
     QrCode, 
@@ -108,6 +110,8 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
 export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode }: YouthSidebarProps) {
     const router = useRouter();
     const { user } = useAuth();
+    const { hasFeature } = useLicense(); // Use license hook
+    const t = useTranslations('sidebar');
 
     const checkActive = (path: string) => {
         if (!activePath) return false;
@@ -116,57 +120,67 @@ export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode
         return false;
     };
 
+    // Navigation items - FILTERED BY LICENSE
     const navItems = [
+        // Always Visible (Core)
         { 
             icon: <Home className="w-5 h-5" />, 
-            label: 'Your Feed', 
+            label: t('yourFeed'), 
             path: '/dashboard/youth',
         },
+        // Core Check-in (Visits)
         { 
             icon: <QrCode className="w-5 h-5" />, 
-            label: 'Scan to Check In', 
+            label: t('scanToCheckIn'), 
             path: '/dashboard/youth/scan',
         },
-        { 
+        // Feature: Inventory
+        ...(hasFeature('inventory') ? [{ 
             icon: <Package className="w-5 h-5" />, 
-            label: 'Borrow Items', 
+            label: t('borrowItems'), 
             path: '/dashboard/youth/inventory',
-        },
-        { 
+        }] : []),
+        // Feature: Bookings
+        ...(hasFeature('bookings') ? [{ 
             icon: <CalendarCheck className="w-5 h-5" />, 
-            label: 'Bookings', 
+            label: t('bookings'), 
             path: '/dashboard/youth/bookings',
-        },
-        { 
+        }] : []),
+        // Feature: Questionnaires
+        ...(hasFeature('questionnaires') ? [{ 
             icon: <ClipboardList className="w-5 h-5" />, 
-            label: 'Questionnaires', 
+            label: t('questionnaires'), 
             path: '/dashboard/youth/questionnaires',
             badge: unfinishedCount > 0 ? unfinishedCount : undefined,
-        },
-        { 
+        }] : []),
+        // Feature: Groups
+        ...(hasFeature('groups') ? [{ 
             icon: <Users className="w-5 h-5" />, 
-            label: 'Groups', 
+            label: t('groups'), 
             path: '/dashboard/youth/groups',
-        },
+        }] : []),
+        // Core Club Info
         { 
             icon: <MapPin className="w-5 h-5" />, 
-            label: 'My Club', 
+            label: t('myClub'), 
             path: user?.preferred_club?.id ? `/dashboard/youth/club/${user.preferred_club.id}` : '',
             checkPath: '/dashboard/youth/club',
             disabled: !user?.preferred_club?.id,
         },
-        { 
+        // Feature: News (Posts)
+        ...(hasFeature('posts') ? [{ 
             icon: <Newspaper className="w-5 h-5" />, 
-            label: 'News', 
+            label: t('news'), 
             path: '/dashboard/youth/news',
-        },
-        { 
+        }] : []),
+        // Feature: Events
+        ...(hasFeature('events') ? [{ 
             icon: <CalendarDays className="w-5 h-5" />, 
-            label: 'Events', 
+            label: t('events'), 
             path: '/dashboard/youth/events',
             badge: '6',
             badgeColor: 'orange' as const,
-        },
+        }] : []),
     ];
 
     return (
@@ -176,10 +190,10 @@ export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode
                 <h1 className={`text-2xl mb-0.5 font-heading font-bold ${
                     darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
                 }`}>
-                    Menu
+                    {t('menu')}
                 </h1>
                 <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
-                    Navigate your dashboard
+                    {t('navigateDashboard')}
                 </p>
             </div>
 
@@ -208,7 +222,7 @@ export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode
                 <p className={`text-[10px] text-center ${
                     darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'
                 }`}>
-                    Tap any item to navigate
+                    {t('tapToNavigate')}
                 </p>
             </div>
         </div>

@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { NewsArticle } from '../../../types/news';
 import { getMediaUrl } from '../../utils';
 
@@ -8,6 +11,7 @@ interface Props {
 }
 
 export default function NewsHero({ article, darkMode = false }: Props) {
+    const t = useTranslations('news');
     const heroImageUrl = article.hero_image ? getMediaUrl(article.hero_image) : null;
 
     return (
@@ -36,7 +40,7 @@ export default function NewsHero({ article, darkMode = false }: Props) {
                                 ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                                 : 'bg-blue-600 text-white'
                         }`}>
-                            Featured
+                            {t('featured')}
                         </span>
                         {article.tags_details.slice(0, 2).map(tag => (
                             <span 
@@ -54,7 +58,7 @@ export default function NewsHero({ article, darkMode = false }: Props) {
                         {article.excerpt}
                     </p>
                     <span className="text-sm text-gray-400">
-                        {new Date(article.published_at).toLocaleDateString()} • By {article.author_name}
+                        {new Date(article.published_at).toLocaleDateString()} • {t('by')} {article.author_name}
                     </span>
                 </div>
             </Link>

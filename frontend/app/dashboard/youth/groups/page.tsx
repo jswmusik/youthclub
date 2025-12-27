@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslations } from 'next-intl';
 
 import api from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
@@ -33,7 +34,7 @@ interface Group {
 }
 
 // Helper Component: Badges
-const StatusBadge = ({ status }: { status: string }) => {
+const StatusBadge = ({ status, t }: { status: string; t: any }) => {
     const styles = {
         APPROVED: "bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30",
         PENDING: "bg-[var(--brand-third)]/20 text-[var(--brand-third)] border border-[var(--brand-third)]/30",
@@ -41,19 +42,19 @@ const StatusBadge = ({ status }: { status: string }) => {
     };
     return (
         <span className={`text-xs px-3 py-1.5 rounded-lg font-bold ${styles[status as keyof typeof styles] || "bg-[var(--dark-600)]"}`}>
-            {status === 'APPROVED' ? 'Member' : status}
+            {status === 'APPROVED' ? t('groups.member') : t(`groups.${status.toLowerCase()}`)}
         </span>
     );
 };
 
-const IneligibleTooltip = ({ reasons }: { reasons: string[] }) => (
+const IneligibleTooltip = ({ reasons, t }: { reasons: string[]; t: any }) => (
     <div className="absolute top-2 right-2 group z-10">
         <div className="bg-[var(--dark-700)] text-[var(--brand-light)]/60 text-xs px-2.5 py-1.5 rounded-lg border border-[var(--dark-500)] cursor-help flex items-center gap-1.5 font-bold">
             <AlertCircle className="w-3.5 h-3.5" />
-            <span>Restricted</span>
+            <span>{t('groups.restricted')}</span>
         </div>
         <div className="absolute right-0 mt-1 w-56 p-4 bg-[var(--dark-700)] text-[var(--brand-light)] text-xs rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-[var(--dark-500)]">
-            <p className="font-bold mb-2 text-sm">Requirements not met:</p>
+            <p className="font-bold mb-2 text-sm">{t('groups.requirementsNotMet')}</p>
             <ul className="space-y-1.5">
                 {reasons.map((r, i) => (
                     <li key={i} className="flex items-start gap-2">
@@ -70,6 +71,8 @@ export default function GroupSearchPage() {
     const { user } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const t = useTranslations();
+    const tSidebar = useTranslations('sidebar');
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -215,7 +218,7 @@ export default function GroupSearchPage() {
         try {
             const res = await api.post(`/groups/${selectedGroupToJoin.id}/join/`);
             setToast({
-                message: res.data.message || 'Successfully joined the group!',
+                message: res.data.message || t('groups.successfullyJoined'),
                 type: 'success',
                 isVisible: true
             });
@@ -225,7 +228,7 @@ export default function GroupSearchPage() {
             setSelectedGroupToJoin(null);
         } catch (err: any) {
             setToast({
-                message: err.response?.data?.message || 'Failed to join group',
+                message: err.response?.data?.message || t('groups.failedToJoin'),
                 type: 'error',
                 isVisible: true
             });
@@ -302,7 +305,7 @@ export default function GroupSearchPage() {
                 }`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
@@ -331,11 +334,11 @@ export default function GroupSearchPage() {
                                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                                     <UsersIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
                                     <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
-                                        Groups
+                                        {t('groups.title')}
                                     </h1>
                                 </div>
                                 <p className="text-[var(--brand-light)]/60 text-sm pl-8 sm:pl-10 font-semibold">
-                                    Discover and join groups
+                                    {t('groups.discoverAndJoin')}
                                 </p>
                             </div>
 
@@ -346,7 +349,7 @@ export default function GroupSearchPage() {
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
                                     <input 
                                         type="text" 
-                                        placeholder="Search groups..." 
+                                        placeholder={t('groups.searchPlaceholder')} 
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="w-full pl-10 pr-10 py-2.5 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-sm font-medium text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] transition-all"
@@ -364,11 +367,11 @@ export default function GroupSearchPage() {
                                 {/* Filter Chips */}
                                 <div className="flex flex-wrap items-center gap-2">
                                     {[
-                                        { id: 'ALL', label: 'All Groups', icon: <UsersIcon className="w-3.5 h-3.5" /> },
-                                        { id: 'GLOBAL', label: 'Global', icon: <Globe className="w-3.5 h-3.5" /> },
-                                        { id: 'MUNI', label: 'My Municipality', icon: <MapPin className="w-3.5 h-3.5" /> },
-                                        { id: 'CLUB', label: 'My Club', icon: <Building2 className="w-3.5 h-3.5" /> },
-                                        { id: 'FOLLOWING', label: 'Following', icon: <UsersIcon className="w-3.5 h-3.5" /> },
+                                        { id: 'ALL', label: t('groups.allGroups'), icon: <UsersIcon className="w-3.5 h-3.5" /> },
+                                        { id: 'GLOBAL', label: t('groups.global'), icon: <Globe className="w-3.5 h-3.5" /> },
+                                        { id: 'MUNI', label: t('groups.myMunicipality'), icon: <MapPin className="w-3.5 h-3.5" /> },
+                                        { id: 'CLUB', label: t('groups.myClub'), icon: <Building2 className="w-3.5 h-3.5" /> },
+                                        { id: 'FOLLOWING', label: t('groups.following'), icon: <UsersIcon className="w-3.5 h-3.5" /> },
                                     ].map((opt) => (
                                         <button
                                             key={opt.id}
@@ -394,7 +397,7 @@ export default function GroupSearchPage() {
                                         }`}
                                     >
                                         <Heart className="w-3.5 h-3.5" />
-                                        My Interests
+                                        {t('groups.myInterests')}
                                     </button>
                                 </div>
                             </div>
@@ -437,14 +440,14 @@ export default function GroupSearchPage() {
                                                     <div className="absolute top-2 left-2 flex gap-1.5">
                                                         {group.group_type !== 'OPEN' && (
                                                             <span className="bg-[var(--dark-900)]/80 backdrop-blur-sm text-[var(--brand-light)] text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wide font-bold">
-                                                                {group.group_type === 'CLOSED' ? 'Private' : 'Application'}
+                                                                {group.group_type === 'CLOSED' ? t('groups.private') : t('groups.application')}
                                                             </span>
                                                         )}
                                                     </div>
 
                                                     {/* Ineligibility Tooltip */}
                                                     {!isEligible && !isMember && (
-                                                        <IneligibleTooltip reasons={group.eligibility.reasons} />
+                                                        <IneligibleTooltip reasons={group.eligibility.reasons} t={t} />
                                                     )}
                                                 </div>
 
@@ -471,7 +474,7 @@ export default function GroupSearchPage() {
                                                                 <>
                                                                     <Globe className="w-3.5 h-3.5 text-[var(--brand-purple)]" />
                                                                     <p className="text-xs text-[var(--brand-purple)] font-bold">
-                                                                        Global Group
+                                                                        {t('groups.globalGroup')}
                                                                     </p>
                                                                 </>
                                                             )}
@@ -479,32 +482,32 @@ export default function GroupSearchPage() {
                                                     </div>
                                                     
                                                     <p className="text-sm text-[var(--brand-light)]/60 mb-4 line-clamp-2 flex-1 font-medium">
-                                                        {group.description || <span className="italic text-[var(--brand-light)]/40">No description available.</span>}
+                                                        {group.description || <span className="italic text-[var(--brand-light)]/40">{t('groups.noDescriptionAvailable')}</span>}
                                                     </p>
 
                                                     {/* Footer Action */}
                                                     <div className="mt-auto pt-4 border-t border-[var(--dark-600)]">
                                                         {isMember ? (
                                                             <div className="flex justify-between items-center gap-2">
-                                                                <StatusBadge status="APPROVED" />
+                                                                <StatusBadge status="APPROVED" t={t} />
                                                                 <button 
                                                                     onClick={() => router.push(`/dashboard/youth/groups/${group.id}`)}
                                                                     className="text-xs text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 font-bold transition-colors"
                                                                 >
-                                                                    Visit Group →
+                                                                    {t('groups.visitGroup')}
                                                                 </button>
                                                             </div>
                                                         ) : isPending ? (
                                                             <div className="flex justify-between items-center gap-2">
-                                                                <StatusBadge status="PENDING" />
-                                                                <span className="text-xs text-[var(--brand-light)]/50 font-semibold">Pending...</span>
+                                                                <StatusBadge status="PENDING" t={t} />
+                                                                <span className="text-xs text-[var(--brand-light)]/50 font-semibold">{t('groups.pendingStatus')}</span>
                                                             </div>
                                                         ) : maxRejectionsReached ? (
                                                             <button
                                                                 disabled={true}
                                                                 className="w-full py-2.5 rounded-xl text-sm font-bold bg-[var(--dark-700)] text-[var(--brand-light)]/50 cursor-not-allowed border border-[var(--dark-500)]"
                                                             >
-                                                                Max Applications Reached
+                                                                {t('groups.maxApplicationsReached')}
                                                             </button>
                                                         ) : (
                                                             <button
@@ -517,8 +520,8 @@ export default function GroupSearchPage() {
                                                                 }`}
                                                             >
                                                                 {isEligible 
-                                                                    ? (group.group_type === 'OPEN' ? 'Join Group' : 'Apply to Join') 
-                                                                    : 'Unavailable'}
+                                                                    ? (group.group_type === 'OPEN' ? t('groups.joinGroup') : t('groups.applyToJoin')) 
+                                                                    : t('groups.unavailable')}
                                                             </button>
                                                         )}
                                                     </div>
@@ -533,12 +536,12 @@ export default function GroupSearchPage() {
                                 {loadingMore && (
                                     <div className="flex items-center gap-2 text-[var(--brand-primary)]">
                                         <div className="w-6 h-6 border-3 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin"></div>
-                                        <span className="text-sm font-semibold">Loading more groups...</span>
+                                        <span className="text-sm font-semibold">{t('groups.loadingMore')}</span>
                                     </div>
                                 )}
                                 {!hasMore && filteredGroups.length > 0 && (
                                     <p className="text-sm text-[var(--brand-light)]/40 text-center py-4 font-semibold">
-                                        You've reached the end
+                                        {t('groups.reachedEnd')}
                                     </p>
                                 )}
                             </div>
@@ -549,15 +552,15 @@ export default function GroupSearchPage() {
                                         <div className="w-20 h-20 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
                                             <UsersIcon className="w-10 h-10 text-[var(--brand-light)]/40" />
                                         </div>
-                                        <h3 className="text-lg sm:text-xl font-bold text-[var(--brand-light)] mb-2 font-heading">No groups found</h3>
+                                        <h3 className="text-lg sm:text-xl font-bold text-[var(--brand-light)] mb-2 font-heading">{t('groups.noGroupsFound')}</h3>
                                         <p className="text-sm text-[var(--brand-light)]/60 mb-4 font-medium">
-                                            Try adjusting your filters or search terms to find more groups.
+                                            {t('groups.tryAdjustingFilters')}
                                         </p>
                                         <button 
                                             onClick={() => { setSearchTerm(''); setScopeFilter('ALL'); setInterestFilter(false); }}
                                             className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95"
                                         >
-                                            Clear all filters
+                                            {t('groups.clearAllFilters')}
                                         </button>
                                     </div>
                                 </div>
@@ -577,14 +580,14 @@ export default function GroupSearchPage() {
                     }
                 }}
                 onConfirm={handleJoinConfirm}
-                title={selectedGroupToJoin?.group_type === 'OPEN' ? 'Join Group?' : 'Apply to Join Group?'}
+                title={selectedGroupToJoin?.group_type === 'OPEN' ? t('groups.joinGroupConfirm') : t('groups.applyToJoinConfirm')}
                 message={
                     selectedGroupToJoin?.group_type === 'OPEN'
-                        ? `Are you sure you want to join "${selectedGroupToJoin?.name}"?`
-                        : `Submit an application to join "${selectedGroupToJoin?.name}"? The group admin will review your request.`
+                        ? t('groups.joinGroupMessage', { name: selectedGroupToJoin?.name })
+                        : t('groups.applyToJoinMessage', { name: selectedGroupToJoin?.name })
                 }
-                confirmButtonText={selectedGroupToJoin?.group_type === 'OPEN' ? 'Join Group' : 'Submit Application'}
-                cancelButtonText="Cancel"
+                confirmButtonText={selectedGroupToJoin?.group_type === 'OPEN' ? t('groups.joinGroup') : t('groups.submitApplication')}
+                cancelButtonText={t('groups.cancel')}
                 isLoading={isJoining}
                 variant="info"
                 darkMode={true}

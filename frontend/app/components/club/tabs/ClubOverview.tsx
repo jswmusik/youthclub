@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { Club } from '@/types/organization';
 import ClubFeed from '../ClubFeed';
 
@@ -9,6 +10,7 @@ interface ClubOverviewProps {
 }
 
 export default function ClubOverview({ club, onChangeTab, darkMode = false }: ClubOverviewProps) {
+  const t = useTranslations('club.overview');
   
   // --- Open Now Logic ---
   const isOpenNow = () => {
@@ -53,7 +55,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
             <h3 className={`text-lg font-semibold mb-4 font-heading ${
               darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
             }`}>
-              Club Status
+              {t('clubStatus')}
             </h3>
             
             <div className="flex items-center space-x-3 mb-6">
@@ -74,7 +76,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
                   ? darkMode ? 'text-[var(--brand-third)]' : 'text-green-600' 
                   : darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'
               }`}>
-                {openStatus ? 'Open Now' : 'Closed'}
+                {openStatus ? t('openNow') : t('closed')}
               </span>
             </div>
 
@@ -110,7 +112,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
                     : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
                 }`}
               >
-                View Hours
+                {t('viewHours')}
               </button>
               <button 
                 onClick={() => onChangeTab('contact')}
@@ -120,7 +122,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
                     : 'text-gray-600 bg-gray-50 hover:bg-gray-100'
                 }`}
               >
-                Map & Contact
+                {t('mapAndContact')}
               </button>
             </div>
           </div>
@@ -134,7 +136,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
         }`}>
           <h3 className={`text-lg font-semibold mb-2 font-heading ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
-          }`}>About</h3>
+          }`}>{t('about')}</h3>
           <p className={`text-sm leading-relaxed line-clamp-6 ${
             darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'
           }`}>
@@ -153,7 +155,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
         }`}>
            <h2 className={`text-xl font-bold font-heading ${
              darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
-           }`}>Latest Updates</h2>
+           }`}>{t('latestUpdates')}</h2>
            {/* Future: Add 'Filter' dropdown here if needed */}
         </div>
         

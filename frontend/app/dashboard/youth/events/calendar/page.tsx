@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import MemberEventCalendar from '@/app/components/events/youth/MemberEventCalendar';
@@ -16,6 +17,8 @@ export default function YouthCalendarPage() {
     const router = useRouter();
     const pathname = usePathname();
     const { user } = useAuth();
+    const t = useTranslations('events');
+    const tSidebar = useTranslations('sidebar');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -169,7 +172,7 @@ export default function YouthCalendarPage() {
                 }`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-light)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-light)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
@@ -201,20 +204,20 @@ export default function YouthCalendarPage() {
                                         <div className="flex items-center gap-3 mb-1">
                                             <CalendarDays className="w-7 h-7 text-[var(--brand-primary)]" />
                                             <h1 className="text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
-                                                Event Calendar
+                                                {t('eventCalendar')}
                                             </h1>
                                         </div>
                                         <p className="text-[var(--brand-light)]/60 text-sm pl-10">
                                             {hasActiveFilters 
-                                                ? `${filteredEvents.length} event${filteredEvents.length !== 1 ? 's' : ''} found`
-                                                : 'Find events by date'}
+                                                ? `${filteredEvents.length} ${filteredEvents.length !== 1 ? t('eventsFoundPlural') : t('eventsFound')} ${t('found')}`
+                                                : t('findEventsByDate')}
                                         </p>
                                     </div>
                                     <Link 
                                         href="/dashboard/youth/events" 
                                         className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-4 py-2.5 rounded-xl font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm"
                                     >
-                                        View List
+                                        {t('viewList')}
                                     </Link>
                                 </div>
 
@@ -225,7 +228,7 @@ export default function YouthCalendarPage() {
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5" />
                                         <input 
                                             type="text" 
-                                            placeholder="Search events by name or location..." 
+                                            placeholder={t('searchEventsPlaceholder')}
                                             className="w-full bg-[var(--dark-700)] border border-[var(--dark-600)] rounded-xl py-3 pl-12 pr-4 text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] transition-all"
                                             value={search}
                                             onChange={e => setSearch(e.target.value)}
@@ -252,7 +255,7 @@ export default function YouthCalendarPage() {
                                             }`}
                                         >
                                             <Calendar className="w-3.5 h-3.5" />
-                                            Date
+                                            {t('date')}
                                             {(fromDate || toDate) && <span className="ml-0.5">•</span>}
                                         </button>
 
@@ -266,7 +269,7 @@ export default function YouthCalendarPage() {
                                                 }`}
                                             >
                                                 <Building2 className="w-3.5 h-3.5" />
-                                                My Club
+                                                {t('myClub')}
                                             </button>
                                         )}
 
@@ -280,7 +283,7 @@ export default function YouthCalendarPage() {
                                                 }`}
                                             >
                                                 <MapPin className="w-3.5 h-3.5" />
-                                                My Area
+                                                {t('myArea')}
                                             </button>
                                         )}
 
@@ -293,7 +296,7 @@ export default function YouthCalendarPage() {
                                             }`}
                                         >
                                             <UserCheck className="w-3.5 h-3.5" />
-                                            Attending
+                                            {t('attending')}
                                         </button>
 
                                         {/* Interests Filter Chips */}
@@ -320,7 +323,7 @@ export default function YouthCalendarPage() {
                                                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all ml-auto"
                                             >
                                                 <X className="w-3.5 h-3.5" />
-                                                Clear ({[search, fromDate, toDate, filterMyClub, filterMyMunicipality, filterMyEvents, ...selectedInterests].filter(Boolean).length})
+                                                {t('clear')} ({[search, fromDate, toDate, filterMyClub, filterMyMunicipality, filterMyEvents, ...selectedInterests].filter(Boolean).length})
                                             </button>
                                         )}
                                     </div>
@@ -329,7 +332,7 @@ export default function YouthCalendarPage() {
                                     {showFilters && (
                                         <div className="mt-3 pt-3 border-t border-[var(--dark-600)] flex flex-col sm:flex-row gap-3 sm:gap-3">
                                             <div className="flex-1 min-w-0 sm:min-w-[140px]">
-                                                <label className="block text-xs text-[var(--brand-light)]/50 mb-1">From</label>
+                                                <label className="block text-xs text-[var(--brand-light)]/50 mb-1">{t('from')}</label>
                                                 <input
                                                     type="date"
                                                     className="w-full bg-[var(--dark-700)] border border-[var(--dark-600)] rounded-lg py-2 px-3 text-sm text-[var(--brand-light)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30"
@@ -338,7 +341,7 @@ export default function YouthCalendarPage() {
                                                 />
                                             </div>
                                             <div className="flex-1 min-w-0 sm:min-w-[140px]">
-                                                <label className="block text-xs text-[var(--brand-light)]/50 mb-1">To</label>
+                                                <label className="block text-xs text-[var(--brand-light)]/50 mb-1">{t('to')}</label>
                                                 <input
                                                     type="date"
                                                     className="w-full bg-[var(--dark-700)] border border-[var(--dark-600)] rounded-lg py-2 px-3 text-sm text-[var(--brand-light)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30"
@@ -352,7 +355,7 @@ export default function YouthCalendarPage() {
                                                     onClick={() => { setFromDate(''); setToDate(''); }}
                                                     className="self-start sm:self-end px-3 py-2 text-xs text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] whitespace-nowrap"
                                                 >
-                                                    Clear dates
+                                                    {t('clearDates')}
                                                 </button>
                                             )}
                                         </div>

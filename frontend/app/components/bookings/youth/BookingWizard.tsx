@@ -2,11 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { format, addDays, startOfToday, isSameDay } from 'date-fns';
+import { enUS, sv, da, nb, fi, type Locale } from 'date-fns/locale';
 
 import api from '../../../../lib/api';
-import { format, addDays, startOfToday, isSameDay } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, Users, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
 import Toast from '../../../components/Toast';
+
+// Map locale codes to date-fns locales
+const localeMap: Record<string, Locale> = {
+  en: enUS,
+  sv: sv,
+  da: da,
+  nb: nb,
+  fi: fi,
+  ar: enUS, // Arabic not available in date-fns, fallback to English
+  so: enUS, // Somali not available in date-fns, fallback to English
+  prs: enUS, // Dari not available in date-fns, fallback to English
+};
 
 
 interface Props {
@@ -22,6 +36,9 @@ interface TimeSlot {
 
 export default function BookingWizard({ resource, darkMode = false }: Props) {
   const router = useRouter();
+  const t = useTranslations('bookings.bookingWizard');
+  const locale = useLocale();
+  const dateLocale = localeMap[locale] || enUS;
   
   // State
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1=Slot, 2=Participants, 3=Review
@@ -67,7 +84,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
   const addParticipant = () => {
     if (!friendName.trim()) return;
     if (participants.length + 1 >= resource.max_participants) {
-      setToast({ message: `Max ${resource.max_participants} people allowed.`, type: 'error', isVisible: true });
+      setToast({ message: t('maxPeopleError', { count: resource.max_participants }), type: 'error', isVisible: true });
       return;
     }
     setParticipants([...participants, friendName.trim()]);
@@ -90,7 +107,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
         participants: participants
       });
       
-      setToast({ message: 'Booking request sent!', type: 'success', isVisible: true });
+      setToast({ message: t('bookingRequestSent'), type: 'success', isVisible: true });
       setTimeout(() => router.push('/dashboard/youth/bookings'), 1500);
     } catch (err: any) {
       setIsSubmitting(false);
@@ -99,7 +116,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
       const errorMessage = err.response?.data?.non_field_errors?.[0] || 
                           err.response?.data?.error || 
                           err.response?.data?.detail || 
-                          'Failed to book. Please try again.';
+                          t('failedToBook');
       
       // Check if it's a weekly limit error
       if (errorMessage.toLowerCase().includes('weekly booking limit') || 
@@ -130,7 +147,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
           <h3 className={`text-xl sm:text-2xl font-heading font-bold ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
           }`}>
-            Pick a Time Slot
+            {t('step1Title')}
           </h3>
         </div>
 
@@ -153,10 +170,10 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
             <div className="text-center">
               <div className={`text-xs sm:text-sm uppercase font-bold tracking-wide ${
                 darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
-              }`}>{format(selectedDate, 'EEEE')}</div>
+              }`}>{format(selectedDate, 'EEEE', { locale: dateLocale })}</div>
               <div className={`text-lg sm:text-xl font-bold font-heading ${
                 darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
-              }`}>{format(selectedDate, 'MMM d, yyyy')}</div>
+              }`}>{format(selectedDate, 'MMM d, yyyy', { locale: dateLocale })}</div>
             </div>
             <button 
               onClick={() => handleDateChange(1)} 
@@ -177,7 +194,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                   ? 'border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)]' 
                   : 'border-[#4D4DA4]/20 border-t-[#4D4DA4]'
               }`} />
-              <p className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Checking schedule...</p>
+              <p className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('checkingSchedule')}</p>
             </div>
           ) : slots.length === 0 ? (
             <div className={`text-center py-12 rounded-xl border-2 border-dashed ${
@@ -186,8 +203,8 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                 : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300'
             }`}>
               <CalendarIcon className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-[var(--brand-light)]/20' : 'text-gray-300'}`} />
-              <p className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>No available slots on this day.</p>
-              <p className={`text-xs mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>Try selecting a different date</p>
+              <p className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('noSlotsAvailable')}</p>
+              <p className={`text-xs mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>{t('tryDifferentDate')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
@@ -220,7 +237,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                         isSelected 
                           ? darkMode ? 'text-[var(--dark-900)]/60' : 'text-white/80' 
                           : darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'
-                      }`}>to</div>
+                      }`}>{t('timeTo')}</div>
                       <div className="text-xs sm:text-sm">
                         {format(new Date(slot.end), 'HH:mm')}
                       </div>
@@ -241,7 +258,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
               : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-lg hover:from-[#3D3D94] hover:to-[#5D5DC4]'
           }`}
         >
-          Next: Add Friends
+          {t('nextAddFriends')}
         </button>
       </div>
     );
@@ -263,7 +280,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
           <h3 className={`text-xl sm:text-2xl font-heading font-bold ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
           }`}>
-            Add Friends
+            {t('step2Title')}
           </h3>
         </div>
 
@@ -275,14 +292,14 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
           <div className="flex items-center gap-2 mb-2">
             <Users className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`} />
             <span className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>
-              You + {participants.length} friends (Max {resource.max_participants})
+              {t('youAndFriends', { count: participants.length, max: resource.max_participants })}
             </span>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
             <input 
               type="text" 
-              placeholder="Friend's Name" 
+              placeholder={t('friendNamePlaceholder')} 
               className={`flex-1 p-3 rounded-xl outline-none transition-all font-medium ${
                 darkMode 
                   ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20' 
@@ -300,7 +317,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                   : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-md hover:shadow-lg'
               }`}
             >
-              Add
+              {t('add')}
             </button>
           </div>
 
@@ -316,9 +333,9 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                     ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
                     : 'bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-sm'
                 }`}>
-                  ME
+                  {t('me')}
                 </div>
-                <span className={`font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>You (Host)</span>
+                <span className={`font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{t('youHost')}</span>
             </div>
             
             {participants.map((name, idx) => (
@@ -361,7 +378,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                 : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
             }`}
           >
-            Back
+            {t('back')}
           </button>
           <button 
             onClick={() => setStep(3)} 
@@ -371,7 +388,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                 : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-lg hover:from-[#3D3D94] hover:to-[#5D5DC4]'
             }`}
           >
-            Review
+            {t('review')}
           </button>
         </div>
         <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={darkMode} />
@@ -395,7 +412,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
           <h3 className={`text-xl sm:text-2xl font-heading font-bold ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
           }`}>
-            Confirm Booking
+            {t('step3Title')}
           </h3>
         </div>
 
@@ -415,7 +432,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
           <h3 className={`text-2xl font-bold font-heading ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
           }`}>
-            Review Your Booking
+            {t('reviewBooking')}
           </h3>
           
           <div className={`p-5 rounded-xl text-left space-y-3 text-sm border ${
@@ -426,30 +443,30 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
             <div className={`flex justify-between items-center pb-3 border-b ${
               darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
             }`}>
-              <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Resource</span>
+              <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('resource')}</span>
               <span className={`font-bold ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`}>{resource.name}</span>
             </div>
             <div className={`flex justify-between items-center pb-3 border-b ${
               darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
             }`}>
-              <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Date</span>
-              <span className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{format(new Date(selectedSlot.start), 'MMM d, yyyy')}</span>
+              <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('date')}</span>
+              <span className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{format(new Date(selectedSlot.start), 'MMM d, yyyy', { locale: dateLocale })}</span>
             </div>
             <div className={`flex justify-between items-center pb-3 border-b ${
               darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
             }`}>
               <span className={`font-semibold flex items-center gap-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                 <Clock className="w-4 h-4" />
-                Time
+                {t('time')}
               </span>
               <span className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{format(new Date(selectedSlot.start), 'HH:mm')} - {format(new Date(selectedSlot.end), 'HH:mm')}</span>
             </div>
             <div className="flex justify-between items-center pt-1">
               <span className={`font-semibold flex items-center gap-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                 <Users className="w-4 h-4" />
-                Participants
+                {t('participants')}
               </span>
-              <span className={`font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`}>{participants.length + 1} people</span>
+              <span className={`font-bold ${darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'}`}>{t('people', { count: participants.length + 1 })}</span>
             </div>
           </div>
         </div>
@@ -463,7 +480,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                 : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
             }`}
           >
-            Back
+            {t('back')}
           </button>
           <button 
             onClick={handleSubmit} 
@@ -479,10 +496,10 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                 <div className={`w-4 h-4 border-2 rounded-full animate-spin ${
                   darkMode ? 'border-[var(--dark-900)]/30 border-t-[var(--dark-900)]' : 'border-white/30 border-t-white'
                 }`} />
-                Booking...
+                {t('booking')}
               </span>
             ) : (
-              'Confirm Booking'
+              t('confirmBooking')
             )}
           </button>
         </div>
@@ -506,7 +523,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                   <h3 className={`text-xl font-bold font-heading ${
                     darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
                   }`}>
-                    Weekly Limit Reached
+                    {t('weeklyLimitReached')}
                   </h3>
                 </div>
                 
@@ -516,10 +533,10 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                     : 'bg-amber-50 border-amber-200'
                 }`}>
                   <p className={`font-semibold mb-3 ${darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-700'}`}>
-                    {limitError || 'You have already reached your weekly booking limit for this resource.'}
+                    {limitError || t('weeklyLimitMessage')}
                   </p>
                   <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                    Please try booking again next week, or contact your club admin if you need assistance.
+                    {t('weeklyLimitHelp')}
                   </p>
                 </div>
                 
@@ -534,7 +551,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                       : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-lg'
                   }`}
                 >
-                  Understood
+                  {t('understood')}
                 </button>
               </div>
             </div>

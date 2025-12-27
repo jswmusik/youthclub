@@ -15,6 +15,7 @@ from .models import Event, EventRegistration, EventImage, EventDocument
 from .serializers import EventSerializer, EventRegistrationSerializer, EventImageSerializer, EventDocumentSerializer, PublicEventSerializer
 from .services import register_user_for_event, cancel_registration, generate_recurring_events, filter_events_by_targeting, is_user_eligible_for_event, admin_add_user_to_event
 from .permissions import IsEventOwnerOrReadOnly
+from core.permissions import HasLicenseFeature
 
 
 class EventFilter(django_filters.FilterSet):
@@ -32,12 +33,23 @@ class EventFilter(django_filters.FilterSet):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     filterset_class = EventFilter
     search_fields = ['title', 'description', 'location_name']
     ordering_fields = ['start_date', 'created_at']
+    
+    def get_permissions(self):
+        """
+        Apply license-based permissions for the events feature.
+        """
+        permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+        
+        # Add the license feature gatekeeper for write operations
+        if self.action not in ['list', 'retrieve']:
+            permission_classes.append(HasLicenseFeature('events')())
+        
+        return [permission() for permission in permission_classes]
     
     def create(self, request, *args, **kwargs):
         """Override create to provide better error handling and debugging"""

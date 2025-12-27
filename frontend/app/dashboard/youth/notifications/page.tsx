@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import NavBar from '../../../components/NavBar';
 import YouthSidebar from '../../../components/youth/YouthSidebar';
 import NotificationItem from '../../../components/notifications/NotificationItem';
@@ -36,6 +37,9 @@ export default function NotificationPage() {
     const observerTarget = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const pathname = usePathname();
+    const t = useTranslations('notifications');
+    const tSidebar = useTranslations('sidebar');
+    const tCommon = useTranslations('common');
 
     // Minimum loading time for skeleton display
     useEffect(() => {
@@ -47,12 +51,12 @@ export default function NotificationPage() {
 
     // Filter options with icons
     const filterOptions = [
-        { value: 'ALL', label: 'All', icon: Bell },
-        { value: 'SYSTEM', label: 'System', icon: Megaphone },
-        { value: 'REWARD', label: 'Rewards', icon: Gift },
-        { value: 'EVENT', label: 'Events', icon: Calendar },
-        { value: 'NEWS', label: 'News', icon: Newspaper },
-        { value: 'POST', label: 'Posts', icon: MessageSquare },
+        { value: 'ALL', label: t('all'), icon: Bell },
+        { value: 'SYSTEM', label: t('system'), icon: Megaphone },
+        { value: 'REWARD', label: t('rewards'), icon: Gift },
+        { value: 'EVENT', label: t('events'), icon: Calendar },
+        { value: 'NEWS', label: t('news'), icon: Newspaper },
+        { value: 'POST', label: t('posts'), icon: MessageSquare },
     ];
 
     // Load data with pagination support
@@ -197,7 +201,7 @@ export default function NotificationPage() {
                 }`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
@@ -232,11 +236,11 @@ export default function NotificationPage() {
                                                 <div className="flex items-center gap-2 sm:gap-3 mb-1">
                                                     <Bell className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
                                                     <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
-                                                        Notifications
+                                                        {t('notifications')}
                                                     </h1>
                                                 </div>
                                                 <p className="text-[var(--brand-light)]/60 text-sm pl-9">
-                                                    {`${notifications.length} notification${notifications.length !== 1 ? 's' : ''}${unreadCount > 0 ? ` • ${unreadCount} unread` : ''}`}
+                                                    {`${notifications.length} ${notifications.length !== 1 ? t('notificationsPlural') : t('notification')}${unreadCount > 0 ? ` • ${unreadCount} ${t('unread')}` : ''}`}
                                                 </p>
                                             </div>
                                             {unreadCount > 0 && (
@@ -245,7 +249,7 @@ export default function NotificationPage() {
                                                     className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-4 py-2.5 rounded-xl font-semibold hover:bg-[var(--brand-primary)]/90 transition-all shadow-lg shadow-[var(--brand-primary)]/20 text-sm"
                                                 >
                                                     <CheckCheck className="w-4 h-4" />
-                                                    Mark all read
+                                                    {t('markAllRead')}
                                                 </button>
                                             )}
                                         </div>
@@ -278,7 +282,7 @@ export default function NotificationPage() {
                                                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all ml-auto"
                                                     >
                                                         <X className="w-3.5 h-3.5" />
-                                                        Clear
+                                                        {t('clear')}
                                                     </button>
                                                 )}
                                             </div>
@@ -293,18 +297,18 @@ export default function NotificationPage() {
                                                     <div className="w-16 h-16 bg-[var(--dark-700)] rounded-full flex items-center justify-center mx-auto mb-4">
                                                         <Bell className="w-8 h-8 text-[var(--brand-light)]/40" />
                                                     </div>
-                                                    <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No notifications</h3>
+                                                    <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('noNotifications')}</h3>
                                                     <p className="text-sm text-[var(--brand-light)]/60 mb-4">
                                                         {filter !== 'ALL' 
-                                                            ? 'No notifications match this filter.' 
-                                                            : 'You\'re all caught up!'}
+                                                            ? t('noNotificationsMatchFilter')
+                                                            : t('allCaughtUp')}
                                                     </p>
                                                     {filter !== 'ALL' && (
                                                         <button
                                                             onClick={() => setFilter('ALL')}
                                                             className="inline-flex items-center gap-2 text-[var(--brand-primary)] font-semibold hover:underline"
                                                         >
-                                                            Show all notifications
+                                                            {t('showAllNotifications')}
                                                             <span>→</span>
                                                         </button>
                                                     )}
@@ -327,7 +331,7 @@ export default function NotificationPage() {
                                                     {loadingMore && (
                                                         <div className="flex items-center gap-2 text-[var(--brand-light)]/60">
                                                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--brand-primary)]"></div>
-                                                            <span className="text-sm">Loading more...</span>
+                                                            <span className="text-sm">{t('loadingMore')}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -351,10 +355,10 @@ export default function NotificationPage() {
                     }
                 }}
                 onConfirm={handleDeleteConfirm}
-                title="Delete Notification"
-                message="Are you sure you want to delete this notification? This action cannot be undone."
-                confirmButtonText="Delete"
-                cancelButtonText="Cancel"
+                title={t('deleteNotification')}
+                message={t('deleteNotificationConfirm')}
+                confirmButtonText={t('delete')}
+                cancelButtonText={tCommon('cancel')}
                 isLoading={isDeleting}
                 variant="danger"
                 darkMode={true}

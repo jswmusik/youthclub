@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import MessengerManager from '../../../components/messenger/MessengerManager';
 import NavBar from '../../../components/NavBar';
 import YouthSidebar from '../../../components/youth/YouthSidebar';
@@ -15,6 +16,8 @@ export default function YouthMessagesPage() {
     const pathname = usePathname();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSkeleton, setShowSkeleton] = useState(true);
+    const t = useTranslations('messages');
+    const tSidebar = useTranslations('sidebar');
     
     // Minimum loading time for skeleton display
     useEffect(() => {
@@ -43,7 +46,7 @@ export default function YouthMessagesPage() {
                 }`}
             >
                 <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
@@ -60,8 +63,8 @@ export default function YouthMessagesPage() {
             <div className="pt-12 sm:pt-16 md:px-6 lg:px-8" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                 {/* Mobile: Hide title when in conversation view, Desktop: Always show */}
                 <div className="mb-6 sm:mb-8 pt-4 sm:pt-6 px-2 sm:px-4 md:px-0 hidden md:block md:max-w-6xl lg:max-w-7xl md:mx-auto">
-                    <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading">My Messages</h1>
-                    <p className="text-xs sm:text-sm text-[var(--brand-light)]/60">Chat with your leaders and clubs.</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading">{t('myMessages')}</h1>
+                    <p className="text-xs sm:text-sm text-[var(--brand-light)]/60">{t('chatWithLeaders')}</p>
                 </div>
 
                 {/* Mobile: Full height minus navbar, Desktop: Fixed height */}

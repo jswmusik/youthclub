@@ -6,17 +6,24 @@ import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Upload, X, MapPin, Building2, Globe, Mail, Phone, 
   Link as LinkIcon, CheckCircle2, Lightbulb, Save, Users, Shield,
-  Facebook, Instagram, FileText
+  Facebook, Instagram, FileText, Crown, Package
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import Toast from './Toast';
 import { queueToastForNavigation } from './ToastProvider';
+import { useAuth } from '../../context/AuthContext';
 
 interface MunicipalityFormProps {
   initialData?: any;
   redirectPath: string;
+}
+
+interface Plan {
+  id: number;
+  name: string;
+  monthly_price_sek: number;
 }
 
 interface FormData {
@@ -32,16 +39,24 @@ interface FormData {
   require_guardian_at_registration: boolean;
   facebook: string;
   instagram: string;
+  // License fields
+  plan_id: string;
+  max_clubs: number;
+  license_end_date: string;
+  license_is_active: boolean;
 }
 
 export default function MunicipalityForm({ initialData, redirectPath }: MunicipalityFormProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
   const heroRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState<any[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error'|'info'|'warning', isVisible: false, title: '' });
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
@@ -66,8 +81,20 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
     allow_self_registration: initialData?.allow_self_registration ?? true,
     require_guardian_at_registration: initialData?.require_guardian_at_registration ?? false,
     facebook: '',
-    instagram: ''
+    instagram: '',
+    // License fields - pre-fill from existing license_status
+    plan_id: String(initialData?.license_status?.plan_id ?? ''),
+    max_clubs: initialData?.license_status?.max_clubs ?? 3,
+    license_end_date: initialData?.license_status?.expires_at ?? getDefaultEndDate(),
+    license_is_active: initialData?.license_status?.is_active ?? true,
   });
+
+  // Helper function to get default end date (1 year from now)
+  function getDefaultEndDate() {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1);
+    return date.toISOString().split('T')[0];
+  }
 
   // Images state
   const [avatarPreview, setAvatarPreview] = useState<string | null>(initialData?.avatar ? getMediaUrl(initialData.avatar) : null);
@@ -76,9 +103,17 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
   const [heroFile, setHeroFile] = useState<File | null>(null);
 
   useEffect(() => {
+    // Fetch countries
     api.get('/countries/').then(res => {
       setCountries(Array.isArray(res.data) ? res.data : res.data.results || []);
     });
+    
+    // Fetch plans for Super Admin
+    if (isSuperAdmin) {
+      api.get('/licensing/plans/').then(res => {
+        setPlans(res.data.results || res.data || []);
+      }).catch(err => console.error('Failed to load plans:', err));
+    }
     
     // Parse socials
     if (initialData?.social_media) {
@@ -89,7 +124,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
         setFormData(prev => ({ ...prev, facebook: social.facebook || '', instagram: social.instagram || '' }));
       } catch (e) { console.error(e); }
     }
-  }, [initialData]);
+  }, [initialData, isSuperAdmin]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'hero') => {
     if (e.target.files?.[0]) {
@@ -122,8 +157,16 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
     setLoading(true);
     try {
       const data = new FormData();
+      const licenseFields = ['plan_id', 'max_clubs', 'license_end_date', 'license_is_active'];
+      
       Object.entries(formData).forEach(([key, value]) => {
-        if(key !== 'facebook' && key !== 'instagram') data.append(key, value.toString());
+        // Skip social media fields (handled separately)
+        if (key === 'facebook' || key === 'instagram') return;
+        // Skip license fields for non-super admins
+        if (licenseFields.includes(key) && !isSuperAdmin) return;
+        // Skip empty plan_id
+        if (key === 'plan_id' && !value) return;
+        data.append(key, value.toString());
       });
       
       data.append('social_media', JSON.stringify({ facebook: formData.facebook, instagram: formData.instagram }));
@@ -687,6 +730,148 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               </div>
             </div>
           </div>
+
+          {/* License & Limits Card - Super Admin Only */}
+          {isSuperAdmin && (
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+              {/* Card Header */}
+              <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-third)] flex items-center justify-center">
+                    <Crown className="w-5 h-5 text-[var(--dark-900)]" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">License & Limits</h2>
+                    <p className="text-sm text-[var(--brand-light)]/50">Configure subscription plan and club limits</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Content */}
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Subscription Plan */}
+                  <div>
+                    <label htmlFor="plan_id" className={labelClasses}>
+                      <Package className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
+                      Subscription Plan
+                    </label>
+                    <select 
+                      id="plan_id"
+                      value={formData.plan_id}
+                      onChange={e => setFormData({ ...formData, plan_id: e.target.value })}
+                      onFocus={() => setFocusedField('plan_id')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`${inputClasses('plan_id')} appearance-none cursor-pointer`}
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 1rem center',
+                        backgroundSize: '1rem'
+                      }}
+                    >
+                      <option value="">Select a Plan</option>
+                      {plans.map(plan => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} ({plan.monthly_price_sek} SEK/mo)
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">Determines which features are active for this municipality.</p>
+                  </div>
+
+                  {/* Max Clubs */}
+                  <div>
+                    <label htmlFor="max_clubs" className={labelClasses}>
+                      <Building2 className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-sky)]" />
+                      Max Allowed Clubs
+                    </label>
+                    <input 
+                      id="max_clubs"
+                      type="number"
+                      min={1}
+                      placeholder="3"
+                      value={formData.max_clubs}
+                      onChange={e => setFormData({ ...formData, max_clubs: parseInt(e.target.value) || 1 })}
+                      onFocus={() => setFocusedField('max_clubs')}
+                      onBlur={() => setFocusedField(null)}
+                      className={inputClasses('max_clubs')}
+                    />
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">
+                      Limit on how many clubs they can create.
+                      {initialData?.license_status && (
+                        <span className="ml-1 text-[var(--brand-primary)]">
+                          Currently using {initialData.license_status.clubs_used} of {initialData.license_status.max_clubs}.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* License Expiry Date and Active Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* License End Date */}
+                  <div>
+                    <label htmlFor="license_end_date" className={labelClasses}>
+                      <Crown className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
+                      License Expiry Date
+                    </label>
+                    <input 
+                      id="license_end_date"
+                      type="date"
+                      value={formData.license_end_date}
+                      onChange={e => setFormData({ ...formData, license_end_date: e.target.value })}
+                      onFocus={() => setFocusedField('license_end_date')}
+                      onBlur={() => setFocusedField(null)}
+                      className={inputClasses('license_end_date')}
+                    />
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">When the license expires. Default is 1 year from today.</p>
+                  </div>
+
+                  {/* License Active Status */}
+                  <div>
+                    <label className={labelClasses}>
+                      <Shield className="w-3.5 h-3.5 inline mr-1.5 text-green-500" />
+                      License Status
+                    </label>
+                    <div className="flex items-center justify-between p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${formData.license_is_active ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <span className="text-[var(--brand-light)]">
+                          {formData.license_is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer"
+                          checked={formData.license_is_active}
+                          onChange={e => setFormData({...formData, license_is_active: e.target.checked})}
+                        />
+                        <div className="w-11 h-6 bg-[var(--dark-500)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                      </label>
+                    </div>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">Toggle to activate or deactivate the license.</p>
+                  </div>
+                </div>
+
+                {/* Current License Info (if editing) */}
+                {initialData?.license_status && (
+                  <div className="p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${initialData.license_status.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <span className="text-sm font-medium text-[var(--brand-light)]">
+                        Current Plan: <span className="text-[var(--brand-primary)]">{initialData.license_status.plan_name}</span>
+                      </span>
+                      <span className="text-xs text-[var(--brand-light)]/50 ml-auto">
+                        Expires: {initialData.license_status.expires_at}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Form Actions */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">

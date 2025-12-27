@@ -1,5 +1,6 @@
 import { GuardianLink } from '@/types/user';
 import { getMediaUrl } from '@/app/utils';
+import { useTranslations } from 'next-intl';
 
 import { X, Mail, Phone, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -14,8 +15,16 @@ interface ModalProps {
 export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = false }: ModalProps) {
     if (!isOpen || !link) return null;
 
+    const t = useTranslations('guardians');
     const { guardian, status } = link;
     const isVerified = status === 'ACTIVE';
+    
+    const getRelationshipLabel = (type: string) => {
+        const typeLower = type.toLowerCase();
+        if (typeLower === 'guardian') return t('relationshipTypes.guardian');
+        if (typeLower === 'parent') return t('relationshipTypes.parent');
+        return t('relationshipTypes.other');
+    };
 
     return (
         <div 
@@ -69,7 +78,7 @@ export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = 
                     <h2 className="text-2xl font-bold mb-1 font-heading text-white">{guardian.first_name} {guardian.last_name}</h2>
                     <p className="text-white/90 text-sm font-semibold capitalize flex items-center justify-center gap-1.5">
                         <Shield className="w-4 h-4" />
-                        {link.relationship_type.toLowerCase()}
+                        {getRelationshipLabel(link.relationship_type)}
                     </p>
                 </div>
 
@@ -82,7 +91,7 @@ export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = 
                                 : 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border border-amber-200'
                         }`}>
                             <AlertCircle className="w-5 h-5 shrink-0" />
-                            <p className="font-medium">Contact details are hidden until the guardian accepts your request and verifies their account.</p>
+                            <p className="font-medium">{t('contactDetailsHidden')}</p>
                         </div>
                     )}
 
@@ -93,14 +102,14 @@ export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = 
                                 : 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-800 border border-emerald-200'
                         }`}>
                             <CheckCircle className="w-5 h-5 shrink-0" />
-                            <p className="font-bold">Verified Guardian</p>
+                            <p className="font-bold">{t('verifiedGuardian')}</p>
                         </div>
                     )}
 
                     <div className="space-y-4">
                         <InfoRow 
                             icon={<Mail className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />} 
-                            label="Email" 
+                            label={t('email')} 
                             value={guardian.email} 
                             darkMode={darkMode}
                         />
@@ -110,21 +119,21 @@ export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = 
                             <>
                                 <InfoRow 
                                     icon={<Phone className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />} 
-                                    label="Phone" 
-                                    value={guardian.phone_number || 'Not provided'} 
+                                    label={t('phone')} 
+                                    value={guardian.phone_number || t('notProvided')} 
                                     darkMode={darkMode}
                                 />
                             </>
                         ) : (
                             <div className="opacity-50 grayscale blur-[2px] select-none" aria-hidden="true">
-                                <InfoRow icon={<Phone className="w-5 h-5" />} label="Phone" value="+46 70 123 45 67" darkMode={darkMode} />
+                                <InfoRow icon={<Phone className="w-5 h-5" />} label={t('phone')} value="+46 70 123 45 67" darkMode={darkMode} />
                             </div>
                         )}
                         
                         <InfoRow 
                             icon={<Shield className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-500'}`} />}
-                            label="Primary Guardian" 
-                            value={link.is_primary_guardian ? 'Yes' : 'No'} 
+                            label={t('primaryGuardian')} 
+                            value={link.is_primary_guardian ? t('yes') : t('no')} 
                             darkMode={darkMode}
                         />
                     </div>
@@ -143,7 +152,7 @@ export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = 
                                 : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] shadow-md shadow-[#4D4DA4]/20'
                         }`}
                     >
-                        Close
+                        {t('close')}
                     </button>
                 </div>
             </div>

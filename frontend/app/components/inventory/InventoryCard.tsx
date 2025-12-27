@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { useAuth } from '@/context/AuthContext';
 import { Item, inventoryApi } from '@/lib/inventory-api';
 import { Package, Clock, Users, AlertCircle, LogIn } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/app/components/ToastProvider';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { differenceInMinutes, parseISO } from 'date-fns';
 import { visits } from '@/lib/api';
@@ -21,6 +22,9 @@ interface InventoryCardProps {
 export default function InventoryCard({ item, onRefresh, darkMode = false }: InventoryCardProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
+  const t = useTranslations('inventory');
+  const tCommon = useTranslations('common');
   const [loading, setLoading] = useState(false);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -100,7 +104,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
 
   const formatTimeLeft = (minutes: number | null): string => {
     if (minutes === null) return '';
-    if (minutes < 0) return 'Overdue';
+    if (minutes < 0) return t('overdue');
     if (minutes > 60) {
       const hours = Math.floor(minutes / 60);
       const mins = Math.floor(minutes % 60);
@@ -112,7 +116,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
         const now = new Date();
         const due = parseISO(item.active_loan.due_at);
         const secondsLeft = Math.floor((due.getTime() - now.getTime()) / 1000);
-        if (secondsLeft < 0) return 'Overdue';
+        if (secondsLeft < 0) return t('overdue');
         const mins = Math.floor(secondsLeft / 60);
         const secs = secondsLeft % 60;
         return `${mins}m ${secs}s`;
@@ -131,7 +135,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     setLoading(true);
     try {
       await inventoryApi.borrowItem(item.id);
-      toast.success("Borrowed! Show your ticket to staff.");
+      showToast(t('borrowedSuccess'), 'success');
       setShowBorrowModal(false);
       onRefresh();
       // Refresh check-in status after borrowing
@@ -145,11 +149,11 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     } catch (error: any) {
       console.error(error);
       const errorData = error.response?.data;
-      const msg = errorData?.error || "Could not borrow item.";
+      const msg = errorData?.error || t('couldNotBorrowItem');
       
       // Show specific message for check-in requirement
       if (errorData?.code === 'CHECKIN_REQUIRED' || msg.includes('checked in')) {
-        toast.error("You must be checked in to this club to borrow items.");
+        showToast(t('mustCheckInToBorrow'), 'error');
       } else if (
         errorData?.code === 'MAX_LOANS_REACHED' || 
         msg.includes('maximum borrowing limit') || 
@@ -162,7 +166,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
         setShowMaxLoansModal(true);
         setShowBorrowModal(false);
       } else {
-        toast.error(msg);
+        showToast(msg, 'error');
       }
     } finally {
       setLoading(false);
@@ -177,13 +181,13 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     setLoading(true);
     try {
       await inventoryApi.returnItem(item.id);
-      toast.success("Item returned successfully!");
+      showToast(t('itemReturnedSuccess'), 'success');
       setShowReturnModal(false);
       onRefresh();
     } catch (error: any) {
       console.error(error);
-      const msg = error.response?.data?.error || "Failed to return item.";
-      toast.error(msg);
+      const msg = error.response?.data?.error || t('failedToReturnItem');
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -197,18 +201,18 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     setLoading(true);
     try {
       await inventoryApi.joinQueue(item.id);
-      toast.success("Joined the waiting list!");
+      showToast(t('joinedWaitingList'), 'success');
       setShowJoinQueueModal(false);
       onRefresh();
     } catch (error: any) {
       const errorData = error.response?.data;
-      const msg = errorData?.error || "Could not join queue.";
+      const msg = errorData?.error || t('couldNotJoinQueue');
       
       // Show specific message for check-in requirement
       if (errorData?.code === 'CHECKIN_REQUIRED' || msg.includes('checked in')) {
-        toast.error("You must be checked in to this club to join the waiting list.");
+        showToast(t('mustCheckInToJoinQueue'), 'error');
       } else {
-        toast.error(msg);
+        showToast(msg, 'error');
       }
       setShowJoinQueueModal(false);
     } finally {
@@ -224,13 +228,13 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     setLoading(true);
     try {
       await inventoryApi.leaveQueue(item.id);
-      toast.success("Left the waiting list.");
+      showToast(t('leftWaitingList'), 'success');
       setShowLeaveQueueModal(false);
       onRefresh();
     } catch (error: any) {
       const errorData = error.response?.data;
-      const msg = errorData?.error || "Could not leave queue.";
-      toast.error(msg);
+      const msg = errorData?.error || t('couldNotLeaveQueue');
+      showToast(msg, 'error');
       setShowLeaveQueueModal(false);
     } finally {
       setLoading(false);
@@ -265,7 +269,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                 ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
                 : 'bg-gradient-to-r from-[#10B981] to-[#059669] text-white shadow-lg'
             }`}>
-              Available
+              {t('available')}
             </span>
           ) : (
             <span className={`text-[10px] px-3 py-1.5 rounded-xl uppercase tracking-wide font-bold ${
@@ -273,7 +277,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                 ? 'bg-[var(--brand-peach)] text-[var(--dark-900)]' 
                 : 'bg-gradient-to-r from-[#FF8C42] to-[#FFA05C] text-white shadow-lg'
             }`}>
-              Borrowed
+              {t('borrowedStatus')}
             </span>
           )}
         </div>
@@ -320,24 +324,24 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                 <Clock size={14} /> 
                 {timeLeft <= 0 ? (
                   <span className="flex items-center gap-1">
-                    <AlertCircle size={14} /> Overdue
+                    <AlertCircle size={14} /> {t('overdue')}
                   </span>
                 ) : (
-                  `${formatTimeLeft(timeLeft)} left`
+                  `${formatTimeLeft(timeLeft)} ${t('left')}`
                 )}
               </span>
             ) : (
               <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold ${
                 darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/60' : 'bg-gray-100 text-gray-700'
               }`}>
-                <Clock size={14} /> {item.max_borrow_duration}m max
+                <Clock size={14} /> {item.max_borrow_duration}m {t('max')}
               </span>
             )}
             {item.queue_count > 0 && (
               <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold ${
                 darkMode ? 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]' : 'bg-[#4D4DA4]/10 text-[#4D4DA4]'
               }`}>
-                <Users size={14} /> {item.queue_count} waiting
+                <Users size={14} /> {item.queue_count} {t('waiting')}
               </span>
             )}
           </div>
@@ -353,7 +357,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
               <span className={`font-bold text-xs uppercase tracking-wide ${
                 darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'
               }`}>
-                Return Now!
+                {t('returnNow')}
               </span>
             </div>
           )}
@@ -372,7 +376,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                       : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
                   }`}
                 >
-                  Checking status...
+                  {t('checkingStatus')}
                 </button>
               ) : isCheckedIn === false ? (
                 <div className="space-y-2">
@@ -383,7 +387,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                   }`}>
                     <LogIn size={16} className={darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'} />
                     <span className={`text-xs font-bold ${darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'}`}>
-                      Check in required to borrow
+                      {t('checkInRequired')}
                     </span>
                   </div>
                   <button 
@@ -395,7 +399,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                         : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
                     }`}
                   >
-                    Borrow Item
+                    {t('borrowItem')}
                   </button>
                 </div>
               ) : (
@@ -412,7 +416,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                         : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] hover:shadow-lg shadow-md'
                   }`}
                 >
-                  {loading ? 'Processing...' : 'Borrow Item'}
+                  {loading ? t('processing') : t('borrowItem')}
                 </button>
               )}
             </>
@@ -430,7 +434,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                     : 'bg-gradient-to-r from-[#10B981] to-[#059669] text-white hover:from-[#0EA572] hover:to-[#047857] hover:shadow-lg shadow-md'
               }`}
             >
-              {loading ? 'Processing...' : 'Return Item'}
+              {loading ? t('processing') : t('returnItem')}
             </button>
           ) : (
             <>
@@ -448,7 +452,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                         : 'bg-[#4D4DA4]/10 text-[#4D4DA4] hover:bg-[#4D4DA4]/20 border-2 border-[#4D4DA4]/30 shadow-md'
                   }`}
                 >
-                  {loading ? 'Processing...' : 'Leave Queue'}
+                  {loading ? t('processing') : t('leaveQueue')}
                 </button>
               ) : checkingStatus ? (
                 <button 
@@ -459,7 +463,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                       : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
                   }`}
                 >
-                  Checking status...
+                  {t('checkingStatus')}
                 </button>
               ) : isCheckedIn === false ? (
                 <div className="space-y-2">
@@ -470,7 +474,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                   }`}>
                     <LogIn size={16} className={darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'} />
                     <span className={`text-xs font-bold ${darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'}`}>
-                      Check in required to join queue
+                      {t('checkInRequiredToJoinQueue')}
                     </span>
                   </div>
                   <button 
@@ -482,7 +486,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                         : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
                     }`}
                   >
-                    Join Queue
+                    {t('joinQueue')}
                   </button>
                 </div>
               ) : (
@@ -499,7 +503,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                         : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] hover:shadow-lg shadow-md'
                   }`}
                 >
-                  {loading ? 'Processing...' : 'Join Queue'}
+                  {loading ? t('processing') : t('joinQueue')}
                 </button>
               )}
             </>
@@ -512,10 +516,10 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
         isVisible={showBorrowModal}
         onClose={() => setShowBorrowModal(false)}
         onConfirm={handleBorrowConfirm}
-        title="Borrow Item"
-        message={`Do you want to borrow "${item.title}"?`}
-        confirmButtonText="Yes, Borrow"
-        cancelButtonText="Cancel"
+        title={t('borrowItemTitle')}
+        message={t('borrowItemConfirm', { itemTitle: item.title })}
+        confirmButtonText={t('yesBorrow')}
+        cancelButtonText={tCommon('cancel')}
         isLoading={loading}
         variant="info"
         darkMode={darkMode}
@@ -526,10 +530,10 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
         isVisible={showReturnModal}
         onClose={() => setShowReturnModal(false)}
         onConfirm={handleReturnConfirm}
-        title="Return Item"
-        message={`⚠️ Confirm Return:\n\nHave you handed "${item.title}" back to the staff?`}
-        confirmButtonText="Yes, Return"
-        cancelButtonText="Cancel"
+        title={t('returnItemTitle')}
+        message={t('returnItemConfirm', { itemTitle: item.title })}
+        confirmButtonText={t('yesReturn')}
+        cancelButtonText={tCommon('cancel')}
         isLoading={loading}
         variant="warning"
         darkMode={darkMode}
@@ -540,9 +544,9 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
         isVisible={showJoinQueueModal}
         onClose={() => setShowJoinQueueModal(false)}
         onConfirm={handleJoinQueueConfirm}
-        title="Join Queue"
-        message={`You are waiting in queue for "${item.title}". You will receive a notification when the item is free to use.`}
-        confirmButtonText="Got it!"
+        title={t('joinQueueTitle')}
+        message={t('joinQueueMessage', { itemTitle: item.title })}
+        confirmButtonText={t('gotIt')}
         cancelButtonText=""
         isLoading={loading}
         variant="success"
@@ -554,10 +558,10 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
         isVisible={showLeaveQueueModal}
         onClose={() => setShowLeaveQueueModal(false)}
         onConfirm={handleLeaveQueueConfirm}
-        title="Leave Queue"
-        message={`Are you sure you want to leave the queue for "${item.title}"?`}
-        confirmButtonText="Yes, Leave Queue"
-        cancelButtonText="Cancel"
+        title={t('leaveQueueTitle')}
+        message={t('leaveQueueMessage', { itemTitle: item.title })}
+        confirmButtonText={t('yesLeaveQueue')}
+        cancelButtonText={tCommon('cancel')}
         isLoading={loading}
         variant="warning"
         darkMode={darkMode}
@@ -572,10 +576,10 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
           // Navigate to my items page
           router.push('/dashboard/youth/inventory/my-items');
         }}
-        title="Maximum Items Reached"
-        message={`You have reached the maximum borrowing limit.\n\nPlease return an item before borrowing another one.`}
-        confirmButtonText="View My Items"
-        cancelButtonText="Close"
+        title={t('maximumItemsReached')}
+        message={t('maximumItemsReachedMessage')}
+        confirmButtonText={t('viewMyItems')}
+        cancelButtonText={t('close')}
         isLoading={false}
         variant="warning"
         darkMode={darkMode}
