@@ -13,9 +13,10 @@ interface ProfileHeaderProps {
   user: any; // We use 'any' here for flexibility, but strictly it matches your User interface
   primaryClub?: any;
   darkMode?: boolean;
+  hideCheckIn?: boolean; // Hide check-in button for guardians
 }
 
-export default function ProfileHeader({ user, primaryClub, darkMode = false }: ProfileHeaderProps) {
+export default function ProfileHeader({ user, primaryClub, darkMode = false, hideCheckIn = false }: ProfileHeaderProps) {
   const router = useRouter();
   const { refreshMessageCount } = useAuth(); // Optional: trigger context refresh if needed
   const t = useTranslations('profile');
@@ -264,22 +265,24 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false }: P
 
           {/* ACTIONS (Desktop Right / Mobile Bottom) */}
           <div className="flex gap-3 mt-4 md:mt-0 md:ml-auto">
-             {/* Check In Button */}
-             <button 
-               onClick={() => router.push('/dashboard/youth/scan')}
-               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                 darkMode
-                   ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-[var(--dark-900)]'
-                   : 'bg-[#4D4DA4] hover:bg-[#6D6DD4] text-white shadow-sm shadow-[#4D4DA4]/30'
-               }`}
-             >
-               <Calendar className="w-4 h-4" />
-               {tNav('checkIn')}
-             </button>
+             {/* Check In Button - Hidden for Guardians */}
+             {!hideCheckIn && (
+               <button 
+                 onClick={() => router.push('/dashboard/youth/scan')}
+                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                   darkMode
+                     ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-[var(--dark-900)]'
+                     : 'bg-[#4D4DA4] hover:bg-[#6D6DD4] text-white shadow-sm shadow-[#4D4DA4]/30'
+                 }`}
+               >
+                 <Calendar className="w-4 h-4" />
+                 {tNav('checkIn')}
+               </button>
+             )}
              
              {/* Edit Profile Button */}
              <button 
-               onClick={() => router.push('/dashboard/youth/profile/edit')}
+               onClick={() => router.push(hideCheckIn ? '/dashboard/guardian/settings' : '/dashboard/youth/profile/edit')}
                className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition ${
                  darkMode
                    ? 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]'

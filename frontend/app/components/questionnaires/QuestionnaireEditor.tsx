@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -12,7 +13,7 @@ import {
 import { questionnaireApi, Questionnaire } from '../../../lib/questionnaire-api';
 import QuestionnaireSettings from './QuestionnaireSettings';
 import QuestionModal from './QuestionModal';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface Props {
   initialId?: string;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function QuestionnaireEditor({ initialId, basePath, scope }: Props) {
+  const t = useTranslations('questionnairesAdmin.editor');
   const router = useRouter();
   const searchParams = useSearchParams();
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
@@ -43,7 +45,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Track component mount for portal
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         })
         .catch(err => {
             console.error(err);
-            setToast({ message: 'Failed to load questionnaire', type: 'error', isVisible: true });
+            error(t('toasts.loadFailed'));
         })
         .finally(() => setLoading(false));
     }
@@ -111,13 +113,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
       const scheduledDate = formData.scheduled_publish_date ? new Date(formData.scheduled_publish_date) : null;
       const isScheduled = scheduledDate && scheduledDate > new Date();
       
-      setToast({ 
-        message: isScheduled 
-          ? `Questionnaire scheduled to publish on ${scheduledDate.toLocaleString()}`
-          : 'Questionnaire published successfully', 
-        type: 'success', 
-        isVisible: true 
-      });
+      success(isScheduled ? t('toasts.scheduledSuccess') : t('toasts.publishSuccess'));
       
       setTimeout(() => {
         const pageParam = searchParams.get('page');
@@ -126,11 +122,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
       }, 1000);
     } catch (err: any) {
       console.error('Publish error:', err);
-      setToast({ 
-        message: err.response?.data?.detail || 'Failed to publish questionnaire', 
-        type: 'error', 
-        isVisible: true 
-      });
+      error(err.response?.data?.detail || t('toasts.publishFailed'));
     } finally {
       setLoading(false);
     }
@@ -142,14 +134,10 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
     try {
       await questionnaireApi.update(initialId, { status: 'DRAFT' });
       setFormData({ ...formData, status: 'DRAFT' });
-      setToast({ message: 'Questionnaire unpublished successfully', type: 'success', isVisible: true });
+      success(t('toasts.unpublishSuccess'));
     } catch (err: any) {
       console.error('Unpublish error:', err);
-      setToast({ 
-        message: err.response?.data?.detail || 'Failed to unpublish questionnaire', 
-        type: 'error', 
-        isVisible: true 
-      });
+      error(err.response?.data?.detail || t('toasts.unpublishFailed'));
     } finally {
       setLoading(false);
     }
@@ -159,12 +147,12 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
     setLoading(true);
     try {
         if (!formData.title) {
-            setToast({ message: 'Title is required', type: 'error', isVisible: true });
+            error('Title is required');
             setLoading(false);
             return;
         }
         if (!formData.expiration_date) {
-            setToast({ message: 'Expiration date is required', type: 'error', isVisible: true });
+            error(t('toasts.expirationRequired'));
             setLoading(false);
             return;
         }
@@ -229,7 +217,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
                     const date = new Date(dataToSend.expiration_date);
                     if (isNaN(date.getTime())) {
                         console.error('Invalid expiration_date:', dataToSend.expiration_date);
-                        setToast({ message: 'Invalid expiration date format', type: 'error', isVisible: true });
+                        error(t('toasts.invalidExpiration'));
                         setLoading(false);
                         return;
                     }
@@ -242,10 +230,10 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         
         if (initialId) {
             await questionnaireApi.update(initialId, dataToSend);
-            setToast({ message: 'Saved successfully', type: 'success', isVisible: true });
+            success(t('toasts.updateSuccess'));
         } else {
             const res = await questionnaireApi.create(dataToSend);
-            setToast({ message: 'Created successfully', type: 'success', isVisible: true });
+            success(t('toasts.createSuccess'));
             const pageParam = searchParams.get('page');
             const redirectUrl = pageParam ? `${basePath}/edit/${res.data.id}?page=${pageParam}` : `${basePath}/edit/${res.data.id}`;
             router.push(redirectUrl);
@@ -253,7 +241,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         } catch (err: any) {
             console.error('Save error:', err);
             
-            let errorMessage = 'Failed to save. Check all required fields.';
+            let errorMessage = t('toasts.saveFailed');
             
             if (err.response?.data) {
                 const errorData = err.response.data;
@@ -276,13 +264,9 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
                 }
             }
             
-            setToast({ 
-                message: errorMessage.length > 150 
+            error(errorMessage.length > 150 
                     ? 'Failed to save. Check console for details.' 
-                    : errorMessage, 
-                type: 'error', 
-                isVisible: true 
-            });
+                    : errorMessage);
         } finally {
             setLoading(false);
         }
@@ -354,7 +338,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialId ? 'Edit Questionnaire' : 'Create Questionnaire'}
+              {initialId ? t('editTitle') : t('createTitle')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1 flex items-center gap-2">
               {formData.status === 'PUBLISHED' ? (
@@ -365,7 +349,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               ) : (
                 <>
                   <span className="w-2 h-2 bg-[var(--brand-yellow)] rounded-full"></span>
-                  <span>Draft Mode</span>
+                  <span>{t('draftMode')}</span>
                 </>
               )}
             </p>
@@ -376,7 +360,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
           <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('requiredFields')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -396,7 +380,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
           <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
             <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('requiredFields')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -419,8 +403,8 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings & Targeting</span>
-              <span className="sm:hidden">Settings</span>
+              <span className="hidden sm:inline">{t('tabs.settings')}</span>
+              <span className="sm:hidden">{t('tabs.settings')}</span>
             </button>
             <button
               onClick={() => setActiveTab('QUESTIONS')}
@@ -431,7 +415,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               }`}
             >
               <FileQuestion className="w-4 h-4" />
-              <span>Questions</span>
+              <span>{t('tabs.questions')}</span>
               {formData.questions && formData.questions.length > 0 && (
                 <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                   activeTab === 'QUESTIONS' 
@@ -457,13 +441,13 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
                   <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                     <FileQuestion className="w-8 h-8 text-[var(--brand-light)]/30" />
                   </div>
-                  <p className="text-[var(--brand-light)]/50 mb-6">No questions added yet.</p>
+                  <p className="text-[var(--brand-light)]/50 mb-6">{t('questionsEmpty.title')}</p>
                   <button 
                     onClick={() => { setEditingQuestionIndex(null); setShowModal(true); }}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all"
                   >
                     <Plus className="w-5 h-5" />
-                    Add First Question
+                    {t('buttons.addFirstQuestion')}
                   </button>
                 </div>
               </div>
@@ -556,7 +540,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
                 className="w-full py-5 sm:py-6 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-2 border-dashed border-[var(--dark-500)] text-[var(--brand-light)]/50 font-medium hover:border-[var(--brand-primary)]/50 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)]/50 transition-all flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />
-                Add Another Question
+                {t('buttons.addQuestion')}
               </button>
             )}
           </div>
@@ -570,8 +554,8 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
                 <Lightbulb className="w-5 h-5 text-[var(--brand-primary)]" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
-                <p className="text-sm text-[var(--brand-light)]/50">Best practices for questionnaires</p>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tips.title')}</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('tips.title')}</p>
               </div>
             </div>
           </div>
@@ -580,19 +564,19 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-[var(--brand-light)]/70">Keep questions clear and concise for better response rates</span>
+                <span className="text-sm text-[var(--brand-light)]/70">{t('tips.tip1')}</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-[var(--brand-light)]/70">Set an appropriate expiration date to encourage timely responses</span>
+                <span className="text-sm text-[var(--brand-light)]/70">{t('tips.tip2')}</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-[var(--brand-light)]/70">Use rewards to incentivize participation</span>
+                <span className="text-sm text-[var(--brand-light)]/70">{t('tips.tip3')}</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-[var(--brand-light)]/70">Enable anonymous responses for sensitive topics</span>
+                <span className="text-sm text-[var(--brand-light)]/70">{t('tips.tip3')}</span>
               </li>
             </ul>
           </div>
@@ -618,7 +602,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
             className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Save className="w-4 h-4" />
-            {loading ? 'Saving...' : 'Save Changes'}
+            {loading ? `${t('buttons.saveDraft')}...` : t('buttons.saveDraft')}
           </button>
           
           {formData.status === 'DRAFT' && initialId && (
@@ -628,7 +612,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-[var(--brand-green)] text-[var(--dark-900)] hover:bg-[var(--brand-green)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" />
-              {loading ? 'Publishing...' : 'Publish'}
+              {loading ? `${t('buttons.publish')}...` : t('buttons.publish')}
             </button>
           )}
           
@@ -639,7 +623,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-[var(--brand-yellow)] text-[var(--dark-900)] hover:bg-[var(--brand-yellow)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <EyeOff className="w-4 h-4" />
-              {loading ? 'Unpublishing...' : 'Unpublish'}
+              {loading ? `${t('buttons.unpublish')}...` : t('buttons.unpublish')}
             </button>
           )}
         </div>
@@ -653,8 +637,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
           allQuestions={formData.questions || []}
         />
         
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-      </div>
+        </div>
     </div>
   );
 }

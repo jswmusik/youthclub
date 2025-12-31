@@ -131,3 +131,45 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class NewsletterSubscriber(models.Model):
+    """
+    Newsletter subscribers collected from the footer form.
+    Not linked to User accounts - for external visitors.
+    Includes GDPR-compliant consent tracking.
+    """
+    email = models.EmailField(unique=True, db_index=True)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    
+    # Consent tracking (GDPR compliance)
+    consent_given = models.BooleanField(default=False)
+    consent_date = models.DateTimeField(null=True, blank=True)
+    consent_ip = models.GenericIPAddressField(null=True, blank=True)
+    consent_user_agent = models.TextField(blank=True, default='')
+    
+    # Status management
+    is_active = models.BooleanField(default=True)  # For soft unsubscribe
+    unsubscribed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    source = models.CharField(
+        max_length=50, 
+        default='footer',
+        help_text="Where the subscription came from (footer, popup, etc.)"
+    )
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Newsletter Subscriber"
+        verbose_name_plural = "Newsletter Subscribers"
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} <{self.email}>"
+    
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"

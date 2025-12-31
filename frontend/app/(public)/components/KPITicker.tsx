@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Users, Calendar, MapPin, Package } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.208:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface KPIStats {
   members: number;

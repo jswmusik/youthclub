@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -9,7 +10,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 // Minimum loading time for skeleton display
@@ -43,9 +44,11 @@ interface SwipeableCardProps {
   onDelete?: () => void;
   onClick: () => void;
   showActions?: boolean;
+  editLabel?: string;
+  deleteLabel?: string;
 }
 
-function SwipeableCard({ children, onEdit, onDelete, onClick, showActions = true }: SwipeableCardProps) {
+function SwipeableCard({ children, onEdit, onDelete, onClick, showActions = true, editLabel = 'Edit', deleteLabel = 'Delete' }: SwipeableCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -136,14 +139,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick, showActions = true
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-primary)] text-white transition-all active:bg-[var(--brand-primary)]/80"
           >
             <Edit className="w-5 h-5" />
-            <span className="text-xs font-medium">Edit</span>
+            <span className="text-xs font-medium">{editLabel}</span>
           </button>
           <button
             onClick={handleDeleteClick}
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-red-600 text-white transition-all active:bg-red-700"
           >
             <Trash2 className="w-5 h-5" />
-            <span className="text-xs font-medium">Delete</span>
+            <span className="text-xs font-medium">{deleteLabel}</span>
           </button>
         </div>
       )}
@@ -217,6 +220,7 @@ function FieldTableRowSkeleton() {
         </div>
       </td>
       <td className="px-6 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+      <td className="px-6 py-4"><Skeleton className="h-6 w-14 rounded-full" /></td>
       <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
       <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
       <td className="px-6 py-4">
@@ -231,6 +235,7 @@ function FieldTableRowSkeleton() {
 }
 
 export default function CustomFieldManager({ basePath, scope }: CustomFieldManagerProps) {
+  const t = useTranslations('customFields');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -244,7 +249,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
   
   const [clubs, setClubs] = useState<any[]>([]);
   const [fieldToDelete, setFieldToDelete] = useState<CustomField | null>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   const [searchInput, setSearchInput] = useState('');
 
@@ -433,8 +438,8 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
       setAllFields(paginatedFields);
     } catch (err: any) {
       console.error('Failed to fetch custom fields:', err);
-      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || 'Failed to load custom fields';
-      setToast({ message: errorMessage, type: 'error', isVisible: true });
+      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || t('toast.loadFailed');
+      error(errorMessage);
       setAllFields([]);
       setTotalCount(0);
     } finally {
@@ -473,11 +478,11 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
     if (!fieldToDelete) return;
     try {
       await api.delete(`/custom-fields/${fieldToDelete.id}/`);
-      setToast({ message: 'Field deleted successfully', type: 'success', isVisible: true });
+      success(t('toast.deleteSuccess'));
       fetchFields();
       fetchAllFieldsForAnalytics();
     } catch (err) {
-      setToast({ message: 'Failed to delete field', type: 'error', isVisible: true });
+      error(t('toast.deleteFailed'));
     } finally {
       setFieldToDelete(null);
     }
@@ -527,7 +532,25 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
   };
 
   const getFieldTypeLabel = (type: string) => {
-    return type.replace('_', ' ');
+    switch (type) {
+      case 'TEXT': return t('types.text');
+      case 'SINGLE_SELECT': return t('types.singleSelect');
+      case 'MULTI_SELECT': return t('types.multiSelect');
+      case 'BOOLEAN': return t('types.boolean');
+      default: return type.replace('_', ' ');
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    return role === 'YOUTH_MEMBER' ? t('roles.youth') : t('roles.guardian');
+  };
+
+  const getContextLabel = (context?: string) => {
+    return context === 'EVENT' ? t('context.event') : t('context.user');
+  };
+
+  const getStatusLabel = (isPublished: boolean) => {
+    return isPublished ? t('status.active') : t('status.draft');
   };
 
   const getFieldTypeConfig = (type: string) => {
@@ -558,14 +581,14 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
               <Settings2 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Custom Fields</h1>
-              <p className="text-[var(--brand-light)]/60 text-sm">Manage custom fields and configurations</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+              <p className="text-[var(--brand-light)]/60 text-sm">{t('subtitle')}</p>
             </div>
           </div>
           <Link href={`${basePath}/create`}>
             <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
-              Add Field
+              {t('addField')}
             </button>
           </Link>
         </div>
@@ -578,7 +601,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
           >
             <div className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-[var(--brand-primary)]" />
-              <span className="font-semibold text-[var(--brand-light)]">Analytics Dashboard</span>
+              <span className="font-semibold text-[var(--brand-light)]">{t('analytics.title')}</span>
             </div>
             <ChevronUp className={`w-5 h-5 text-[var(--brand-light)]/60 transition-transform duration-300 ${analyticsExpanded ? '' : 'rotate-180'}`} />
           </button>
@@ -592,7 +615,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                       <Settings2 className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">Total Fields</span>
+                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.totalFields')}</span>
                   </div>
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{analytics.total_fields}</div>
                 </div>
@@ -603,7 +626,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                     <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
                       <FileText className="w-4 h-4 text-blue-400" />
                     </div>
-                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">Text Fields</span>
+                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.textFields')}</span>
                   </div>
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{analytics.text_fields}</div>
                 </div>
@@ -614,7 +637,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                     <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
                       <List className="w-4 h-4 text-green-400" />
                     </div>
-                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">Single Select</span>
+                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.singleSelect')}</span>
                   </div>
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{analytics.single_select_fields}</div>
                 </div>
@@ -625,7 +648,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                     <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center">
                       <CheckSquare className="w-4 h-4 text-pink-400" />
                     </div>
-                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">Multi Select</span>
+                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.multiSelect')}</span>
                   </div>
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{analytics.multi_select_fields}</div>
                 </div>
@@ -636,7 +659,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                     <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
                       <ToggleLeft className="w-4 h-4 text-purple-400" />
                     </div>
-                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">Boolean Fields</span>
+                    <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.booleanFields')}</span>
                   </div>
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{analytics.boolean_fields}</div>
                 </div>
@@ -653,7 +676,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
               <input
                 type="text"
-                placeholder="Search fields..."
+                placeholder={t('filters.search')}
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] placeholder:text-[var(--brand-light)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition-all text-sm"
@@ -666,11 +689,11 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
               onChange={e => updateUrl('field_type', e.target.value)}
               className={selectClasses}
             >
-              <option value="">All Types</option>
-              <option value="TEXT">Text</option>
-              <option value="SINGLE_SELECT">Single Select</option>
-              <option value="MULTI_SELECT">Multi Select</option>
-              <option value="BOOLEAN">Boolean</option>
+              <option value="">{t('filters.allTypes')}</option>
+              <option value="TEXT">{t('types.text')}</option>
+              <option value="SINGLE_SELECT">{t('types.singleSelect')}</option>
+              <option value="MULTI_SELECT">{t('types.multiSelect')}</option>
+              <option value="BOOLEAN">{t('types.boolean')}</option>
             </select>
 
             {/* Target Role */}
@@ -679,9 +702,9 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
               onChange={e => updateUrl('target_role', e.target.value)}
               className={selectClasses}
             >
-              <option value="">All Roles</option>
-              <option value="YOUTH_MEMBER">Youth</option>
-              <option value="GUARDIAN">Guardian</option>
+              <option value="">{t('filters.allRoles')}</option>
+              <option value="YOUTH_MEMBER">{t('roles.youth')}</option>
+              <option value="GUARDIAN">{t('roles.guardian')}</option>
             </select>
 
             {/* Status */}
@@ -690,9 +713,9 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
               onChange={e => updateUrl('status', e.target.value)}
               className={selectClasses}
             >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="">{t('filters.allStatuses')}</option>
+              <option value="active">{t('status.active')}</option>
+              <option value="inactive">{t('status.inactive')}</option>
             </select>
 
             {/* Clear */}
@@ -701,7 +724,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
               className="h-10 px-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all flex items-center justify-center gap-2 text-sm font-medium"
             >
               <X className="w-4 h-4" />
-              Clear
+              {t('filters.clear')}
             </button>
           </div>
         </div>
@@ -709,8 +732,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
         {/* Stats Bar */}
         <div className="flex items-center justify-between px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/60">
-            Showing <span className="text-[var(--brand-light)] font-medium">{paginatedFields.length}</span> of{' '}
-            <span className="text-[var(--brand-light)] font-medium">{totalCount}</span> fields
+            {t('stats', { count: paginatedFields.length, total: totalCount })}
           </p>
         </div>
 
@@ -730,6 +752,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                   <tr className="border-b border-[var(--dark-600)]">
                     <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Field</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Type</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Context</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Roles</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Status</th>
                     <th className="text-right px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Actions</th>
@@ -748,8 +771,8 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
             <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
               <Settings2 className="w-8 h-8 text-[var(--brand-light)]/40" />
             </div>
-            <p className="text-[var(--brand-light)]/60 text-lg">No custom fields found</p>
-            <p className="text-[var(--brand-light)]/40 text-sm mt-1">Try adjusting your filters or create a new field</p>
+            <p className="text-[var(--brand-light)]/60 text-lg">{t('empty.title')}</p>
+            <p className="text-[var(--brand-light)]/40 text-sm mt-1">{t('empty.subtitle')}</p>
           </div>
         ) : (
           <>
@@ -767,6 +790,8 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                     onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${field.id}`))}
                     onDelete={() => setFieldToDelete(field)}
                     showActions={isEditable}
+                    editLabel={t('swipeActions.edit')}
+                    deleteLabel={t('swipeActions.delete')}
                   >
                     <div className={`p-4 border-y border-[var(--dark-600)] ${!isEditable ? 'opacity-60' : ''}`}>
                       <div className="flex items-start gap-3">
@@ -777,7 +802,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-[var(--brand-light)] truncate">{field.name}</h3>
                             {!isEditable && (
-                              <span className="text-xs text-[var(--brand-light)]/40">(Read-only)</span>
+                              <span className="text-xs text-[var(--brand-light)]/40">({t('table.readOnly')})</span>
                             )}
                           </div>
                           {field.help_text && (
@@ -787,9 +812,16 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeConfig.bg} ${typeConfig.text}`}>
                               {getFieldTypeLabel(field.field_type)}
                             </span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              field.context === 'EVENT' 
+                                ? 'bg-purple-500/20 text-purple-400' 
+                                : 'bg-cyan-500/20 text-cyan-400'
+                            }`}>
+                              {getContextLabel(field.context)}
+                            </span>
                             {field.target_roles.map(r => (
                               <span key={r} className="px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--dark-600)] text-[var(--brand-light)]/70">
-                                {r === 'YOUTH_MEMBER' ? 'Youth' : 'Guardian'}
+                                {getRoleLabel(r)}
                               </span>
                             ))}
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -797,7 +829,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                                 ? 'bg-green-500/20 text-green-400' 
                                 : 'bg-yellow-500/20 text-yellow-400'
                             }`}>
-                              {field.is_published ? 'Active' : 'Draft'}
+                              {getStatusLabel(field.is_published)}
                             </span>
                           </div>
                         </div>
@@ -813,11 +845,12 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Field</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Type</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Roles</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Status</th>
-                    <th className="text-right px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Actions</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('table.field')}</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('table.type')}</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('table.context')}</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('table.roles')}</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('table.status')}</th>
+                    <th className="text-right px-6 py-4 text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -840,7 +873,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-[var(--brand-light)]">{field.name}</span>
                                 {!isEditable && (
-                                  <span className="text-xs text-[var(--brand-light)]/40">(Read-only)</span>
+                                  <span className="text-xs text-[var(--brand-light)]/40">({t('table.readOnly')})</span>
                                 )}
                               </div>
                               {field.help_text && (
@@ -855,10 +888,19 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                           </span>
                         </td>
                         <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            field.context === 'EVENT' 
+                              ? 'bg-purple-500/20 text-purple-400' 
+                              : 'bg-cyan-500/20 text-cyan-400'
+                          }`}>
+                            {getContextLabel(field.context)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1">
                             {field.target_roles.map(r => (
                               <span key={r} className="px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--dark-600)] text-[var(--brand-light)]/70">
-                                {r === 'YOUTH_MEMBER' ? 'Youth' : 'Guardian'}
+                                {getRoleLabel(r)}
                               </span>
                             ))}
                           </div>
@@ -869,7 +911,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                               ? 'bg-green-500/20 text-green-400' 
                               : 'bg-yellow-500/20 text-yellow-400'
                           }`}>
-                            {field.is_published ? 'Active' : 'Draft'}
+                            {getStatusLabel(field.is_published)}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -893,7 +935,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                               </button>
                             </div>
                           ) : (
-                            <span className="text-sm text-[var(--brand-light)]/40 italic">Read-only</span>
+                            <span className="text-sm text-[var(--brand-light)]/40 italic">{t('table.readOnly')}</span>
                           )}
                         </td>
                       </tr>
@@ -911,18 +953,17 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                   disabled={currentPage === 1}
                   className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--dark-600)] transition-all text-sm"
                 >
-                  Previous
+                  {t('pagination.previous')}
                 </button>
                 <span className="text-sm text-[var(--brand-light)]/60">
-                  Page <span className="text-[var(--brand-light)] font-medium">{currentPage}</span> of{' '}
-                  <span className="text-[var(--brand-light)] font-medium">{totalPages}</span>
+                  {t('pagination.pageOf', { current: currentPage, total: totalPages })}
                 </span>
                 <button
                   onClick={() => updateUrl('page', (currentPage + 1).toString())}
                   disabled={currentPage >= totalPages}
                   className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--dark-600)] transition-all text-sm"
                 >
-                  Next
+                  {t('pagination.next')}
                 </button>
               </div>
             )}
@@ -936,12 +977,11 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
         onClose={() => setFieldToDelete(null)}
         onConfirm={handleDelete}
         itemName={fieldToDelete?.name || 'this field'}
-        message="Deleting this field will remove all data users have entered for it. This cannot be undone."
+        message={t('deleteModal.message')}
         darkMode={true}
       />
       
       {/* Toast */}
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
-    </div>
+      </div>
   );
 }

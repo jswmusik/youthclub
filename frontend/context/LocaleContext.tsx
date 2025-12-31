@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import Cookies from 'js-cookie';
 import { useAuth } from './AuthContext';
 import { locales, defaultLocale, isRtlLocale, type Locale } from '../i18n/config';
@@ -22,6 +22,8 @@ function isValidLocale(locale: string | undefined | null): locale is Locale {
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
+  const previousLocaleRef = useRef<Locale | null>(null);
+  const isInitializedRef = useRef(false);
 
   // Initialize locale from various sources
   useEffect(() => {
@@ -50,13 +52,30 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setLocaleState(detectedLocale);
     // Save to cookie for server-side access
     Cookies.set(LOCALE_COOKIE_NAME, detectedLocale, { expires: 365 });
+    
+    // Mark as initialized after first load
+    if (!isInitializedRef.current) {
+      previousLocaleRef.current = detectedLocale;
+      isInitializedRef.current = true;
+    }
   }, [user]);
 
-  // Update locale when user changes their preference
+  // Update locale when user changes their preference and reload to apply translations
   useEffect(() => {
     if (user && isValidLocale(user.preferred_language)) {
-      setLocaleState(user.preferred_language);
-      Cookies.set(LOCALE_COOKIE_NAME, user.preferred_language, { expires: 365 });
+      const newLocale = user.preferred_language;
+      
+      // Only reload if locale actually changed after initialization
+      if (isInitializedRef.current && previousLocaleRef.current && previousLocaleRef.current !== newLocale) {
+        Cookies.set(LOCALE_COOKIE_NAME, newLocale, { expires: 365 });
+        // Reload to apply new translations
+        window.location.reload();
+        return;
+      }
+      
+      setLocaleState(newLocale);
+      Cookies.set(LOCALE_COOKIE_NAME, newLocale, { expires: 365 });
+      previousLocaleRef.current = newLocale;
     }
   }, [user?.preferred_language]);
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   Plus, Search, MapPin, Globe, 
@@ -13,7 +14,7 @@ import { getMediaUrl } from '../../app/utils';
 
 // Modals
 import ConfirmationModal from './ConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -27,6 +28,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const t = useTranslations('municipalitiesAdmin');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -113,14 +115,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -199,6 +201,7 @@ function MunicipalityTableRowSkeleton() {
 }
 
 function MunicipalitiesPageSkeleton() {
+  const t = useTranslations('municipalitiesAdmin');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -213,11 +216,11 @@ function MunicipalitiesPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Municipality</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Country</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Code</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Registration</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.municipality')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.country')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.code')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.registration')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -236,6 +239,7 @@ interface MunicipalityManagerProps {
 }
 
 export default function MunicipalityManager({ basePath }: MunicipalityManagerProps) {
+  const t = useTranslations('municipalitiesAdmin');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -252,7 +256,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
   
   // Delete
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Inputs
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -322,11 +326,11 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
     if (!itemToDelete) return;
     try {
       await api.delete(`/municipalities/${itemToDelete.id}/`);
-      setToast({ message: 'Municipality deleted successfully.', type: 'success', isVisible: true });
+      success(t('toast.deleteSuccess'));
       fetchData();
       fetchAllMunicipalitiesForAnalytics();
     } catch (err) {
-      setToast({ message: 'Failed to delete. It might contain clubs.', type: 'error', isVisible: true });
+      error(t('toast.deleteFailed'));
     } finally {
       setItemToDelete(null);
     }
@@ -360,13 +364,13 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <MapPin className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Municipalities</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Configure regions and local settings for your platform.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <Link href={`${basePath}/create`}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="h-4 w-4" /> Add Municipality
+            <Plus className="h-4 w-4" /> {t('addMunicipality')}
           </button>
         </Link>
       </div>
@@ -383,7 +387,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.dashboard')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -397,7 +401,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Building2 className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-[var(--brand-light)]/70">Total Municipalities</span>
+                  <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.totalMunicipalities')}</span>
                 </div>
                 <div className="text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
               </div>
@@ -408,7 +412,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
                     <Globe className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-sm font-medium text-[var(--brand-light)]/70">Open for Registration</span>
+                  <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.openForRegistration')}</span>
                 </div>
                 <div className="text-3xl font-bold text-[var(--brand-third)]">{analytics.active}</div>
               </div>
@@ -424,7 +428,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search municipalities..." 
+              placeholder={t('searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -450,7 +454,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
                 backgroundSize: '1rem'
               }}
             >
-              <option value="">All Countries</option>
+              <option value="">{t('allCountries')}</option>
               {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
@@ -461,7 +465,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
       {!showSkeleton && municipalities.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{municipalities.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'municipality' : 'municipalities'}
+            {t('showing')} <span className="text-[var(--brand-primary)] font-semibold">{municipalities.length}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('municipality') : t('municipalities')}
           </p>
         </div>
       )}
@@ -474,14 +478,14 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <MapPin className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No municipalities found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('noMunicipalitiesFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {searchInput || countryFilter ? 'Try adjusting your search or filter.' : 'Get started by adding your first municipality.'}
+            {searchInput || countryFilter ? t('noMunicipalitiesMessage') : t('noMunicipalitiesEmptyMessage')}
           </p>
           {!searchInput && !countryFilter && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Add Municipality
+                <Plus className="h-4 w-4" /> {t('addMunicipality')}
               </button>
             </Link>
           )}
@@ -519,9 +523,9 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
                             : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]'
                         }`}>
                           {item.allow_self_registration ? (
-                            <><CheckCircle className="w-3 h-3" /> Open Registration</>
+                            <><CheckCircle className="w-3 h-3" /> {t('registration.openRegistration')}</>
                           ) : (
-                            <><XCircle className="w-3 h-3" /> Restricted</>
+                            <><XCircle className="w-3 h-3" /> {t('registration.restricted')}</>
                           )}
                         </span>
                       </div>
@@ -537,11 +541,11 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Municipality</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Country</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Code</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Registration</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.municipality')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.country')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.code')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.registration')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -575,9 +579,9 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
                           : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]'
                       }`}>
                         {item.allow_self_registration ? (
-                          <><CheckCircle className="w-3 h-3" /> Open</>
+                          <><CheckCircle className="w-3 h-3" /> {t('registration.open')}</>
                         ) : (
-                          <><XCircle className="w-3 h-3" /> Restricted</>
+                          <><XCircle className="w-3 h-3" /> {t('registration.restricted')}</>
                         )}
                       </span>
                     </td>
@@ -615,17 +619,17 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/50">
-                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}
@@ -638,13 +642,12 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
         variant="danger"
-        title="Delete Municipality"
-        message={`Are you sure you want to delete "${itemToDelete?.name}"? This will remove the municipality and may affect linked data.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { name: itemToDelete?.name })}
+        confirmButtonText={t('deleteModal.confirm')}
+        cancelButtonText={t('deleteModal.cancel')}
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-    </div>
+      </div>
   );
 }

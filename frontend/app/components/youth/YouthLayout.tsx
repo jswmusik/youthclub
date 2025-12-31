@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import YouthFooter from './YouthFooter';
+import Footer from '@/app/components/Footer';
 
 interface YouthLayoutProps {
   children: ReactNode;
@@ -25,7 +25,7 @@ export default function YouthLayout({ children, showFooter = true }: YouthLayout
       <div className="flex-1">
         {children}
       </div>
-      {showFooter && <YouthFooter />}
+      {showFooter && <Footer />}
     </div>
   );
 }

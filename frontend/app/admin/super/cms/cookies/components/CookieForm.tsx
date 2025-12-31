@@ -1,19 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import RichTextEditor from '@/app/components/RichTextEditor';
 import { cmsApi } from '@/lib/cms-api';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../../../../hooks/useToast';
 import { Loader2, Save } from 'lucide-react';
 
 export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
+  const t = useTranslations('cmsAdmin.cookies');
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   
   const [formData, setFormData] = useState({
     version: '',
-    title: 'We use cookies',
-    description: 'We use cookies to improve your experience. By using our site, you agree to our use of cookies.',
+    title: t('form.defaultTitle'),
+    description: t('form.defaultDescription'),
     policy_text: '',
     is_active: true,
   });
@@ -23,11 +25,11 @@ export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
     setSaving(true);
     try {
       await cmsApi.createCookie(formData);
-      showToast("New cookie policy published", "success");
+      showToast(t('toast.published'), "success");
       setFormData({ ...formData, version: '', policy_text: '' });
       onSuccess();
     } catch (error) {
-      showToast("Error creating policy", "error");
+      showToast(t('toast.publishFailed'), "error");
     } finally {
       setSaving(false);
     }
@@ -38,21 +40,21 @@ export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-            Version (e.g. 1.0)
+            {t('form.version')}
           </label>
           <input
             type="text"
             value={formData.version}
             onChange={e => setFormData({...formData, version: e.target.value})}
             className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-            placeholder="1.0"
+            placeholder={t('form.versionPlaceholder')}
             required
           />
-          <p className="text-xs text-[var(--brand-light)]/40 mt-1">Changing this forces users to re-accept.</p>
+          <p className="text-xs text-[var(--brand-light)]/40 mt-1">{t('form.versionHelp')}</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-            Banner Title
+            {t('form.bannerTitle')}
           </label>
           <input
             type="text"
@@ -66,7 +68,7 @@ export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div>
         <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-          Short Description (Banner)
+          {t('form.shortDescription')}
         </label>
         <textarea
           value={formData.description}
@@ -79,7 +81,7 @@ export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div>
         <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-          Full Policy Text (Modal)
+          {t('form.fullPolicyText')}
         </label>
         <RichTextEditor 
           content={formData.policy_text}
@@ -104,7 +106,7 @@ export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
             />
           </button>
           <label className="text-sm text-[var(--brand-light)]/70">
-            Active immediately
+            {t('form.activeImmediately')}
           </label>
         </div>
         <button
@@ -114,7 +116,7 @@ export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
         >
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
           <Save className="w-4 h-4" />
-          Publish New Version
+          {t('form.publishButton')}
         </button>
       </div>
     </form>

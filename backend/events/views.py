@@ -16,6 +16,9 @@ from .serializers import EventSerializer, EventRegistrationSerializer, EventImag
 from .services import register_user_for_event, cancel_registration, generate_recurring_events, filter_events_by_targeting, is_user_eligible_for_event, admin_add_user_to_event
 from .permissions import IsEventOwnerOrReadOnly
 from core.permissions import HasLicenseFeature
+from users.models import User
+from custom_fields.models import EventCustomField, EventRegistrationCustomFieldValue, CustomFieldDefinition
+from custom_fields.serializers import EventCustomFieldSerializer
 
 
 class EventFilter(django_filters.FilterSet):
@@ -64,6 +67,14 @@ class EventViewSet(viewsets.ModelViewSet):
             logger.info(f"User: {request.user.email if request.user.is_authenticated else 'Anonymous'}")
             logger.info(f"Role: {request.user.role if request.user.is_authenticated else 'N/A'}")
             logger.info(f"Request data keys: {list(request.data.keys())}")
+            
+            # DEBUG: Log custom_fields specifically
+            print(f"[EventViewSet DEBUG] request.data type: {type(request.data)}")
+            print(f"[EventViewSet DEBUG] custom_fields in request.data: {'custom_fields' in request.data}")
+            if 'custom_fields' in request.data:
+                cf_value = request.data.get('custom_fields')
+                print(f"[EventViewSet DEBUG] custom_fields type: {type(cf_value)}")
+                print(f"[EventViewSet DEBUG] custom_fields value: {cf_value}")
             
             # Log specific fields
             for key in ['title', 'status', 'municipality', 'club', 'slug', 'start_date', 'end_date']:
@@ -165,6 +176,12 @@ class EventViewSet(viewsets.ModelViewSet):
         else:
             qs = qs.filter(status=Event.Status.PUBLISHED)
             
+            # Filter out past events - only show events that haven't ended yet
+            # Use end_date if available, otherwise use start_date
+            qs = qs.filter(
+                Q(end_date__gte=now) | Q(end_date__isnull=True, start_date__gte=now)
+            )
+            
             # Apply scope filtering first (municipality/club/global)
             scope_conditions = Q()
             
@@ -179,14 +196,37 @@ class EventViewSet(viewsets.ModelViewSet):
                 # Club scope (events for the user's club)
                 scope_conditions |= Q(club=user.preferred_club)
             
-            # Apply scope conditions
-            qs = qs.filter(scope_conditions).distinct()
+            # Apply scope conditions for youth (Guardian logic handled below)
+            if user.role != 'GUARDIAN':
+                qs = qs.filter(scope_conditions).distinct()
             
-            # Apply targeting criteria filtering for youth/guardian users
-            # This ensures users only see events they can actually apply to
-            # (based on gender, age, grade, interests, groups)
-            matching_event_ids = filter_events_by_targeting(qs, user)
-            qs = qs.filter(id__in=matching_event_ids)
+            # Apply targeting criteria filtering
+            if user.role == 'GUARDIAN':
+                # For Guardians, we show events that ANY of their children are eligible for.
+                # 1. Get all active children
+                child_ids = user.youth_links.filter(status='ACTIVE').values_list('youth_id', flat=True)
+                children = User.objects.filter(id__in=child_ids)
+                
+                # 2. Accumulate eligible event IDs for all children
+                # Base list starts with Global events which are visible to everyone
+                visible_event_ids = set(qs.filter(is_global=True).values_list('id', flat=True))
+                
+                # Get the base queryset for filtering to avoid fetching all objects repeatedly
+                # We need a fresh queryset for filter_events_by_targeting
+                base_events_for_filter = Event.objects.filter(status=Event.Status.PUBLISHED)
+                
+                for child in children:
+                    # Use the existing service logic to get events eligible for this child
+                    child_visible_ids = filter_events_by_targeting(base_events_for_filter, child)
+                    visible_event_ids.update(child_visible_ids)
+                
+                # Filter main queryset to these IDs
+                qs = qs.filter(id__in=visible_event_ids)
+                
+            else:
+                # Normal Youth targeting
+                matching_event_ids = filter_events_by_targeting(qs, user)
+                qs = qs.filter(id__in=matching_event_ids)
         
         # IMPORTANT: Include both parent events AND recurring instances
         # Recurring instances have parent_event set, and we want to show them all
@@ -296,8 +336,77 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def register(self, request, pk=None):
         event = self.get_object()
+        
+        # NEW: Check if this is a Guardian registering a specific child
+        child_id = request.data.get('child_id')
+        custom_field_values = request.data.get('custom_field_values', {})
+        user_to_register = request.user
+        
+        if request.user.role == 'GUARDIAN':
+            if not child_id:
+                return Response(
+                    {"error": "Guardians must specify a child_id to register."}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Verify child link
+            if not request.user.youth_links.filter(youth_id=child_id, status='ACTIVE').exists():
+                return Response(
+                    {"error": "You are not authorized to register this child."}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            try:
+                user_to_register = User.objects.get(id=child_id)
+            except User.DoesNotExist:
+                return Response({"error": "Child user not found."}, status=status.HTTP_404_NOT_FOUND)
+                
+            # Check eligibility for child
+            is_eligible, reason = is_user_eligible_for_event(user_to_register, event)
+            if not is_eligible:
+                return Response({"error": reason}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate required custom fields
+        event_custom_fields = EventCustomField.objects.filter(event=event).select_related('field')
+        required_fields = event_custom_fields.filter(is_required=True)
+        
+        for ecf in required_fields:
+            field_id_str = str(ecf.field.id)
+            if field_id_str not in custom_field_values or not custom_field_values[field_id_str]:
+                return Response(
+                    {"error": f"Field '{ecf.field.name}' is required."}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
         try:
-            registration = register_user_for_event(request.user, event)
+            registration = register_user_for_event(user_to_register, event)
+            
+            # Save custom field values
+            if custom_field_values:
+                self._save_registration_custom_fields(registration, custom_field_values, event_custom_fields)
+            
+            # If Guardian registered the child, auto-approve 'PENDING_GUARDIAN'
+            if request.user.role == 'GUARDIAN' and hasattr(EventRegistration.Status, 'PENDING_GUARDIAN') and registration.status == EventRegistration.Status.PENDING_GUARDIAN:
+                # Check if Admin approval is NEXT
+                if event.requires_admin_approval:
+                    registration.status = EventRegistration.Status.PENDING_ADMIN
+                else:
+                    # Check capacity again before confirming
+                    if not event.is_full:
+                        registration.status = EventRegistration.Status.APPROVED
+                        event.confirmed_participants_count += 1
+                        event.save(update_fields=['confirmed_participants_count'])
+                    elif event.max_waitlist > 0 and event.waitlist_count < event.max_waitlist:
+                        registration.status = EventRegistration.Status.WAITLIST
+                        event.waitlist_count += 1
+                        event.save(update_fields=['waitlist_count'])
+                    else:
+                        # Should have been caught by register_user_for_event but good safety
+                        registration.status = EventRegistration.Status.REJECTED
+                
+                registration.approved_by = request.user  # The guardian
+                registration.approval_date = timezone.now()
+                registration.save()
+                
             return Response(EventRegistrationSerializer(registration).data, status=status.HTTP_201_CREATED)
         except ValidationError as e:
             error_message = str(e)
@@ -308,15 +417,64 @@ class EventViewSet(viewsets.ModelViewSet):
             return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def _save_registration_custom_fields(self, registration, custom_field_values, event_custom_fields):
+        """
+        Save custom field values for an event registration.
+        custom_field_values: dict of {field_id: value}
+        """
+        valid_field_ids = set(str(ecf.field.id) for ecf in event_custom_fields)
+        
+        for field_id_str, value in custom_field_values.items():
+            # Only save values for fields that are attached to this event
+            if field_id_str not in valid_field_ids:
+                continue
+            
+            try:
+                field = CustomFieldDefinition.objects.get(id=int(field_id_str))
+                EventRegistrationCustomFieldValue.objects.update_or_create(
+                    registration=registration,
+                    field=field,
+                    defaults={'value': value}
+                )
+            except (ValueError, CustomFieldDefinition.DoesNotExist):
+                continue
+
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
+    def custom_fields(self, request, pk=None):
+        """
+        Get custom fields for this event's registration form.
+        Returns the fields that users need to fill out when registering.
+        """
+        event = self.get_object()
+        event_custom_fields = EventCustomField.objects.filter(event=event).select_related('field').order_by('order')
+        serializer = EventCustomFieldSerializer(event_custom_fields, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def cancel(self, request, pk=None):
         event = self.get_object()
-        registration = EventRegistration.objects.filter(event=event, user=request.user).first()
+        
+        # NEW: Handle Guardian cancelling for child
+        child_id = request.data.get('child_id')
+        user_to_cancel = request.user
+        
+        if request.user.role == 'GUARDIAN':
+            if child_id:
+                if not request.user.youth_links.filter(youth_id=child_id).exists():
+                    return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+                try:
+                    user_to_cancel = User.objects.get(id=child_id)
+                except User.DoesNotExist:
+                    return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({"error": "Child ID required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        registration = EventRegistration.objects.filter(event=event, user=user_to_cancel).first()
         if not registration:
-            return Response({"error": "Not registered"}, status=400)
+            return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
         cancel_registration(registration)
-        return Response({"status": "Cancelled"}, status=200)
+        return Response({"status": "Cancelled"}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def eligible_members(self, request, pk=None):
@@ -552,11 +710,16 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         if user_id:
             qs = qs.filter(user_id=user_id)
 
-        # 1. Normal Users: Only see their own registrations
-        if user.role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+        # 1. Youth Members: Only see their own registrations
+        if user.role == 'YOUTH_MEMBER':
             return qs.filter(user=user)
+            
+        # 2. Guardians: See registrations for their LINKED children
+        if user.role == 'GUARDIAN':
+            child_ids = user.youth_links.filter(status='ACTIVE').values_list('youth_id', flat=True)
+            return qs.filter(user_id__in=child_ids)
 
-        # 2. Admins: Scoped visibility based on their role
+        # 3. Admins: Scoped visibility based on their role
         if user.role == 'SUPER_ADMIN':
             return qs  # See all
 
@@ -569,6 +732,58 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
             return qs.filter(event__club=user.assigned_club)
 
         return qs.none()
+
+    @action(detail=True, methods=['post'], url_path='guardian-respond')
+    def guardian_respond(self, request, pk=None):
+        """
+        Endpoint for guardians to APPROVE or REJECT a registration.
+        """
+        registration = self.get_object()
+        user = request.user
+        
+        if user.role != 'GUARDIAN':
+            return Response({"error": "Only guardians can perform this action"}, status=status.HTTP_403_FORBIDDEN)
+            
+        # Verify ownership (is this child linked to this guardian?)
+        if not user.youth_links.filter(youth=registration.user, status='ACTIVE').exists():
+            return Response({"error": "You are not authorized to manage this child"}, status=status.HTTP_403_FORBIDDEN)
+            
+        decision = request.data.get('decision')  # 'approve' or 'reject'
+        
+        if decision == 'approve':
+            # Check logic: Does it go to APPROVED or PENDING_ADMIN?
+            event = registration.event
+            
+            if hasattr(event, 'requires_admin_approval') and event.requires_admin_approval:
+                new_status = EventRegistration.Status.PENDING_ADMIN if hasattr(EventRegistration.Status, 'PENDING_ADMIN') else EventRegistration.Status.PENDING
+            else:
+                # Check capacity
+                if not event.is_full:
+                    new_status = EventRegistration.Status.APPROVED
+                    # Increment counter
+                    event.confirmed_participants_count += 1
+                    event.save(update_fields=['confirmed_participants_count'])
+                elif hasattr(event, 'max_waitlist') and event.max_waitlist > 0 and event.waitlist_count < event.max_waitlist:
+                    new_status = EventRegistration.Status.WAITLIST
+                    # Increment counter
+                    event.waitlist_count += 1
+                    event.save(update_fields=['waitlist_count'])
+                else:
+                    return Response({"error": "Event is full"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            registration.status = new_status
+            registration.approved_by = user
+            registration.approval_date = timezone.now()
+            registration.save()
+            
+            return Response(EventRegistrationSerializer(registration).data)
+            
+        elif decision == 'reject':
+            registration.status = EventRegistration.Status.REJECTED
+            registration.save()
+            return Response(EventRegistrationSerializer(registration).data)
+            
+        return Response({"error": "Invalid decision"}, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_update(self, serializer):
         # When updating status to APPROVED, set approval fields and update counters

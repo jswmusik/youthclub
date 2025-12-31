@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, 
@@ -10,7 +11,7 @@ import {
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -24,6 +25,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const t = useTranslations('adminManager');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -110,14 +112,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -201,6 +203,7 @@ function AdminTableRowSkeleton() {
 }
 
 function AdminsPageSkeleton() {
+  const t = useTranslations('adminManager');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -215,10 +218,10 @@ function AdminsPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Role</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Assignment</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.user')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.role')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.assignment')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -240,6 +243,7 @@ interface AdminManagerProps {
 interface Option { id: number; name: string; }
 
 export default function AdminManager({ basePath, scope }: AdminManagerProps) {
+  const t = useTranslations('adminManager');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -258,7 +262,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
   
   // Delete
   const [adminToDelete, setAdminToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Filter State
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -407,10 +411,10 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
     if (!adminToDelete) return;
     try {
       await api.delete(`/users/${adminToDelete.id}/`);
-      setToast({ message: 'Admin deleted successfully.', type: 'success', isVisible: true });
+      success(t('toast.adminDeletedSuccessfully'));
       fetchAdmins();
     } catch (err) {
-      setToast({ message: 'Failed to delete admin.', type: 'error', isVisible: true });
+      error(t('toast.failedToDeleteAdmin'));
     } finally {
       setAdminToDelete(null);
     }
@@ -435,24 +439,33 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
     if (user.role === 'CLUB_ADMIN' && user.assigned_club) {
       const clubId = typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club;
       const club = clubs.find(c => c.id === clubId);
-      return club?.name || 'Club Assigned';
+      return club?.name || t('assignment.clubAssigned');
     }
     if (user.role === 'MUNICIPALITY_ADMIN' && user.assigned_municipality) {
       const muniId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
       const municipality = municipalities.find(m => m.id === muniId);
-      return municipality?.name || 'Municipality Assigned';
+      return municipality?.name || t('assignment.municipalityAssigned');
     }
     if (user.assigned_municipality) {
       const muniId = typeof user.assigned_municipality === 'object' ? user.assigned_municipality.id : user.assigned_municipality;
       const municipality = municipalities.find(m => m.id === muniId);
-      return municipality?.name || 'Municipality Assigned';
+      return municipality?.name || t('assignment.municipalityAssigned');
     }
     if (user.assigned_club) {
       const clubId = typeof user.assigned_club === 'object' ? user.assigned_club.id : user.assigned_club;
       const club = clubs.find(c => c.id === clubId);
-      return club?.name || 'Club Assigned';
+      return club?.name || t('assignment.clubAssigned');
     }
-    return 'Global';
+    return t('assignment.global');
+  };
+
+  const getRoleDisplay = (role: string) => {
+    const roleMap: Record<string, string> = {
+      'SUPER_ADMIN': t('roles.SUPER_ADMIN'),
+      'MUNICIPALITY_ADMIN': t('roles.MUNICIPALITY_ADMIN'),
+      'CLUB_ADMIN': t('roles.CLUB_ADMIN'),
+    };
+    return roleMap[role] || role.replace(/_/g, ' ');
   };
 
   // Calculate analytics from allAdmins
@@ -503,13 +516,13 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Administrators</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Admin users and their permissions across the platform.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <Link href={`${basePath}/create`}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="h-4 w-4" /> Add Admin
+            <Plus className="h-4 w-4" /> {t('addAdmin')}
           </button>
         </Link>
       </div>
@@ -526,7 +539,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -545,7 +558,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Users className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.total')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_admins}</div>
               </div>
@@ -557,7 +570,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-red)] to-[var(--brand-peach)] flex items-center justify-center">
                       <ShieldCheck className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Super</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.super')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.super_admins}</div>
                 </div>
@@ -570,7 +583,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                       <Building className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Municipality</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.municipality')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.municipality_admins}</div>
                 </div>
@@ -582,7 +595,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
                     <Building2 className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Club</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.club')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-third)]">{analytics.club_admins}</div>
               </div>
@@ -599,7 +612,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search by name or email..." 
+              placeholder={t('filters.searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -624,10 +637,10 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                   onChange={e => setRoleFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Roles</option>
-                  {scope === 'SUPER' && <option value="SUPER_ADMIN">Super Admin</option>}
-                  <option value="MUNICIPALITY_ADMIN">Municipality Admin</option>
-                  <option value="CLUB_ADMIN">Club Admin</option>
+                  <option value="">{t('filters.allRoles')}</option>
+                  {scope === 'SUPER' && <option value="SUPER_ADMIN">{t('filters.superAdmin')}</option>}
+                  <option value="MUNICIPALITY_ADMIN">{t('filters.municipalityAdmin')}</option>
+                  <option value="CLUB_ADMIN">{t('filters.clubAdmin')}</option>
                 </select>
               </div>
             )}
@@ -642,7 +655,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                   }}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Municipalities</option>
+                  <option value="">{t('filters.allMunicipalities')}</option>
                   {municipalities.map(m => (
                     <option key={m.id} value={m.id.toString()}>{m.name}</option>
                   ))}
@@ -656,7 +669,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                 onChange={e => setClubFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">All Clubs</option>
+                <option value="">{t('filters.allClubs')}</option>
                 {clubs.map(c => (
                   <option key={c.id} value={c.id.toString()}>{c.name}</option>
                 ))}
@@ -667,7 +680,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                Clear All
+                {t('filters.clearAll')}
               </button>
             )}
           </div>
@@ -678,7 +691,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
       {!showSkeleton && paginatedAdmins.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedAdmins.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'admin' : 'admins'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{paginatedAdmins.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.admin') : t('statsBar.admins')}
           </p>
         </div>
       )}
@@ -691,14 +704,14 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Users className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No administrators found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noAdminsFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by adding your first admin.'}
+            {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Add Admin
+                <Plus className="h-4 w-4" /> {t('addAdmin')}
               </button>
             </Link>
           )}
@@ -735,7 +748,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${getRoleBadgeClasses(user.role)}`}>
-                          {user.role.replace(/_/g, ' ')}
+                          {getRoleDisplay(user.role)}
                         </span>
                         <span className="text-xs text-[var(--brand-light)]/50">{getAssignment(user)}</span>
                       </div>
@@ -751,10 +764,10 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Role</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Assignment</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.user')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.role')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.assignment')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -782,7 +795,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${getRoleBadgeClasses(user.role)}`}>
-                        {user.role.replace(/_/g, ' ')}
+                        {getRoleDisplay(user.role)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-[var(--brand-light)]/60">{getAssignment(user)}</td>
@@ -820,17 +833,17 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/50">
-                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}
@@ -842,14 +855,13 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
         isVisible={!!adminToDelete}
         onClose={() => setAdminToDelete(null)}
         onConfirm={handleDelete}
-        title="Delete Admin"
-        message={`Are you sure you want to delete "${adminToDelete?.first_name} ${adminToDelete?.last_name}"? This action cannot be undone.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { firstName: adminToDelete?.first_name || '', lastName: adminToDelete?.last_name || '' })}
+        confirmButtonText={t('deleteModal.delete')}
+        cancelButtonText={t('deleteModal.cancel')}
         variant="danger"
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-    </div>
+      </div>
   );
 }

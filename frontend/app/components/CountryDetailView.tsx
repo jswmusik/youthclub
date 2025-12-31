@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ArrowLeft, Edit, Globe, CreditCard, Clock, Flag, MapPin, Calendar } from 'lucide-react';
 import api from '../../lib/api';
@@ -12,6 +13,7 @@ interface CountryDetailProps {
 }
 
 export default function CountryDetailView({ countryId, basePath }: CountryDetailProps) {
+  const t = useTranslations('countriesAdmin');
   const [country, setCountry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,7 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
       <div className="py-20 text-center">
         <div className="inline-flex items-center gap-3">
           <div className="w-6 h-6 border-2 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
-          <span className="text-[var(--brand-light)]/60">Loading details...</span>
+          <span className="text-[var(--brand-light)]/60">{t('detail.loadingDetails')}</span>
         </div>
       </div>
     );
@@ -43,12 +45,12 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
           <div className="w-16 h-16 rounded-2xl bg-[var(--brand-red)]/10 flex items-center justify-center">
             <Globe className="w-8 h-8 text-[var(--brand-red)]" />
           </div>
-          <p className="text-[var(--brand-red)]">Country not found.</p>
+          <p className="text-[var(--brand-red)]">{t('detail.countryNotFound')}</p>
           <Link 
             href={basePath}
             className="text-sm text-[var(--brand-primary)] hover:underline"
           >
-            ← Back to countries list
+            {t('detail.backToCountriesList')}
           </Link>
         </div>
       </div>
@@ -63,13 +65,13 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
           href={basePath}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to List
+          <ArrowLeft className="h-4 w-4" /> {t('detail.backToList')}
         </Link>
         <Link 
           href={`${basePath}/edit/${country.id}`}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
         >
-          <Edit className="h-4 w-4" /> Edit Country
+          <Edit className="h-4 w-4" /> {t('detail.editCountry')}
         </Link>
       </div>
 
@@ -112,7 +114,7 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{country.name}</h1>
               <div className="flex items-center gap-2 text-[var(--brand-light)]/50 text-sm">
                 <Globe className="h-4 w-4" />
-                <span>International Region</span>
+                <span>{t('detail.internationalRegion')}</span>
               </div>
             </div>
           </div>
@@ -131,7 +133,7 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center shadow-lg shadow-[var(--brand-primary)]/20">
                   <CreditCard className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-[var(--brand-light)]/60">Currency</span>
+                <span className="text-sm font-medium text-[var(--brand-light)]/60">{t('detail.currency')}</span>
               </div>
               <p className="text-2xl font-bold text-[var(--brand-light)]">
                 {country.currency_code || <span className="text-[var(--brand-light)]/30">—</span>}
@@ -144,7 +146,7 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-blue)] flex items-center justify-center shadow-lg shadow-[var(--brand-purple)]/20">
                   <Globe className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-[var(--brand-light)]/60">Language</span>
+                <span className="text-sm font-medium text-[var(--brand-light)]/60">{t('detail.language')}</span>
               </div>
               <p className="text-2xl font-bold text-[var(--brand-light)]">
                 {country.default_language || <span className="text-[var(--brand-light)]/30">—</span>}
@@ -157,7 +159,7 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center shadow-lg shadow-[var(--brand-third)]/20">
                   <Clock className="h-5 w-5 text-[var(--dark-900)]" />
                 </div>
-                <span className="text-sm font-medium text-[var(--brand-light)]/60">Timezone</span>
+                <span className="text-sm font-medium text-[var(--brand-light)]/60">{t('detail.timezone')}</span>
               </div>
               <p className="text-2xl font-bold text-[var(--brand-light)]">
                 {country.timezone || 'UTC'}
@@ -167,12 +169,12 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
 
           {/* Description Section */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Description</h3>
+            <h3 className="text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('detail.description')}</h3>
             <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
               {country.description ? (
                 <p className="text-sm leading-relaxed text-[var(--brand-light)]/80">{country.description}</p>
               ) : (
-                <p className="text-sm italic text-[var(--brand-light)]/30">No description provided.</p>
+                <p className="text-sm italic text-[var(--brand-light)]/30">{t('detail.noDescription')}</p>
               )}
             </div>
           </div>
@@ -184,13 +186,13 @@ export default function CountryDetailView({ countryId, basePath }: CountryDetail
                 {country.created_at && (
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>Created: {new Date(country.created_at).toLocaleDateString()}</span>
+                    <span>{t('detail.created')}: {new Date(country.created_at).toLocaleDateString()}</span>
                   </div>
                 )}
                 {country.updated_at && (
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
-                    <span>Updated: {new Date(country.updated_at).toLocaleDateString()}</span>
+                    <span>{t('detail.updated')}: {new Date(country.updated_at).toLocaleDateString()}</span>
                   </div>
                 )}
               </div>

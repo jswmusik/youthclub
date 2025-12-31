@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Edit, Mail, Phone, MessageSquare, User, Briefcase, 
@@ -19,6 +20,9 @@ interface AdminDetailProps {
 interface Option { id: number; name: string; }
 
 export default function AdminDetailView({ userId, basePath }: AdminDetailProps) {
+  const t = useTranslations('adminDetail');
+  const tRoles = useTranslations('adminManager.roles');
+  const tGenders = useTranslations('adminForm.basicInformation.genders');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -101,12 +105,28 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
     }
   };
 
+  const getRoleDisplay = (role: string) => {
+    const roleMap: Record<string, string> = {
+      'SUPER_ADMIN': tRoles('SUPER_ADMIN'),
+      'MUNICIPALITY_ADMIN': tRoles('MUNICIPALITY_ADMIN'),
+      'CLUB_ADMIN': tRoles('CLUB_ADMIN'),
+    };
+    return roleMap[role] || role.replace(/_/g, ' ');
+  };
+
+  const getGenderDisplay = (gender: string) => {
+    if (gender === 'MALE') return tGenders('MALE');
+    if (gender === 'FEMALE') return tGenders('FEMALE');
+    if (gender === 'OTHER') return tGenders('OTHER');
+    return gender || '-';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--brand-light)]/60">Loading admin details...</p>
+          <p className="text-[var(--brand-light)]/60">{t('loading.loadingAdminDetails')}</p>
         </div>
       </div>
     );
@@ -117,9 +137,9 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <User className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
-          <p className="text-[var(--brand-light)] font-semibold">Admin not found</p>
+          <p className="text-[var(--brand-light)] font-semibold">{t('error.adminNotFound')}</p>
           <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
-            Return to list
+            {t('error.returnToList')}
           </Link>
         </div>
       </div>
@@ -150,7 +170,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
           href={buildUrlWithParams(basePath)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to List
+          <ArrowLeft className="h-4 w-4" /> {t('navigation.backToList')}
         </Link>
         <div className="flex flex-wrap gap-2">
           <button 
@@ -158,14 +178,14 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
             <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">Send Message</span>
-            <span className="sm:hidden">Message</span>
+            <span className="hidden sm:inline">{t('navigation.sendMessage')}</span>
+            <span className="sm:hidden">{t('navigation.message')}</span>
           </button>
           <Link 
             href={buildUrlWithParams(`${basePath}/edit/${admin.id}`)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
           >
-            <Edit className="h-4 w-4" /> Edit Admin
+            <Edit className="h-4 w-4" /> {t('navigation.editAdmin')}
           </Link>
         </div>
       </div>
@@ -191,7 +211,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
               admin.role === 'SUPER_ADMIN' ? 'text-[var(--brand-red)]' :
               admin.role === 'MUNICIPALITY_ADMIN' ? 'text-[var(--brand-primary)]' :
               'text-[var(--brand-third)]'
-            }`}>{admin.role.replace(/_/g, ' ')}</span>
+            }`}>{getRoleDisplay(admin.role)}</span>
           </div>
         </div>
         
@@ -250,7 +270,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
           {/* Contact Information Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact Information</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.contactInformation')}</h2>
             </div>
             <div className="p-6 space-y-3">
               {/* Email */}
@@ -262,7 +282,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                   <Mail className="w-4 h-4 text-[var(--brand-blue)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Email</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('fields.email')}</div>
                   <div className="text-sm text-[var(--brand-light)] truncate">{admin.email}</div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] transition-colors" />
@@ -278,7 +298,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                     <Phone className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Phone</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('fields.phone')}</div>
                     <div className="text-sm text-[var(--brand-light)]">{admin.phone_number}</div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] transition-colors" />
@@ -289,8 +309,8 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                     <Phone className="w-4 h-4 text-[var(--brand-light)]/30" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Phone</div>
-                    <div className="text-sm text-[var(--brand-light)]/40 italic">Not provided</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('fields.phone')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/40 italic">{t('status.notProvided')}</div>
                   </div>
                 </div>
               )}
@@ -300,24 +320,24 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
           {/* Personal Details Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Personal Details</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.personalDetails')}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Gender */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Gender</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('fields.gender')}</div>
                   <div className="text-sm text-[var(--brand-light)] font-medium">
-                    {admin.legal_gender === 'MALE' ? 'Male' : admin.legal_gender === 'FEMALE' ? 'Female' : admin.legal_gender || '-'}
+                    {getGenderDisplay(admin.legal_gender)}
                   </div>
                 </div>
 
                 {/* Nickname (for Club Admin) */}
                 {admin.role === 'CLUB_ADMIN' && (
                   <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Nickname</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('fields.nickname')}</div>
                     <div className="text-sm text-[var(--brand-light)] font-medium">
-                      {admin.nickname || <span className="text-[var(--brand-light)]/40 italic">Not set</span>}
+                      {admin.nickname || <span className="text-[var(--brand-light)]/40 italic">{t('status.notSet')}</span>}
                     </div>
                   </div>
                 )}
@@ -326,10 +346,10 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                 {admin.role === 'CLUB_ADMIN' && (
                   <div className={`p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] ${admin.nickname ? '' : 'sm:col-span-1'}`}>
                     <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 flex items-center gap-1">
-                      <Briefcase className="w-3 h-3" /> Profession / Title
+                      <Briefcase className="w-3 h-3" /> {t('fields.profession')}
                     </div>
                     <div className="text-sm text-[var(--brand-light)] font-medium">
-                      {admin.profession || <span className="text-[var(--brand-light)]/40 italic">Not set</span>}
+                      {admin.profession || <span className="text-[var(--brand-light)]/40 italic">{t('status.notSet')}</span>}
                     </div>
                   </div>
                 )}
@@ -344,7 +364,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
           {/* Assignments Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Assignments</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.assignments')}</h2>
             </div>
             <div className="p-6 space-y-3">
               {/* Municipality Assignment */}
@@ -354,7 +374,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                     <Building className="w-4 h-4 text-[var(--brand-primary)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Municipality</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('fields.municipality')}</div>
                     <div className="text-sm text-[var(--brand-light)] font-medium truncate">{municipalityName}</div>
                   </div>
                 </div>
@@ -364,8 +384,8 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                     <Building className="w-4 h-4 text-[var(--brand-light)]/30" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Municipality</div>
-                    <div className="text-sm text-[var(--brand-light)]/40 italic">Not assigned</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('fields.municipality')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/40 italic">{t('status.notAssigned')}</div>
                   </div>
                 </div>
               )}
@@ -377,7 +397,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                     <Building2 className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Club</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('fields.club')}</div>
                     <div className="text-sm text-[var(--brand-light)] font-medium truncate">{clubName}</div>
                   </div>
                 </div>
@@ -387,8 +407,8 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                     <Building2 className="w-4 h-4 text-[var(--brand-light)]/30" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Club</div>
-                    <div className="text-sm text-[var(--brand-light)]/40 italic">Not assigned</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('fields.club')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/40 italic">{t('status.notAssigned')}</div>
                   </div>
                 </div>
               )}
@@ -399,8 +419,8 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
                   <div className="w-14 h-14 rounded-2xl bg-[var(--brand-red)]/20 flex items-center justify-center mx-auto mb-3">
                     <ShieldCheck className="w-7 h-7 text-[var(--brand-red)]" />
                   </div>
-                  <p className="text-sm text-[var(--brand-light)] font-medium">Global Access</p>
-                  <p className="text-xs text-[var(--brand-light)]/50 mt-1">Full platform permissions</p>
+                  <p className="text-sm text-[var(--brand-light)] font-medium">{t('status.globalAccess')}</p>
+                  <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('status.fullPlatformPermissions')}</p>
                 </div>
               )}
 
@@ -408,7 +428,7 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
               {!municipalityName && !clubName && admin.role !== 'SUPER_ADMIN' && (
                 <div className="text-center py-6 text-[var(--brand-light)]/40">
                   <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm italic">No assignments</p>
+                  <p className="text-sm italic">{t('status.noAssignments')}</p>
                 </div>
               )}
             </div>
@@ -417,17 +437,17 @@ export default function AdminDetailView({ userId, basePath }: AdminDetailProps) 
           {/* Role Info Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Role & Permissions</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rolePermissions')}</h2>
             </div>
             <div className="p-6">
               <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${getRoleBadgeClasses(admin.role)}`}>
                 {getRoleIcon(admin.role)}
-                {admin.role.replace(/_/g, ' ')}
+                {getRoleDisplay(admin.role)}
               </div>
               <p className="text-xs text-[var(--brand-light)]/50 mt-3">
-                {admin.role === 'SUPER_ADMIN' && 'Full access to all platform features and settings.'}
-                {admin.role === 'MUNICIPALITY_ADMIN' && 'Manages clubs and users within assigned municipality.'}
-                {admin.role === 'CLUB_ADMIN' && 'Manages activities and members for assigned club.'}
+                {admin.role === 'SUPER_ADMIN' && t('roleDescriptions.superAdmin')}
+                {admin.role === 'MUNICIPALITY_ADMIN' && t('roleDescriptions.municipalityAdmin')}
+                {admin.role === 'CLUB_ADMIN' && t('roleDescriptions.clubAdmin')}
               </p>
             </div>
           </div>

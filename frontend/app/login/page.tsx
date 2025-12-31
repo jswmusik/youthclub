@@ -2,17 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '../../context/AuthContext';
-import { AlertCircle, Sparkles, Users, Calendar, Gift, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Sparkles, Users, Calendar, Gift, ArrowRight, Eye, EyeOff, Home } from 'lucide-react';
+import TwoFactorVerification from '../components/TwoFactorVerification';
+import AuthNavigation from '../components/AuthNavigation';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, twoFactorState, initiate2FA, verify2FA, cancel2FA } = useAuth();
   const t = useTranslations('auth');
   const tLanding = useTranslations('landing');
   const tCommon = useTranslations('common');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -28,16 +32,120 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      // Redirect happens automatically in AuthContext
+      const result = await login(email, password, rememberMe);
+      
+      if (!result.success && !result.requires2FA) {
+        setError(t('invalidCredentials'));
+      }
+      // If requires2FA, the twoFactorState will be set and UI will switch
+      
     } catch (err) {
       setError(t('invalidCredentials'));
+    } finally {
       setIsLoading(false);
     }
   };
 
+  const handleVerify2FA = async (code: string, trustDevice: boolean) => {
+    return await verify2FA(code, trustDevice);
+  };
+
+  const handleResendCode = async () => {
+    return await initiate2FA();
+  };
+
+  const handleCancel2FA = () => {
+    cancel2FA();
+    setPassword(''); // Clear password for security
+  };
+
+  // Show 2FA verification if required
+  if (twoFactorState?.required) {
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)]">
+        <AuthNavigation />
+        <div className="flex min-h-[calc(100vh-4rem)]">
+        {/* Left Side - Same branding */}
+        <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden">
+          <div className="absolute inset-0">
+            <Image
+              src="/login-hero.jpg"
+              alt="Youth having fun together"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-900)] via-[var(--dark-900)]/70 to-[var(--dark-900)]/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[var(--dark-900)]/80 to-transparent" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
+            <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+              <Image
+                src="/ua-logo-2026.svg"
+                alt="Ungdomsappen"
+                width={180}
+                height={60}
+                className="object-contain brightness-0 invert"
+                priority
+              />
+            </div>
+            
+            <div className="space-y-8">
+              <div className={`transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white leading-tight font-heading">
+                  {tLanding('heroTitle')}
+                  <span className="block text-[var(--brand-primary)]">{tLanding('heroTitleHighlight')}</span>
+                </h1>
+                <p className="mt-6 text-lg xl:text-xl text-white/70 max-w-lg leading-relaxed">
+                  {t('2fa.securityMessage')}
+                </p>
+              </div>
+            </div>
+            
+            <div className={`transition-all duration-700 delay-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+              <p className="text-white/40 text-sm">
+                © {new Date().getFullYear()} Ungdomsappen. {tCommon('allRightsReserved')}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Right Side - 2FA Verification */}
+        <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-6 sm:p-8 lg:p-12">
+          <div className={`w-full max-w-md transition-all duration-700 delay-300 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            {/* Mobile Logo */}
+            <div className="lg:hidden flex justify-center mb-8">
+              <Image
+                src="/ua-logo-2026.svg"
+                alt="Ungdomsappen"
+                width={140}
+                height={50}
+                className="object-contain"
+                priority
+              />
+            </div>
+            
+            <TwoFactorVerification
+              email={twoFactorState.email}
+              maskedEmail={twoFactorState.maskedEmail}
+              expiresInMinutes={twoFactorState.expiresInMinutes}
+              reason={twoFactorState.reason}
+              onVerify={handleVerify2FA}
+              onResendCode={handleResendCode}
+              onCancel={handleCancel2FA}
+            />
+          </div>
+        </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[var(--dark-900)] flex">
+    <div className="min-h-screen bg-[var(--dark-900)]">
+      <AuthNavigation />
+      <div className="flex min-h-[calc(100vh-4rem)]">
       {/* Left Side - Branding & Features */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden">
         {/* Hero Image Background */}
@@ -200,7 +308,9 @@ export default function LoginPage() {
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer group">
                 <input 
-                  type="checkbox" 
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 rounded border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)] focus:ring-offset-0"
                 />
                 <span className="text-sm text-[var(--brand-light)]/60 group-hover:text-[var(--brand-light)] transition-colors">
@@ -208,7 +318,7 @@ export default function LoginPage() {
                 </span>
               </label>
               <a 
-                href="#" 
+                href="/forgot-password" 
                 className="text-sm text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 transition-colors font-medium"
               >
                 {t('forgotPassword')}
@@ -248,19 +358,20 @@ export default function LoginPage() {
           </div>
           
           {/* Sign Up Link */}
-          <a
-            href="/register"
+          <Link
+            href="/register/youth"
             className="w-full h-14 border-2 border-[var(--dark-500)] hover:border-[var(--brand-primary)] text-[var(--brand-light)] hover:text-[var(--brand-primary)] font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group"
           >
             <span>{t('createAccount')}</span>
             <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-          </a>
+          </Link>
           
           {/* Mobile Footer */}
           <p className="lg:hidden text-center text-[var(--brand-light)]/40 text-xs mt-8">
             © {new Date().getFullYear()} Ungdomsappen. {tCommon('allRightsReserved')}
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

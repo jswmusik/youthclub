@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../lib/api';
 import { getMediaUrl } from '../../utils';
 import ConfirmationModal from '../ConfirmationModal';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 import { 
   Calendar, Clock, Edit, Trash2, Plus, Search, BarChart3, ChevronUp, ChevronDown, 
   Package, CheckCircle, XCircle, X, Building, CalendarDays, Users
@@ -159,6 +160,7 @@ interface BookingResourceManagerProps {
 }
 
 export default function BookingResourceManager({ basePath, scope }: BookingResourceManagerProps) {
+  const t = useTranslations('bookingsAdmin.resources');
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -170,7 +172,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   
   // Filter state
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -314,12 +316,12 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
     if (!itemToDelete) return;
     try {
       await api.delete(`/bookings/resources/${itemToDelete.id}/`);
-      setToast({ message: 'Resource deleted successfully!', type: 'success', isVisible: true });
+      success(t('toast.resourceDeleted'));
       fetchResources();
       fetchAllResourcesForAnalytics();
       setItemToDelete(null);
     } catch (err) {
-      setToast({ message: 'Failed to delete resource', type: 'error', isVisible: true });
+      error(t('toast.failedToDelete'));
     }
   };
 
@@ -367,24 +369,24 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <Building className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Booking Resources</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
-            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage rooms and equipment for bookings.</p>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
           </div>
           <div className="flex flex-wrap gap-2 px-4 sm:px-0">
             <Link href={bookingsPath}>
               <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
-                <CalendarDays className="h-4 w-4" /> Dashboard
+                <CalendarDays className="h-4 w-4" /> {t('dashboard')}
               </button>
             </Link>
             <Link href={calendarPath}>
               <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
-                <Calendar className="h-4 w-4" /> Calendar
+                <Calendar className="h-4 w-4" /> {t('calendar')}
               </button>
             </Link>
             <Link href={`${basePath}/create`}>
               <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2 transition-all">
-                <Plus className="h-4 w-4" /> New Resource
+                <Plus className="h-4 w-4" /> {t('newResource')}
               </button>
             </Link>
           </div>
@@ -400,7 +402,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             {analyticsExpanded ? (
               <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
@@ -418,7 +420,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Building className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
               </div>
@@ -429,7 +431,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                     <CheckCircle className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Active</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.active')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.active}</div>
               </div>
@@ -440,7 +442,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-red)] to-[#F87171] flex items-center justify-center">
                     <XCircle className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Inactive</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.inactive')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.inactive}</div>
               </div>
@@ -451,7 +453,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                     <Package className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Rooms</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.rooms')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.rooms}</div>
               </div>
@@ -467,7 +469,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
               <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
               <input 
                 type="text"
-                placeholder="Search resources..." 
+                placeholder={t('searchPlaceholder')} 
                 className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
@@ -492,7 +494,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                     onChange={e => setSelectedClub(e.target.value)}
                     style={selectArrowStyle}
                   >
-                    <option value="">All Clubs</option>
+                    <option value="">{t('filters.allClubs')}</option>
                     {clubs.map((club) => (
                       <option key={club.id} value={club.id}>
                         {club.name}
@@ -508,9 +510,9 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                   onChange={e => setSelectedType(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Types</option>
-                  <option value="ROOM">Rooms</option>
-                  <option value="EQUIPMENT">Equipment</option>
+                  <option value="">{t('filters.allTypes')}</option>
+                  <option value="ROOM">{t('filters.rooms')}</option>
+                  <option value="EQUIPMENT">{t('filters.equipment')}</option>
                 </select>
               </div>
               {hasFilters && (
@@ -518,7 +520,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                   onClick={clearFilters}
                   className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
                 >
-                  <X className="h-4 w-4" /> Clear All
+                  <X className="h-4 w-4" /> {t('filters.clearAll')}
                 </button>
               )}
             </div>
@@ -529,7 +531,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
         {!showSkeleton && resources.length > 0 && (
           <div className="px-4 sm:px-0">
             <p className="text-sm text-[var(--brand-light)]/50">
-              Showing <span className="text-[var(--brand-primary)] font-semibold">{resources.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'resource' : 'resources'}
+              {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{resources.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.resource') : t('statsBar.resources')}
             </p>
           </div>
         )}
@@ -549,11 +551,11 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Resource</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Description</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.resource')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.type')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.description')}</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -569,9 +571,9 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center">
               <Building className="w-8 h-8 text-[var(--brand-light)]/30" />
             </div>
-            <p className="text-[var(--brand-light)]/50 mb-2">No resources found</p>
+            <p className="text-[var(--brand-light)]/50 mb-2">{t('emptyState.noResourcesFound')}</p>
             <p className="text-[var(--brand-light)]/30 text-sm">
-              {hasFilters ? 'Try adjusting your filters' : 'Create your first resource to get started'}
+              {hasFilters ? t('emptyState.tryAdjustingFilters') : t('emptyState.createFirstResource')}
             </p>
           </div>
         ) : (
@@ -608,7 +610,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                             <div className="min-w-0">
                               <h3 className="font-semibold text-[var(--brand-light)] truncate">{res.name}</h3>
                               <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">
-                                Max {res.max_participants} {res.max_participants === 1 ? 'person' : 'people'}
+                                {t('mobileCard.max')} {res.max_participants} {res.max_participants === 1 ? t('mobileCard.person') : t('mobileCard.people')}
                               </p>
                             </div>
                           </div>
@@ -616,7 +618,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                           {/* Badges */}
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
-                              {res.resource_type}
+                              {t(`resourceTypes.${res.resource_type}`)}
                             </span>
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                               res.is_active 
@@ -624,7 +626,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                                 : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30'
                             }`}>
                               {res.is_active ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                              {res.is_active ? 'Active' : 'Inactive'}
+                              {res.is_active ? t('status.active') : t('status.inactive')}
                             </span>
                             {scope !== 'CLUB' && res.club_name && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
@@ -652,14 +654,14 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Resource</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.resource')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.type')}</th>
                     {scope !== 'CLUB' && (
-                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.club')}</th>
                     )}
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Description</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.description')}</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -683,14 +685,14 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                             <div>
                               <div className="font-semibold text-[var(--brand-light)]">{res.name}</div>
                               <div className="text-xs text-[var(--brand-light)]/50">
-                                Max {res.max_participants} {res.max_participants === 1 ? 'person' : 'people'}
+                                {t('mobileCard.max')} {res.max_participants} {res.max_participants === 1 ? t('mobileCard.person') : t('mobileCard.people')}
                               </div>
                             </div>
                           </div>
                         </td>
                         <td className="py-4 px-6">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
-                            {res.resource_type}
+                            {t(`resourceTypes.${res.resource_type}`)}
                           </span>
                         </td>
                         {scope !== 'CLUB' && (
@@ -705,12 +707,12 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                               : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30'
                           }`}>
                             {res.is_active ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                            {res.is_active ? 'Active' : 'Inactive'}
+                            {res.is_active ? t('status.active') : t('status.inactive')}
                           </span>
                         </td>
                         <td className="py-4 px-6">
                           <p className="text-sm text-[var(--brand-light)]/60 line-clamp-2 max-w-md">
-                            {res.description || <span className="text-[var(--brand-light)]/30 italic">No description</span>}
+                            {res.description || <span className="text-[var(--brand-light)]/30 italic">{t('noDescription')}</span>}
                           </p>
                         </td>
                         <td className="py-4 px-6 text-right">
@@ -750,17 +752,17 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
               onClick={() => handlePageChange(currentPage - 1)}
               className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Previous
+              {t('pagination.previous')}
             </button>
             <div className="text-sm text-[var(--brand-light)]/50">
-              Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+              {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
             </div>
             <button 
               disabled={currentPage >= totalPages} 
               onClick={() => handlePageChange(currentPage + 1)}
               className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Next
+              {t('pagination.next')}
             </button>
           </div>
         )}
@@ -770,23 +772,16 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
           isVisible={!!itemToDelete} 
           onClose={() => setItemToDelete(null)} 
           onConfirm={handleDelete} 
-          title="Delete Resource"
-          message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
-          confirmButtonText="Delete"
-          cancelButtonText="Cancel"
+          title={t('modals.deleteResource.title')}
+          message={t('modals.deleteResource.message', { name: itemToDelete?.name || '' })}
+          confirmButtonText={t('modals.deleteResource.confirm')}
+          cancelButtonText={t('modals.deleteResource.cancel')}
           variant="danger"
           darkMode
         />
 
         {/* Toast Notification */}
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          isVisible={toast.isVisible} 
-          onClose={() => setToast({ ...toast, isVisible: false })}
-          darkMode
-        />
-      </div>
+        </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getMediaUrl } from '../../../utils';
+import { sanitizeHtml } from '../../../../lib/sanitize';
 import OrganizerInfoModal from '../../components/OrganizerInfoModal';
 
 interface PublicEvent {
@@ -287,7 +288,7 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
               </h2>
               <div 
                 className="event-description-content max-w-none leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: event.description }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(event.description) }}
               />
             </div>
 

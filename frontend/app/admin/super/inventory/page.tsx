@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { inventoryApi, Item, ClubOption, ItemCategory } from '@/lib/inventory-api';
 import ItemTable from '@/app/components/inventory/ItemTable';
 import { 
   Package, TrendingUp, Calendar, Clock, ChevronUp, ChevronDown, BarChart3, Search, X, Plus, 
   History, Tag, FolderOpen, Users
 } from 'lucide-react';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -83,6 +84,7 @@ export default function SuperInventoryPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('inventoryAdmin');
   
   const [items, setItems] = useState<Item[]>([]);
   const [clubs, setClubs] = useState<ClubOption[]>([]);
@@ -93,7 +95,7 @@ export default function SuperInventoryPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   
   // Filter state
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -244,20 +246,12 @@ export default function SuperInventoryPage() {
   };
 
   const handleDeleteSuccess = () => {
-    setToast({ 
-      message: 'Item deleted successfully!', 
-      type: 'success', 
-      isVisible: true 
-    });
+    success(t('toast.itemDeleted'));
     loadItems();
   };
 
   const handleDeleteError = (errorMessage: string) => {
-    setToast({ 
-      message: errorMessage, 
-      type: 'error', 
-      isVisible: true 
-    });
+    error(errorMessage);
   };
 
   const handlePageChange = (p: number) => {
@@ -286,34 +280,34 @@ export default function SuperInventoryPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <Package className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Global Inventory</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
-            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage items across all clubs in the system.</p>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
           </div>
           <div className="flex flex-wrap gap-2 px-4 sm:px-0">
             <Link href="/admin/super/inventory/history">
               <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
-                <History className="h-4 w-4" /> History
+                <History className="h-4 w-4" /> {t('actions.history')}
               </button>
             </Link>
             <Link href="/admin/super/inventory/borrowed">
               <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
-                <Users className="h-4 w-4" /> Borrowed
+                <Users className="h-4 w-4" /> {t('actions.borrowed')}
               </button>
             </Link>
             <Link href="/admin/super/inventory/categories">
               <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
-                <FolderOpen className="h-4 w-4" /> Categories
+                <FolderOpen className="h-4 w-4" /> {t('actions.categories')}
               </button>
             </Link>
             <Link href="/admin/super/inventory/tags">
               <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
-                <Tag className="h-4 w-4" /> Tags
+                <Tag className="h-4 w-4" /> {t('actions.tags')}
               </button>
             </Link>
             <Link href="/admin/super/inventory/create">
               <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2 transition-all">
-                <Plus className="h-4 w-4" /> Add Item
+                <Plus className="h-4 w-4" /> {t('actions.addItem')}
               </button>
             </Link>
           </div>
@@ -330,13 +324,13 @@ export default function SuperInventoryPage() {
                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                   <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                 </div>
-                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
                 {selectedClub ? (
                   <span className="text-xs text-[var(--brand-light)]/40 ml-2">
-                    ({clubs.find(c => String(c.id) === selectedClub)?.name || 'Selected Club'})
+                    ({clubs.find(c => String(c.id) === selectedClub)?.name || t('selectedClub')})
                   </span>
                 ) : (
-                  <span className="text-xs text-[var(--brand-light)]/40 ml-2">(All Clubs)</span>
+                  <span className="text-xs text-[var(--brand-light)]/40 ml-2">({t('allClubs')})</span>
                 )}
               </div>
               {analyticsExpanded ? (
@@ -355,7 +349,7 @@ export default function SuperInventoryPage() {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                       <Package className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total Items</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.totalItems')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_items}</div>
                 </div>
@@ -366,7 +360,7 @@ export default function SuperInventoryPage() {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                       <Calendar className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last 7 Days</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.last7Days')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.borrowings_7d}</div>
                 </div>
@@ -377,7 +371,7 @@ export default function SuperInventoryPage() {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                       <TrendingUp className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last 30 Days</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.last30Days')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.borrowings_30d}</div>
                 </div>
@@ -388,7 +382,7 @@ export default function SuperInventoryPage() {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                       <History className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">All Time</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.allTime')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{analytics.borrowings_all_time}</div>
                 </div>
@@ -405,7 +399,7 @@ export default function SuperInventoryPage() {
               <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
               <input 
                 type="text"
-                placeholder="Search by name or tag..." 
+                placeholder={t('searchPlaceholder')} 
                 className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
@@ -429,7 +423,7 @@ export default function SuperInventoryPage() {
                   onChange={e => setSelectedClub(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Clubs</option>
+                  <option value="">{t('filters.allClubs')}</option>
                   {clubs.map((club) => (
                     <option key={club.id} value={club.id}>
                       {club.name}
@@ -444,7 +438,7 @@ export default function SuperInventoryPage() {
                   onChange={e => setSelectedCategory(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Categories</option>
+                  <option value="">{t('filters.allCategories')}</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.icon} {cat.name}
@@ -459,12 +453,12 @@ export default function SuperInventoryPage() {
                   onChange={e => setSelectedStatus(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Statuses</option>
-                  <option value="AVAILABLE">Available</option>
-                  <option value="BORROWED">Borrowed</option>
-                  <option value="MAINTENANCE">Maintenance</option>
-                  <option value="MISSING">Missing</option>
-                  <option value="HIDDEN">Hidden</option>
+                  <option value="">{t('filters.allStatuses')}</option>
+                  <option value="AVAILABLE">{t('filters.available')}</option>
+                  <option value="BORROWED">{t('filters.borrowed')}</option>
+                  <option value="MAINTENANCE">{t('filters.maintenance')}</option>
+                  <option value="MISSING">{t('filters.missing')}</option>
+                  <option value="HIDDEN">{t('filters.hidden')}</option>
                 </select>
               </div>
               {hasFilters && (
@@ -472,7 +466,7 @@ export default function SuperInventoryPage() {
                   onClick={clearFilters}
                   className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
                 >
-                  <X className="h-4 w-4" /> Clear All
+                  <X className="h-4 w-4" /> {t('filters.clearAll')}
                 </button>
               )}
             </div>
@@ -483,7 +477,7 @@ export default function SuperInventoryPage() {
         {!showSkeleton && items.length > 0 && (
           <div className="px-4 sm:px-0">
             <p className="text-sm text-[var(--brand-light)]/50">
-              Showing <span className="text-[var(--brand-primary)] font-semibold">{items.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'item' : 'items'}
+              {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{items.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.item') : t('statsBar.items')}
             </p>
           </div>
         )}
@@ -503,11 +497,11 @@ export default function SuperInventoryPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Category</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Queue</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.item')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.category')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.queue')}</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -536,30 +530,23 @@ export default function SuperInventoryPage() {
               onClick={() => handlePageChange(currentPage - 1)}
               className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Previous
+              {t('pagination.previous')}
             </button>
             <div className="text-sm text-[var(--brand-light)]/50">
-              Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+              {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
             </div>
             <button 
               disabled={currentPage >= totalPages} 
               onClick={() => handlePageChange(currentPage + 1)}
               className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Next
+              {t('pagination.next')}
             </button>
           </div>
         )}
 
         {/* Toast Notification */}
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          isVisible={toast.isVisible} 
-          onClose={() => setToast({ ...toast, isVisible: false })}
-          darkMode
-        />
-      </div>
+        </div>
     </div>
   );
 }

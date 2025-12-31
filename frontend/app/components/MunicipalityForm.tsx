@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, MapPin, Building2, Globe, Mail, Phone, 
   Link as LinkIcon, CheckCircle2, Lightbulb, Save, Users, Shield,
@@ -11,7 +12,7 @@ import {
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { queueToastForNavigation } from './ToastProvider';
 import { useAuth } from '../../context/AuthContext';
 
@@ -47,6 +48,7 @@ interface FormData {
 }
 
 export default function MunicipalityForm({ initialData, redirectPath }: MunicipalityFormProps) {
+  const t = useTranslations('municipalitiesAdmin');
   const router = useRouter();
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
@@ -57,7 +59,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState<any[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error'|'info'|'warning', isVisible: false, title: '' });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -178,29 +180,25 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
       if (initialData) {
         await api.patch(`/municipalities/${initialData.id}/`, data, config);
         queueToastForNavigation(
-          `${formData.name} has been updated with your changes.`,
+          t('create.toast.editSuccessMessage', { name: formData.name }),
           'success',
-          'Municipality Updated!',
+          t('create.toast.editSuccessTitle'),
           2500
         );
       } else {
         await api.post('/municipalities/', data, config);
         queueToastForNavigation(
-          `${formData.name} has been added to your platform.`,
+          t('create.toast.successMessage', { name: formData.name }),
           'success',
-          'Municipality Created!',
+          t('create.toast.successTitle'),
           2500
         );
       }
       router.push(redirectPath);
     } catch (err: any) {
       console.error(err);
-      setToast({ 
-        message: 'Something went wrong. Please check your input and try again.', 
-        type: 'error', 
-        isVisible: true,
-        title: 'Operation Failed'
-      });
+      error(t('create.toast.errorMessage'), t('create.toast.errorTitle')
+      );
       setLoading(false);
     }
   };
@@ -263,10 +261,10 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Municipality' : 'Add New Municipality'}
+              {initialData ? t('create.editTitle') : t('create.title')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              {initialData ? 'Update municipality information and settings' : 'Configure details and settings for this region'}
+              {initialData ? t('create.editDescription') : t('create.description')}
             </p>
           </div>
         </div>
@@ -283,7 +281,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
             aria-label="Form completion progress"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('create.formCompletion')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -295,7 +293,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">All required fields completed!</span>
+                <span className="text-sm font-medium">{t('create.allFieldsCompleted')}</span>
               </div>
             )}
           </div>
@@ -311,7 +309,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
           >
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('create.formCompletion')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -323,7 +321,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               {completionPercent === 100 && (
                 <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">All required fields completed!</span>
+                  <span className="text-sm font-medium">{t('create.allFieldsCompleted')}</span>
                 </div>
               )}
             </div>
@@ -343,8 +341,8 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                   <MapPin className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter the core details for this municipality</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('create.basicInformation.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('create.basicInformation.description')}</p>
                 </div>
               </div>
             </div>
@@ -355,13 +353,13 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="name" className={labelClasses}>
-                    Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('create.basicInformation.name')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="name"
                     type="text"
                     required 
-                    placeholder="e.g. Stockholm City"
+                    placeholder={t('create.basicInformation.namePlaceholder')}
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                     onFocus={() => setFocusedField('name')}
@@ -371,7 +369,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                 </div>
                 <div>
                   <label htmlFor="country" className={labelClasses}>
-                    Country <span className="text-[var(--brand-primary)]">*</span>
+                    {t('create.basicInformation.country')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <select 
                     id="country"
@@ -388,7 +386,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                       backgroundSize: '1rem'
                     }}
                   >
-                    <option value="">Select Country</option>
+                    <option value="">{t('create.basicInformation.selectCountry')}</option>
                     {countries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
@@ -398,12 +396,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               <div>
                 <label htmlFor="municipality_code" className={labelClasses}>
                   <Building2 className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-purple)]" />
-                  Municipality Code
+                  {t('create.basicInformation.municipalityCode')}
                 </label>
                 <input 
                   id="municipality_code"
                   type="text"
-                  placeholder="e.g. STHM"
+                  placeholder={t('create.basicInformation.municipalityCodePlaceholder')}
                   maxLength={10}
                   value={formData.municipality_code}
                   onChange={e => setFormData({ ...formData, municipality_code: e.target.value.toUpperCase() })}
@@ -416,12 +414,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               {/* Description */}
               <div>
                 <label htmlFor="description" className={labelClasses}>
-                  Description
+                  {t('create.basicInformation.description')}
                 </label>
                 <textarea 
                   id="description"
                   rows={4} 
-                  placeholder="Describe this municipality..."
+                  placeholder={t('create.basicInformation.descriptionPlaceholder')}
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                   onFocus={() => setFocusedField('description')}
@@ -437,7 +435,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Logo / Avatar */}
                 <div>
-                  <label className={labelClasses}>Logo / Avatar</label>
+                  <label className={labelClasses}>{t('create.basicInformation.logoAvatar')}</label>
                   <div className="flex items-start gap-4">
                     <div 
                       className="relative group w-24 h-18 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -453,7 +451,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                       ) : (
                         <div className="text-center p-2">
                           <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
-                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                          <span className="text-[10px] text-[var(--brand-light)]/40">{t('create.basicInformation.upload')}</span>
                         </div>
                       )}
                     </div>
@@ -464,7 +462,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                           onClick={() => avatarRef.current?.click()}
                           className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                         >
-                          Choose File
+                          {t('create.basicInformation.chooseFile')}
                         </button>
                         {avatarPreview && (
                           <button 
@@ -472,11 +470,11 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                             onClick={() => handleRemoveImage('avatar')}
                             className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" /> Remove
+                            <X className="h-3 w-3" /> {t('create.basicInformation.remove')}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--brand-light)]/40">400x300px (JPG, PNG)</p>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('create.basicInformation.avatarSize')}</p>
                     </div>
                     <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'avatar')} />
                   </div>
@@ -484,7 +482,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
 
                 {/* Hero Image */}
                 <div>
-                  <label className={labelClasses}>Hero Image</label>
+                  <label className={labelClasses}>{t('create.basicInformation.heroImage')}</label>
                   <div className="flex items-start gap-4">
                     <div 
                       className="relative group w-24 h-18 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -500,7 +498,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                       ) : (
                         <div className="text-center p-2">
                           <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
-                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                          <span className="text-[10px] text-[var(--brand-light)]/40">{t('create.basicInformation.upload')}</span>
                         </div>
                       )}
                     </div>
@@ -511,7 +509,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                           onClick={() => heroRef.current?.click()}
                           className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                         >
-                          Choose File
+                          {t('create.basicInformation.chooseFile')}
                         </button>
                         {heroPreview && (
                           <button 
@@ -519,11 +517,11 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                             onClick={() => handleRemoveImage('hero')}
                             className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" /> Remove
+                            <X className="h-3 w-3" /> {t('create.basicInformation.remove')}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--brand-light)]/40">1200x400px (JPG, PNG)</p>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('create.basicInformation.heroSize')}</p>
                     </div>
                     <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'hero')} />
                   </div>
@@ -541,8 +539,8 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact & Socials</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Contact information and social media links</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('create.contactSocials.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('create.contactSocials.description')}</p>
                 </div>
               </div>
             </div>
@@ -553,12 +551,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                 <div>
                   <label htmlFor="email" className={labelClasses}>
                     <Mail className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
-                    Email
+                    {t('create.contactSocials.email')}
                   </label>
                   <input 
                     id="email"
                     type="email"
-                    placeholder="contact@city.se"
+                    placeholder={t('create.contactSocials.emailPlaceholder')}
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                     onFocus={() => setFocusedField('email')}
@@ -569,12 +567,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                 <div>
                   <label htmlFor="phone" className={labelClasses}>
                     <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                    Phone
+                    {t('create.contactSocials.phone')}
                   </label>
                   <input 
                     id="phone"
                     type="tel"
-                    placeholder="+46..."
+                    placeholder={t('create.contactSocials.phonePlaceholder')}
                     value={formData.phone}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                     onFocus={() => setFocusedField('phone')}
@@ -587,12 +585,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               <div>
                 <label htmlFor="website_link" className={labelClasses}>
                   <LinkIcon className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
-                  Website
+                  {t('create.contactSocials.website')}
                 </label>
                 <input 
                   id="website_link"
                   type="url"
-                  placeholder="https://..."
+                  placeholder={t('create.contactSocials.websitePlaceholder')}
                   value={formData.website_link}
                   onChange={e => setFormData({ ...formData, website_link: e.target.value })}
                   onFocus={() => setFocusedField('website_link')}
@@ -607,19 +605,19 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               {/* Social Media Header */}
               <div className="flex items-center gap-2 text-[var(--brand-light)]/70">
                 <Globe className="w-4 h-4 text-[var(--brand-purple)]" />
-                <span className="text-sm font-medium">Social Media</span>
+                <span className="text-sm font-medium">{t('create.contactSocials.socialMedia')}</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="facebook" className={labelClasses}>
                     <Facebook className="w-3.5 h-3.5 inline mr-1.5 text-[#1877F2]" />
-                    Facebook URL
+                    {t('create.contactSocials.facebookUrl')}
                   </label>
                   <input 
                     id="facebook"
                     type="url"
-                    placeholder="https://facebook.com/..."
+                    placeholder={t('create.contactSocials.facebookPlaceholder')}
                     value={formData.facebook}
                     onChange={e => setFormData({ ...formData, facebook: e.target.value })}
                     onFocus={() => setFocusedField('facebook')}
@@ -630,12 +628,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                 <div>
                   <label htmlFor="instagram" className={labelClasses}>
                     <Instagram className="w-3.5 h-3.5 inline mr-1.5 text-[#E4405F]" />
-                    Instagram URL
+                    {t('create.contactSocials.instagramUrl')}
                   </label>
                   <input 
                     id="instagram"
                     type="url"
-                    placeholder="https://instagram.com/..."
+                    placeholder={t('create.contactSocials.instagramPlaceholder')}
                     value={formData.instagram}
                     onChange={e => setFormData({ ...formData, instagram: e.target.value })}
                     onFocus={() => setFocusedField('instagram')}
@@ -656,8 +654,8 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                   <Shield className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Settings</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Registration rules and legal requirements</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('create.settings.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('create.settings.description')}</p>
                 </div>
               </div>
             </div>
@@ -671,8 +669,8 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                     <Users className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
                   <div>
-                    <div className="font-medium text-[var(--brand-light)]">Self Registration</div>
-                    <div className="text-sm text-[var(--brand-light)]/50">Allow users to register freely via the app</div>
+                    <div className="font-medium text-[var(--brand-light)]">{t('create.settings.selfRegistration')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/50">{t('create.settings.selfRegistrationDescription')}</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -693,8 +691,8 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                     <Shield className="w-4 h-4 text-[var(--brand-peach)]" />
                   </div>
                   <div>
-                    <div className="font-medium text-[var(--brand-light)]">Require Guardian</div>
-                    <div className="text-sm text-[var(--brand-light)]/50">Youths must link a guardian upon registration</div>
+                    <div className="font-medium text-[var(--brand-light)]">{t('create.settings.requireGuardian')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/50">{t('create.settings.requireGuardianDescription')}</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -715,12 +713,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
               <div>
                 <label htmlFor="terms_and_conditions" className={labelClasses}>
                   <FileText className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-light)]/50" />
-                  Terms & Conditions
+                  {t('create.settings.termsConditions')}
                 </label>
                 <textarea 
                   id="terms_and_conditions"
                   rows={6} 
-                  placeholder="Legal text shown to users during registration..."
+                  placeholder={t('create.settings.termsConditionsPlaceholder')}
                   value={formData.terms_and_conditions}
                   onChange={e => setFormData({ ...formData, terms_and_conditions: e.target.value })}
                   onFocus={() => setFocusedField('terms_and_conditions')}
@@ -741,8 +739,8 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                     <Crown className="w-5 h-5 text-[var(--dark-900)]" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">License & Limits</h2>
-                    <p className="text-sm text-[var(--brand-light)]/50">Configure subscription plan and club limits</p>
+                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('create.license.title')}</h2>
+                    <p className="text-sm text-[var(--brand-light)]/50">{t('create.license.description')}</p>
                   </div>
                 </div>
               </div>
@@ -754,7 +752,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                   <div>
                     <label htmlFor="plan_id" className={labelClasses}>
                       <Package className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
-                      Subscription Plan
+                      {t('create.license.subscriptionPlan')}
                     </label>
                     <select 
                       id="plan_id"
@@ -770,27 +768,27 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                         backgroundSize: '1rem'
                       }}
                     >
-                      <option value="">Select a Plan</option>
+                      <option value="">{t('create.license.selectPlan')}</option>
                       {plans.map(plan => (
                         <option key={plan.id} value={plan.id}>
                           {plan.name} ({plan.monthly_price_sek} SEK/mo)
                         </option>
                       ))}
                     </select>
-                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">Determines which features are active for this municipality.</p>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">{t('create.license.planDescription')}</p>
                   </div>
 
                   {/* Max Clubs */}
                   <div>
                     <label htmlFor="max_clubs" className={labelClasses}>
                       <Building2 className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-sky)]" />
-                      Max Allowed Clubs
+                      {t('create.license.maxAllowedClubs')}
                     </label>
                     <input 
                       id="max_clubs"
                       type="number"
                       min={1}
-                      placeholder="3"
+                      placeholder={t('create.license.maxClubsPlaceholder')}
                       value={formData.max_clubs}
                       onChange={e => setFormData({ ...formData, max_clubs: parseInt(e.target.value) || 1 })}
                       onFocus={() => setFocusedField('max_clubs')}
@@ -798,10 +796,10 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                       className={inputClasses('max_clubs')}
                     />
                     <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">
-                      Limit on how many clubs they can create.
+                      {t('create.license.maxClubsDescription')}
                       {initialData?.license_status && (
                         <span className="ml-1 text-[var(--brand-primary)]">
-                          Currently using {initialData.license_status.clubs_used} of {initialData.license_status.max_clubs}.
+                          {t('create.license.currentlyUsing', { used: initialData.license_status.clubs_used, max: initialData.license_status.max_clubs })}
                         </span>
                       )}
                     </p>
@@ -814,7 +812,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                   <div>
                     <label htmlFor="license_end_date" className={labelClasses}>
                       <Crown className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                      License Expiry Date
+                      {t('create.license.licenseExpiryDate')}
                     </label>
                     <input 
                       id="license_end_date"
@@ -825,20 +823,20 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                       onBlur={() => setFocusedField(null)}
                       className={inputClasses('license_end_date')}
                     />
-                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">When the license expires. Default is 1 year from today.</p>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">{t('create.license.licenseExpiryDescription')}</p>
                   </div>
 
                   {/* License Active Status */}
                   <div>
                     <label className={labelClasses}>
                       <Shield className="w-3.5 h-3.5 inline mr-1.5 text-green-500" />
-                      License Status
+                      {t('create.license.licenseStatus')}
                     </label>
                     <div className="flex items-center justify-between p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${formData.license_is_active ? 'bg-green-500' : 'bg-red-500'}`} />
                         <span className="text-[var(--brand-light)]">
-                          {formData.license_is_active ? 'Active' : 'Inactive'}
+                          {formData.license_is_active ? t('create.license.active') : t('create.license.inactive')}
                         </span>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -851,7 +849,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                         <div className="w-11 h-6 bg-[var(--dark-500)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
                       </label>
                     </div>
-                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">Toggle to activate or deactivate the license.</p>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-1.5">{t('create.license.licenseStatusDescription')}</p>
                   </div>
                 </div>
 
@@ -861,10 +859,10 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${initialData.license_status.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
                       <span className="text-sm font-medium text-[var(--brand-light)]">
-                        Current Plan: <span className="text-[var(--brand-primary)]">{initialData.license_status.plan_name}</span>
+                        {t('create.license.currentPlan')}: <span className="text-[var(--brand-primary)]">{initialData.license_status.plan_name}</span>
                       </span>
                       <span className="text-xs text-[var(--brand-light)]/50 ml-auto">
-                        Expires: {initialData.license_status.expires_at}
+                        {t('create.license.expires')}: {initialData.license_status.expires_at}
                       </span>
                     </div>
                   </div>
@@ -881,7 +879,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                 onClick={() => router.push(redirectPath)} 
                 className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
               >
-                Cancel
+                {t('create.cancel')}
               </button>
               <button 
                 type="submit" 
@@ -891,12 +889,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-[var(--dark-900)]/20 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                    Saving...
+                    {t('create.saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    {initialData ? 'Save Changes' : 'Create Municipality'}
+                    {initialData ? t('create.saveChanges') : t('create.createMunicipality')}
                   </>
                 )}
               </button>
@@ -908,24 +906,16 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
         <div className="mt-6 p-4 bg-[var(--dark-800)]/50 rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
           <h3 className="text-sm font-semibold text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
-            Quick Tips
+            {t('create.quickTips')}
           </h3>
           <ul className="text-sm text-[var(--brand-light)]/50 space-y-1.5">
-            <li>• Municipality codes should be unique and easy to remember (e.g., STHM for Stockholm)</li>
-            <li>• Enable self-registration to allow users to sign up without admin approval</li>
-            <li>• Guardian requirements help ensure youth safety and parental involvement</li>
+            <li>• {t('create.tip1')}</li>
+            <li>• {t('create.tip2')}</li>
+            <li>• {t('create.tip3')}</li>
           </ul>
         </div>
       </div>
       
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        title={toast.title}
-        onClose={() => setToast({...toast, isVisible: false})} 
-        darkMode 
-      />
-    </div>
+      </div>
   );
 }

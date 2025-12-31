@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -10,7 +10,7 @@ import EventCard from '@/app/components/events/youth/EventCard';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { EventsPageSkeleton } from '@/app/components/ui/Skeleton';
-import YouthFooter from '@/app/components/youth/YouthFooter';
+import Footer from '@/app/components/Footer';
 import { Search, Calendar, MapPin, Building2, X, UserCheck, Ticket, CalendarDays, ArrowUpDown, Clock, Repeat, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Event } from '@/types/event';
@@ -32,6 +32,9 @@ export default function YouthEventsPage() {
     const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [minLoadingComplete, setMinLoadingComplete] = useState(false);
+    
+    // Track if initial load from URL is done to prevent infinite loops
+    const isInitializedRef = useRef(false);
 
     // Minimum loading time for skeleton display
     useEffect(() => {
@@ -41,36 +44,35 @@ export default function YouthEventsPage() {
         return () => clearTimeout(timer);
     }, []);
     
-    // Initialize state from URL params
-    const [search, setSearch] = useState(searchParams.get('q') || '');
-    const [fromDate, setFromDate] = useState(searchParams.get('from') || '');
-    const [toDate, setToDate] = useState(searchParams.get('to') || '');
-    const [filterMyClub, setFilterMyClub] = useState(searchParams.get('club') === 'true');
-    const [filterMyMunicipality, setFilterMyMunicipality] = useState(searchParams.get('area') === 'true');
-    const [filterMyEvents, setFilterMyEvents] = useState(searchParams.get('attending') === 'true');
-    const [sortBy, setSortBy] = useState<SortOption>((searchParams.get('sort') as SortOption) || 'closest');
-    const [showDateFilters, setShowDateFilters] = useState(searchParams.get('from') || searchParams.get('to') ? true : false);
+    // Initialize state from URL params (only once on mount)
+    const [search, setSearch] = useState(() => searchParams.get('q') || '');
+    const [fromDate, setFromDate] = useState(() => searchParams.get('from') || '');
+    const [toDate, setToDate] = useState(() => searchParams.get('to') || '');
+    const [filterMyClub, setFilterMyClub] = useState(() => searchParams.get('club') === 'true');
+    const [filterMyMunicipality, setFilterMyMunicipality] = useState(() => searchParams.get('area') === 'true');
+    const [filterMyEvents, setFilterMyEvents] = useState(() => searchParams.get('attending') === 'true');
+    const [sortBy, setSortBy] = useState<SortOption>(() => (searchParams.get('sort') as SortOption) || 'closest');
+    const [showDateFilters, setShowDateFilters] = useState(() => !!(searchParams.get('from') || searchParams.get('to')));
     
     // Update URL when filters change
     const updateURL = useCallback((params: Record<string, string | boolean | null>) => {
-        const newParams = new URLSearchParams(searchParams.toString());
+        const newParams = new URLSearchParams();
         
         Object.entries(params).forEach(([key, value]) => {
-            if (value === null || value === '' || value === false) {
-                newParams.delete(key);
-            } else {
+            if (value !== null && value !== '' && value !== false) {
                 newParams.set(key, String(value));
             }
         });
         
         const newUrl = newParams.toString() ? `${pathname}?${newParams.toString()}` : pathname;
         router.replace(newUrl, { scroll: false });
-    }, [pathname, router, searchParams]);
+    }, [pathname, router]);
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await api.get('/events/');
+            // Fetch all events with a large page size to avoid pagination issues
+            const res = await api.get('/events/?page_size=1000');
             const all = res.data.results || res.data;
             setUpcomingEvents(all);
         } catch (err) {
@@ -116,8 +118,14 @@ export default function YouthEventsPage() {
     
     const userClubId = user?.preferred_club?.id || null;
 
-    // Update URL when filters change
+    // Update URL when filters change (skip on initial render)
     useEffect(() => {
+        // Skip URL update on initial render to prevent infinite loop
+        if (!isInitializedRef.current) {
+            isInitializedRef.current = true;
+            return;
+        }
+        
         const timeoutId = setTimeout(() => {
             updateURL({
                 q: search || null,
@@ -219,7 +227,8 @@ export default function YouthEventsPage() {
     const showSkeleton = loading || !minLoadingComplete;
 
     return (
-        <div className="min-h-screen bg-[var(--dark-900)]">
+        <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+            <div className="flex-1">
             <NavBar 
                 onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 showBackButton={true}
@@ -258,7 +267,7 @@ export default function YouthEventsPage() {
             <div className="pt-14 sm:pt-16">
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
-                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
                         <YouthSidebar activePath={pathname} darkMode={true} />
                     </aside>
                     
@@ -504,9 +513,10 @@ export default function YouthEventsPage() {
                     </div>
                 </div>
             </div>
+            </div>
             
             {/* Footer */}
-            <YouthFooter />
+            <Footer />
         </div>
     );
 }

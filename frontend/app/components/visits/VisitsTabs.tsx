@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Clock, BarChart3, Users } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function VisitsTabs({
   historyHref,
   analyticsHref
 }: VisitsTabsProps) {
+  const t = useTranslations('clubVisits.tabs');
   const pathname = usePathname();
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabRefs = useRef<{ [key: string]: HTMLAnchorElement | HTMLButtonElement | null }>({});
@@ -71,22 +73,22 @@ export default function VisitsTabs({
   const tabs = [
     {
       key: 'live',
-      label: 'Live',
-      fullLabel: 'Live Attendance',
+      label: t('live'),
+      fullLabel: t('liveAttendance'),
       icon: Users,
       href: getLiveHref(),
     },
     {
       key: 'history',
-      label: 'History',
-      fullLabel: 'History Log',
+      label: t('history'),
+      fullLabel: t('historyLog'),
       icon: Clock,
       href: getHistoryHref(),
     },
     {
       key: 'analytics',
-      label: 'Analytics',
-      fullLabel: 'Analytics',
+      label: t('analytics'),
+      fullLabel: t('analytics'),
       icon: BarChart3,
       href: getAnalyticsHref(),
     },

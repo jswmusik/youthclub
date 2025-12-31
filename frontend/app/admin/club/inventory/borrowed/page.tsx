@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -74,6 +75,7 @@ export default function ClubBorrowedItemsPage() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { user } = useAuth();
+    const t = useTranslations('inventoryAdmin.borrowed');
     
     const [sessions, setSessions] = useState([]);
     const [items, setItems] = useState<Item[]>([]);
@@ -83,7 +85,7 @@ export default function ClubBorrowedItemsPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [returningItemId, setReturningItemId] = useState<number | null>(null);
     const [showReturnModal, setShowReturnModal] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean } | null>(null);
+    const { success, error, info, warning } = useToast();
     
     // Filter state
     const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -188,13 +190,13 @@ export default function ClubBorrowedItemsPage() {
         
         try {
             await inventoryApi.returnItem(returningItemId);
-            setToast({ message: 'Item returned successfully', type: 'success', isVisible: true });
+            success(t('toast.itemReturned'));
             setShowReturnModal(false);
             setReturningItemId(null);
             loadBorrowedItems();
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || 'Failed to return item';
-            setToast({ message: errorMessage, type: 'error', isVisible: true });
+            const errorMessage = error.response?.data?.error || t('toast.failedToReturn');
+            error(errorMessage);
         }
     };
 
@@ -251,9 +253,9 @@ export default function ClubBorrowedItemsPage() {
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
                                 <Users className="w-5 h-5 text-white" />
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Currently Borrowed</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                         </div>
-                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">View all items that are currently borrowed.</p>
+                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
                     </div>
                 </div>
 
@@ -268,7 +270,7 @@ export default function ClubBorrowedItemsPage() {
                                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                                     <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                                 </div>
-                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
                             </div>
                             {analyticsExpanded ? (
                                 <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
@@ -286,7 +288,7 @@ export default function ClubBorrowedItemsPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                             <Package className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_borrowed}</div>
                                 </div>
@@ -297,7 +299,7 @@ export default function ClubBorrowedItemsPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-red)] to-[#F87171] flex items-center justify-center">
                                             <AlertCircle className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Overdue</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.overdue')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.overdue}</div>
                                 </div>
@@ -308,7 +310,7 @@ export default function ClubBorrowedItemsPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                                             <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">On Time</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.onTime')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.on_time}</div>
                                 </div>
@@ -319,7 +321,7 @@ export default function ClubBorrowedItemsPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                                             <Clock className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Active</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.active')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.active_loans}</div>
                                 </div>
@@ -337,9 +339,9 @@ export default function ClubBorrowedItemsPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-semibold text-[var(--brand-red)]">
-                                    {overdueCount} item{overdueCount !== 1 ? 's' : ''} {overdueCount !== 1 ? 'are' : 'is'} overdue
+                                    {overdueCount === 1 ? t('overdueWarning.itemOverdue', { count: overdueCount }) : t('overdueWarning.itemsOverdue', { count: overdueCount })}
                                 </p>
-                                <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">Items highlighted in red are past their due date.</p>
+                                <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">{t('overdueWarning.highlightedMessage')}</p>
                             </div>
                         </div>
                     </div>
@@ -353,7 +355,7 @@ export default function ClubBorrowedItemsPage() {
                             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
                             <input 
                                 type="text"
-                                placeholder="Search by item or borrower..." 
+                                placeholder={t('searchPlaceholder')} 
                                 className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
@@ -377,7 +379,7 @@ export default function ClubBorrowedItemsPage() {
                                     onChange={e => setSelectedItemId(e.target.value)}
                                     style={selectArrowStyle}
                                 >
-                                    <option value="">All Items</option>
+                                    <option value="">{t('filters.allItems')}</option>
                                     {items.map((item) => (
                                         <option key={item.id} value={item.id}>
                                             {item.title}
@@ -390,7 +392,7 @@ export default function ClubBorrowedItemsPage() {
                                     onClick={clearFilters}
                                     className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
                                 >
-                                    <X className="h-4 w-4" /> Clear
+                                    <X className="h-4 w-4" /> {t('filters.clear')}
                                 </button>
                             )}
                         </div>
@@ -401,7 +403,7 @@ export default function ClubBorrowedItemsPage() {
                 {!showSkeleton && sessions.length > 0 && (
                     <div className="px-4 sm:px-0">
                         <p className="text-sm text-[var(--brand-light)]/50">
-                            Showing <span className="text-[var(--brand-primary)] font-semibold">{sessions.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> borrowed {totalCount === 1 ? 'item' : 'items'}
+                            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{sessions.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {t('statsBar.borrowed')} {totalCount === 1 ? t('statsBar.item') : t('statsBar.items')}
                         </p>
                     </div>
                 )}
@@ -421,13 +423,13 @@ export default function ClubBorrowedItemsPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[var(--dark-600)]">
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Borrower</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time Out</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Due Date</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time In</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.item')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.borrower')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.timeOut')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.dueDate')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.timeIn')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -443,8 +445,8 @@ export default function ClubBorrowedItemsPage() {
                         <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                             <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
                         </div>
-                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No borrowed items</h3>
-                        <p className="text-[var(--brand-light)]/50 text-sm">All items have been returned.</p>
+                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noBorrowedItems')}</h3>
+                        <p className="text-[var(--brand-light)]/50 text-sm">{t('emptyState.allItemsReturned')}</p>
                     </div>
                 ) : (
                     <LendingHistoryTable 
@@ -462,17 +464,17 @@ export default function ClubBorrowedItemsPage() {
                             onClick={() => handlePageChange(currentPage - 1)}
                             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Previous
+                            {t('pagination.previous')}
                         </button>
                         <div className="text-sm text-[var(--brand-light)]/50">
-                            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
                         </div>
                         <button 
                             disabled={currentPage >= totalPages} 
                             onClick={() => handlePageChange(currentPage + 1)}
                             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Next
+                            {t('pagination.next')}
                         </button>
                     </div>
                 )}
@@ -485,23 +487,13 @@ export default function ClubBorrowedItemsPage() {
                         setReturningItemId(null);
                     }}
                     onConfirm={handleReturnConfirm}
-                    title="Return Item"
-                    message="Are you sure you want to mark this item as returned? This action cannot be undone."
-                    confirmButtonText="Return Item"
+                    title={t('modals.returnItem.title')}
+                    message={t('modals.returnItem.message')}
+                    confirmButtonText={t('modals.returnItem.confirm')}
                     variant="info"
                     darkMode={true}
                 />
 
-                {/* Toast Notification */}
-                {toast && (
-                    <Toast
-                        message={toast.message}
-                        type={toast.type}
-                        isVisible={toast.isVisible}
-                        onClose={() => setToast(null)}
-                        darkMode
-                    />
-                )}
             </div>
         </div>
     );

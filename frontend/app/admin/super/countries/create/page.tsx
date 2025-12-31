@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ArrowLeft, Upload, X, Globe, Flag, MapPin, Clock, Languages, Coins, Plus, CheckCircle2, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../../hooks/useToast';
 import { queueToastForNavigation } from '@/app/components/ToastProvider';
 
 interface FormData {
@@ -19,11 +20,12 @@ interface FormData {
 }
 
 export default function CreateCountryPage() {
+  const t = useTranslations('countriesAdmin');
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error'|'info'|'warning', isVisible: false, title: '' });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -80,9 +82,9 @@ export default function CreateCountryPage() {
       
       // Queue toast to show after navigation
       queueToastForNavigation(
-        `${formData.name} has been added to your platform.`,
+        t('create.toast.successMessage', { name: formData.name }),
         'success',
-        'Country Created!',
+        t('create.toast.successTitle'),
         2500
       );
       
@@ -90,12 +92,8 @@ export default function CreateCountryPage() {
 
     } catch (err: any) {
       console.error(err);
-      setToast({ 
-        message: 'Something went wrong. Please check your input and try again.', 
-        type: 'error', 
-        isVisible: true,
-        title: 'Operation Failed'
-      });
+      error(t('create.toast.errorMessage'), t('create.toast.errorTitle')
+      );
       setLoading(false);
     }
   };
@@ -159,10 +157,10 @@ export default function CreateCountryPage() {
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              Add New Country
+              {t('create.title')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              Set up a new country configuration for your platform
+              {t('create.description')}
             </p>
           </div>
         </div>
@@ -180,7 +178,7 @@ export default function CreateCountryPage() {
             aria-label="Form completion progress"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('create.formCompletion')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div 
@@ -189,7 +187,7 @@ export default function CreateCountryPage() {
               aria-valuenow={completionPercent}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label={`Form ${completionPercent}% complete`}
+              aria-label={`${t('create.formCompletion')} ${completionPercent}%`}
             >
               <div 
                 className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
@@ -199,7 +197,7 @@ export default function CreateCountryPage() {
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">All required fields completed!</span>
+                <span className="text-sm font-medium">{t('create.allFieldsCompleted')}</span>
               </div>
             )}
           </div>
@@ -216,7 +214,7 @@ export default function CreateCountryPage() {
             {/* Mobile: full width, Desktop: centered with max-width matching form */}
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('create.formCompletion')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div 
@@ -225,7 +223,7 @@ export default function CreateCountryPage() {
                 aria-valuenow={completionPercent}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label={`Form ${completionPercent}% complete`}
+                aria-label={`${t('create.formCompletion')} ${completionPercent}%`}
               >
                 <div 
                   className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out"
@@ -235,7 +233,7 @@ export default function CreateCountryPage() {
               {completionPercent === 100 && (
                 <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">All required fields completed!</span>
+                  <span className="text-sm font-medium">{t('create.allFieldsCompleted')}</span>
                 </div>
               )}
             </div>
@@ -254,8 +252,8 @@ export default function CreateCountryPage() {
                   <Globe className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Country Details</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter the basic information for this country</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('create.countryDetails')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('create.countryDetailsDescription')}</p>
                 </div>
               </div>
             </div>
@@ -267,7 +265,7 @@ export default function CreateCountryPage() {
               <div>
                 <label className={labelClasses}>
                   <Flag className="w-4 h-4 inline mr-2 text-[var(--brand-primary)]" />
-                  Country Flag / Avatar
+                  {t('create.flagAvatar')}
                 </label>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <div 
@@ -284,14 +282,14 @@ export default function CreateCountryPage() {
                     ) : (
                       <div className="text-center p-2">
                         <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
-                        <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                        <span className="text-[10px] text-[var(--brand-light)]/40">{t('create.upload')}</span>
                       </div>
                     )}
                   </div>
                   
                   <div className="flex-1 space-y-2">
                     <p className="text-sm text-[var(--brand-light)]/50">
-                      Upload a flag or representative image (400x300px recommended)
+                      {t('create.uploadFlag')}
                     </p>
                     <div className="flex gap-2">
                       <button 
@@ -299,7 +297,7 @@ export default function CreateCountryPage() {
                         onClick={() => fileInputRef.current?.click()}
                         className="px-4 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-sm font-medium rounded-xl hover:bg-[var(--dark-500)] transition-all"
                       >
-                        Choose File
+                        {t('create.chooseFile')}
                       </button>
                       {avatarPreview && (
                         <button 
@@ -307,7 +305,7 @@ export default function CreateCountryPage() {
                           onClick={handleRemoveImage}
                           className="px-4 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-sm font-medium rounded-xl hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                         >
-                          <X className="h-4 w-4" /> Remove
+                          <X className="h-4 w-4" /> {t('create.remove')}
                         </button>
                       )}
                     </div>
@@ -329,13 +327,13 @@ export default function CreateCountryPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="name" className={labelClasses}>
-                    Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('create.name')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="name"
                     type="text"
                     required 
-                    placeholder="e.g. Sweden"
+                    placeholder={t('create.namePlaceholder')}
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                     onFocus={() => setFocusedField('name')}
@@ -345,13 +343,13 @@ export default function CreateCountryPage() {
                 </div>
                 <div>
                   <label htmlFor="country_code" className={labelClasses}>
-                    Country Code (ISO) <span className="text-[var(--brand-primary)]">*</span>
+                    {t('create.countryCode')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="country_code"
                     type="text"
                     required 
-                    placeholder="e.g. SE"
+                    placeholder={t('create.countryCodePlaceholder')}
                     maxLength={5}
                     value={formData.country_code}
                     onChange={e => setFormData({ ...formData, country_code: e.target.value.toUpperCase() })}
@@ -365,13 +363,13 @@ export default function CreateCountryPage() {
               {/* Description */}
               <div>
                 <label htmlFor="description" className={labelClasses}>
-                  Description <span className="text-[var(--brand-primary)]">*</span>
+                  {t('create.description')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
                 <textarea 
                   id="description"
                   required 
                   rows={4} 
-                  placeholder="Brief description of this country/region..."
+                  placeholder={t('create.descriptionPlaceholder')}
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                   onFocus={() => setFocusedField('description')}
@@ -386,8 +384,8 @@ export default function CreateCountryPage() {
               {/* Regional Settings Header */}
               <div className="flex items-center gap-2 text-[var(--brand-light)]/70">
                 <MapPin className="w-4 h-4 text-[var(--brand-purple)]" />
-                <span className="text-sm font-medium">Regional Settings</span>
-                <span className="text-xs text-[var(--brand-light)]/40">(Optional)</span>
+                <span className="text-sm font-medium">{t('create.regionalSettings')}</span>
+                <span className="text-xs text-[var(--brand-light)]/40">{t('create.optional')}</span>
               </div>
 
               {/* Currency, Language, Timezone */}
@@ -395,12 +393,12 @@ export default function CreateCountryPage() {
                 <div>
                   <label htmlFor="currency_code" className={labelClasses}>
                     <Coins className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-peach)]" />
-                    Currency
+                    {t('create.currency')}
                   </label>
                   <input 
                     id="currency_code"
                     type="text"
-                    placeholder="e.g. SEK"
+                    placeholder={t('create.currencyPlaceholder')}
                     value={formData.currency_code}
                     onChange={e => setFormData({ ...formData, currency_code: e.target.value.toUpperCase() })}
                     onFocus={() => setFocusedField('currency_code')}
@@ -411,12 +409,12 @@ export default function CreateCountryPage() {
                 <div>
                   <label htmlFor="default_language" className={labelClasses}>
                     <Languages className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
-                    Language
+                    {t('create.language')}
                   </label>
                   <input 
                     id="default_language"
                     type="text"
-                    placeholder="e.g. sv"
+                    placeholder={t('create.languagePlaceholder')}
                     value={formData.default_language}
                     onChange={e => setFormData({ ...formData, default_language: e.target.value })}
                     onFocus={() => setFocusedField('default_language')}
@@ -427,12 +425,12 @@ export default function CreateCountryPage() {
                 <div>
                   <label htmlFor="timezone" className={labelClasses}>
                     <Clock className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                    Timezone
+                    {t('create.timezone')}
                   </label>
                   <input 
                     id="timezone"
                     type="text"
-                    placeholder="e.g. Europe/Stockholm"
+                    placeholder={t('create.timezonePlaceholder')}
                     value={formData.timezone}
                     onChange={e => setFormData({ ...formData, timezone: e.target.value })}
                     onFocus={() => setFocusedField('timezone')}
@@ -450,7 +448,7 @@ export default function CreateCountryPage() {
                 onClick={() => router.push('/admin/super/countries')} 
                 className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
               >
-                Cancel
+                {t('create.cancel')}
               </button>
               <button 
                 type="submit" 
@@ -460,12 +458,12 @@ export default function CreateCountryPage() {
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-[var(--dark-900)]/20 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                    Saving...
+                    {t('create.saving')}
                   </>
                 ) : (
                   <>
                     <Plus className="w-4 h-4" />
-                    Create Country
+                    {t('create.createCountry')}
                   </>
                 )}
               </button>
@@ -477,24 +475,16 @@ export default function CreateCountryPage() {
         <div className="mt-6 p-4 bg-[var(--dark-800)]/50 rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
           <h3 className="text-sm font-semibold text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
-            Quick Tips
+            {t('create.quickTips')}
           </h3>
           <ul className="text-sm text-[var(--brand-light)]/50 space-y-1.5">
-            <li>• Use the official ISO 3166-1 alpha-2 country code (e.g., SE for Sweden)</li>
-            <li>• Currency codes follow ISO 4217 standard (e.g., SEK, EUR, USD)</li>
-            <li>• Timezones use IANA format (e.g., Europe/Stockholm)</li>
+            <li>• {t('create.tip1')}</li>
+            <li>• {t('create.tip2')}</li>
+            <li>• {t('create.tip3')}</li>
           </ul>
         </div>
       </div>
       
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        title={toast.title}
-        onClose={() => setToast({...toast, isVisible: false})} 
-        darkMode 
-      />
-    </div>
+      </div>
   );
 }

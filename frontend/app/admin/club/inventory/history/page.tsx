@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
@@ -80,6 +81,7 @@ export default function InventoryHistoryPage() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { user } = useAuth();
+    const t = useTranslations('inventoryAdmin.clubHistory');
     
     const [sessions, setSessions] = useState([]);
     const [items, setItems] = useState<Item[]>([]);
@@ -232,7 +234,7 @@ export default function InventoryHistoryPage() {
             <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-[var(--brand-light)]/60">Loading club data...</p>
+                    <p className="text-[var(--brand-light)]/60">{t('loadingClubData')}</p>
                 </div>
             </div>
         );
@@ -254,9 +256,9 @@ export default function InventoryHistoryPage() {
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                 <History className="w-5 h-5 text-white" />
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Lending History</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                         </div>
-                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">See who borrowed items and when.</p>
+                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
                     </div>
                 </div>
 
@@ -271,7 +273,7 @@ export default function InventoryHistoryPage() {
                                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                                     <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                                 </div>
-                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
                             </div>
                             {analyticsExpanded ? (
                                 <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
@@ -289,7 +291,7 @@ export default function InventoryHistoryPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                             <Package className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_borrowed}</div>
                                 </div>
@@ -300,19 +302,19 @@ export default function InventoryHistoryPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                                             <UsersRound className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Demographics</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.demographics')}</span>
                                     </div>
                                     <div className="space-y-1">
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-[var(--brand-light)]/50">Male:</span>
+                                            <span className="text-[var(--brand-light)]/50">{t('analytics.male')}</span>
                                             <span className="font-bold text-[var(--brand-light)]">{analytics.borrowed_male}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-[var(--brand-light)]/50">Female:</span>
+                                            <span className="text-[var(--brand-light)]/50">{t('analytics.female')}</span>
                                             <span className="font-bold text-[var(--brand-light)]">{analytics.borrowed_female}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-[var(--brand-light)]/50">Other:</span>
+                                            <span className="text-[var(--brand-light)]/50">{t('analytics.other')}</span>
                                             <span className="font-bold text-[var(--brand-light)]">{analytics.borrowed_other}</span>
                                         </div>
                                     </div>
@@ -324,7 +326,7 @@ export default function InventoryHistoryPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                                             <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Returned</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.returned')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.returned}</div>
                                 </div>
@@ -335,7 +337,7 @@ export default function InventoryHistoryPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                                             <Clock className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Active</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.active')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.active}</div>
                                 </div>
@@ -352,7 +354,7 @@ export default function InventoryHistoryPage() {
                             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
                             <input 
                                 type="text"
-                                placeholder="Search by item or borrower..." 
+                                placeholder={t('searchPlaceholder')} 
                                 className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
@@ -376,7 +378,7 @@ export default function InventoryHistoryPage() {
                                     onChange={e => setSelectedItemId(e.target.value)}
                                     style={selectArrowStyle}
                                 >
-                                    <option value="">All Items</option>
+                                    <option value="">{t('filters.allItems')}</option>
                                     {items.map((item) => (
                                         <option key={item.id} value={item.id}>
                                             {item.title}
@@ -412,7 +414,7 @@ export default function InventoryHistoryPage() {
                                     onClick={clearFilters}
                                     className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
                                 >
-                                    <X className="h-4 w-4" /> Clear
+                                    <X className="h-4 w-4" /> {t('filters.clear')}
                                 </button>
                             )}
                         </div>
@@ -423,7 +425,7 @@ export default function InventoryHistoryPage() {
                 {!showSkeleton && sessions.length > 0 && (
                     <div className="px-4 sm:px-6">
                         <p className="text-sm text-[var(--brand-light)]/50">
-                            Showing <span className="text-[var(--brand-primary)] font-semibold">{sessions.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'record' : 'records'}
+                            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{sessions.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.record') : t('statsBar.records')}
                         </p>
                     </div>
                 )}
@@ -443,12 +445,12 @@ export default function InventoryHistoryPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[var(--dark-600)]">
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Borrower</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time Out</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Due Date</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time In</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.item')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.borrower')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.timeOut')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.dueDate')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.timeIn')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -471,17 +473,17 @@ export default function InventoryHistoryPage() {
                             onClick={() => handlePageChange(currentPage - 1)}
                             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Previous
+                            {t('pagination.previous')}
                         </button>
                         <div className="text-sm text-[var(--brand-light)]/50">
-                            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
                         </div>
                         <button 
                             disabled={currentPage >= totalPages} 
                             onClick={() => handlePageChange(currentPage + 1)}
                             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Next
+                            {t('pagination.next')}
                         </button>
                     </div>
                 )}

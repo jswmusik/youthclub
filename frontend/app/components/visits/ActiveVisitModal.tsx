@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { visits } from '@/lib/api';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface Props {
   isOpen: boolean;
@@ -19,11 +19,7 @@ interface Props {
 export default function ActiveVisitModal({ isOpen, onClose, visit, onCheckout }: Props) {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
 
   useEffect(() => {
     setMounted(true);
@@ -36,17 +32,13 @@ export default function ActiveVisitModal({ isOpen, onClose, visit, onCheckout }:
     setLoading(true);
     try {
       await visits.checkOut(visit.id);
-      setToast({ message: "Checked out successfully 👋", type: 'success', isVisible: true });
+      success("Checked out successfully 👋");
       onCheckout(); // Tell parent to clear the state
       setTimeout(() => {
         onClose();
       }, 1000);
     } catch (error: any) {
-      setToast({ 
-        message: error.response?.data?.error || "Failed to check out", 
-        type: 'error', 
-        isVisible: true 
-      });
+      error(error.response?.data?.error || "Failed to check out");
       setLoading(false);
     }
   };
@@ -125,12 +117,6 @@ export default function ActiveVisitModal({ isOpen, onClose, visit, onCheckout }:
       </div>
 
       {/* Toast Notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-      />
     </>
   );
 

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../../../hooks/useToast';
 import { Save, Loader2, DollarSign, Package, Sparkles, AlertCircle, Building2, BarChart3, Percent } from 'lucide-react';
 import Skeleton from '@/app/components/ui/Skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,8 @@ interface GlobalPricing {
 }
 
 export default function FeaturePricingPage() {
+  const t = useTranslations('featurePricing');
+  const tPlans = useTranslations('plans');
   const [features, setFeatures] = useState<Feature[]>([]);
   const [globalPricing, setGlobalPricing] = useState<GlobalPricing | null>(null);
   const [editedPricing, setEditedPricing] = useState<GlobalPricing | null>(null);
@@ -35,6 +38,31 @@ export default function FeaturePricingPage() {
   const [savingGlobal, setSavingGlobal] = useState(false);
   const [editedPrices, setEditedPrices] = useState<Record<number, number>>({});
   const { showToast } = useToast();
+
+  // Function to get translated feature name based on slug
+  const getFeatureDisplayName = (feature: Feature): string => {
+    const slugToKey: Record<string, string> = {
+      'posts': 'features.newsAndPosts',
+      'groups': 'features.interestGroups',
+      'learning': 'features.learningPlatform',
+      'custom_fields': 'features.customDataFields',
+      'visits': 'features.checkInSystem',
+      'events': 'features.eventsSystem',
+      'messenger': 'features.messengerAndChat',
+      'inventory': 'features.inventoryAndLending',
+      'bookings': 'features.facilityBookings',
+      'questionnaires': 'features.questionnairesAndVoting',
+      'rewards': 'features.rewardsAndGamification',
+      'analytics': 'features.analyticsDashboard',
+    };
+    
+    const translationKey = slugToKey[feature.slug];
+    if (translationKey) {
+      return tPlans(translationKey);
+    }
+    // Fallback to original name if slug not found
+    return feature.name;
+  };
 
   useEffect(() => {
     fetchData();
@@ -60,7 +88,7 @@ export default function FeaturePricingPage() {
       setEditedPrices(prices);
     } catch (err) {
       console.error(err);
-      showToast('Failed to load pricing data', 'error');
+      showToast(t('toast.failedToLoadPricingData'), 'error');
     } finally {
       setLoading(false);
     }
@@ -74,7 +102,7 @@ export default function FeaturePricingPage() {
   const savePrice = async (feature: Feature) => {
     const newPrice = editedPrices[feature.id];
     if (newPrice === feature.monthly_price_sek) {
-      showToast('No changes to save', 'info');
+      showToast(t('toast.noChangesToSave'), 'info');
       return;
     }
 
@@ -86,10 +114,10 @@ export default function FeaturePricingPage() {
       setFeatures(prev => prev.map(f => 
         f.id === feature.id ? { ...f, monthly_price_sek: newPrice } : f
       ));
-      showToast(`${feature.name} price updated to ${newPrice} SEK/mo`, 'success');
+      showToast(t('toast.priceUpdated', { featureName: getFeatureDisplayName(feature), price: newPrice }), 'success');
     } catch (error) {
       console.error(error);
-      showToast('Failed to update price', 'error');
+      showToast(t('toast.failedToUpdatePrice'), 'error');
     } finally {
       setSaving(null);
     }
@@ -102,10 +130,10 @@ export default function FeaturePricingPage() {
     try {
       await api.post('/licensing/pricing/', editedPricing);
       setGlobalPricing(editedPricing);
-      showToast('Global pricing updated successfully', 'success');
+      showToast(t('toast.globalPricingUpdatedSuccessfully'), 'success');
     } catch (error) {
       console.error(error);
-      showToast('Failed to update global pricing', 'error');
+      showToast(t('toast.failedToUpdateGlobalPricing'), 'error');
     } finally {
       setSavingGlobal(false);
     }
@@ -149,15 +177,15 @@ export default function FeaturePricingPage() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[var(--brand-light)]">Pricing Configuration</h1>
-        <p className="text-[var(--brand-light)]/60 mt-1">Set prices for features, clubs, and other add-ons</p>
+        <h1 className="text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+        <p className="text-[var(--brand-light)]/60 mt-1">{t('description')}</p>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Total Features</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalFeatures')}</CardTitle>
             <Package className="h-4 w-4 text-[var(--brand-primary)]" />
           </CardHeader>
           <CardContent>
@@ -166,7 +194,7 @@ export default function FeaturePricingPage() {
         </Card>
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Free (Core)</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.freeCore')}</CardTitle>
             <Sparkles className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -175,7 +203,7 @@ export default function FeaturePricingPage() {
         </Card>
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Paid Add-ons</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.paidAddons')}</CardTitle>
             <DollarSign className="h-4 w-4 text-[var(--brand-primary)]" />
           </CardHeader>
           <CardContent>
@@ -189,10 +217,10 @@ export default function FeaturePricingPage() {
         <CardHeader>
           <CardTitle className="text-[var(--brand-light)] flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-[var(--brand-primary)]" />
-            Global Pricing Settings
+            {t('globalPricing.title')}
           </CardTitle>
           <CardDescription className="text-[var(--brand-light)]/60">
-            Set prices for clubs, analytics, and renewal discounts
+            {t('globalPricing.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -202,7 +230,7 @@ export default function FeaturePricingPage() {
               <div className="space-y-2">
                 <Label className="text-[var(--brand-light)] flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-[var(--brand-sky)]" />
-                  Extra Club Slot
+                  {t('globalPricing.extraClubSlot')}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input 
@@ -216,10 +244,10 @@ export default function FeaturePricingPage() {
                     })}
                     className="bg-[var(--dark-600)] border-[var(--dark-500)] text-[var(--brand-light)]"
                   />
-                  <span className="text-sm text-[var(--brand-light)]/50 whitespace-nowrap">kr/mo</span>
+                  <span className="text-sm text-[var(--brand-light)]/50 whitespace-nowrap">{t('currencyPerMonth')}</span>
                 </div>
                 <p className="text-xs text-[var(--brand-light)]/40">
-                  Monthly price per additional club slot
+                  {t('globalPricing.extraClubSlotDescription')}
                 </p>
               </div>
 
@@ -227,7 +255,7 @@ export default function FeaturePricingPage() {
               <div className="space-y-2">
                 <Label className="text-[var(--brand-light)] flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-[var(--brand-peach)]" />
-                  Analytics Package
+                  {t('globalPricing.analyticsPackage')}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input 
@@ -241,10 +269,10 @@ export default function FeaturePricingPage() {
                     })}
                     className="bg-[var(--dark-600)] border-[var(--dark-500)] text-[var(--brand-light)]"
                   />
-                  <span className="text-sm text-[var(--brand-light)]/50 whitespace-nowrap">kr/mo</span>
+                  <span className="text-sm text-[var(--brand-light)]/50 whitespace-nowrap">{t('currencyPerMonth')}</span>
                 </div>
                 <p className="text-xs text-[var(--brand-light)]/40">
-                  Monthly price for analytics add-on
+                  {t('globalPricing.analyticsPackageDescription')}
                 </p>
               </div>
 
@@ -252,7 +280,7 @@ export default function FeaturePricingPage() {
               <div className="space-y-2">
                 <Label className="text-[var(--brand-light)] flex items-center gap-2">
                   <Percent className="w-4 h-4 text-green-500" />
-                  Multi-Year Discount
+                  {t('globalPricing.multiYearDiscount')}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input 
@@ -270,7 +298,7 @@ export default function FeaturePricingPage() {
                   <span className="text-sm text-[var(--brand-light)]/50 whitespace-nowrap">%</span>
                 </div>
                 <p className="text-xs text-[var(--brand-light)]/40">
-                  Discount for 2+ year renewals
+                  {t('globalPricing.multiYearDiscountDescription')}
                 </p>
               </div>
             </div>
@@ -281,7 +309,7 @@ export default function FeaturePricingPage() {
               onClick={saveGlobalPricing}
               disabled={savingGlobal || !hasGlobalChanges()}
               className={hasGlobalChanges() 
-                ? "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90" 
+                ? "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-black hover:text-black" 
                 : "bg-[var(--dark-600)] text-[var(--brand-light)]/50"
               }
             >
@@ -290,7 +318,7 @@ export default function FeaturePricingPage() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Save Global Settings
+              {t('globalPricing.saveGlobalSettings')}
             </Button>
           </div>
         </CardContent>
@@ -301,10 +329,9 @@ export default function FeaturePricingPage() {
         <CardContent className="flex items-start gap-4 py-4">
           <AlertCircle className="w-5 h-5 text-[var(--brand-primary)] flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-[var(--brand-light)] font-medium">How Feature Pricing Works</p>
+            <p className="text-[var(--brand-light)] font-medium">{t('infoBanner.title')}</p>
             <p className="text-[var(--brand-light)]/70 text-sm mt-1">
-              Features with a price of <span className="font-semibold">0 SEK</span> are considered core features and included in all plans by default. 
-              Features with a price are add-ons that can be purchased separately or included in higher-tier plans.
+              {t('infoBanner.description', { price: t('infoBanner.corePrice') })}
             </p>
           </div>
         </CardContent>
@@ -313,19 +340,19 @@ export default function FeaturePricingPage() {
       {/* Feature Pricing Table */}
       <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
         <CardHeader>
-          <CardTitle className="text-[var(--brand-light)]">Feature Pricing</CardTitle>
+          <CardTitle className="text-[var(--brand-light)]">{t('featurePricing.title')}</CardTitle>
           <CardDescription className="text-[var(--brand-light)]/60">
-            Set individual prices for each feature. Changes are saved per feature.
+            {t('featurePricing.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--dark-600)] hover:bg-transparent">
-                <TableHead className="text-[var(--brand-light)]/70">Feature Name</TableHead>
-                <TableHead className="text-[var(--brand-light)]/70">Slug</TableHead>
-                <TableHead className="text-[var(--brand-light)]/70">Monthly Price (SEK)</TableHead>
-                <TableHead className="text-right text-[var(--brand-light)]/70">Action</TableHead>
+                <TableHead className="text-[var(--brand-light)]/70">{t('featurePricing.tableHeaders.featureName')}</TableHead>
+                <TableHead className="text-[var(--brand-light)]/70">{t('featurePricing.tableHeaders.slug')}</TableHead>
+                <TableHead className="text-[var(--brand-light)]/70">{t('featurePricing.tableHeaders.monthlyPrice')}</TableHead>
+                <TableHead className="text-right text-[var(--brand-light)]/70">{t('featurePricing.tableHeaders.action')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -336,10 +363,10 @@ export default function FeaturePricingPage() {
                 >
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-[var(--brand-light)]">{feature.name}</span>
+                      <span className="font-medium text-[var(--brand-light)]">{getFeatureDisplayName(feature)}</span>
                       {feature.monthly_price_sek === 0 && (
                         <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[10px]">
-                          Core
+                          {t('featurePricing.core')}
                         </Badge>
                       )}
                     </div>
@@ -359,10 +386,10 @@ export default function FeaturePricingPage() {
                         onChange={(e) => handlePriceChange(feature.id, e.target.value)}
                         className="w-32 bg-[var(--dark-600)] border-[var(--dark-500)] text-[var(--brand-light)]"
                       />
-                      <span className="text-sm text-[var(--brand-light)]/50">kr/mo</span>
+                      <span className="text-sm text-[var(--brand-light)]/50">{t('currencyPerMonth')}</span>
                       {hasChanges(feature.id) && (
                         <Badge variant="outline" className="border-yellow-500/50 text-yellow-400 text-[10px]">
-                          Modified
+                          {t('featurePricing.modified')}
                         </Badge>
                       )}
                     </div>
@@ -374,7 +401,7 @@ export default function FeaturePricingPage() {
                       onClick={() => savePrice(feature)}
                       disabled={saving === feature.id || !hasChanges(feature.id)}
                       className={hasChanges(feature.id) 
-                        ? "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white" 
+                        ? "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-black hover:text-black" 
                         : "text-[var(--brand-light)]/50"
                       }
                     >
@@ -383,7 +410,7 @@ export default function FeaturePricingPage() {
                       ) : (
                         <>
                           <Save className="w-4 h-4 mr-1" />
-                          Save
+                          {t('featurePricing.save')}
                         </>
                       )}
                     </Button>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { learningApi } from '@/lib/learning-api';
 import { Course, CourseChapter, LearningCategory } from '@/types/learning';
@@ -8,7 +9,7 @@ import { Plus, Search, Edit, Trash2, FolderOpen, Eye, BarChart3, ChevronUp, Chev
 import StatusBadge from './StatusBadge';
 import Link from 'next/link';
 import ConfirmationModal from '../ConfirmationModal';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -150,6 +151,7 @@ function SwipeableCard({ children, onClick, onEdit, onDelete }: SwipeableCardPro
 }
 
 export default function CourseManager() {
+    const t = useTranslations('knowledgeAdmin.courses');
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -162,7 +164,7 @@ export default function CourseManager() {
     const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
     const [itemToDelete, setItemToDelete] = useState<Course | null>(null);
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+    const { success, error, info, warning } = useToast();
     
     // Filter state
     const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -278,10 +280,10 @@ export default function CourseManager() {
         try {
             await learningApi.deleteCourse(itemToDelete.slug);
             setCourses(prev => prev.filter(c => c.slug !== itemToDelete.slug));
-            setToast({ message: 'Course deleted successfully!', type: 'success', isVisible: true });
+            success(t('toast.courseDeleted'));
             setItemToDelete(null);
         } catch (error) {
-            setToast({ message: 'Failed to delete course', type: 'error', isVisible: true });
+            error(t('toast.failedToDelete'));
         }
     };
 
@@ -364,9 +366,9 @@ export default function CourseManager() {
         if (!type) return <span className="text-sm text-[var(--brand-light)]/40">-</span>;
         
         const config = {
-            VIDEO: { icon: Video, bg: 'bg-[var(--brand-blue)]/20', text: 'text-[var(--brand-blue)]', border: 'border-[var(--brand-blue)]/30', label: 'Video' },
-            TEXT: { icon: FileText, bg: 'bg-[var(--brand-purple)]/20', text: 'text-[var(--brand-purple)]', border: 'border-[var(--brand-purple)]/30', label: 'Text' },
-            FILE: { icon: Download, bg: 'bg-[var(--brand-green)]/20', text: 'text-[var(--brand-green)]', border: 'border-[var(--brand-green)]/30', label: 'File' },
+            VIDEO: { icon: Video, bg: 'bg-[var(--brand-blue)]/20', text: 'text-[var(--brand-blue)]', border: 'border-[var(--brand-blue)]/30', label: t('types.VIDEO') },
+            TEXT: { icon: FileText, bg: 'bg-[var(--brand-purple)]/20', text: 'text-[var(--brand-purple)]', border: 'border-[var(--brand-purple)]/30', label: t('types.TEXT') },
+            FILE: { icon: Download, bg: 'bg-[var(--brand-green)]/20', text: 'text-[var(--brand-green)]', border: 'border-[var(--brand-green)]/30', label: t('types.FILE') },
         };
         
         const { icon: Icon, bg, text, border, label } = config[type];
@@ -388,19 +390,19 @@ export default function CourseManager() {
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                 <BookOpen className="w-5 h-5 text-white" />
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Knowledge Center</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                         </div>
-                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage courses, tutorials, and resources.</p>
+                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
                     </div>
                     <div className="flex flex-wrap gap-2 px-4 sm:px-0">
                         <Link href={`${basePath}/categories`}>
                             <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
-                                <FolderOpen className="h-4 w-4" /> Categories
+                                <FolderOpen className="h-4 w-4" /> {t('categories')}
                             </button>
                         </Link>
                         <Link href={`${basePath}/courses/create`}>
                             <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2 transition-all">
-                                <Plus className="h-4 w-4" /> New Course
+                                <Plus className="h-4 w-4" /> {t('newCourse')}
                             </button>
                         </Link>
                     </div>
@@ -417,7 +419,7 @@ export default function CourseManager() {
                                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                                     <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                                 </div>
-                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h3>
                             </div>
                             {analyticsExpanded ? (
                                 <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
@@ -435,7 +437,7 @@ export default function CourseManager() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                             <BookOpen className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_courses}</div>
                                 </div>
@@ -446,7 +448,7 @@ export default function CourseManager() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                                             <Video className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Video</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.video')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.video_courses}</div>
                                 </div>
@@ -457,7 +459,7 @@ export default function CourseManager() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[#A78BFA] flex items-center justify-center">
                                             <FileText className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Text</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.text')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-purple)]">{analytics.text_courses}</div>
                                 </div>
@@ -468,7 +470,7 @@ export default function CourseManager() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                                             <Download className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Files</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.files')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.file_resources}</div>
                                 </div>
@@ -485,7 +487,7 @@ export default function CourseManager() {
                             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
                             <input 
                                 type="text"
-                                placeholder="Search courses..." 
+                                placeholder={t('search.placeholder')}
                                 className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
@@ -509,10 +511,10 @@ export default function CourseManager() {
                                     onChange={e => setFilterType(e.target.value)}
                                     style={selectArrowStyle}
                                 >
-                                    <option value="">All Types</option>
-                                    <option value="VIDEO">Video</option>
-                                    <option value="TEXT">Text</option>
-                                    <option value="FILE">File</option>
+                                    <option value="">{t('search.allTypes')}</option>
+                                    <option value="VIDEO">{t('types.VIDEO')}</option>
+                                    <option value="TEXT">{t('types.TEXT')}</option>
+                                    <option value="FILE">{t('types.FILE')}</option>
                                 </select>
                             </div>
                             <div className="w-full sm:w-[180px]">
@@ -522,7 +524,7 @@ export default function CourseManager() {
                                     onChange={e => setFilterCategory(e.target.value)}
                                     style={selectArrowStyle}
                                 >
-                                    <option value="">All Categories</option>
+                                    <option value="">{t('search.allCategories')}</option>
                                     {categories.map(cat => (
                                         <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
                                     ))}
@@ -533,7 +535,7 @@ export default function CourseManager() {
                                     onClick={clearFilters}
                                     className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
                                 >
-                                    <X className="h-4 w-4" /> Clear All
+                                    <X className="h-4 w-4" /> {t('search.clearAll')}
                                 </button>
                             )}
                         </div>
@@ -544,7 +546,7 @@ export default function CourseManager() {
                 {!showSkeleton && paginatedCourses.length > 0 && (
                     <div className="px-4 sm:px-0">
                         <p className="text-sm text-[var(--brand-light)]/50">
-                            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedCourses.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{filteredCourses.length}</span> {filteredCourses.length === 1 ? 'course' : 'courses'}
+                            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{paginatedCourses.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{filteredCourses.length}</span> {t('statsBar.course', { count: filteredCourses.length })}
                         </p>
                     </div>
                 )}
@@ -564,12 +566,12 @@ export default function CourseManager() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[var(--dark-600)]">
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Category</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Scheduled</th>
-                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.title')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.type')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.category')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.scheduled')}</th>
+                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -585,9 +587,9 @@ export default function CourseManager() {
                         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center">
                             <BookOpen className="w-8 h-8 text-[var(--brand-light)]/30" />
                         </div>
-                        <p className="text-[var(--brand-light)]/50 mb-2">No courses found</p>
+                        <p className="text-[var(--brand-light)]/50 mb-2">{t('emptyState.noCoursesFound')}</p>
                         <p className="text-[var(--brand-light)]/30 text-sm">
-                            {hasFilters ? 'Try adjusting your filters' : 'Create your first course to get started'}
+                            {hasFilters ? t('emptyState.tryAdjustingFilters') : t('emptyState.createFirstCourse')}
                         </p>
                     </div>
                 ) : (
@@ -622,7 +624,7 @@ export default function CourseManager() {
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className="font-semibold text-[var(--brand-light)] truncate">{course.title}</h3>
                                                     <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">
-                                                        {course.category_name || 'Uncategorized'}
+                                                        {course.category_name || t('uncategorized')}
                                                     </p>
                                                     
                                                     {/* Badges */}
@@ -648,12 +650,12 @@ export default function CourseManager() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[var(--dark-600)]">
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Category</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Scheduled</th>
-                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.title')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.type')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.category')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                                        <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.scheduled')}</th>
+                                        <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -681,7 +683,7 @@ export default function CourseManager() {
                                                     <TypeBadge type={primaryType} />
                                                 </td>
                                                 <td className="py-4 px-6">
-                                                    <span className="text-sm text-[var(--brand-light)]/70">{course.category_name || '-'}</span>
+                                                    <span className="text-sm text-[var(--brand-light)]/70">{course.category_name || t('uncategorized')}</span>
                                                 </td>
                                                 <td className="py-4 px-6">
                                                     <StatusBadge status={course.status} />
@@ -700,7 +702,7 @@ export default function CourseManager() {
                                                         <button 
                                                             className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/20 transition-all flex items-center justify-center"
                                                             onClick={() => window.open(`${basePath}/courses/${course.slug}`, '_blank')}
-                                                            title="Preview course"
+                                                            title={t('actions.previewCourse')}
                                                         >
                                                             <Eye className="h-4 w-4" />
                                                         </button>
@@ -734,17 +736,17 @@ export default function CourseManager() {
                             onClick={() => handlePageChange(currentPage - 1)}
                             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Previous
+                            {t('actions.previous')}
                         </button>
                         <div className="text-sm text-[var(--brand-light)]/50">
-                            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                            {t('actions.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('actions.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
                         </div>
                         <button 
                             disabled={currentPage >= totalPages} 
                             onClick={() => handlePageChange(currentPage + 1)}
                             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Next
+                            {t('actions.next')}
                         </button>
                     </div>
                 )}
@@ -754,23 +756,16 @@ export default function CourseManager() {
                     isVisible={!!itemToDelete} 
                     onClose={() => setItemToDelete(null)} 
                     onConfirm={handleDelete} 
-                    title="Delete Course"
-                    message={`Are you sure you want to delete "${itemToDelete?.title}"? This action cannot be undone.`}
-                    confirmButtonText="Delete"
-                    cancelButtonText="Cancel"
+                    title={t('modals.deleteCourse.title')}
+                    message={t('modals.deleteCourse.message', { title: itemToDelete?.title })}
+                    confirmButtonText={t('modals.deleteCourse.confirm')}
+                    cancelButtonText={t('modals.deleteCourse.cancel')}
                     variant="danger"
                     darkMode
                 />
 
                 {/* Toast Notification */}
-                <Toast 
-                    message={toast.message} 
-                    type={toast.type} 
-                    isVisible={toast.isVisible} 
-                    onClose={() => setToast({ ...toast, isVisible: false })}
-                    darkMode
-                />
-            </div>
+                </div>
         </div>
     );
 }

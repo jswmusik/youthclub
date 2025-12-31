@@ -3,14 +3,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, Search, User, Mail, Phone, 
-  CheckCircle2, Lightbulb, Save, Users, Shield, Lock
+  CheckCircle2, Lightbulb, Save, Users, Shield, Lock,
+  FileText, Eye, Clock, XCircle, Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import CustomFieldsForm from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
 import { fetchGuardianRelationships, verifyGuardianRelationship, rejectGuardianRelationship, resetGuardianRelationship } from '../../lib/api';
@@ -28,11 +30,12 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: currentUser } = useAuth();
+  const t = useTranslations('guardianForm');
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -238,11 +241,11 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
       if (initialData) {
         await api.patch(`/users/${initialData.id}/`, data, config);
         userId = initialData.id;
-        setToast({ message: 'Guardian updated!', type: 'success', isVisible: true });
+        success(t('toast.guardianUpdated'));
       } else {
         const res = await api.post('/users/', data, config);
         userId = res.data.id;
-        setToast({ message: 'Guardian created!', type: 'success', isVisible: true });
+        success(t('toast.guardianCreated'));
       }
 
       if (Object.keys(customFieldValues).length > 0) {
@@ -259,7 +262,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
       setTimeout(() => router.push(redirectPath), 1000);
     } catch (err: any) {
       console.error(err);
-      let errorMsg = 'Operation failed. Please try again.';
+      let errorMsg = t('toast.operationFailed');
       if (err.response?.data) {
         if (err.response.data.detail) {
           errorMsg = err.response.data.detail;
@@ -273,7 +276,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           }
         }
       }
-      setToast({ message: errorMsg, type: 'error', isVisible: true });
+      error(errorMsg);
       setLoading(false);
     }
   };
@@ -322,10 +325,10 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Guardian' : 'Create New Guardian'}
+              {initialData ? t('editTitle') : t('createTitle')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              {initialData ? 'Update guardian information' : 'Configure profile and linked youth members'}
+              {initialData ? t('editDescription') : t('createDescription')}
             </p>
           </div>
         </div>
@@ -342,7 +345,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             aria-label="Form completion progress"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('progress.formCompletion')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -354,7 +357,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">All required fields completed!</span>
+                <span className="text-sm font-medium">{t('progress.allRequiredCompleted')}</span>
               </div>
             )}
           </div>
@@ -370,7 +373,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           >
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.formCompletion')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -382,7 +385,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
               {completionPercent === 100 && (
                 <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">All required fields completed!</span>
+                  <span className="text-sm font-medium">{t('progress.allRequiredCompleted')}</span>
                 </div>
               )}
             </div>
@@ -401,14 +404,14 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Profile Visuals</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Upload profile avatar image</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('profileVisuals.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('profileVisuals.description')}</p>
                 </div>
               </div>
             </div>
 
             <div className="p-6">
-              <label className={labelClasses}>Avatar</label>
+              <label className={labelClasses}>{t('profileVisuals.avatar')}</label>
               <div className="flex items-start gap-4">
                 <div 
                   className="relative group w-20 h-20 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -435,7 +438,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                       onClick={() => avatarRef.current?.click()}
                       className="px-4 py-2 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)] text-sm font-medium hover:bg-[var(--dark-500)] transition-colors"
                     >
-                      Choose File
+                      {t('profileVisuals.chooseFile')}
                     </button>
                     {avatarPreview && (
                       <button 
@@ -443,11 +446,11 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                         onClick={handleRemoveImage}
                         className="px-4 py-2 rounded-lg bg-[var(--brand-red)]/10 text-[var(--brand-red)] text-sm font-medium hover:bg-[var(--brand-red)]/20 transition-colors flex items-center gap-1"
                       >
-                        <X className="w-4 h-4" /> Remove
+                        <X className="w-4 h-4" /> {t('profileVisuals.remove')}
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-[var(--brand-light)]/40">Recommended: Square image, 400x400px</p>
+                  <p className="text-xs text-[var(--brand-light)]/40">{t('profileVisuals.uploadHint')}</p>
                 </div>
                 <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </div>
@@ -462,8 +465,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Identity</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter basic personal information</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('identity.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('identity.description')}</p>
                 </div>
               </div>
             </div>
@@ -471,7 +474,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClasses}>First Name <span className="text-[var(--brand-red)]">*</span></label>
+                  <label className={labelClasses}>{t('identity.firstName')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="text"
                     required
@@ -480,11 +483,11 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     onFocus={() => setFocusedField('first_name')}
                     onBlur={() => setFocusedField(null)}
                     className={inputClasses('first_name')}
-                    placeholder="Enter first name"
+                    placeholder={t('identity.firstNamePlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClasses}>Last Name <span className="text-[var(--brand-red)]">*</span></label>
+                  <label className={labelClasses}>{t('identity.lastName')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="text"
                     required
@@ -493,11 +496,11 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     onFocus={() => setFocusedField('last_name')}
                     onBlur={() => setFocusedField(null)}
                     className={inputClasses('last_name')}
-                    placeholder="Enter last name"
+                    placeholder={t('identity.lastNamePlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClasses}>Email <span className="text-[var(--brand-red)]">*</span></label>
+                  <label className={labelClasses}>{t('identity.email')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="email"
                     required
@@ -506,12 +509,12 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     onFocus={() => setFocusedField('email')}
                     onBlur={() => setFocusedField(null)}
                     className={inputClasses('email')}
-                    placeholder="email@example.com"
+                    placeholder={t('identity.emailPlaceholder')}
                   />
                 </div>
                 <div>
                   <label className={labelClasses}>
-                    {initialData ? 'New Password (Optional)' : 'Password'} 
+                    {initialData ? t('identity.newPasswordOptional') : t('identity.password')} 
                     {!initialData && <span className="text-[var(--brand-red)]">*</span>}
                   </label>
                   <input 
@@ -522,11 +525,11 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     onFocus={() => setFocusedField('password')}
                     onBlur={() => setFocusedField(null)}
                     className={inputClasses('password')}
-                    placeholder={initialData ? 'Leave blank to keep current' : 'Enter password'}
+                    placeholder={initialData ? t('identity.passwordPlaceholderEdit') : t('identity.passwordPlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClasses}>Phone Number</label>
+                  <label className={labelClasses}>{t('identity.phoneNumber')}</label>
                   <input 
                     type="tel"
                     value={formData.phone_number}
@@ -534,11 +537,11 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     onFocus={() => setFocusedField('phone')}
                     onBlur={() => setFocusedField(null)}
                     className={inputClasses('phone')}
-                    placeholder="+1 234 567 8900"
+                    placeholder={t('identity.phonePlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClasses}>Legal Gender</label>
+                  <label className={labelClasses}>{t('identity.legalGender')}</label>
                   <select 
                     value={formData.legal_gender}
                     onChange={e => setFormData({...formData, legal_gender: e.target.value})}
@@ -547,9 +550,9 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     className={selectClasses('gender')}
                     style={selectArrowStyle}
                   >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
+                    <option value="MALE">{t('identity.genderOptions.male')}</option>
+                    <option value="FEMALE">{t('identity.genderOptions.female')}</option>
+                    <option value="OTHER">{t('identity.genderOptions.other')}</option>
                   </select>
                 </div>
               </div>
@@ -564,8 +567,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <Shield className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Verification Status</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Set the verification status for this guardian</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('verificationStatus.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('verificationStatus.description')}</p>
                 </div>
               </div>
             </div>
@@ -573,9 +576,9 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             <div className="p-6">
               <div className="flex flex-wrap gap-3">
                 {[
-                  { value: 'UNVERIFIED', label: 'Unverified', color: 'var(--brand-red)' },
-                  { value: 'PENDING', label: 'Pending', color: 'var(--brand-peach)' },
-                  { value: 'VERIFIED', label: 'Verified', color: 'var(--brand-green)' }
+                  { value: 'UNVERIFIED', label: t('verificationStatus.unverified'), color: 'var(--brand-red)' },
+                  { value: 'PENDING', label: t('verificationStatus.pending'), color: 'var(--brand-peach)' },
+                  { value: 'VERIFIED', label: t('verificationStatus.verified'), color: 'var(--brand-green)' }
                 ].map(status => (
                   <button
                     key={status.value}
@@ -596,6 +599,17 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             </div>
           </div>
 
+          {/* ID Document Review Card (Edit Mode Only) */}
+          {initialData && initialData.id_document && (
+            <IdDocumentReviewSection 
+              initialData={initialData}
+              onReviewComplete={() => {
+                // Refresh the page to get updated data
+                window.location.reload();
+              }}
+            />
+          )}
+
           {/* Existing Relationships Card (Edit Mode Only) */}
           {initialData && relationships.length > 0 && (
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
@@ -605,8 +619,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     <Users className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Existing Relationships</h2>
-                    <p className="text-sm text-[var(--brand-light)]/50">Manage relationships with youth members</p>
+                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('existingRelationships.title')}</h2>
+                    <p className="text-sm text-[var(--brand-light)]/50">{t('existingRelationships.description')}</p>
                   </div>
                 </div>
               </div>
@@ -661,8 +675,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <Users className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Assign Youth Members</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Link this guardian to youth members</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('assignYouth.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('assignYouth.description')}</p>
                 </div>
               </div>
             </div>
@@ -676,7 +690,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                       key={y.id} 
                       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-white text-sm font-medium"
                     >
-                      {y.first_name} {y.last_name} {y.grade && `(Gr ${y.grade})`}
+                      {y.first_name} {y.last_name} {y.grade && `(${t('assignYouth.grade', { grade: y.grade })})`}
                       <button
                         type="button"
                         onClick={() => removeYouth(y.id)}
@@ -696,7 +710,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                   <input
                     type="text"
-                    placeholder="Search youth members by name or email..."
+                    placeholder={t('assignYouth.searchPlaceholder')}
                     value={youthSearchTerm}
                     onChange={(e) => {
                       setYouthSearchTerm(e.target.value);
@@ -724,18 +738,18 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                             className="w-full text-left px-4 py-3 hover:bg-[var(--dark-600)] transition-colors border-b border-[var(--dark-600)] last:border-b-0"
                           >
                             <div className="font-medium text-[var(--brand-light)]">{y.first_name} {y.last_name}</div>
-                            <div className="text-xs text-[var(--brand-light)]/50">{y.email} {y.grade && `• Grade ${y.grade}`}</div>
+                            <div className="text-xs text-[var(--brand-light)]/50">{y.email} {y.grade && `• ${t('assignYouth.grade', { grade: y.grade })}`}</div>
                           </button>
                         ))
                       ) : youthSearchTerm ? (
                         <div className="px-4 py-4 text-sm text-[var(--brand-light)]/50 text-center">
-                          No youth members found matching "{youthSearchTerm}"
+                          {t('assignYouth.noResults', { searchTerm: youthSearchTerm })}
                         </div>
                       ) : (
                         <div className="px-4 py-4 text-sm text-[var(--brand-light)]/50 text-center">
                           {formData.youth_members.length === 0 
-                            ? 'No youth members found. Create a youth member first.'
-                            : 'All youth members are already selected.'}
+                            ? t('assignYouth.noYouthFound')
+                            : t('assignYouth.allSelected')}
                         </div>
                       )}
                     </div>
@@ -753,8 +767,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <Lock className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Custom Fields</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Additional custom field values for this guardian</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('customFields.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('customFields.description')}</p>
                 </div>
               </div>
             </div>
@@ -780,8 +794,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <Lightbulb className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Helpful information for managing guardians</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('quickTips.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('quickTips.description')}</p>
                 </div>
               </div>
             </div>
@@ -790,15 +804,15 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
               <ul className="space-y-3 text-sm text-[var(--brand-light)]/70">
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-[var(--brand-third)] mt-0.5 flex-shrink-0" />
-                  <span>Guardians can be linked to multiple youth members</span>
+                  <span>{t('quickTips.tip1')}</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-[var(--brand-third)] mt-0.5 flex-shrink-0" />
-                  <span>Verified guardians have full access to their linked youth's information</span>
+                  <span>{t('quickTips.tip2')}</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-[var(--brand-third)] mt-0.5 flex-shrink-0" />
-                  <span>Phone numbers help with emergency contact situations</span>
+                  <span>{t('quickTips.tip3')}</span>
                 </li>
               </ul>
             </div>
@@ -811,7 +825,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
               onClick={() => router.push(redirectPath)}
               className="w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] transition-all"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button 
               type="submit"
@@ -821,32 +835,28 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                  Saving...
+                  {t('actions.saving')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  {initialData ? 'Update Guardian' : 'Create Guardian'}
+                  {initialData ? t('actions.updateGuardian') : t('actions.createGuardian')}
                 </>
               )}
             </button>
           </div>
         </form>
 
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
-      </div>
+        </div>
     </div>
   );
 }
 
 // Relationship Card Component for Edit Form
 function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any; youth: YouthOption; onUpdate: () => void }) {
+  const t = useTranslations('guardianForm.relationshipCard');
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
   const [showResetModal, setShowResetModal] = useState(false);
 
   const status = relationship.status || 'PENDING';
@@ -857,38 +867,28 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
     setLoading(true);
     try {
       await verifyGuardianRelationship(relationship.id);
-      setToast({ message: 'Relationship verified successfully!', type: 'success', isVisible: true });
+      success(t('toast.verified'));
       setTimeout(() => {
         onUpdate();
-        setToast({ ...toast, isVisible: false });
-      }, 1000);
+        }, 1000);
     } catch (err: any) {
-      setToast({ 
-        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to verify relationship', 
-        type: 'error', 
-        isVisible: true 
-      });
+      error(err.response?.data?.detail || err.response?.data?.error || t('toast.verifyFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleReject = async () => {
-    if (!confirm('Are you sure you want to reject this relationship?')) return;
+    if (!confirm(t('rejectConfirm'))) return;
     setLoading(true);
     try {
       await rejectGuardianRelationship(relationship.id);
-      setToast({ message: 'Relationship rejected.', type: 'success', isVisible: true });
+      success(t('toast.rejected'));
       setTimeout(() => {
         onUpdate();
-        setToast({ ...toast, isVisible: false });
-      }, 1000);
+        }, 1000);
     } catch (err: any) {
-      setToast({ 
-        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to reject relationship', 
-        type: 'error', 
-        isVisible: true 
-      });
+      error(err.response?.data?.detail || err.response?.data?.error || t('toast.rejectFailed'));
     } finally {
       setLoading(false);
     }
@@ -903,17 +903,12 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
     setLoading(true);
     try {
       await resetGuardianRelationship(relationship.id);
-      setToast({ message: 'Relationship reset to pending.', type: 'success', isVisible: true });
+      success(t('toast.reset'));
       setTimeout(() => {
         onUpdate();
-        setToast({ ...toast, isVisible: false });
-      }, 1000);
+        }, 1000);
     } catch (err: any) {
-      setToast({ 
-        message: err.response?.data?.detail || err.response?.data?.error || 'Failed to reset relationship', 
-        type: 'error', 
-        isVisible: true 
-      });
+      error(err.response?.data?.detail || err.response?.data?.error || t('toast.resetFailed'));
     } finally {
       setLoading(false);
     }
@@ -927,24 +922,32 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
     }
   };
 
+  const getStatusLabel = (s: string) => {
+    switch (s) {
+      case 'ACTIVE': return t('status.active');
+      case 'REJECTED': return t('status.rejected');
+      default: return t('status.pending');
+    }
+  };
+
   return (
     <>
       <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)]">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <p className="font-semibold text-[var(--brand-light)] mb-1">{youth.first_name} {youth.last_name}</p>
-            <p className="text-sm text-[var(--brand-light)]/50 mb-3">{youth.email} {youth.grade && `• Grade ${youth.grade}`}</p>
+            <p className="text-sm text-[var(--brand-light)]/50 mb-3">{youth.email} {youth.grade && `• ${t('grade', { grade: youth.grade })}`}</p>
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
                 {relationshipType.toLowerCase()}
               </span>
               {isPrimary && (
                 <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
-                  Primary
+                  {t('primary')}
                 </span>
               )}
               <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(status)}`}>
-                {status}
+                {getStatusLabel(status)}
               </span>
             </div>
           </div>
@@ -977,7 +980,7 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
               disabled={loading}
               className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-peach)] text-[var(--dark-900)] font-semibold text-sm hover:bg-[var(--brand-peach)]/90 transition-all disabled:opacity-50"
             >
-              {loading ? 'Processing...' : 'Reset to Pending'}
+              {loading ? t('processing') : t('resetToPending')}
             </button>
           )}
           {status === 'REJECTED' && (
@@ -988,7 +991,7 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
                 disabled={loading}
                 className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-green)] text-[var(--dark-900)] font-semibold text-sm hover:bg-[var(--brand-green)]/90 transition-all disabled:opacity-50"
               >
-                {loading ? 'Processing...' : 'Approve'}
+                {loading ? t('processing') : t('approve')}
               </button>
               <button
                 type="button"
@@ -996,7 +999,7 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
                 disabled={loading}
                 className="flex-1 px-4 py-2 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)] font-semibold text-sm hover:bg-[var(--dark-500)] transition-all disabled:opacity-50"
               >
-                {loading ? 'Processing...' : 'Reset'}
+                {loading ? t('processing') : t('reset')}
               </button>
             </>
           )}
@@ -1006,19 +1009,261 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
         isVisible={showResetModal}
         onClose={() => setShowResetModal(false)}
         onConfirm={handleResetConfirm}
-        title="Reset Relationship"
-        message="Are you sure you want to reset this relationship back to pending status?"
-        confirmButtonText="Reset to Pending"
-        cancelButtonText="Cancel"
+        title={t('resetModal.title')}
+        message={t('resetModal.message')}
+        confirmButtonText={t('resetModal.confirm')}
+        cancelButtonText={t('resetModal.cancel')}
         isLoading={loading}
         variant="warning"
       />
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={() => setToast({ ...toast, isVisible: false })} 
+      </>
+  );
+}
+
+// ID Document Review Section Component for Edit Form
+function IdDocumentReviewSection({ initialData, onReviewComplete }: { initialData: any; onReviewComplete: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const { success, error, info, warning } = useToast();
+
+  const idDocumentReviewStatus = initialData.id_document_review_status || 'NOT_SUBMITTED';
+  const idDocumentType = initialData.id_document_type || 'OTHER';
+  const idDocumentUrl = initialData.id_document ? getMediaUrl(initialData.id_document) : null;
+
+  const getDocTypeLabel = (type: string) => {
+    switch (type) {
+      case 'PASSPORT': return t('documentTypes.passport');
+      case 'ID_CARD': return t('documentTypes.idCard');
+      case 'DRIVERS_LICENSE': return t('documentTypes.driversLicense');
+      default: return t('documentTypes.other');
+    }
+  };
+
+  const getReviewStatusBadge = () => {
+    switch (idDocumentReviewStatus) {
+      case 'APPROVED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
+            <CheckCircle2 className="w-3.5 h-3.5" /> {t('status.approved')}
+          </span>
+        );
+      case 'REJECTED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
+            <XCircle className="w-3.5 h-3.5" /> {t('status.rejected')}
+          </span>
+        );
+      case 'PENDING_REVIEW':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+            <Clock className="w-3.5 h-3.5" /> {t('status.pendingReview')}
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]">
+            {t('status.notSubmitted')}
+          </span>
+        );
+    }
+  };
+
+  const handleApprove = async () => {
+    setLoading(true);
+    try {
+      await api.post(`/users/${initialData.id}/review_id_document/`, {
+        action: 'approve'
+      });
+      success(t('toast.approved'));
+      setTimeout(() => onReviewComplete(), 1500);
+    } catch (err: any) {
+      error(err.response?.data?.error || t('toast.approveFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      error(t('toast.rejectionReasonRequired'));
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await api.post(`/users/${initialData.id}/review_id_document/`, {
+        action: 'reject',
+        rejection_reason: rejectionReason
+      });
+      success(t('toast.rejected'));
+      setShowRejectModal(false);
+      setTimeout(() => onReviewComplete(), 1500);
+    } catch (err: any) {
+      error(err.response?.data?.error || t('toast.rejectFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+        <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('title')}</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('description')}</p>
+              </div>
+            </div>
+            {getReviewStatusBadge()}
+          </div>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          {/* Document Info */}
+          <div className="flex items-start gap-4">
+            {/* Document Preview */}
+            <div 
+              onClick={() => setShowImageModal(true)}
+              className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-[var(--dark-500)] bg-[var(--dark-700)] cursor-pointer group"
+            >
+              {idDocumentUrl && (
+                <>
+                  {idDocumentUrl.toLowerCase().endsWith('.pdf') ? (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <FileText className="w-10 h-10 text-[var(--brand-light)]/40" />
+                    </div>
+                  ) : (
+                    <img 
+                      src={idDocumentUrl} 
+                      alt="ID Document" 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Eye className="w-6 h-6 text-white" />
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {/* Document Details */}
+            <div className="flex-1">
+              <p className="text-sm text-[var(--brand-light)]/50 mb-1">{t('documentType')}</p>
+              <p className="font-medium text-[var(--brand-light)] mb-3">{getDocTypeLabel(idDocumentType)}</p>
+              
+              {initialData.id_document_uploaded_at && (
+                <>
+                  <p className="text-sm text-[var(--brand-light)]/50 mb-1">{t('uploaded')}</p>
+                  <p className="text-sm text-[var(--brand-light)]">
+                    {new Date(initialData.id_document_uploaded_at).toLocaleString()}
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Rejection Reason (if rejected) */}
+          {idDocumentReviewStatus === 'REJECTED' && initialData.id_document_rejection_reason && (
+            <div className="p-3 rounded-xl bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/20">
+              <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('rejectionReason')}</p>
+              <p className="text-sm text-[var(--brand-light)]">{initialData.id_document_rejection_reason}</p>
+            </div>
+          )}
+
+          {/* Review Actions (only for PENDING_REVIEW status) */}
+          {idDocumentReviewStatus === 'PENDING_REVIEW' && (
+            <div className="flex gap-2 pt-4 border-t border-[var(--dark-500)]">
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={loading}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[var(--brand-green)] hover:bg-[var(--brand-green)]/90 text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                {t('approve')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRejectModal(true)}
+                disabled={loading}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[var(--brand-red)] hover:bg-[var(--brand-red)]/90 text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <XCircle className="w-4 h-4" />
+                {t('reject')}
+              </button>
+            </div>
+          )}
+
+          {/* Reviewed Info */}
+          {(idDocumentReviewStatus === 'APPROVED' || idDocumentReviewStatus === 'REJECTED') && initialData.id_document_reviewed_at && (
+            <div className="text-xs text-[var(--brand-light)]/40 pt-2 border-t border-[var(--dark-500)]">
+              {t('reviewedOn', { date: new Date(initialData.id_document_reviewed_at).toLocaleString() })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reject Modal */}
+      <ConfirmationModal
+        isVisible={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onConfirm={handleReject}
+        title={t('rejectModal.title')}
+        message={
+          <div className="space-y-3">
+            <p>{t('rejectModal.message')}</p>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder={t('rejectModal.placeholder')}
+              className="w-full h-24 px-3 py-2 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 resize-none focus:border-[var(--brand-primary)] outline-none"
+            />
+          </div>
+        }
+        confirmButtonText={t('rejectModal.confirm')}
+        cancelButtonText={t('rejectModal.cancel')}
+        isLoading={loading}
+        variant="danger"
       />
-    </>
+
+      {/* Image Modal */}
+      {showImageModal && idDocumentUrl && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full">
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
+            >
+              <XCircle className="w-8 h-8" />
+            </button>
+            {idDocumentUrl.toLowerCase().endsWith('.pdf') ? (
+              <iframe
+                src={idDocumentUrl}
+                className="w-full h-[80vh] rounded-xl"
+                title="ID Document"
+              />
+            ) : (
+              <img
+                src={idDocumentUrl}
+                alt="ID Document"
+                className="w-full h-auto max-h-[90vh] object-contain rounded-xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      </>
   );
 }

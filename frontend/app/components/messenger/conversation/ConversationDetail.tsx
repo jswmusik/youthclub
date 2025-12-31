@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { messengerApi } from '../../../../lib/messenger-api';
 import { ConversationDetail as ConversationDetailType, Message } from '../../../../types/messenger';
 import MessageBubble from '../message/MessageBubble';
 import MessageComposer from '../message/MessageComposer';
 import ConfirmationModal from '../../../components/ConfirmationModal';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 
 interface ConversationDetailProps {
     conversationId: number;
@@ -17,6 +18,7 @@ interface ConversationDetailProps {
 }
 
 export default function ConversationDetail({ conversationId, onBack, isAdmin, onRefresh, darkMode = false }: ConversationDetailProps) {
+    const t = useTranslations('messages');
     const [detail, setDetail] = useState<ConversationDetailType | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMenu, setShowMenu] = useState(false);
@@ -28,12 +30,8 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
     const [showHideModal, setShowHideModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     
-    // Toast state
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '',
-        type: 'success',
-        isVisible: false,
-    });
+    // Toast
+    const { success, error, info } = useToast();
 
     // Fetch Logic
     const loadData = async () => {
@@ -107,11 +105,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
         setActionLoading(true);
         try {
             await messengerApi.hideConversation(conversationId);
-            setToast({ 
-                message: 'Conversation hidden from inbox', 
-                type: 'success', 
-                isVisible: true 
-            });
+            success('Conversation hidden from inbox');
             // Refresh conversation list
             if (onRefresh) {
                 onRefresh();
@@ -122,11 +116,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
             }
         } catch (err: any) {
             console.error(err);
-            setToast({ 
-                message: err?.response?.data?.error || 'Failed to hide conversation', 
-                type: 'error', 
-                isVisible: true 
-            });
+            error(err?.response?.data?.error || t('conversationDetail.failedToHide'));
         } finally {
             setActionLoading(false);
         }
@@ -142,11 +132,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
         setActionLoading(true);
         try {
             await messengerApi.deleteConversation(conversationId);
-            setToast({ 
-                message: 'Conversation permanently deleted', 
-                type: 'success', 
-                isVisible: true 
-            });
+            success('Conversation permanently deleted');
             // Refresh conversation list
             if (onRefresh) {
                 onRefresh();
@@ -157,11 +143,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
             }
         } catch (err: any) {
             console.error(err);
-            setToast({ 
-                message: err?.response?.data?.error || 'Failed to delete conversation', 
-                type: 'error', 
-                isVisible: true 
-            });
+            error(err?.response?.data?.error || t('conversationDetail.failedToDelete'));
         } finally {
             setActionLoading(false);
         }
@@ -210,12 +192,12 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                         <h3 className={`font-semibold text-base sm:text-lg truncate leading-tight ${
                             darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
                         }`}>
-                            {detail.subject || 'No Subject'}
+                            {detail.subject || t('noSubject')}
                         </h3>
                         <p className={`text-xs sm:text-sm truncate mt-0.5 ${
                             darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
                         }`}>
-                            {detail.participants.length} {detail.participants.length === 1 ? 'participant' : 'participants'} • {detail.type}
+                            {detail.participants.length} {detail.participants.length === 1 ? t('participant') : t('participants')} • {t(`conversationType.${detail.type}`)}
                         </p>
                     </div>
                 </div>
@@ -268,7 +250,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.367 5.19m-6.176-6.176L3 3z" />
                                     </svg>
-                                    Hide Conversation
+                                    {t('conversationDetail.hideConversation')}
                                 </button>
                                 <button
                                     type="button"
@@ -283,7 +265,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
-                                    Delete Permanently
+                                    {t('conversationDetail.deletePermanently')}
                                 </button>
                             </div>
                         </>
@@ -304,7 +286,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                                 ? 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]' 
                                 : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                            📢 This is a one-way broadcast message.
+                            {t('conversationDetail.broadcastNotice')}
                         </span>
                     </div>
                 )}
@@ -366,11 +348,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 }`}>
                     <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Replies are disabled for this conversation.</p>
                     <button 
-                        onClick={() => setToast({ 
-                            message: "Redirect to create new DM with sender logic here", 
-                            type: 'info', 
-                            isVisible: true 
-                        })}
+                        onClick={() => info("Redirect to create new DM with sender logic here")}
                         className={`font-bold text-sm hover:underline transition-colors ${
                             darkMode 
                                 ? 'text-[var(--brand-primary)] hover:text-[var(--brand-purple)]' 
@@ -387,10 +365,10 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 isVisible={showHideModal}
                 onClose={() => setShowHideModal(false)}
                 onConfirm={handleHideConfirm}
-                title="Hide Conversation"
-                message="Hide this conversation? It will reappear when you receive a new message."
-                confirmButtonText="Hide"
-                cancelButtonText="Cancel"
+                title={t('conversationDetail.hideModal.title')}
+                message={t('conversationDetail.hideModal.message')}
+                confirmButtonText={t('conversationDetail.hideModal.confirm')}
+                cancelButtonText={t('conversationDetail.hideModal.cancel')}
                 isLoading={actionLoading}
                 variant="warning"
                 darkMode={darkMode}
@@ -401,22 +379,16 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 isVisible={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
                 onConfirm={handleDeleteConfirm}
-                title="Delete Conversation"
-                message="Permanently delete this conversation? This action cannot be undone."
-                confirmButtonText="Delete"
-                cancelButtonText="Cancel"
+                title={t('conversationDetail.deleteModal.title')}
+                message={t('conversationDetail.deleteModal.message')}
+                confirmButtonText={t('conversationDetail.deleteModal.confirm')}
+                cancelButtonText={t('conversationDetail.deleteModal.cancel')}
                 isLoading={actionLoading}
                 variant="danger"
                 darkMode={darkMode}
             />
 
             {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast({ ...toast, isVisible: false })}
-            />
         </div>
     );
 }

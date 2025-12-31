@@ -3,10 +3,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
-from .models import Page, MenuItem, FeatureShowcase, CookieConsent, PageFeature
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import Page, MenuItem, FeatureShowcase, CookieConsent, PageFeature, PricingPageContent, PricingFAQ, ContactPageContent, ContactSubmission
 from .serializers import (
     PageSerializer, MenuItemSerializer, 
-    FeatureShowcaseSerializer, CookieConsentSerializer
+    FeatureShowcaseSerializer, CookieConsentSerializer,
+    PricingPageContentSerializer, PricingFAQSerializer,
+    ContactPageContentSerializer, ContactSubmissionSerializer, ContactSubmissionCreateSerializer
 )
 import logging
 
@@ -171,3 +175,191 @@ class CookieConsentViewSet(viewsets.ModelViewSet):
         if policy:
             return Response(self.get_serializer(policy).data)
         return Response({})
+
+
+class PricingPageContentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing pricing page content.
+    Uses singleton pattern - always returns/updates the same instance.
+    """
+    queryset = PricingPageContent.objects.all()
+    serializer_class = PricingPageContentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_object(self):
+        """Always return the singleton instance."""
+        return PricingPageContent.get_instance()
+
+    def list(self, request):
+        """Return the singleton instance."""
+        instance = PricingPageContent.get_instance()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def public(self, request):
+        """
+        Public endpoint to get pricing page content.
+        No authentication required.
+        """
+        instance = PricingPageContent.get_instance()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['patch', 'put'])
+    def update_content(self, request):
+        """Update the pricing page content."""
+        instance = PricingPageContent.get_instance()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PricingFAQViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing pricing page FAQs.
+    """
+    queryset = PricingFAQ.objects.all()
+    serializer_class = PricingFAQSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        """Admin sees all, public sees only active."""
+        if self.request.user.is_authenticated:
+            return PricingFAQ.objects.all().order_by('order')
+        return PricingFAQ.objects.filter(is_active=True).order_by('order')
+
+    @action(detail=False, methods=['get'])
+    def public(self, request):
+        """
+        Public endpoint to get active FAQs.
+        No authentication required.
+        """
+        faqs = PricingFAQ.objects.filter(is_active=True).order_by('order')
+        serializer = self.get_serializer(faqs, many=True)
+        return Response(serializer.data)
+
+
+class ContactPageContentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing contact page content.
+    Uses singleton pattern - always returns/updates the same instance.
+    """
+    queryset = ContactPageContent.objects.all()
+    serializer_class = ContactPageContentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_object(self):
+        """Always return the singleton instance."""
+        return ContactPageContent.get_instance()
+
+    def list(self, request):
+        """Return the singleton instance."""
+        instance = ContactPageContent.get_instance()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def public(self, request):
+        """
+        Public endpoint to get contact page content.
+        No authentication required.
+        """
+        instance = ContactPageContent.get_instance()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['patch', 'put'])
+    def update_content(self, request):
+        """Update the contact page content."""
+        instance = ContactPageContent.get_instance()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ContactSubmissionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing contact form submissions.
+    """
+    queryset = ContactSubmission.objects.all()
+    serializer_class = ContactSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'submit':
+            return ContactSubmissionCreateSerializer
+        return ContactSubmissionSerializer
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def submit(self, request):
+        """
+        Public endpoint to submit a contact form.
+        Sends email notification to support.
+        """
+        serializer = ContactSubmissionCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            submission = serializer.save()
+            
+            # Get contact page content for email address
+            contact_content = ContactPageContent.get_instance()
+            to_email = contact_content.contact_email or 'support@ungdomsappen.se'
+            
+            # Send email notification
+            try:
+                email_subject = f"[Kontaktformulär] {submission.subject}"
+                email_body = f"""
+Nytt meddelande från kontaktformuläret:
+
+Namn: {submission.name}
+E-post: {submission.email}
+Organisation: {submission.organization or 'Ej angiven'}
+Ämne: {submission.subject}
+
+Meddelande:
+{submission.message}
+
+---
+Detta meddelande skickades via kontaktformuläret på Ungdomsappen.
+                """.strip()
+                
+                send_mail(
+                    subject=email_subject,
+                    message=email_body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[to_email],
+                    fail_silently=True,  # Don't crash if email fails
+                )
+                logger.info(f"Contact form email sent to {to_email}")
+            except Exception as e:
+                logger.error(f"Failed to send contact form email: {e}")
+            
+            return Response({
+                'success': True,
+                'message': 'Your message has been sent successfully.'
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        """Mark a submission as read."""
+        submission = self.get_object()
+        submission.is_read = True
+        submission.save()
+        return Response({'status': 'marked as read'})
+
+    @action(detail=True, methods=['post'])
+    def mark_replied(self, request, pk=None):
+        """Mark a submission as replied."""
+        from django.utils import timezone
+        submission = self.get_object()
+        submission.is_replied = True
+        submission.replied_at = timezone.now()
+        submission.save()
+        return Response({'status': 'marked as replied'})

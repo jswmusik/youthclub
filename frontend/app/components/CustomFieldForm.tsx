@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ArrowLeft, Plus, X, Settings2, FileText, List, CheckSquare, 
@@ -9,7 +10,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../context/AuthContext';
 
 interface CustomFieldFormProps {
@@ -21,6 +22,7 @@ interface CustomFieldFormProps {
 interface ClubOption { id: number; name: string; }
 
 export default function CustomFieldForm({ initialData, redirectPath, scope }: CustomFieldFormProps) {
+  const t = useTranslations('customFields.form');
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -28,7 +30,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
   
   const [loading, setLoading] = useState(false);
   const [clubs, setClubs] = useState<ClubOption[]>([]);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -143,11 +145,11 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
     e.preventDefault();
     
     if ((formData.field_type === 'SINGLE_SELECT' || formData.field_type === 'MULTI_SELECT') && formData.options.length === 0) {
-      setToast({ message: "Please add at least one option.", type: 'error', isVisible: true });
+      error(t('validation.needOption'));
       return;
     }
     if (formData.target_roles.length === 0) {
-      setToast({ message: "Please select at least one target role.", type: 'error', isVisible: true });
+      error(t('validation.needRole'));
       return;
     }
 
@@ -168,10 +170,10 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
     try {
       if (initialData) {
         await api.patch(`/custom-fields/${initialData.id}/`, payload);
-        setToast({ message: 'Field updated successfully!', type: 'success', isVisible: true });
+        success(t('toasts.updateSuccess'));
       } else {
         await api.post('/custom-fields/', payload);
-        setToast({ message: 'Field created successfully!', type: 'success', isVisible: true });
+        success(t('toasts.createSuccess'));
       }
       let finalRedirectPath = redirectPath;
       if (!redirectPath.includes('?')) {
@@ -183,17 +185,17 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
       setTimeout(() => router.push(finalRedirectPath), 1000);
     } catch (err: any) {
       console.error(err);
-      setToast({ message: 'Operation failed. Please try again.', type: 'error', isVisible: true });
+      error('Operation failed. Please try again.');
       setLoading(false);
     }
   };
 
   // Field type config
   const fieldTypeConfig = {
-    TEXT: { icon: FileText, label: 'Text', description: 'Free text input', color: 'blue' },
-    SINGLE_SELECT: { icon: List, label: 'Single Select', description: 'Dropdown selection', color: 'green' },
-    MULTI_SELECT: { icon: CheckSquare, label: 'Multi Select', description: 'Multiple checkboxes', color: 'pink' },
-    BOOLEAN: { icon: ToggleLeft, label: 'Boolean', description: 'Yes/No toggle', color: 'purple' },
+    TEXT: { icon: FileText, label: t('fieldType.text'), description: t('fieldType.textDesc'), color: 'blue' },
+    SINGLE_SELECT: { icon: List, label: t('fieldType.singleSelect'), description: t('fieldType.singleSelectDesc'), color: 'green' },
+    MULTI_SELECT: { icon: CheckSquare, label: t('fieldType.multiSelect'), description: t('fieldType.multiSelectDesc'), color: 'pink' },
+    BOOLEAN: { icon: ToggleLeft, label: t('fieldType.boolean'), description: t('fieldType.booleanDesc'), color: 'purple' },
   };
 
   // Styling helpers
@@ -206,7 +208,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
     <div className="bg-[var(--dark-800)] border-b border-[var(--dark-700)] px-4 sm:px-6 py-3">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between text-sm mb-2">
-          <span className="text-[var(--brand-light)]/60">Form completion</span>
+          <span className="text-[var(--brand-light)]/60">{t('formCompletion')}</span>
           <span className={`font-bold ${completionPercent === 100 ? 'text-green-400' : 'text-[var(--brand-primary)]'}`}>
             {completionPercent}%
           </span>
@@ -244,9 +246,9 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
           </Link>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Custom Field' : 'Create Custom Field'}
+              {initialData ? t('editTitle') : t('createTitle')}
             </h1>
-            <p className="text-[var(--brand-light)]/60 text-sm mt-1">Define a custom field for your forms</p>
+            <p className="text-[var(--brand-light)]/60 text-sm mt-1">{t('subtitle')}</p>
           </div>
         </div>
 
@@ -254,7 +256,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
         {!isProgressFixed && (
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-700)] px-4 sm:px-6 py-4 mb-6 -mx-4 sm:mx-0">
             <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-[var(--brand-light)]/60">{t('formCompletion')}</span>
               <span className={`font-bold ${completionPercent === 100 ? 'text-green-400' : 'text-[var(--brand-primary)]'}`}>
                 {completionPercent}%
               </span>
@@ -278,47 +280,30 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                   <Settings2 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                  <p className="text-sm text-[var(--brand-light)]/60">Field label, type, and help text</p>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/60">{t('basicInfo.subtitle')}</p>
                 </div>
               </div>
             </div>
             <div className="p-4 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClasses}>
-                    Field Label <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. T-Shirt Size"
-                    value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                    className={inputClasses}
-                  />
-                </div>
-                <div>
-                  <label className={labelClasses}>
-                    Data Type <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    value={formData.field_type}
-                    onChange={e => setFormData({...formData, field_type: e.target.value as any})}
-                    className={selectClasses}
-                  >
-                    <option value="TEXT">Text (Free type)</option>
-                    <option value="SINGLE_SELECT">Single Select (Dropdown)</option>
-                    <option value="MULTI_SELECT">Multi Select (Checkboxes)</option>
-                    <option value="BOOLEAN">Boolean (Yes/No)</option>
-                  </select>
-                </div>
-              </div>
               <div>
-                <label className={labelClasses}>Help Text (Optional)</label>
+                <label className={labelClasses}>
+                  {t('basicInfo.fieldLabel')} <span className="text-red-400">*</span>
+                </label>
                 <input
                   type="text"
-                  placeholder="e.g. Select the size for your team jersey"
+                  required
+                  placeholder={t('basicInfo.fieldLabelPlaceholder')}
+                  value={formData.name}
+                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>{t('basicInfo.helpText')}</label>
+                <input
+                  type="text"
+                  placeholder={t('basicInfo.helpTextPlaceholder')}
                   value={formData.help_text}
                   onChange={e => setFormData({...formData, help_text: e.target.value})}
                   className={inputClasses}
@@ -335,8 +320,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                   <FileText className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Field Type</h2>
-                  <p className="text-sm text-[var(--brand-light)]/60">Choose how users will input data</p>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('fieldType.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/60">{t('fieldType.subtitle')}</p>
                 </div>
               </div>
             </div>
@@ -386,8 +371,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                     <List className="w-5 h-5 text-green-400" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-[var(--brand-light)]">Options List</h2>
-                    <p className="text-sm text-[var(--brand-light)]/60">Add options for selection</p>
+                    <h2 className="font-semibold text-[var(--brand-light)]">{t('options.title')}</h2>
+                    <p className="text-sm text-[var(--brand-light)]/60">{t('options.subtitle')}</p>
                   </div>
                 </div>
               </div>
@@ -395,7 +380,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Type option and press Enter..."
+                    placeholder={t('options.placeholder')}
                     value={formData.currentOptionInput}
                     onChange={e => setFormData({...formData, currentOptionInput: e.target.value})}
                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addOption())}
@@ -407,7 +392,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                     className="px-4 h-11 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-medium transition-all flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Add</span>
+                    <span className="hidden sm:inline">{t('options.add')}</span>
                   </button>
                 </div>
                 
@@ -432,8 +417,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                 ) : (
                   <div className="p-6 border-2 border-dashed border-[var(--dark-600)] rounded-xl text-center">
                     <AlertCircle className="w-8 h-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
-                    <p className="text-[var(--brand-light)]/50 text-sm">No options added yet</p>
-                    <p className="text-[var(--brand-light)]/30 text-xs mt-1">Add at least one option to continue</p>
+                    <p className="text-[var(--brand-light)]/50 text-sm">{t('options.empty')}</p>
+                    <p className="text-[var(--brand-light)]/30 text-xs mt-1">{t('validation.addOption')}</p>
                   </div>
                 )}
               </div>
@@ -448,8 +433,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                   <Eye className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Usage Context</h2>
-                  <p className="text-sm text-[var(--brand-light)]/60">Where this field will be displayed</p>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('usageContext.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/60">{t('usageContext.subtitle')}</p>
                 </div>
               </div>
             </div>
@@ -471,8 +456,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                       {formData.context === 'USER_PROFILE' && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                     <div>
-                      <div className="font-medium text-[var(--brand-light)]">User Profile</div>
-                      <div className="text-sm text-[var(--brand-light)]/60">Shown during registration/profile edit</div>
+                      <div className="font-medium text-[var(--brand-light)]">{t('usageContext.userProfile')}</div>
+                      <div className="text-sm text-[var(--brand-light)]/60">{t('usageContext.userProfileDesc')}</div>
                     </div>
                   </div>
                 </button>
@@ -492,8 +477,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                       {formData.context === 'EVENT' && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                     <div>
-                      <div className="font-medium text-[var(--brand-light)]">Event Booking</div>
-                      <div className="text-sm text-[var(--brand-light)]/60">Shown when booking an event</div>
+                      <div className="font-medium text-[var(--brand-light)]">{t('usageContext.eventBooking')}</div>
+                      <div className="text-sm text-[var(--brand-light)]/60">{t('usageContext.eventBookingDesc')}</div>
                     </div>
                   </div>
                 </button>
@@ -509,8 +494,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                   <Users className="w-5 h-5 text-orange-400" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Target Roles</h2>
-                  <p className="text-sm text-[var(--brand-light)]/60">Who should see this field</p>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('targetRoles.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/60">{t('targetRoles.subtitle')}</p>
                 </div>
               </div>
             </div>
@@ -535,7 +520,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                         </svg>
                       )}
                     </div>
-                    <div className="font-medium text-[var(--brand-light)]">Youth Members</div>
+                    <div className="font-medium text-[var(--brand-light)]">{t('targetRoles.youthMembers')}</div>
                   </div>
                 </button>
                 <button
@@ -557,14 +542,14 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                         </svg>
                       )}
                     </div>
-                    <div className="font-medium text-[var(--brand-light)]">Guardians</div>
+                    <div className="font-medium text-[var(--brand-light)]">{t('targetRoles.guardians')}</div>
                   </div>
                 </button>
               </div>
               {formData.target_roles.length === 0 && (
                 <p className="text-red-400 text-sm mt-3 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4" />
-                  Please select at least one role
+                  {t('validation.selectRole')}
                 </p>
               )}
             </div>
@@ -578,8 +563,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                   <ToggleLeft className="w-5 h-5 text-cyan-400" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Field Settings</h2>
-                  <p className="text-sm text-[var(--brand-light)]/60">Status and requirements</p>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('fieldSettings.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/60">{t('fieldSettings.subtitle')}</p>
                 </div>
               </div>
             </div>
@@ -607,17 +592,17 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                     </div>
                     <div>
                       <div className="font-medium text-[var(--brand-light)]">
-                        {formData.is_published ? 'Active' : 'Inactive'}
+                        {formData.is_published ? t('fieldSettings.active') : t('fieldSettings.inactive', { defaultValue: 'Inactive' })}
                       </div>
                       <div className="text-sm text-[var(--brand-light)]/60">
-                        {formData.is_published ? 'Field is visible to users' : 'Field is hidden from users'}
+                        {formData.is_published ? t('fieldSettings.activeDesc') : t('fieldSettings.inactiveDesc', { defaultValue: 'Field is hidden from users' })}
                       </div>
                     </div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     formData.is_published ? 'bg-green-500/20 text-green-400' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/60'
                   }`}>
-                    {formData.is_published ? 'Active' : 'Draft'}
+                    {formData.is_published ? t('fieldSettings.active') : t('fieldSettings.draft', { defaultValue: 'Draft' })}
                   </span>
                 </div>
               </button>
@@ -643,8 +628,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                     )}
                   </div>
                   <div>
-                    <div className="font-medium text-[var(--brand-light)]">Required Field</div>
-                    <div className="text-sm text-[var(--brand-light)]/60">Users must fill this field before submitting</div>
+                    <div className="font-medium text-[var(--brand-light)]">{t('fieldSettings.required')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/60">{t('fieldSettings.requiredDesc')}</div>
                   </div>
                 </div>
               </button>
@@ -660,8 +645,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                     <Building className="w-5 h-5 text-yellow-400" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-[var(--brand-light)]">Limit to Clubs</h2>
-                    <p className="text-sm text-[var(--brand-light)]/60">Optional: Restrict to specific clubs</p>
+                    <h2 className="font-semibold text-[var(--brand-light)]">{t('clubSelection.title')}</h2>
+                    <p className="text-sm text-[var(--brand-light)]/60">{t('clubSelection.subtitle')}</p>
                   </div>
                 </div>
               </div>
@@ -692,7 +677,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                   ))}
                 </div>
                 <p className="text-[var(--brand-light)]/50 text-xs mt-3">
-                  If no clubs are selected, this field applies to ALL clubs in your municipality.
+                  {t('clubSelection.allClubsNote')}
                 </p>
               </div>
             </div>
@@ -705,11 +690,11 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                 <Lightbulb className="w-5 h-5 text-yellow-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-[var(--brand-light)] mb-1">Tips</h3>
+                <h3 className="font-semibold text-[var(--brand-light)] mb-1">{t('tips.title')}</h3>
                 <ul className="text-sm text-[var(--brand-light)]/60 space-y-1">
-                  <li>• Use clear, descriptive labels for better user understanding</li>
-                  <li>• Add helpful text to guide users on what to enter</li>
-                  <li>• Only mark fields as required if truly necessary</li>
+                  <li>{t('tips.tip1')}</li>
+                  <li>{t('tips.tip2')}</li>
+                  <li>{t('tips.tip3')}</li>
                 </ul>
               </div>
             </div>
@@ -722,20 +707,19 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
               onClick={() => router.push(redirectPath)}
               className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] font-medium hover:bg-[var(--dark-600)] transition-all"
             >
-              Cancel
+              {t('buttons.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {loading ? 'Saving...' : initialData ? 'Update Field' : 'Create Field'}
+              {loading ? t('buttons.saving') : initialData ? t('buttons.update') : t('buttons.create')}
             </button>
           </div>
         </form>
       </div>
 
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
-    </div>
+      </div>
   );
 }

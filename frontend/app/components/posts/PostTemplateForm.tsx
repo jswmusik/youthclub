@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
     ArrowLeft, Globe, Building, Users, FileText, Image, Video,
@@ -11,7 +12,7 @@ import {
     AlertTriangle, Heart, Trophy, Rocket, Search, X, Check
 } from 'lucide-react';
 import api from '../../../lib/api';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
 
 interface PostTemplateFormProps {
@@ -40,13 +41,12 @@ const ALL_GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 export default function PostTemplateForm({ initialData, role, onSuccess }: PostTemplateFormProps) {
     const router = useRouter();
     const { user: currentUser } = useAuth();
+    const t = useTranslations('postTemplatesManager.form');
     const progressPlaceholderRef = useRef<HTMLDivElement>(null);
     
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '', type: 'success', isVisible: false,
-    });
+    const { success, error: showError, info, warning } = useToast();
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const [isProgressFixed, setIsProgressFixed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -320,22 +320,22 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
         try {
             if (initialData) {
                 await api.patch(`/post-templates/${initialData.id}/`, payload);
-                setToast({ message: 'Template updated successfully!', type: 'success', isVisible: true });
+                success(t('toast.templateUpdated'));
             } else {
                 await api.post('/post-templates/', payload);
-                setToast({ message: 'Template created successfully!', type: 'success', isVisible: true });
+                success(t('toast.templateCreated'));
             }
             setTimeout(() => onSuccess(), 1000);
         } catch (err: any) {
             console.error(err);
-            let msg = 'Failed to save template.';
+            let msg = t('toast.failedToSave');
             if (err.response?.data) {
                if (typeof err.response.data === 'string') msg = err.response.data;
                else if (err.response.data.detail) msg = err.response.data.detail;
                else msg = JSON.stringify(err.response.data);
             }
             setError(msg);
-            setToast({ message: msg, type: 'error', isVisible: true });
+            showError(msg);
         } finally {
             setLoading(false);
         }
@@ -409,10 +409,10 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     </Link>
                     <div className="flex-1">
                         <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-                            {initialData ? 'Edit Template' : 'Create New Template'}
+                            {initialData ? t('editTitle') : t('createTitle')}
                         </h1>
                         <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-                            {initialData ? 'Update your template settings' : 'Create a reusable template for quick post creation'}
+                            {initialData ? t('editDescription') : t('createDescription')}
                         </p>
                     </div>
                 </div>
@@ -421,7 +421,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                 <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
                     <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                            <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                             <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                         </div>
                         <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -430,7 +430,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                         {completionPercent === 100 && (
                             <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                                 <CheckCircle2 className="w-4 h-4" />
-                                <span className="text-sm font-medium">Ready to save!</span>
+                                <span className="text-sm font-medium">{t('progress.readyToSave')}</span>
                             </div>
                         )}
                     </div>
@@ -438,10 +438,10 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
 
                 {/* Fixed Progress */}
                 {isMounted && createPortal(
-                    <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
+                        <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
                         <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                             </div>
                             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -469,8 +469,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     <Sparkles className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Template Info</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Name and describe your template</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('templateInfo.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('templateInfo.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -478,11 +478,11 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                         <div className="p-4 sm:p-6 space-y-6">
                             {/* Name */}
                             <div>
-                                <label className={labelClasses}>Template Name <span className="text-[var(--brand-red)]">*</span></label>
+                                <label className={labelClasses}>{t('templateInfo.name')} <span className="text-[var(--brand-red)]">*</span></label>
                                 <input 
                                     type="text" 
                                     required 
-                                    placeholder="e.g. Daily Club Update"
+                                    placeholder={t('templateInfo.namePlaceholder')}
                                     className={inputClasses('name')}
                                     value={name} 
                                     onChange={e => setName(e.target.value)} 
@@ -493,9 +493,9 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
 
                             {/* Description */}
                             <div>
-                                <label className={labelClasses}>Description</label>
+                                <label className={labelClasses}>{t('templateInfo.descriptionLabel')}</label>
                                 <textarea 
-                                    placeholder="Briefly describe what this template is for..."
+                                    placeholder={t('templateInfo.descriptionPlaceholder')}
                                     className={`${inputClasses('description')} h-24 py-3 resize-none`}
                                     value={description} 
                                     onChange={e => setDescription(e.target.value)} 
@@ -503,37 +503,40 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     onBlur={() => setFocusedField(null)}
                                 />
                                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                                    This will be shown in the template selection to help you choose quickly
+                                    {t('templateInfo.descriptionHint')}
                                 </p>
                             </div>
 
                             {/* Icon */}
                             <div>
-                                <label className={labelClasses}>Icon</label>
+                                <label className={labelClasses}>{t('templateInfo.icon')}</label>
                                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                                    {ICON_OPTIONS.map(opt => (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={() => setIcon(opt.value)}
-                                            className={`w-full aspect-square rounded-xl flex items-center justify-center text-lg transition-all ${
-                                                icon === opt.value 
-                                                    ? 'bg-[var(--brand-primary)] text-white ring-2 ring-[var(--brand-primary)] ring-offset-2 ring-offset-[var(--dark-800)]' 
-                                                    : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
-                                            }`}
-                                            title={opt.label}
-                                        >
-                                            <opt.icon className="w-5 h-5" />
-                                        </button>
-                                    ))}
+                                    {ICON_OPTIONS.map(opt => {
+                                        const iconLabel = t(`templateInfo.iconLabels.${opt.value}` as any) || opt.label;
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                onClick={() => setIcon(opt.value)}
+                                                className={`w-full aspect-square rounded-xl flex items-center justify-center text-lg transition-all ${
+                                                    icon === opt.value 
+                                                        ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] ring-2 ring-[var(--brand-primary)] ring-offset-2 ring-offset-[var(--dark-800)]' 
+                                                        : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
+                                                }`}
+                                                title={iconLabel}
+                                            >
+                                                <opt.icon className="w-5 h-5" />
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
                             {/* Active Status */}
                             <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
                                 <div>
-                                    <p className="font-medium text-[var(--brand-light)]">Active Template</p>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Inactive templates won't appear in quick post selection</p>
+                                    <p className="font-medium text-[var(--brand-light)]">{t('templateInfo.activeTemplate')}</p>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('templateInfo.activeTemplateHint')}</p>
                                 </div>
                                 <button
                                     type="button"
@@ -558,8 +561,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     <Globe className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Distribution</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Who will see posts created with this template</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('distribution.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('distribution.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -568,9 +571,9 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {role === 'super' && (
                                 <div className="flex flex-wrap gap-3">
                                     {[
-                                        { mode: 'GLOBAL', icon: Globe, label: 'Global (Everyone)' },
-                                        { mode: 'MUNICIPALITY', icon: Building, label: 'Municipalities' },
-                                        { mode: 'CLUB', icon: Users, label: 'Clubs' }
+                                        { mode: 'GLOBAL', icon: Globe, label: t('distribution.global') },
+                                        { mode: 'MUNICIPALITY', icon: Building, label: t('distribution.municipalities') },
+                                        { mode: 'CLUB', icon: Users, label: t('distribution.clubs') }
                                     ].map(({ mode, icon: Icon, label }) => (
                                         <button 
                                             key={mode} 
@@ -592,8 +595,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {role === 'municipality' && (
                                 <div className="flex flex-wrap gap-3">
                                     {[
-                                        { mode: 'MUNICIPALITY', icon: Building, label: 'All My Municipality' },
-                                        { mode: 'CLUB', icon: Users, label: 'Specific Clubs' }
+                                        { mode: 'MUNICIPALITY', icon: Building, label: t('distribution.allMyMunicipality') },
+                                        { mode: 'CLUB', icon: Users, label: t('distribution.specificClubs') }
                                     ].map(({ mode, icon: Icon, label }) => (
                                         <button 
                                             key={mode} 
@@ -616,10 +619,10 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                 <div className="p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
                                     <div className="flex items-center gap-2 text-[var(--brand-light)]">
                                         <Users className="w-5 h-5 text-[var(--brand-primary)]" />
-                                        <span className="font-medium">Your Club Members</span>
+                                        <span className="font-medium">{t('distribution.yourClubMembers')}</span>
                                     </div>
                                     <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-                                        Posts will be visible to members of your club
+                                        {t('distribution.yourClubMembersHint')}
                                     </p>
                                 </div>
                             )}
@@ -627,7 +630,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {/* Municipality Selection (Super Admin) */}
                             {role === 'super' && distributionMode === 'MUNICIPALITY' && (
                                 <div className="pt-4 border-t border-[var(--dark-600)]">
-                                    <label className={labelClasses}>Select Municipalities</label>
+                                    <label className={labelClasses}>{t('distribution.selectMunicipalities')}</label>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                                         {municipalities.map(muni => (
                                             <button
@@ -651,7 +654,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {/* Club Selection */}
                             {((role === 'super' && distributionMode === 'CLUB') || (role === 'municipality' && distributionMode === 'CLUB')) && (
                                 <div className="pt-4 border-t border-[var(--dark-600)]">
-                                    <label className={labelClasses}>Select Clubs</label>
+                                    <label className={labelClasses}>{t('distribution.selectClubs')}</label>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                                         {clubs.map(club => (
                                             <button
@@ -682,8 +685,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     <Image className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Default Media Type</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Pre-select the media type for quick posting</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('defaultMediaType.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('defaultMediaType.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -691,9 +694,9 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                         <div className="p-4 sm:p-6">
                             <div className="flex flex-wrap gap-3">
                                 {[
-                                    { type: 'TEXT', icon: FileText, label: 'Text Only' },
-                                    { type: 'IMAGE', icon: Image, label: 'With Images' },
-                                    { type: 'VIDEO', icon: Video, label: 'With Video' }
+                                    { type: 'TEXT', icon: FileText, label: t('defaultMediaType.textOnly') },
+                                    { type: 'IMAGE', icon: Image, label: t('defaultMediaType.withImages') },
+                                    { type: 'VIDEO', icon: Video, label: t('defaultMediaType.withVideo') }
                                 ].map(({ type, icon: Icon, label }) => (
                                     <button 
                                         key={type} 
@@ -721,8 +724,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     <Target className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Audience Targeting</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Pre-configure who should see posts</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('audienceTargeting.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('audienceTargeting.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -730,12 +733,12 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                         <div className="p-4 sm:p-6 space-y-6">
                             {/* Member Type */}
                             <div>
-                                <label className={labelClasses}>Member Type</label>
+                                <label className={labelClasses}>{t('audienceTargeting.memberType')}</label>
                                 <div className="flex flex-wrap gap-3">
                                     {[
-                                        { value: 'BOTH', label: 'Everyone' },
-                                        { value: 'YOUTH', label: 'Youth Only' },
-                                        { value: 'GUARDIAN', label: 'Guardians Only' }
+                                        { value: 'BOTH', label: t('audienceTargeting.everyone') },
+                                        { value: 'YOUTH', label: t('audienceTargeting.youthOnly') },
+                                        { value: 'GUARDIAN', label: t('audienceTargeting.guardiansOnly') }
                                     ].map(({ value, label }) => (
                                         <button 
                                             key={value} 
@@ -756,10 +759,10 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {/* Age Range */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className={labelClasses}>Min Age</label>
+                                    <label className={labelClasses}>{t('audienceTargeting.minAge')}</label>
                                     <input 
                                         type="number" 
-                                        placeholder="Any"
+                                        placeholder={t('audienceTargeting.agePlaceholder')}
                                         className={inputClasses('minAge')}
                                         value={minAge} 
                                         onChange={e => setMinAge(e.target.value)} 
@@ -768,10 +771,10 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     />
                                 </div>
                                 <div>
-                                    <label className={labelClasses}>Max Age</label>
+                                    <label className={labelClasses}>{t('audienceTargeting.maxAge')}</label>
                                     <input 
                                         type="number" 
-                                        placeholder="Any"
+                                        placeholder={t('audienceTargeting.agePlaceholder')}
                                         className={inputClasses('maxAge')}
                                         value={maxAge} 
                                         onChange={e => setMaxAge(e.target.value)} 
@@ -783,7 +786,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
 
                             {/* Grades - All grades from 1-13 */}
                             <div>
-                                <label className={labelClasses}>Grades (Optional)</label>
+                                <label className={labelClasses}>{t('audienceTargeting.grades')}</label>
                                 <div className="flex flex-wrap gap-2">
                                     {ALL_GRADES.map(grade => (
                                         <button
@@ -804,12 +807,12 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
 
                             {/* Gender */}
                             <div>
-                                <label className={labelClasses}>Gender (Optional)</label>
+                                <label className={labelClasses}>{t('audienceTargeting.gender')}</label>
                                 <div className="flex flex-wrap gap-3">
                                     {[
-                                        { value: 'MALE', label: 'Male' },
-                                        { value: 'FEMALE', label: 'Female' },
-                                        { value: 'OTHER', label: 'Other' }
+                                        { value: 'MALE', label: t('audienceTargeting.male') },
+                                        { value: 'FEMALE', label: t('audienceTargeting.female') },
+                                        { value: 'OTHER', label: t('audienceTargeting.other') }
                                     ].map(({ value, label }) => (
                                         <button
                                             key={value}
@@ -830,7 +833,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {/* Groups with Search */}
                             {availableGroups.length > 0 && (
                                 <div>
-                                    <label className={labelClasses}>Groups (Optional)</label>
+                                    <label className={labelClasses}>{t('audienceTargeting.groups')}</label>
                                     
                                     {/* Selected Groups */}
                                     {selectedGroups.length > 0 && (
@@ -862,7 +865,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
                                         <input
                                             type="text"
-                                            placeholder="Search groups..."
+                                            placeholder={t('audienceTargeting.searchGroups')}
                                             className={`${inputClasses('groupSearch')} pl-10`}
                                             value={groupSearchQuery}
                                             onChange={e => setGroupSearchQuery(e.target.value)}
@@ -906,7 +909,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                                         {isSelected && <Check className="w-4 h-4 text-[var(--brand-primary)]" />}
                                                         {!isAvailable && (
                                                             <span className="text-xs text-[var(--brand-light)]/40">
-                                                                Not in scope
+                                                                {t('audienceTargeting.notInScope')}
                                                             </span>
                                                         )}
                                                     </button>
@@ -917,13 +920,15 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
 
                                     {showGroupDropdown && searchFilteredGroups.length === 0 && groupSearchQuery && (
                                         <div className="mt-2 p-4 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-center text-sm text-[var(--brand-light)]/50">
-                                            No groups found matching "{groupSearchQuery}"
+                                            {t('audienceTargeting.noGroupsFound', { query: groupSearchQuery })}
                                         </div>
                                     )}
 
                                     {distributionMode !== 'GLOBAL' && (selectedMunis.length > 0 || selectedClubs.length > 0) && (
                                         <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                                            Only groups from selected {distributionMode === 'MUNICIPALITY' ? 'municipalities' : 'clubs'} are available
+                                            {t('audienceTargeting.onlyGroupsFrom', { 
+                                                type: distributionMode === 'MUNICIPALITY' ? t('audienceTargeting.municipalities') : t('audienceTargeting.clubs')
+                                            })}
                                         </p>
                                     )}
                                 </div>
@@ -932,7 +937,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {/* Interests */}
                             {availableInterests.length > 0 && (
                                 <div>
-                                    <label className={labelClasses}>Interests (Optional)</label>
+                                    <label className={labelClasses}>{t('audienceTargeting.interests')}</label>
                                     <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                                         {availableInterests.map(interest => (
                                             <button
@@ -955,9 +960,9 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {/* Custom Fields */}
                             {availableCustomFields.length > 0 && (
                                 <div>
-                                    <label className={labelClasses}>Custom Field Targeting (Optional)</label>
+                                    <label className={labelClasses}>{t('audienceTargeting.customFieldTargeting')}</label>
                                     <p className="text-xs text-[var(--brand-light)]/40 mb-3">
-                                        Target users based on their custom field values
+                                        {t('audienceTargeting.customFieldHint')}
                                     </p>
                                     <div className="space-y-3">
                                         {availableCustomFields.map(field => (
@@ -968,13 +973,13 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                                             {field.label || field.name}
                                                         </p>
                                                         <p className="text-xs text-[var(--brand-light)]/50">
-                                                            {field.field_type === 'BOOLEAN' ? 'Yes/No field' : 
-                                                             field.field_type === 'SINGLE_SELECT' ? 'Single choice' : 'Multiple choice'}
+                                                            {field.field_type === 'BOOLEAN' ? t('audienceTargeting.yesNoField') : 
+                                                             field.field_type === 'SINGLE_SELECT' ? t('audienceTargeting.singleChoice') : t('audienceTargeting.multipleChoice')}
                                                         </p>
                                                     </div>
                                                     {customFieldRules[field.id] && (
                                                         <span className="px-2 py-0.5 rounded-full bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] text-xs font-medium">
-                                                            Active
+                                                            {t('audienceTargeting.active')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -982,9 +987,9 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                                 {field.field_type === 'BOOLEAN' && (
                                                     <div className="flex gap-2">
                                                         {[
-                                                            { value: '', label: 'Any', desc: 'No filter' },
-                                                            { value: 'true', label: 'Yes', desc: 'Only yes' },
-                                                            { value: 'false', label: 'No', desc: 'Only no' }
+                                                            { value: '', label: t('audienceTargeting.any'), desc: t('audienceTargeting.anyDesc') },
+                                                            { value: 'true', label: t('audienceTargeting.yes'), desc: t('audienceTargeting.yesDesc') },
+                                                            { value: 'false', label: t('audienceTargeting.no'), desc: t('audienceTargeting.noDesc') }
                                                         ].map(opt => (
                                                             <button
                                                                 key={opt.value}
@@ -1008,7 +1013,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                                         value={customFieldRules[field.id] || ''}
                                                         onChange={e => handleCustomFieldChange(field.id, e.target.value)}
                                                     >
-                                                        <option value="">Any value (no filter)</option>
+                                                        <option value="">{t('audienceTargeting.anyValue')}</option>
                                                         {field.options.map((opt: string) => (
                                                             <option key={opt} value={opt}>{opt}</option>
                                                         ))}
@@ -1030,8 +1035,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     <Settings className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Default Settings</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Pre-configure post settings</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('defaultSettings.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('defaultSettings.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -1042,8 +1047,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                 <div className="flex items-center gap-3">
                                     <MessageSquare className="w-5 h-5 text-[var(--brand-primary)]" />
                                     <div>
-                                        <p className="font-medium text-[var(--brand-light)]">Allow Comments</p>
-                                        <p className="text-sm text-[var(--brand-light)]/50">Members can comment on posts</p>
+                                        <p className="font-medium text-[var(--brand-light)]">{t('defaultSettings.allowComments')}</p>
+                                        <p className="text-sm text-[var(--brand-light)]/50">{t('defaultSettings.allowCommentsHint')}</p>
                                     </div>
                                 </div>
                                 <button
@@ -1064,8 +1069,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     {/* Moderation */}
                                     <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
                                         <div>
-                                            <p className="font-medium text-[var(--brand-light)]">Require Moderation</p>
-                                            <p className="text-sm text-[var(--brand-light)]/50">Comments need approval before showing</p>
+                                            <p className="font-medium text-[var(--brand-light)]">{t('defaultSettings.requireModeration')}</p>
+                                            <p className="text-sm text-[var(--brand-light)]/50">{t('defaultSettings.requireModerationHint')}</p>
                                         </div>
                                         <button
                                             type="button"
@@ -1083,8 +1088,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     {/* Replies */}
                                     <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
                                         <div>
-                                            <p className="font-medium text-[var(--brand-light)]">Allow Replies</p>
-                                            <p className="text-sm text-[var(--brand-light)]/50">Members can reply to comments</p>
+                                            <p className="font-medium text-[var(--brand-light)]">{t('defaultSettings.allowReplies')}</p>
+                                            <p className="text-sm text-[var(--brand-light)]/50">{t('defaultSettings.allowRepliesHint')}</p>
                                         </div>
                                         <button
                                             type="button"
@@ -1106,8 +1111,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                 <div className="flex items-center gap-3">
                                     <Pin className="w-5 h-5 text-[var(--brand-peach)]" />
                                     <div>
-                                        <p className="font-medium text-[var(--brand-light)]">Pin by Default</p>
-                                        <p className="text-sm text-[var(--brand-light)]/50">Posts will be pinned to top</p>
+                                        <p className="font-medium text-[var(--brand-light)]">{t('defaultSettings.pinByDefault')}</p>
+                                        <p className="text-sm text-[var(--brand-light)]/50">{t('defaultSettings.pinByDefaultHint')}</p>
                                     </div>
                                 </div>
                                 <button
@@ -1128,8 +1133,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                 <div className="flex items-center gap-3">
                                     <Bell className="w-5 h-5 text-[var(--brand-primary)]" />
                                     <div>
-                                        <p className="font-medium text-[var(--brand-light)]">Push Notification</p>
-                                        <p className="text-sm text-[var(--brand-light)]/50">Send push notification when posting</p>
+                                        <p className="font-medium text-[var(--brand-light)]">{t('defaultSettings.pushNotification')}</p>
+                                        <p className="text-sm text-[var(--brand-light)]/50">{t('defaultSettings.pushNotificationHint')}</p>
                                     </div>
                                 </div>
                                 <button
@@ -1148,10 +1153,10 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                             {sendPush && (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className={labelClasses}>Push Notification Title</label>
+                                        <label className={labelClasses}>{t('defaultSettings.pushTitle')}</label>
                                         <input 
                                             type="text" 
-                                            placeholder="e.g. New Update!"
+                                            placeholder={t('defaultSettings.pushTitlePlaceholder')}
                                             className={inputClasses('pushTitle')}
                                             value={defaultPushTitle} 
                                             onChange={e => setDefaultPushTitle(e.target.value)} 
@@ -1159,13 +1164,13 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                             onBlur={() => setFocusedField(null)}
                                         />
                                         <p className="text-xs text-[var(--brand-light)]/40 mt-1">
-                                            The headline of the push notification
+                                            {t('defaultSettings.pushTitleHint')}
                                         </p>
                                     </div>
                                     <div>
-                                        <label className={labelClasses}>Push Notification Message</label>
+                                        <label className={labelClasses}>{t('defaultSettings.pushMessage')}</label>
                                         <textarea 
-                                            placeholder="e.g. Check out the latest news from your club!"
+                                            placeholder={t('defaultSettings.pushMessagePlaceholder')}
                                             className={`${inputClasses('pushMessage')} h-20 py-3 resize-none`}
                                             value={defaultPushMessage} 
                                             onChange={e => setDefaultPushMessage(e.target.value)} 
@@ -1173,7 +1178,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                             onBlur={() => setFocusedField(null)}
                                         />
                                         <p className="text-xs text-[var(--brand-light)]/40 mt-1">
-                                            The body text of the push notification (leave empty to use post title)
+                                            {t('defaultSettings.pushMessageHint')}
                                         </p>
                                     </div>
                                 </div>
@@ -1189,20 +1194,20 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                     <Lightbulb className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Best practices for templates</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('quickTips.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('quickTips.description')}</p>
                                 </div>
                             </div>
                         </div>
                         <div className="p-4 sm:p-6 text-sm text-[var(--brand-light)]/70 space-y-3">
                             <p>
-                                Templates help you create posts faster by pre-configuring targeting and settings.
+                                {t('quickTips.intro')}
                             </p>
                             <ul className="list-disc list-inside space-y-1 pl-4">
-                                <li>Use descriptive names so you can quickly identify templates</li>
-                                <li>Create templates for common post types (daily updates, events, etc.)</li>
-                                <li>You can duplicate and modify existing templates</li>
-                                <li>Inactive templates won't appear in the quick post selection</li>
+                                <li>{t('quickTips.tip1')}</li>
+                                <li>{t('quickTips.tip2')}</li>
+                                <li>{t('quickTips.tip3')}</li>
+                                <li>{t('quickTips.tip4')}</li>
                             </ul>
                         </div>
                     </div>
@@ -1216,23 +1221,22 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                      bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]
                                      hover:bg-[var(--dark-600)] hover:border-[var(--dark-400)] transition-all"
                         >
-                            Cancel
+                            {t('actions.cancel')}
                         </button>
                         <button 
                             type="submit" 
                             disabled={loading} 
                             className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold 
-                                     bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-purple)] transition-all
+                                     bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-purple)] transition-all
                                      disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading && <Sparkles className="w-4 h-4 animate-pulse" />}
-                            {loading ? 'Saving...' : initialData ? 'Update Template' : 'Create Template'}
+                            {loading ? t('actions.saving') : initialData ? t('actions.updateTemplate') : t('actions.createTemplate')}
                         </button>
                     </div>
 
                 </form>
-                <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode duration={1250} />
-            </div>
+                </div>
         </div>
     );
 }

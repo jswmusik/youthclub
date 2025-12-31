@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { BarChart3, ChevronUp, ChevronDown, Search, X, Users, UserCheck, UserX, UsersRound, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getClubFollowers, removeClubFollower } from '@/lib/api';
@@ -26,6 +27,7 @@ interface ClubFollowersListProps {
 }
 
 export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
+  const t = useTranslations('followers');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -79,7 +81,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
       applyFilters(followersList, searchQuery, roleFilter, genderFilter, page);
     } catch (err: any) {
       console.error("Failed to load followers", err);
-      setError(err?.response?.data?.error || 'Failed to load followers.');
+      setError(err?.response?.data?.error || t('errors.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -186,9 +188,24 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
   };
 
   const getGenderDisplay = (user: Follower): string => {
-    if (user.preferred_gender) return user.preferred_gender;
-    if (user.legal_gender) return user.legal_gender;
+    const getNormalizedGenderValue = (gender: string | null | undefined): string | null => {
+      if (!gender) return null;
+      const normalized = String(gender).toUpperCase().trim();
+      const validGenders = ['MALE', 'FEMALE', 'OTHER'];
+      return validGenders.includes(normalized) ? normalized : null;
+    };
+
+    const preferred = getNormalizedGenderValue(user.preferred_gender);
+    if (preferred) return t(`genders.${preferred}`);
+    
+    const legal = getNormalizedGenderValue(user.legal_gender);
+    if (legal) return t(`genders.${legal}`);
+    
     return '—';
+  };
+
+  const getRoleDisplay = (role: string): string => {
+    return t(`roles.${role}` as any) || role.replace(/_/g, ' ');
   };
 
   const getRoleBadgeClasses = (role: string) => {
@@ -260,7 +277,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
       setUserToUnfollow(null);
     } catch (err: any) {
       console.error("Failed to remove follower", err);
-      alert(err?.response?.data?.error || 'Failed to remove follower.');
+      alert(err?.response?.data?.error || t('errors.failedToRemove'));
     } finally {
       setRemovingUserId(null);
     }
@@ -313,7 +330,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
               <Users className="w-5 h-5 text-white" />
             </div>
-            <span className="text-[var(--brand-light)]/60 animate-pulse">Loading followers...</span>
+            <span className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</span>
           </div>
         </div>
       </div>
@@ -345,7 +362,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
             <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
               <BarChart3 className="w-4 h-4 text-[var(--brand-primary)]" />
             </div>
-            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Analytics Dashboard</h2>
+            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h2>
           </div>
           {analyticsExpanded ? (
             <ChevronUp className="w-5 h-5 text-[var(--brand-light)]/50" />
@@ -363,7 +380,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                   <Users className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_followers}</div>
-                <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">Total Followers</div>
+                <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">{t('totalFollowers')}</div>
               </div>
 
               {/* Youth Members */}
@@ -372,7 +389,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                   <UserCheck className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.youth_members}</div>
-                <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">Youth Members</div>
+                <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">{t('youthMembers')}</div>
               </div>
 
               {/* Guardians */}
@@ -381,7 +398,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                   <UsersRound className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.guardians}</div>
-                <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">Guardians</div>
+                <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">{t('guardians')}</div>
               </div>
 
               {/* Gender Breakdown */}
@@ -389,18 +406,18 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-third)]/20">
                   <CheckCircle2 className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
-                <div className="text-xs text-[var(--brand-light)]/50 font-medium text-center mb-2">Gender</div>
+                <div className="text-xs text-[var(--brand-light)]/50 font-medium text-center mb-2">{t('gender')}</div>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/60">Male:</span>
+                    <span className="text-[var(--brand-light)]/60">{t('male')}:</span>
                     <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.male}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/60">Female:</span>
+                    <span className="text-[var(--brand-light)]/60">{t('female')}:</span>
                     <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.female}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/60">Other:</span>
+                    <span className="text-[var(--brand-light)]/60">{t('other')}:</span>
                     <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.other}</span>
                   </div>
                 </div>
@@ -413,7 +430,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
       {/* Filters */}
       <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-          <h2 className="text-lg font-semibold text-[var(--brand-light)]">Filters</h2>
+          <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('filters')}</h2>
         </div>
         <div className="p-4 sm:p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -422,7 +439,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
               <input 
                 type="text"
-                placeholder="Search name or email..." 
+                placeholder={t('searchPlaceholder')} 
                 className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder:text-[var(--brand-light)]/40 text-sm focus:outline-none focus:border-[var(--brand-primary)]/50 transition-colors"
                 value={searchQuery}
                 onChange={e => handleSearchChange(e.target.value)}
@@ -436,12 +453,12 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                 value={roleFilter} 
                 onChange={e => handleRoleFilterChange(e.target.value)}
               >
-                <option value="">All Roles</option>
-                <option value="YOUTH_MEMBER">Youth Member</option>
-                <option value="GUARDIAN">Guardian</option>
-                <option value="CLUB_ADMIN">Club Admin</option>
-                <option value="MUNICIPALITY_ADMIN">Municipality Admin</option>
-                <option value="SUPER_ADMIN">Super Admin</option>
+                <option value="">{t('allRoles')}</option>
+                <option value="YOUTH_MEMBER">{t('youthMember')}</option>
+                <option value="GUARDIAN">{t('guardian')}</option>
+                <option value="CLUB_ADMIN">{t('clubAdmin')}</option>
+                <option value="MUNICIPALITY_ADMIN">{t('municipalityAdmin')}</option>
+                <option value="SUPER_ADMIN">{t('superAdmin')}</option>
               </select>
             </div>
             
@@ -452,10 +469,10 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                 value={genderFilter} 
                 onChange={e => handleGenderFilterChange(e.target.value)}
               >
-                <option value="">All Genders</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
+                <option value="">{t('allGenders')}</option>
+                <option value="MALE">{t('male')}</option>
+                <option value="FEMALE">{t('female')}</option>
+                <option value="OTHER">{t('other')}</option>
               </select>
             </div>
             
@@ -465,7 +482,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                 onClick={clearFilters}
                 className="h-10 px-4 rounded-xl bg-[var(--brand-red)]/20 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/30 transition-all text-sm font-medium flex items-center justify-center gap-2"
               >
-                <X className="h-4 w-4" /> Clear
+                <X className="h-4 w-4" /> {t('clear')}
               </button>
             )}
           </div>
@@ -481,18 +498,18 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
             </div>
             {allFollowers.length === 0 ? (
               <>
-                <p className="text-[var(--brand-light)]/50 font-medium">No followers yet</p>
-                <p className="text-sm text-[var(--brand-light)]/30 mt-1">This club has no followers</p>
+                <p className="text-[var(--brand-light)]/50 font-medium">{t('noFollowersYet')}</p>
+                <p className="text-sm text-[var(--brand-light)]/30 mt-1">{t('noFollowersDescription')}</p>
               </>
             ) : (
               <>
-                <p className="text-[var(--brand-light)]/50 font-medium">No matches found</p>
-                <p className="text-sm text-[var(--brand-light)]/30 mt-1">Try adjusting your filters</p>
+                <p className="text-[var(--brand-light)]/50 font-medium">{t('noMatchesFound')}</p>
+                <p className="text-sm text-[var(--brand-light)]/30 mt-1">{t('tryAdjustingFilters')}</p>
                 <button
                   onClick={clearFilters}
                   className="mt-4 px-4 py-2 rounded-xl bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/30 transition-all text-sm font-medium"
                 >
-                  Clear filters
+                  {t('clearFilters')}
                 </button>
               </>
             )}
@@ -505,13 +522,13 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
-                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">User</th>
-                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Email</th>
-                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Age</th>
-                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Gender</th>
-                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Grade</th>
-                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Role</th>
-                  <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Actions</th>
+                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.user')}</th>
+                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.email')}</th>
+                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.age')}</th>
+                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.gender')}</th>
+                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.grade')}</th>
+                  <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.role')}</th>
+                  <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -547,13 +564,13 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                       </td>
                       <td className="py-4 px-6 text-[var(--brand-light)]/70 text-sm">{user.email}</td>
                       <td className="py-4 px-6 text-[var(--brand-light)]/70 text-sm">
-                        {age !== null ? `${age} years` : '—'}
+                        {age !== null ? `${age} ${t('years')}` : '—'}
                       </td>
                       <td className="py-4 px-6 text-[var(--brand-light)]/70 text-sm">{gender}</td>
                       <td className="py-4 px-6">
                         {user.grade !== null && user.grade !== undefined ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
-                            Grade {user.grade}
+                            {t('grade')} {user.grade}
                           </span>
                         ) : (
                           <span className="text-[var(--brand-light)]/30">—</span>
@@ -561,7 +578,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                       </td>
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${getRoleBadgeClasses(user.role)}`}>
-                          {user.role.replace(/_/g, ' ')}
+                          {getRoleDisplay(user.role)}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-right">
@@ -571,7 +588,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-red)]/20 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/30 transition-all text-sm font-medium disabled:opacity-50"
                         >
                           <UserX className="w-4 h-4" />
-                          {isRemoving ? 'Removing...' : 'Unfollow'}
+                          {isRemoving ? t('removing') : t('unfollow')}
                         </button>
                       </td>
                     </tr>
@@ -613,19 +630,19 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                           )}
                         </div>
                         <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-medium flex-shrink-0 ${getRoleBadgeClasses(user.role)}`}>
-                          {user.role.replace(/_/g, ' ')}
+                          {getRoleDisplay(user.role)}
                         </span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                         <div>
-                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Age</div>
-                          <div className="text-[var(--brand-light)]/70">{age !== null ? `${age} years` : '—'}</div>
+                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('tableHeaders.age')}</div>
+                          <div className="text-[var(--brand-light)]/70">{age !== null ? `${age} ${t('years')}` : '—'}</div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Grade</div>
+                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('tableHeaders.grade')}</div>
                           <div className="text-[var(--brand-light)]/70">
-                            {user.grade !== null && user.grade !== undefined ? `Grade ${user.grade}` : '—'}
+                            {user.grade !== null && user.grade !== undefined ? `${t('grade')} ${user.grade}` : '—'}
                           </div>
                         </div>
                       </div>
@@ -636,7 +653,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-red)]/20 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/30 transition-all text-sm font-medium disabled:opacity-50"
                       >
                         <UserX className="w-4 h-4" />
-                        {isRemoving ? 'Removing...' : 'Unfollow'}
+                        {isRemoving ? t('removing') : t('unfollow')}
                       </button>
                     </div>
                   </div>
@@ -657,7 +674,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
               </button>
               <div className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
                 <span className="text-sm text-[var(--brand-light)]">
-                  Page <span className="font-semibold text-[var(--brand-primary)]">{currentPage}</span> of {totalPages}
+                  {t('pagination.page')} <span className="font-semibold text-[var(--brand-primary)]">{currentPage}</span> {t('pagination.of')} {totalPages}
                 </span>
               </div>
               <button 
@@ -682,12 +699,12 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
           }
         }}
         onConfirm={handleUnfollowConfirm}
-        title="Unfollow User"
+        title={t('unfollowModal.title')}
         message={userToUnfollow 
-          ? `Are you sure you want to remove "${userToUnfollow.first_name} ${userToUnfollow.last_name}" from this club's followers?`
-          : 'Are you sure you want to remove this user from the club followers?'}
-        confirmButtonText="Unfollow"
-        cancelButtonText="Cancel"
+          ? t('unfollowModal.message', { name: `${userToUnfollow.first_name} ${userToUnfollow.last_name}` })
+          : t('unfollowModal.messageGeneric')}
+        confirmButtonText={t('unfollowModal.confirm')}
+        cancelButtonText={t('unfollowModal.cancel')}
         isLoading={!!removingUserId}
         variant="danger"
       />

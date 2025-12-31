@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '../../../lib/api';
 import { Pencil, Trash2, X, Plus, Save, Clock, Calendar, AlertCircle } from 'lucide-react';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
+import ConfirmationModal from '../ConfirmationModal';
 
 interface ScheduleSlot {
   id?: number;
@@ -17,25 +19,29 @@ interface Props {
   resourceId: number;
 }
 
-const WEEKDAYS = [
-  { val: 1, label: 'Monday', short: 'Mon' },
-  { val: 2, label: 'Tuesday', short: 'Tue' },
-  { val: 3, label: 'Wednesday', short: 'Wed' },
-  { val: 4, label: 'Thursday', short: 'Thu' },
-  { val: 5, label: 'Friday', short: 'Fri' },
-  { val: 6, label: 'Saturday', short: 'Sat' },
-  { val: 7, label: 'Sunday', short: 'Sun' },
-];
-
 export default function ScheduleEditor({ resourceId }: Props) {
+  const t = useTranslations('bookingsAdmin.schedule.scheduleEditor');
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const WEEKDAYS = [
+    { val: 1, label: t('weekdays.monday'), short: t('weekdaysShort.monday') },
+    { val: 2, label: t('weekdays.tuesday'), short: t('weekdaysShort.tuesday') },
+    { val: 3, label: t('weekdays.wednesday'), short: t('weekdaysShort.wednesday') },
+    { val: 4, label: t('weekdays.thursday'), short: t('weekdaysShort.thursday') },
+    { val: 5, label: t('weekdays.friday'), short: t('weekdaysShort.friday') },
+    { val: 6, label: t('weekdays.saturday'), short: t('weekdaysShort.saturday') },
+    { val: 7, label: t('weekdays.sunday'), short: t('weekdaysShort.sunday') },
+  ];
 
   // Edit Mode State
   const [editingId, setEditingId] = useState<number | null>(null);
 
+  // Delete Confirmation State
+  const [slotToDelete, setSlotToDelete] = useState<number | null>(null);
+
   // Toast State
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Form State
   const [formSlot, setFormSlot] = useState<ScheduleSlot>({
@@ -112,7 +118,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
   const handleSaveSlot = async () => {
     // Validate time range
     if (formSlot.start_time >= formSlot.end_time) {
-      setToast({ message: 'End time must be after start time.', type: 'error', isVisible: true });
+      error(t('toast.endTimeAfterStart'));
       return;
     }
     
@@ -135,17 +141,18 @@ export default function ScheduleEditor({ resourceId }: Props) {
         return formSlot.start_time < existingEnd && formSlot.end_time > existingStart;
       });
       
-      const weekCycleLabel = overlappingSlot?.week_cycle === 'ALL' 
-        ? 'Every Week' 
-        : overlappingSlot?.week_cycle === 'ODD' 
-          ? 'Odd Weeks' 
-          : 'Even Weeks';
+      const weekCycleLabel = overlappingSlot?.week_cycle 
+        ? t(`weekCycleLabels.${overlappingSlot.week_cycle}`)
+        : '';
       
       const message = overlappingSlot
-        ? `This time slot overlaps with an existing slot: ${overlappingSlot.start_time.slice(0, 5)} - ${overlappingSlot.end_time.slice(0, 5)} (${weekCycleLabel}).`
-        : 'This time slot overlaps with an existing slot on the same day.';
+        ? t('toast.overlapWithSlot', { 
+            start: overlappingSlot.start_time.slice(0, 5), 
+            end: overlappingSlot.end_time.slice(0, 5),
+            cycle: weekCycleLabel
+          })
+        : t('toast.overlapGeneric');
       
-      setToast({ message, type: 'error', isVisible: true });
       return;
     }
     
@@ -158,14 +165,14 @@ export default function ScheduleEditor({ resourceId }: Props) {
         
         setSlots(slots.map(s => s.id === editingId ? res.data : s));
         setEditingId(null);
-        setToast({ message: 'Schedule slot updated successfully!', type: 'success', isVisible: true });
+        success(t('toast.slotUpdated'));
       } else {
         const res = await api.post('/bookings/schedules/', {
           ...formSlot,
           resource: resourceId
         });
         setSlots([...slots, res.data]);
-        setToast({ message: 'Schedule slot added successfully!', type: 'success', isVisible: true });
+        success(t('toast.slotAdded'));
       }
       
       // Reset Form
@@ -180,8 +187,8 @@ export default function ScheduleEditor({ resourceId }: Props) {
       const errorMessage = err.response?.data?.non_field_errors?.[0] || 
                           err.response?.data?.detail || 
                           err.response?.data?.end_time?.[0] ||
-                          'Failed to save slot.';
-      setToast({ message: errorMessage, type: 'error', isVisible: true });
+                          t('toast.failedToSave');
+      error(errorMessage);
     }
   };
 
@@ -201,18 +208,24 @@ export default function ScheduleEditor({ resourceId }: Props) {
     });
   };
 
-  const handleDeleteSlot = async (id: number) => {
-    if (!confirm("Are you sure you want to remove this time slot?")) return;
+  const handleDeleteClick = (id: number) => {
+    setSlotToDelete(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!slotToDelete) return;
     try {
-      await api.delete(`/bookings/schedules/${id}/`);
-      setSlots(slots.filter(s => s.id !== id));
+      await api.delete(`/bookings/schedules/${slotToDelete}/`);
+      setSlots(slots.filter(s => s.id !== slotToDelete));
       
-      if (editingId === id) {
+      if (editingId === slotToDelete) {
         handleCancelEdit();
       }
-      setToast({ message: 'Schedule slot deleted successfully!', type: 'success', isVisible: true });
+      success(t('toast.slotDeleted'));
+      setSlotToDelete(null);
     } catch (err) {
-      setToast({ message: 'Failed to delete slot.', type: 'error', isVisible: true });
+      error(t('toast.failedToDelete'));
+      setSlotToDelete(null);
     }
   };
 
@@ -223,7 +236,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
             <Calendar className="h-5 w-5 text-white" />
           </div>
-          <span className="text-[var(--brand-light)]/50">Loading schedule...</span>
+          <span className="text-[var(--brand-light)]/50">{t('loading')}</span>
         </div>
       </div>
     );
@@ -254,10 +267,10 @@ export default function ScheduleEditor({ resourceId }: Props) {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-[var(--brand-light)]">
-                  {editingId ? 'Edit Time Slot' : 'Add Time Slot'}
+                  {editingId ? t('editTimeSlot') : t('addTimeSlot')}
                 </h3>
                 <p className="text-sm text-[var(--brand-light)]/50">
-                  {editingId ? 'Update the selected time slot' : 'Define when this resource is available'}
+                  {editingId ? t('editDescription') : t('addDescription')}
                 </p>
               </div>
               {editingId && (
@@ -276,7 +289,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Day Select */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--brand-light)]/70">Day</label>
+                <label className="text-sm font-medium text-[var(--brand-light)]/70">{t('form.day')}</label>
                 <select 
                   className="w-full h-11 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-all appearance-none cursor-pointer"
                   value={formSlot.weekday}
@@ -288,7 +301,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
 
               {/* Start Time */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--brand-light)]/70">Start Time</label>
+                <label className="text-sm font-medium text-[var(--brand-light)]/70">{t('form.startTime')}</label>
                 <input 
                   type="time" 
                   className="w-full h-11 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-all"
@@ -299,7 +312,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
 
               {/* End Time */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--brand-light)]/70">End Time</label>
+                <label className="text-sm font-medium text-[var(--brand-light)]/70">{t('form.endTime')}</label>
                 <input 
                   type="time" 
                   className="w-full h-11 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-all"
@@ -310,15 +323,15 @@ export default function ScheduleEditor({ resourceId }: Props) {
 
               {/* Week Cycle */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--brand-light)]/70">Week Cycle</label>
+                <label className="text-sm font-medium text-[var(--brand-light)]/70">{t('form.weekCycle')}</label>
                 <select 
                   className="w-full h-11 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-all appearance-none cursor-pointer"
                   value={formSlot.week_cycle}
                   onChange={e => setFormSlot({...formSlot, week_cycle: e.target.value as any})}
                 >
-                  <option value="ALL">Every Week</option>
-                  <option value="ODD">Odd Weeks</option>
-                  <option value="EVEN">Even Weeks</option>
+                  <option value="ALL">{t('form.everyWeek')}</option>
+                  <option value="ODD">{t('form.oddWeeks')}</option>
+                  <option value="EVEN">{t('form.evenWeeks')}</option>
                 </select>
               </div>
               
@@ -336,12 +349,12 @@ export default function ScheduleEditor({ resourceId }: Props) {
                   {editingId ? (
                     <>
                       <Save className="w-4 h-4" />
-                      Update
+                      {t('form.update')}
                     </>
                   ) : (
                     <>
                       <Plus className="w-4 h-4" />
-                      Add Slot
+                      {t('form.addSlot')}
                     </>
                   )}
                 </button>
@@ -358,9 +371,9 @@ export default function ScheduleEditor({ resourceId }: Props) {
                 <Clock className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-[var(--brand-light)]">Weekly Schedule</h3>
+                <h3 className="text-lg font-bold text-[var(--brand-light)]">{t('weeklySchedule.title')}</h3>
                 <p className="text-sm text-[var(--brand-light)]/50">
-                  {slots.length} time slot{slots.length !== 1 ? 's' : ''} configured
+                  {t('weeklySchedule.timeSlotsConfigured', { count: slots.length })}
                 </p>
               </div>
             </div>
@@ -372,8 +385,8 @@ export default function ScheduleEditor({ resourceId }: Props) {
                 <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                   <Clock className="w-8 h-8 text-[var(--brand-light)]/30" />
                 </div>
-                <h4 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No time slots yet</h4>
-                <p className="text-sm text-[var(--brand-light)]/50">Add your first time slot above to define availability.</p>
+                <h4 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('weeklySchedule.noTimeSlotsYet')}</h4>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('weeklySchedule.addFirstTimeSlot')}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -422,7 +435,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
                                       ? 'text-[var(--brand-blue)]' 
                                       : 'text-[var(--brand-purple)]'
                                   }`}>
-                                    {slot.week_cycle === 'ODD' ? 'Odd Weeks' : 'Even Weeks'}
+                                    {t(`weekCycleLabels.${slot.week_cycle}`)}
                                   </span>
                                 )}
                               </div>
@@ -437,7 +450,7 @@ export default function ScheduleEditor({ resourceId }: Props) {
                                   <Pencil className="w-3.5 h-3.5" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteSlot(slot.id!)}
+                                  onClick={() => handleDeleteClick(slot.id!)}
                                   className="p-1.5 rounded-lg text-[var(--brand-light)]/40 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
                                   title="Delete"
                                 >
@@ -457,13 +470,19 @@ export default function ScheduleEditor({ resourceId }: Props) {
         </div>
       </div>
 
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isVisible={slotToDelete !== null}
+        onClose={() => setSlotToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title={t('modals.deleteSlot.title')}
+        message={t('modals.deleteSlot.message')}
+        confirmButtonText={t('modals.deleteSlot.confirm')}
+        cancelButtonText={t('modals.deleteSlot.cancel')}
+        variant="danger"
         darkMode={true}
       />
-    </>
+
+      </>
   );
 }

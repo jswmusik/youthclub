@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Message, ReactionType } from '../../../../types/messenger';
 import { format } from 'date-fns';
 import { getMediaUrl } from '../../../../app/utils';
@@ -33,6 +34,7 @@ const REACTION_COLORS: Record<ReactionType, string> = {
 };
 
 export default function MessageBubble({ message, onReactionUpdate, darkMode = false }: MessageBubbleProps) {
+    const t = useTranslations('messages');
     const isMe = message.is_me;
     const [userReaction, setUserReaction] = useState<ReactionType | null>(message.user_reaction || null);
     const [reactionBreakdown, setReactionBreakdown] = useState<Record<ReactionType, number>>(
@@ -378,7 +380,7 @@ export default function MessageBubble({ message, onReactionUpdate, darkMode = fa
                             {isMe && message.read_status?.is_read && (
                                 <span className={`text-[10px] md:text-xs font-bold ${
                                     darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
-                                }`}>Read</span>
+                                }`}>{t('read')}</span>
                             )}
                         </div>
                     </div>

@@ -8,15 +8,16 @@ import { getMediaUrl } from '../../utils';
 interface Props {
     article: NewsArticle;
     darkMode?: boolean;
+    basePath?: string; // Base path for the news detail link (e.g., '/dashboard/guardian/news' or '/dashboard/youth/news')
 }
 
-export default function NewsCard({ article, darkMode = false }: Props) {
+export default function NewsCard({ article, darkMode = false, basePath = '/dashboard/youth/news' }: Props) {
     const t = useTranslations('news');
     const heroImageUrl = article.hero_image ? getMediaUrl(article.hero_image) : null;
 
     return (
         <Link 
-            href={`/dashboard/youth/news/${article.id}`} 
+            href={`${basePath}/${article.id}`} 
             className={`flex flex-col sm:rounded-xl overflow-hidden h-full transition-all group ${
                 darkMode 
                     ? 'bg-[var(--dark-800)] border-y sm:border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' 

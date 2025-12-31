@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import api from '@/lib/api';
 import { EventRegistration, RegistrationStatus } from '@/types/event';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 import ConfirmationModal from '../ConfirmationModal';
 import { getMediaUrl } from '@/app/utils';
-import { CheckCircle, XCircle, Clock, Users, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Users, ChevronLeft, ChevronRight, User, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 
 interface ParticipantManagerProps {
     eventId: number;
@@ -22,7 +22,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
     const [totalCount, setTotalCount] = useState(0);
     const [filter, setFilter] = useState<string>('ALL');
     const [loading, setLoading] = useState(true);
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+    const { success, error: showError, info, warning } = useToast();
     const [confirmationModal, setConfirmationModal] = useState<{
         isVisible: boolean;
         action: 'approve' | 'reject' | null;
@@ -34,6 +34,49 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
         registration: null,
         isLoading: false,
     });
+    
+    // Track expanded rows to show custom field values
+    const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+    
+    const toggleRowExpansion = (regId: number) => {
+        setExpandedRows(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(regId)) {
+                newSet.delete(regId);
+            } else {
+                newSet.add(regId);
+            }
+            return newSet;
+        });
+    };
+    
+    const hasCustomFieldValues = (reg: any) => {
+        return reg.custom_field_values && reg.custom_field_values.length > 0;
+    };
+    
+    const renderCustomFieldValue = (cfv: any) => {
+        const field = cfv.field_detail;
+        const value = cfv.value;
+        
+        if (!field || value === null || value === undefined) return null;
+        
+        let displayValue = '';
+        
+        if (field.field_type === 'BOOLEAN') {
+            displayValue = value ? 'Yes' : 'No';
+        } else if (field.field_type === 'MULTI_SELECT' && Array.isArray(value)) {
+            displayValue = value.join(', ');
+        } else {
+            displayValue = String(value);
+        }
+        
+        return (
+            <div key={cfv.id} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                <span className="text-xs font-medium text-[var(--brand-light)]/60">{field.name}:</span>
+                <span className="text-sm text-[var(--brand-light)]">{displayValue}</span>
+            </div>
+        );
+    };
 
     const updateUrl = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -123,7 +166,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
             }
         } catch (error) {
             console.error(error);
-            setToast({ message: "Failed to load participants", type: 'error', isVisible: true });
+            error("Failed to load participants");
         } finally {
             setLoading(false);
         }
@@ -167,11 +210,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
 
         try {
             const response = await api.patch(`/registrations/${confirmationModal.registration.id}/`, { status: newStatus });
-            setToast({ 
-                message: `Registration ${confirmationModal.action === 'approve' ? 'approved' : 'rejected'} successfully`, 
-                type: 'success', 
-                isVisible: true 
-            });
+            success(`Registration ${confirmationModal.action === 'approve' ? 'approved' : 'rejected'} successfully`);
             
             setConfirmationModal({
                 isVisible: false,
@@ -183,9 +222,9 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
             setTimeout(() => {
                 fetchRegistrations();
             }, 500);
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.error || error.response?.data?.detail || error.message || "Update failed";
-            setToast({ message: errorMessage, type: 'error', isVisible: true });
+        } catch (err: any) {
+            const errorMessage = err.response?.data?.error || err.response?.data?.detail || err.message || "Update failed";
+            showError(errorMessage);
             setConfirmationModal(prev => ({ ...prev, isLoading: false }));
         }
     };
@@ -302,71 +341,97 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                     </thead>
                     <tbody>
                         {paginatedRegistrations.map((reg, index) => (
-                            <tr 
-                                key={reg.id} 
-                                className={`border-b border-[var(--dark-500)]/50 hover:bg-[var(--dark-600)]/30 transition-colors ${
-                                    index === paginatedRegistrations.length - 1 ? 'border-b-0' : ''
-                                }`}
-                            >
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                            {reg.user_detail?.avatar ? (
-                                                <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-white font-bold text-sm">
-                                                    {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
+                            <React.Fragment key={reg.id}>
+                                <tr 
+                                    className={`border-b border-[var(--dark-500)]/50 hover:bg-[var(--dark-600)]/30 transition-colors ${
+                                        index === paginatedRegistrations.length - 1 && !expandedRows.has(reg.id) ? 'border-b-0' : ''
+                                    }`}
+                                >
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                {reg.user_detail?.avatar ? (
+                                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-white font-bold text-sm">
+                                                        {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                                                    {reg.user_detail?.first_name} {reg.user_detail?.last_name}
+                                                    {hasCustomFieldValues(reg) && (
+                                                        <button
+                                                            onClick={() => toggleRowExpansion(reg.id)}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30 hover:bg-[var(--brand-purple)]/30 transition-colors"
+                                                        >
+                                                            <FileText className="w-3 h-3" />
+                                                            {expandedRows.has(reg.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-[var(--brand-light)]/50">{reg.user_detail?.email}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm text-[var(--brand-light)]">
+                                            {new Date(reg.created_at).toLocaleDateString()}
+                                        </div>
+                                        <div className="text-xs text-[var(--brand-light)]/50">
+                                            {new Date(reg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {getStatusBadge(reg.status)}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            {(reg.status === 'PENDING_ADMIN' || reg.status === 'WAITLIST') && (
+                                                <button
+                                                    onClick={() => handleApproveClick(reg)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30 hover:bg-[var(--brand-green)]/30 transition-colors"
+                                                >
+                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                    Approve
+                                                </button>
+                                            )}
+                                            {(reg.status === 'PENDING_GUARDIAN') && (
+                                                <span className="text-xs text-[var(--brand-light)]/40 italic flex items-center gap-1">
+                                                    <Clock className="w-3.5 h-3.5" />
+                                                    Waiting for parent
                                                 </span>
                                             )}
+                                            {reg.status !== 'REJECTED' && reg.status !== 'CANCELLED' && reg.status !== 'ATTENDED' && (
+                                                <button
+                                                    onClick={() => handleRejectClick(reg)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30 hover:bg-[var(--brand-red)]/30 transition-colors"
+                                                >
+                                                    <XCircle className="w-3.5 h-3.5" />
+                                                    Reject
+                                                </button>
+                                            )}
                                         </div>
-                                        <div>
-                                            <div className="font-semibold text-[var(--brand-light)]">
-                                                {reg.user_detail?.first_name} {reg.user_detail?.last_name}
+                                    </td>
+                                </tr>
+                                {/* Expanded Custom Fields Row */}
+                                {expandedRows.has(reg.id) && hasCustomFieldValues(reg) && (
+                                    <tr key={`${reg.id}-custom-fields`} className="bg-[var(--dark-600)]/20">
+                                        <td colSpan={4} className="px-6 py-4">
+                                            <div className="pl-13 space-y-2">
+                                                <div className="text-xs font-semibold text-[var(--brand-light)]/70 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                    <FileText className="w-3.5 h-3.5" />
+                                                    Registration Responses
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-[var(--dark-700)]/50 rounded-lg p-4 border border-[var(--dark-500)]">
+                                                    {reg.custom_field_values.map((cfv: any) => renderCustomFieldValue(cfv))}
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-[var(--brand-light)]/50">{reg.user_detail?.email}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm text-[var(--brand-light)]">
-                                        {new Date(reg.created_at).toLocaleDateString()}
-                                    </div>
-                                    <div className="text-xs text-[var(--brand-light)]/50">
-                                        {new Date(reg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    {getStatusBadge(reg.status)}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                        {(reg.status === 'PENDING_ADMIN' || reg.status === 'WAITLIST') && (
-                                            <button
-                                                onClick={() => handleApproveClick(reg)}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30 hover:bg-[var(--brand-green)]/30 transition-colors"
-                                            >
-                                                <CheckCircle className="w-3.5 h-3.5" />
-                                                Approve
-                                            </button>
-                                        )}
-                                        {(reg.status === 'PENDING_GUARDIAN') && (
-                                            <span className="text-xs text-[var(--brand-light)]/40 italic flex items-center gap-1">
-                                                <Clock className="w-3.5 h-3.5" />
-                                                Waiting for parent
-                                            </span>
-                                        )}
-                                        {reg.status !== 'REJECTED' && reg.status !== 'CANCELLED' && reg.status !== 'ATTENDED' && (
-                                            <button
-                                                onClick={() => handleRejectClick(reg)}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30 hover:bg-[var(--brand-red)]/30 transition-colors"
-                                            >
-                                                <XCircle className="w-3.5 h-3.5" />
-                                                Reject
-                                            </button>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
                         ))}
                         {paginatedRegistrations.length === 0 && (
                             <tr>
@@ -410,6 +475,26 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                 <div className="mt-2 text-xs text-[var(--brand-light)]/40">
                                     Registered: {new Date(reg.created_at).toLocaleDateString()} at {new Date(reg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                 </div>
+                                
+                                {/* Custom Field Values - Mobile */}
+                                {hasCustomFieldValues(reg) && (
+                                    <div className="mt-3">
+                                        <button
+                                            onClick={() => toggleRowExpansion(reg.id)}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30"
+                                        >
+                                            <FileText className="w-3.5 h-3.5" />
+                                            View Responses
+                                            {expandedRows.has(reg.id) ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                        </button>
+                                        
+                                        {expandedRows.has(reg.id) && (
+                                            <div className="mt-3 p-3 bg-[var(--dark-600)]/50 rounded-lg border border-[var(--dark-500)] space-y-2">
+                                                {reg.custom_field_values.map((cfv: any) => renderCustomFieldValue(cfv))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 
                                 {/* Actions */}
                                 <div className="mt-3 flex items-center gap-2">
@@ -535,7 +620,6 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                 darkMode={true}
             />
             
-            <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
-        </div>
+            </div>
     );
 }

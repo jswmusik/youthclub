@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Feature, Plan, License, LicenseRequest, GlobalPricing
+from .models import Feature, Plan, License, LicenseRequest, GlobalPricing, GlobalDataRetentionSettings
 
 
 class FeatureSerializer(serializers.ModelSerializer):
@@ -79,3 +79,17 @@ class GlobalPricingSerializer(serializers.ModelSerializer):
         model = GlobalPricing
         fields = ['price_per_extra_club_sek', 'analytics_package_price_sek', 'yearly_renewal_discount_percent']
 
+
+class GlobalDataRetentionSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GlobalDataRetentionSettings
+        fields = [
+            'default_retention_months',
+            'min_allowed_retention_months',
+            'max_allowed_retention_months',
+            'warning_notification_days',
+            'second_warning_notification_days',
+            'is_auto_deletion_enabled',
+            'updated_at'
+        ]
+        read_only_fields = ['updated_at']

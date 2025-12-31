@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -13,7 +14,7 @@ import { getMediaUrl } from '../../app/utils';
 
 // Modals
 import ConfirmationModal from './ConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -27,6 +28,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const t = useTranslations('clubsAdmin');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -113,14 +115,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -206,6 +208,7 @@ function ClubTableRowSkeleton() {
 }
 
 function ClubsPageSkeleton({ showMunicipality }: { showMunicipality: boolean }) {
+  const t = useTranslations('clubsAdmin');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -220,10 +223,10 @@ function ClubsPageSkeleton({ showMunicipality }: { showMunicipality: boolean }) 
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club Name</th>
-              {showMunicipality && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Municipality</th>}
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Contact</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.clubName')}</th>
+              {showMunicipality && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.municipality')}</th>}
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.contact')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -243,6 +246,7 @@ interface ClubManagerProps {
 }
 
 export default function ClubManager({ basePath, scope }: ClubManagerProps) {
+  const t = useTranslations('clubsAdmin');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -260,7 +264,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
   
   // Actions
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Filter State
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -336,11 +340,11 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
     if (!itemToDelete) return;
     try {
       await api.delete(`/clubs/${itemToDelete.id}/`);
-      setToast({ message: 'Club deleted successfully.', type: 'success', isVisible: true });
+      success(t('toast.deleteSuccess'));
       fetchClubs();
       fetchAllAnalyticsData();
     } catch (err) {
-      setToast({ message: 'Failed to delete club.', type: 'error', isVisible: true });
+      error(t('toast.deleteError'));
     } finally {
       setItemToDelete(null);
     }
@@ -379,13 +383,13 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <Building2 className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Clubs</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Youth centers and activity hubs for your platform.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <Link href={`${basePath}/create`}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="h-4 w-4" /> Add Club
+            <Plus className="h-4 w-4" /> {t('addClub')}
           </button>
         </Link>
       </div>
@@ -402,7 +406,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -416,7 +420,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Building2 className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-[var(--brand-light)]/70">Total Clubs</span>
+                  <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('totalClubs')}</span>
                 </div>
                 <div className="text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
               </div>
@@ -427,7 +431,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Users className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-[var(--brand-light)]/70">Avg. Members</span>
+                  <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('avgMembers')}</span>
                 </div>
                 <div className="text-3xl font-bold text-[var(--brand-blue)]">{analytics.avgMembers}</div>
               </div>
@@ -443,7 +447,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search clubs..." 
+              placeholder={t('searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -470,7 +474,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
                   backgroundSize: '1rem'
                 }}
               >
-                <option value="">All Municipalities</option>
+                <option value="">{t('filterByMunicipality')}</option>
                 {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
@@ -482,7 +486,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
       {!showSkeleton && clubs.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{clubs.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'club' : 'clubs'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{clubs.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.club') : t('statsBar.clubs')}
           </p>
         </div>
       )}
@@ -495,14 +499,14 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No clubs found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.title')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {searchInput || municipalityFilter ? 'Try adjusting your search or filter.' : 'Get started by adding your first club.'}
+            {searchInput || municipalityFilter ? t('emptyState.messageFiltered') : t('emptyState.messageEmpty')}
           </p>
           {!searchInput && !municipalityFilter && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Add Club
+                <Plus className="h-4 w-4" /> {t('addClub')}
               </button>
             </Link>
           )}
@@ -561,10 +565,10 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club Name</th>
-                  {scope === 'SUPER' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Municipality</th>}
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Contact</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.clubName')}</th>
+                  {scope === 'SUPER' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.municipality')}</th>}
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.contact')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -603,7 +607,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
                           </div>
                         )}
                         {!club.email && !club.phone && (
-                          <span className="text-sm text-[var(--brand-light)]/30 italic">No contact</span>
+                          <span className="text-sm text-[var(--brand-light)]/30 italic">{t('emptyState.noContact')}</span>
                         )}
                       </div>
                     </td>
@@ -641,17 +645,17 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/50">
-                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}
@@ -663,14 +667,13 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
-        title="Delete Club"
-        message={`Are you sure you want to delete "${itemToDelete?.name}"? This will permanently delete the club and its data.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { name: itemToDelete?.name })}
+        confirmButtonText={t('deleteModal.confirm')}
+        cancelButtonText={t('deleteModal.cancel')}
         variant="danger"
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-    </div>
+      </div>
   );
 }

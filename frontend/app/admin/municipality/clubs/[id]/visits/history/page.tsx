@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname, useParams } from 'next/navigation';
 import { visits } from '@/lib/api';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../../../../hooks/useToast';
 import Link from 'next/link';
-import { ArrowLeft, Search, X, Clock, LogIn, LogOut, User } from 'lucide-react';
+import { Search, X, Clock, LogIn, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getMediaUrl } from '@/app/utils';
 import VisitsTabs from '@/app/components/visits/VisitsTabs';
+import BackButton from '@/app/components/BackButton';
 
 export default function MunicipalityClubVisitHistoryPage() {
   const router = useRouter();
@@ -25,11 +26,7 @@ export default function MunicipalityClubVisitHistoryPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'error',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
 
   const updateUrl = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -67,13 +64,8 @@ export default function MunicipalityClubVisitHistoryPage() {
       
       setData(visitsData);
       setTotalCount(count);
-      setToast({ message: '', type: 'error', isVisible: false });
-    } catch (error: any) {
-      setToast({ 
-        message: error.response?.data?.error || "Failed to load history", 
-        type: 'error', 
-        isVisible: true 
-      });
+      } catch (error: any) {
+      error(error.response?.data?.error || "Failed to load history");
       setData([]);
     } finally {
       setLoading(false);
@@ -118,11 +110,7 @@ export default function MunicipalityClubVisitHistoryPage() {
       <div className="p-8 max-w-7xl mx-auto space-y-6">
         {/* Back Link */}
         <div>
-          <Link href={`/admin/municipality/clubs/${clubId}`}>
-            <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="h-4 w-4" /> Back to Club
-            </Button>
-          </Link>
+          <BackButton href={`/admin/municipality/clubs/${clubId}`} label="Back to Club" />
         </div>
 
         {/* Header Section */}
@@ -451,12 +439,6 @@ export default function MunicipalityClubVisitHistoryPage() {
       </div>
 
       {/* Toast Notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-      />
     </>
   );
 }

@@ -2,18 +2,22 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { Layers, FileText, Navigation, Sparkles, Cookie } from 'lucide-react';
-
-const tabs = [
-  { name: 'Pages', shortName: 'Pages', href: '/admin/super/cms/pages', icon: FileText },
-  { name: 'Navigation', shortName: 'Nav', href: '/admin/super/cms/navigation', icon: Navigation },
-  { name: 'Creative Features', shortName: 'Features', href: '/admin/super/cms/features', icon: Sparkles },
-  { name: 'Cookie Consent', shortName: 'Cookies', href: '/admin/super/cms/cookies', icon: Cookie },
-];
+import { Layers, FileText, Navigation, Sparkles, Cookie, CreditCard, Mail } from 'lucide-react';
 
 export default function CMSLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('cmsAdmin');
   const pathname = usePathname();
+
+  const tabs = [
+    { name: t('tabs.pages'), shortName: t('tabs.pagesShort'), href: '/admin/super/cms/pages', icon: FileText },
+    { name: t('tabs.navigation'), shortName: t('tabs.navigationShort'), href: '/admin/super/cms/navigation', icon: Navigation },
+    { name: t('tabs.features'), shortName: t('tabs.featuresShort'), href: '/admin/super/cms/features', icon: Sparkles },
+    { name: t('tabs.cookies'), shortName: t('tabs.cookiesShort'), href: '/admin/super/cms/cookies', icon: Cookie },
+    { name: t('tabs.pricing'), shortName: t('tabs.pricingShort'), href: '/admin/super/cms/pricing', icon: CreditCard },
+    { name: t('tabs.contact'), shortName: t('tabs.contactShort'), href: '/admin/super/cms/contact', icon: Mail },
+  ];
 
   return (
     <div className="min-h-screen bg-[var(--dark-900)]">
@@ -25,9 +29,9 @@ export default function CMSLayout({ children }: { children: React.ReactNode }) {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <Layers className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">CMS Manager</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
-            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage website content, navigation, and legal documents.</p>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
           </div>
         </div>
 

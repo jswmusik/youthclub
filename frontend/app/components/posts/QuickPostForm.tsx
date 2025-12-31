@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
     ArrowLeft, Upload, X, FileText, Image, Video,
@@ -14,7 +15,7 @@ import {
 import api from '../../../lib/api';
 import PostRichTextEditor from './PostRichTextEditor';
 import { getMediaUrl } from '../../utils';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
 
 interface PostTemplate {
@@ -69,14 +70,13 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
     const router = useRouter();
     const { user: currentUser } = useAuth();
+    const t = useTranslations('postsManager.quickPost');
     const progressPlaceholderRef = useRef<HTMLDivElement>(null);
     
     const [loading, setLoading] = useState(false);
     const [loadingTemplates, setLoadingTemplates] = useState(true);
     const [error, setError] = useState('');
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '', type: 'success', isVisible: false,
-    });
+    const { success, error: showError, info, warning } = useToast();
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const [isProgressFixed, setIsProgressFixed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -169,7 +169,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
         e.preventDefault();
         
         if (!selectedTemplate) {
-            setError('Please select a template');
+            setError(t('toast.selectTemplate'));
             return;
         }
         
@@ -248,18 +248,18 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
             // Increment template usage
             await api.post(`/post-templates/${selectedTemplate.id}/increment_usage/`);
             
-            setToast({ message: 'Post created successfully!', type: 'success', isVisible: true });
+            success(t('toast.postCreated'));
             setTimeout(() => onSuccess(), 1000);
         } catch (err: any) {
             console.error(err);
-            let msg = 'Failed to create post.';
+            let msg = t('toast.failedToCreate');
             if (err.response?.data) {
                if (typeof err.response.data === 'string') msg = err.response.data;
                else if (err.response.data.detail) msg = err.response.data.detail;
                else msg = JSON.stringify(err.response.data);
             }
             setError(msg);
-            setToast({ message: msg, type: 'error', isVisible: true });
+            showError(msg);
         } finally {
             setLoading(false);
         }
@@ -298,21 +298,21 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
                             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-                                Quick Post
+                                {t('title')}
                             </h1>
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] text-xs font-medium">
-                                <Zap className="w-3 h-3" /> Fast Mode
+                                <Zap className="w-3 h-3" /> {t('fastMode')}
                             </span>
                         </div>
                         <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-                            Select a template and add your content - that's it!
+                            {t('description')}
                         </p>
                     </div>
                     <Link 
                         href={`${getBasePath()}/create`}
                         className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
                     >
-                        <Settings className="w-4 h-4" /> Advanced
+                        <Settings className="w-4 h-4" /> {t('advanced')}
                     </Link>
                 </div>
 
@@ -320,7 +320,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                 <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
                     <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-[var(--brand-light)]/60">Required: Template + Title</span>
+                            <span className="text-sm text-[var(--brand-light)]/60">{t('progress.required')}</span>
                             <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                         </div>
                         <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -329,7 +329,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                         {completionPercent === 100 && (
                             <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                                 <CheckCircle2 className="w-4 h-4" />
-                                <span className="text-sm font-medium">Ready to post!</span>
+                                <span className="text-sm font-medium">{t('progress.readyToPost')}</span>
                             </div>
                         )}
                     </div>
@@ -340,7 +340,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                     <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
                         <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-[var(--brand-light)]/60">Required: Template + Title</span>
+                                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.required')}</span>
                                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                             </div>
                             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -368,14 +368,14 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     <Sparkles className="w-5 h-5 text-white" />
                                 </div>
                                 <div className="flex-1">
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Select Template <span className="text-[var(--brand-red)]">*</span></h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Choose a template to apply targeting and settings</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('templateSelection.title')} <span className="text-[var(--brand-red)]">*</span></h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('templateSelection.description')}</p>
                                 </div>
                                 <Link 
                                     href={`${getBasePath()}/templates`}
                                     className="text-sm text-[var(--brand-primary)] hover:text-[var(--brand-purple)] transition-colors"
                                 >
-                                    Manage
+                                    {t('templateSelection.manage')}
                                 </Link>
                             </div>
                         </div>
@@ -390,11 +390,11 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                             ) : templates.length === 0 ? (
                                 <div className="text-center py-8">
                                     <Sparkles className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                                    <p className="text-[var(--brand-light)]/50 mb-2">No templates available</p>
-                                    <p className="text-sm text-[var(--brand-light)]/30 mb-4">Create a template to use quick posting</p>
+                                    <p className="text-[var(--brand-light)]/50 mb-2">{t('templateSelection.noTemplates')}</p>
+                                    <p className="text-sm text-[var(--brand-light)]/30 mb-4">{t('templateSelection.noTemplatesHint')}</p>
                                     <Link href={`${getBasePath()}/templates/create`}>
-                                        <button type="button" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white font-medium hover:bg-[var(--brand-purple)] transition-all">
-                                            Create Template
+                                        <button type="button" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-medium hover:bg-[var(--brand-purple)] transition-all">
+                                            {t('templateSelection.createTemplate')}
                                         </button>
                                     </Link>
                                 </div>
@@ -433,7 +433,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                                         )}
                                                     </div>
                                                     <p className="text-xs text-[var(--brand-light)]/50 mt-0.5 line-clamp-1">
-                                                        {template.description || 'No description'}
+                                                        {template.description || t('templateSelection.noDescription')}
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-2">
                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--dark-600)] text-[var(--brand-light)]/60 text-xs">
@@ -441,7 +441,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                                             {template.target_summary}
                                                         </span>
                                                         <span className="text-xs text-[var(--brand-light)]/40">
-                                                            {template.usage_count}× used
+                                                            {template.usage_count}× {t('templateSelection.used')}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -461,8 +461,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     <FileText className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Post Content</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Add your title and content</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('postContent.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('postContent.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -470,11 +470,11 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                         <div className="p-4 sm:p-6 space-y-6">
                             {/* Title */}
                             <div>
-                                <label className={labelClasses}>Title <span className="text-[var(--brand-red)]">*</span></label>
+                                <label className={labelClasses}>{t('postContent.titleLabel')} <span className="text-[var(--brand-red)]">*</span></label>
                                 <input 
                                     type="text" 
                                     required 
-                                    placeholder="Enter a catchy title..."
+                                    placeholder={t('postContent.titlePlaceholder')}
                                     className={inputClasses('title')}
                                     value={title} 
                                     onChange={e => setTitle(e.target.value)} 
@@ -485,7 +485,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
 
                             {/* Content */}
                             <div>
-                                <label className={labelClasses}>Content</label>
+                                <label className={labelClasses}>{t('postContent.contentLabel')}</label>
                                 <PostRichTextEditor value={content} onChange={setContent} />
                             </div>
                         </div>
@@ -499,8 +499,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     <Image className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Media</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Add images or video (optional)</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('media.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('media.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -508,9 +508,9 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                         <div className="p-4 sm:p-6 space-y-4">
                             <div className="flex flex-wrap gap-3">
                                 {[
-                                    { type: 'TEXT', icon: FileText, label: 'Text Only' },
-                                    { type: 'IMAGE', icon: Image, label: 'With Images' },
-                                    { type: 'VIDEO', icon: Video, label: 'With Video' }
+                                    { type: 'TEXT', icon: FileText, label: t('media.textOnly') },
+                                    { type: 'IMAGE', icon: Image, label: t('media.withImages') },
+                                    { type: 'VIDEO', icon: Video, label: t('media.withVideo') }
                                 ].map(({ type, icon: Icon, label }) => (
                                     <button 
                                         key={type} 
@@ -533,7 +533,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[var(--dark-500)] rounded-xl cursor-pointer hover:border-[var(--brand-primary)]/50 transition-colors bg-[var(--dark-700)]">
                                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                             <Upload className="w-8 h-8 text-[var(--brand-light)]/40 mb-2" />
-                                            <p className="text-sm text-[var(--brand-light)]/60">Click to upload images</p>
+                                            <p className="text-sm text-[var(--brand-light)]/60">{t('media.clickToUpload')}</p>
                                         </div>
                                         <input 
                                             type="file" 
@@ -564,10 +564,10 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
 
                             {postType === 'VIDEO' && (
                                 <div className="pt-4 border-t border-[var(--dark-600)]">
-                                    <label className={labelClasses}>YouTube URL</label>
+                                    <label className={labelClasses}>{t('media.youtubeUrl')}</label>
                                     <input 
                                         type="url" 
-                                        placeholder="https://youtube.com/watch?v=..."
+                                        placeholder={t('media.youtubePlaceholder')}
                                         className={inputClasses('videoUrl')}
                                         value={videoUrl} 
                                         onChange={e => setVideoUrl(e.target.value)} 
@@ -600,9 +600,9 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                         <Bell className={`w-5 h-5 ${sendPush ? 'text-white' : 'text-[var(--brand-light)]/50'}`} />
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-semibold text-[var(--brand-light)]">Push Notification</h2>
+                                        <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('pushNotification.title')}</h2>
                                         <p className="text-sm text-[var(--brand-light)]/50">
-                                            {sendPush ? 'Users will be notified when published' : 'No notification will be sent'}
+                                            {sendPush ? t('pushNotification.enabled') : t('pushNotification.disabled')}
                                         </p>
                                     </div>
                                 </div>
@@ -627,26 +627,26 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     <div className="flex items-start gap-3 p-3 rounded-xl bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20">
                                         <Sparkles className="w-5 h-5 text-[var(--brand-primary)] flex-shrink-0 mt-0.5" />
                                         <div className="text-sm text-[var(--brand-light)]/80">
-                                            <span className="font-medium text-[var(--brand-primary)]">Customize your notification!</span>
+                                            <span className="font-medium text-[var(--brand-primary)]">{t('pushNotification.customize')}</span>
                                             <span className="block mt-0.5 text-[var(--brand-light)]/60">
-                                                Edit the title and message below. These are pre-filled from your template but you can change them.
+                                                {t('pushNotification.customizeHint')}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Preview Card */}
                                     <div className="p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
-                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider mb-2 font-medium">Notification Preview</p>
+                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider mb-2 font-medium">{t('pushNotification.preview')}</p>
                                         <div className="flex items-start gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
                                                 <Bell className="w-5 h-5 text-white" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-semibold text-[var(--brand-light)] truncate">
-                                                    {pushTitle || 'New post'}
+                                                    {pushTitle || t('pushNotification.newPost')}
                                                 </p>
                                                 <p className="text-sm text-[var(--brand-light)]/60 line-clamp-2">
-                                                    {pushMessage || title || 'Your post title will appear here'}
+                                                    {pushMessage || title || t('pushNotification.titleWillAppear')}
                                                 </p>
                                             </div>
                                         </div>
@@ -655,12 +655,12 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     {/* Editable Fields */}
                                     <div>
                                         <label className={labelClasses}>
-                                            Notification Title
-                                            <span className="ml-2 text-xs font-normal text-[var(--brand-primary)]">✎ Editable</span>
+                                            {t('pushNotification.notificationTitle')}
+                                            <span className="ml-2 text-xs font-normal text-[var(--brand-primary)]">✎ {t('pushNotification.editable')}</span>
                                         </label>
                                         <input 
                                             type="text" 
-                                            placeholder="e.g. New Update!"
+                                            placeholder={t('pushNotification.titlePlaceholder')}
                                             className={inputClasses('pushTitle')}
                                             value={pushTitle} 
                                             onChange={e => setPushTitle(e.target.value)} 
@@ -670,11 +670,11 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     </div>
                                     <div>
                                         <label className={labelClasses}>
-                                            Notification Message
-                                            <span className="ml-2 text-xs font-normal text-[var(--brand-primary)]">✎ Editable</span>
+                                            {t('pushNotification.notificationMessage')}
+                                            <span className="ml-2 text-xs font-normal text-[var(--brand-primary)]">✎ {t('pushNotification.editable')}</span>
                                         </label>
                                         <textarea 
-                                            placeholder="Leave empty to use post title"
+                                            placeholder={t('pushNotification.messagePlaceholder')}
                                             className={`${inputClasses('pushMessage')} h-20 py-3 resize-none`}
                                             value={pushMessage} 
                                             onChange={e => setPushMessage(e.target.value)} 
@@ -682,7 +682,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                             onBlur={() => setFocusedField(null)}
                                         />
                                         <p className="text-xs text-[var(--brand-light)]/40 mt-1">
-                                            If left empty, the post title will be used
+                                            {t('pushNotification.messageHint')}
                                         </p>
                                     </div>
                                 </div>
@@ -690,7 +690,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                 <div className="text-center py-4">
                                     <Bell className="w-10 h-10 text-[var(--brand-light)]/20 mx-auto mb-2" />
                                     <p className="text-sm text-[var(--brand-light)]/50">
-                                        Enable push notification to alert users about this post
+                                        {t('pushNotification.enableHint')}
                                     </p>
                                     <button
                                         type="button"
@@ -698,7 +698,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                         className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-sm font-medium hover:bg-[var(--brand-primary)]/20 transition-colors"
                                     >
                                         <Bell className="w-4 h-4" />
-                                        Enable Notification
+                                        {t('pushNotification.enableNotification')}
                                     </button>
                                 </div>
                             )}
@@ -713,8 +713,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     <Send className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Publish</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Choose when to publish</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('publish.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('publish.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -722,9 +722,9 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                         <div className="p-4 sm:p-6 space-y-4">
                             <div className="flex flex-wrap gap-3">
                                 {[
-                                    { value: 'DRAFT', icon: EyeOff, label: 'Save as Draft', color: 'blue' },
-                                    { value: 'PUBLISHED', icon: Eye, label: 'Publish Now', color: 'green' },
-                                    { value: 'SCHEDULED', icon: Clock, label: 'Schedule', color: 'primary' }
+                                    { value: 'DRAFT', icon: EyeOff, label: t('publish.saveAsDraft'), color: 'blue' },
+                                    { value: 'PUBLISHED', icon: Eye, label: t('publish.publishNow'), color: 'green' },
+                                    { value: 'SCHEDULED', icon: Clock, label: t('publish.schedule'), color: 'primary' }
                                 ].map(({ value, icon: Icon, label, color }) => (
                                     <button 
                                         key={value} 
@@ -744,7 +744,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
 
                             {status === 'SCHEDULED' && (
                                 <div className="pt-4 border-t border-[var(--dark-600)]">
-                                    <label className={labelClasses}>Schedule Date & Time</label>
+                                    <label className={labelClasses}>{t('publish.scheduleDateTime')}</label>
                                     <input 
                                         type="datetime-local" 
                                         className={inputClasses('publishedAt')}
@@ -767,8 +767,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                         <Settings className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-semibold text-[var(--brand-light)]">Template Settings</h2>
-                                        <p className="text-sm text-[var(--brand-light)]/50">These settings will be applied from "{selectedTemplate.name}"</p>
+                                        <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('templateSettings.title')}</h2>
+                                        <p className="text-sm text-[var(--brand-light)]/50">{t('templateSettings.willBeApplied', { name: selectedTemplate.name })}</p>
                                     </div>
                                 </div>
                             </div>
@@ -776,18 +776,18 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                             <div className="p-4 sm:p-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="p-3 rounded-xl bg-[var(--dark-700)]">
-                                        <p className="text-xs text-[var(--brand-light)]/50 mb-1">Target Audience</p>
+                                        <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('templateSettings.targetAudience')}</p>
                                         <p className="text-sm text-[var(--brand-light)]">{selectedTemplate.target_summary}</p>
                                     </div>
                                     <div className="p-3 rounded-xl bg-[var(--dark-700)]">
-                                        <p className="text-xs text-[var(--brand-light)]/50 mb-1">Settings</p>
+                                        <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('templateSettings.settings')}</p>
                                         <p className="text-sm text-[var(--brand-light)]">{selectedTemplate.settings_summary}</p>
                                     </div>
                                     {selectedTemplate.is_pinned_default && (
                                         <div className="p-3 rounded-xl bg-[var(--brand-peach)]/10 border border-[var(--brand-peach)]/30">
                                             <div className="flex items-center gap-2 text-[var(--brand-peach)]">
                                                 <Pin className="w-4 h-4" />
-                                                <span className="text-sm font-medium">Will be pinned</span>
+                                                <span className="text-sm font-medium">{t('templateSettings.willBePinned')}</span>
                                             </div>
                                         </div>
                                     )}
@@ -796,7 +796,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                             <div className="flex items-center gap-2 text-[var(--brand-primary)]">
                                                 <Bell className="w-4 h-4" />
                                                 <span className="text-sm font-medium">
-                                                    Push notification: {pushTitle || 'New post'}
+                                                    {t('templateSettings.pushNotificationLabel', { title: pushTitle || t('pushNotification.newPost') })}
                                                 </span>
                                             </div>
                                         </div>
@@ -815,23 +815,22 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                      bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]
                                      hover:bg-[var(--dark-600)] hover:border-[var(--dark-400)] transition-all"
                         >
-                            Cancel
+                            {t('actions.cancel')}
                         </button>
                         <button 
                             type="submit" 
                             disabled={loading || !selectedTemplate || !title.trim()} 
                             className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold 
-                                     bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-purple)] transition-all
+                                     bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-purple)] transition-all
                                      disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading && <Sparkles className="w-4 h-4 animate-pulse" />}
-                            {loading ? 'Creating...' : status === 'PUBLISHED' ? 'Publish Post' : status === 'SCHEDULED' ? 'Schedule Post' : 'Save Draft'}
+                            {loading ? t('actions.creating') : status === 'PUBLISHED' ? t('actions.publishPost') : status === 'SCHEDULED' ? t('actions.schedulePost') : t('actions.saveDraft')}
                         </button>
                     </div>
 
                 </form>
-                <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode duration={1250} />
-            </div>
+                </div>
         </div>
     );
 }

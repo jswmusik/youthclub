@@ -8,7 +8,7 @@ import { enUS, sv, da, nb, fi, type Locale } from 'date-fns/locale';
 
 import api from '../../../../lib/api';
 import { Calendar as CalendarIcon, Clock, Users, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 
 // Map locale codes to date-fns locales
 const localeMap: Record<string, Locale> = {
@@ -21,7 +21,6 @@ const localeMap: Record<string, Locale> = {
   so: enUS, // Somali not available in date-fns, fallback to English
   prs: enUS, // Dari not available in date-fns, fallback to English
 };
-
 
 interface Props {
   resource: any;
@@ -51,7 +50,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
   const [friendName, setFriendName] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [limitError, setLimitError] = useState('');
 
@@ -84,7 +83,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
   const addParticipant = () => {
     if (!friendName.trim()) return;
     if (participants.length + 1 >= resource.max_participants) {
-      setToast({ message: t('maxPeopleError', { count: resource.max_participants }), type: 'error', isVisible: true });
+      error(t('maxParticipantsReached'));
       return;
     }
     setParticipants([...participants, friendName.trim()]);
@@ -107,7 +106,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
         participants: participants
       });
       
-      setToast({ message: t('bookingRequestSent'), type: 'success', isVisible: true });
+      success(t('bookingRequestSent'));
       setTimeout(() => router.push('/dashboard/youth/bookings'), 1500);
     } catch (err: any) {
       setIsSubmitting(false);
@@ -126,7 +125,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
         setShowLimitModal(true);
       } else {
         // Show toast for other errors
-        setToast({ message: errorMessage, type: 'error', isVisible: true });
+        error(errorMessage);
       }
     }
   };
@@ -391,8 +390,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
             {t('review')}
           </button>
         </div>
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={darkMode} />
-      </div>
+        </div>
     );
   }
 
@@ -503,8 +501,6 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
             )}
           </button>
         </div>
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={darkMode} />
-        
         {/* Weekly Limit Error Modal */}
         {showLimitModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">

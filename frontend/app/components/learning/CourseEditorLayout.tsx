@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Course } from '@/types/learning';
@@ -9,7 +10,7 @@ import CurriculumBuilder from './CurriculumBuilder';
 import CourseAnalytics from './CourseAnalytics';
 import { ArrowLeft, Eye, Settings, BookOpen, BarChart3, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface Props {
     course: Course;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function CourseEditorLayout({ course, basePath = '/admin/super/knowledge' }: Props) {
+    const t = useTranslations('knowledgeAdmin.courses.edit');
     const router = useRouter();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState('settings');
@@ -25,15 +27,15 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
     const settingsFormRef = useRef<CourseSettingsFormRef>(null);
     const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+    const { success, error, info, warning } = useToast();
 
     // Tab order for animation direction
     const tabOrder = ['settings', 'curriculum', 'analytics'];
 
     const tabs = [
-        { id: 'settings', label: 'Settings', icon: Settings },
-        { id: 'curriculum', label: 'Curriculum', icon: BookOpen },
-        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+        { id: 'settings', label: t('tabs.settings'), icon: Settings },
+        { id: 'curriculum', label: t('tabs.curriculum'), icon: BookOpen },
+        { id: 'analytics', label: t('tabs.analytics'), icon: BarChart3 },
     ];
 
     // Update indicator position
@@ -107,11 +109,11 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
         try {
             if (activeTab === 'settings' && settingsFormRef.current) {
                 await settingsFormRef.current.handleSave(false);
-                setToast({ message: 'Course saved successfully!', type: 'success', isVisible: true });
+                success(t('toast.courseSaved'));
             }
         } catch (error) {
             console.error('Save failed', error);
-            setToast({ message: 'Failed to save course', type: 'error', isVisible: true });
+            error(t('toast.failedToSave'));
         } finally {
             setSaving(false);
         }
@@ -127,7 +129,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
             }
         } catch (error) {
             console.error('Save failed', error);
-            setToast({ message: 'Failed to save course', type: 'error', isVisible: true });
+            error(t('toast.failedToSave'));
         } finally {
             setSaving(false);
         }
@@ -147,7 +149,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                         </Link>
                         <div className="flex-1 min-w-0">
                             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-                                Edit Course
+                                {t('pageTitle')}
                             </h1>
                             <p className="text-[var(--brand-light)]/50 text-sm mt-1 truncate">{course.title}</p>
                         </div>
@@ -157,7 +159,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
                     >
                         <Eye className="w-4 h-4" />
-                        Preview
+                        {t('preview')}
                     </button>
                 </div>
 
@@ -265,7 +267,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                             onClick={() => router.push(`${basePath}/courses`)}
                             className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all"
                         >
-                            Cancel
+                            {t('actions.cancel')}
                         </button>
                         
                         {activeTab === 'settings' && (
@@ -275,7 +277,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                                 onClick={handleSave}
                                 className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-600)] text-[var(--brand-light)] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--dark-500)]"
                             >
-                                {saving ? 'Saving...' : 'Save & Continue Editing'}
+                                {saving ? t('actions.saving') : t('actions.saveAndContinue')}
                             </button>
                         )}
                         
@@ -288,20 +290,19 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                             {saving ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                                    Saving...
+                                    {t('actions.saving')}
                                 </>
                             ) : (
                                 <>
                                     <Save className="w-4 h-4" />
-                                    Save & Exit
+                                    {t('actions.saveAndExit')}
                                 </>
                             )}
                         </button>
                     </div>
                 </div>
 
-                <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-            </div>
+                </div>
         </div>
     );
 }

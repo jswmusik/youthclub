@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Edit, Copy, Building, MapPin, Globe, Users, BarChart3, 
   LayoutDashboard, UserCog, ChevronUp, Settings, Target, Heart, Layers,
   CheckCircle, X, Mail, Calendar, Shield, UserPlus, Trash2
 } from 'lucide-react';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
 import { getMediaUrl } from '../utils';
 
@@ -27,6 +28,8 @@ interface GroupDetailProps {
 export default function GroupDetailView({ groupId, basePath }: GroupDetailProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('groupsAdmin.detail');
+  const tForm = useTranslations('groupsAdmin.form');
   const [group, setGroup] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
@@ -35,9 +38,27 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
   const [loading, setLoading] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [memberToRemove, setMemberToRemove] = useState<number | null>(null);
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+
+  const getTranslatedType = (type: string) => {
+    switch (type) {
+      case 'OPEN': return tForm('basicInfo.accessTypes.open.label');
+      case 'APPLICATION': return tForm('basicInfo.accessTypes.application.label');
+      case 'CLOSED': return tForm('basicInfo.accessTypes.closed.label');
+      default: return type;
+    }
+  };
+
+  const getTranslatedStatus = (status: string) => {
+    switch (status) {
+      case 'APPROVED': return t('members.tableHeaders.status');
+      case 'PENDING': return t('members.tableHeaders.status');
+      case 'REJECTED': return t('members.tableHeaders.status');
+      default: return status;
+    }
+  };
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -77,7 +98,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
       setCustomFields(fieldsData || []);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Failed to load group details.', type: 'error', isVisible: true });
+      error(t('toast.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -86,11 +107,11 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
   const handleDuplicate = async () => {
     try {
       await api.post(`/groups/${groupId}/duplicate/`);
-      setToast({ message: 'Group duplicated! Check the list.', type: 'success', isVisible: true });
+      success(t('toast.groupDuplicated'));
       setShowDuplicateConfirm(false);
       setTimeout(() => router.push(buildUrlWithParams(basePath)), 1000);
     } catch (err) {
-      setToast({ message: 'Failed to duplicate.', type: 'error', isVisible: true });
+      error(t('toast.failedToDuplicate'));
       setShowDuplicateConfirm(false);
     }
   };
@@ -98,10 +119,10 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
   const handleApproveMember = async (membershipId: number) => {
     try {
       await api.post(`/groups/${groupId}/approve_member/`, { membership_id: membershipId });
-      setToast({ message: 'Member approved.', type: 'success', isVisible: true });
+      success(t('toast.memberApproved'));
       fetchData();
     } catch (err) {
-      setToast({ message: 'Failed to approve.', type: 'error', isVisible: true });
+      error(t('toast.failedToApprove'));
     }
   };
 
@@ -109,11 +130,11 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
     if (!memberToRemove) return;
     try {
       await api.post(`/groups/${groupId}/remove_member/`, { membership_id: memberToRemove });
-      setToast({ message: 'Member removed.', type: 'success', isVisible: true });
+      success(t('toast.memberRemoved'));
       setMemberToRemove(null);
       fetchData();
     } catch (err) {
-      setToast({ message: 'Failed to remove member.', type: 'error', isVisible: true });
+      error(t('toast.failedToRemove'));
     }
   };
 
@@ -140,7 +161,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--brand-light)]/60">Loading group details...</p>
+          <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
         </div>
       </div>
     );
@@ -151,8 +172,8 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <Layers className="w-16 h-16 text-[var(--brand-light)]/20 mx-auto mb-4" />
-          <p className="text-[var(--brand-light)] font-medium mb-1">Group not found</p>
-          <p className="text-sm text-[var(--brand-light)]/50">The group you're looking for doesn't exist.</p>
+          <p className="text-[var(--brand-light)] font-medium mb-1">{t('notFound.title')}</p>
+          <p className="text-sm text-[var(--brand-light)]/50">{t('notFound.message')}</p>
         </div>
       </div>
     );
@@ -168,7 +189,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
             href={buildUrlWithParams(basePath)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to Groups
+            <ArrowLeft className="h-4 w-4" /> {t('navigation.backToGroups')}
           </Link>
           
           {!group.is_system_group && (
@@ -177,13 +198,13 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                 onClick={() => setShowDuplicateConfirm(true)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)]/30 transition-all text-sm font-medium"
               >
-                <Copy className="h-4 w-4" /> Duplicate
+                <Copy className="h-4 w-4" /> {t('navigation.duplicate')}
               </button>
               <Link 
                 href={buildUrlWithParams(`${basePath}/edit/${group.id}`)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
               >
-                <Edit className="h-4 w-4" /> Edit Group
+                <Edit className="h-4 w-4" /> {t('navigation.editGroup')}
               </Link>
             </div>
           )}
@@ -211,14 +232,14 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
             
             {/* Type Badge - Top Right */}
             <div className={`absolute top-4 right-4 px-4 py-2 rounded-xl backdrop-blur-sm border flex items-center gap-2 ${getTypeBadgeClasses(group.group_type)}`}>
-              <span className="text-sm font-semibold">{group.group_type}</span>
+              <span className="text-sm font-semibold">{getTranslatedType(group.group_type)}</span>
             </div>
 
             {/* System Group Badge - Top Left */}
             {group.is_system_group && (
               <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-sm bg-[var(--brand-purple)]/20 border border-[var(--brand-purple)]/30">
                 <span className="text-sm text-[var(--brand-purple)] font-medium flex items-center gap-1.5">
-                  <Shield className="w-4 h-4" /> System Group
+                  <Shield className="w-4 h-4" /> {t('badges.systemGroup')}
                 </span>
               </div>
             )}
@@ -258,7 +279,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                   )}
                   {!group.club_name && !group.municipality_name && !group.is_system_group && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
-                      <Globe className="w-3 h-3" /> Global
+                      <Globe className="w-3 h-3" /> {t('badges.global')}
                     </span>
                   )}
                 </div>
@@ -281,7 +302,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                   <BarChart3 className="h-5 w-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Analytics Dashboard</h2>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h2>
               </div>
               <ChevronUp className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform ${analyticsExpanded ? '' : 'rotate-180'}`} />
             </button>
@@ -295,10 +316,10 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
                         <Users className="h-5 w-5 text-[var(--brand-primary)]" />
                       </div>
-                      <span className="text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                      <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                     </div>
                     <div className="text-3xl font-bold text-[var(--brand-light)]">{analytics.total_members || 0}</div>
-                    <p className="text-xs text-[var(--brand-light)]/50 mt-1">members</p>
+                    <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('analytics.members')}</p>
                   </div>
 
                   {/* New This Week */}
@@ -307,10 +328,10 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
                         <UserPlus className="h-5 w-5 text-[var(--brand-blue)]" />
                       </div>
-                      <span className="text-sm font-medium text-[var(--brand-light)]/70">New</span>
+                      <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.new')}</span>
                     </div>
                     <div className="text-3xl font-bold text-[var(--brand-light)]">+{analytics.new_this_week || 0}</div>
-                    <p className="text-xs text-[var(--brand-light)]/50 mt-1">this week</p>
+                    <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('analytics.thisWeek')}</p>
                   </div>
 
                   {/* Gender Distribution */}
@@ -319,17 +340,17 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <div className="w-10 h-10 rounded-lg bg-[var(--brand-pink)]/20 flex items-center justify-center">
                         <Users className="h-5 w-5 text-[var(--brand-pink)]" />
                       </div>
-                      <span className="text-sm font-medium text-[var(--brand-light)]/70">Gender Distribution</span>
+                      <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.genderDistribution')}</span>
                     </div>
                     <div className="flex gap-3 flex-wrap">
                       {Object.entries(analytics.gender_distribution || {}).map(([key, val]: any) => (
                         <div key={key} className="text-center bg-[var(--dark-600)]/50 px-4 py-2 rounded-lg border border-[var(--dark-500)]">
                           <span className="block text-lg font-bold text-[var(--brand-light)]">{val}</span>
-                          <span className="text-xs text-[var(--brand-light)]/50 uppercase">{key || 'Unset'}</span>
+                          <span className="text-xs text-[var(--brand-light)]/50 uppercase">{key || t('analytics.unset')}</span>
                         </div>
                       ))}
                       {Object.keys(analytics.gender_distribution || {}).length === 0 && (
-                        <p className="text-sm text-[var(--brand-light)]/50">No data available</p>
+                        <p className="text-sm text-[var(--brand-light)]/50">{t('analytics.noDataAvailable')}</p>
                       )}
                     </div>
                   </div>
@@ -340,16 +361,16 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <div className="w-10 h-10 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
                         <BarChart3 className="h-5 w-5 text-[var(--brand-green)]" />
                       </div>
-                      <span className="text-sm font-medium text-[var(--brand-light)]/70">Grade Distribution</span>
+                      <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.gradeDistribution')}</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(analytics.grade_distribution || {}).map(([grade, count]: any) => (
                         <span key={grade} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--dark-600)]/50 text-[var(--brand-light)] border border-[var(--dark-500)]">
-                          Grade {grade}: <span className="font-bold">{count}</span>
+                          {t('analytics.grade')} {grade}: <span className="font-bold">{count}</span>
                         </span>
                       ))}
                       {Object.keys(analytics.grade_distribution || {}).length === 0 && (
-                        <p className="text-sm text-[var(--brand-light)]/50">No data available</p>
+                        <p className="text-sm text-[var(--brand-light)]/50">{t('analytics.noDataAvailable')}</p>
                       )}
                     </div>
                   </div>
@@ -363,9 +384,9 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="flex border-b border-[var(--dark-600)] overflow-x-auto">
             {[
-              { key: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
-              { key: 'MEMBERS', label: 'Members', icon: Users },
-              { key: 'SETTINGS', label: 'Settings', icon: UserCog }
+              { key: 'DASHBOARD', label: t('tabs.dashboard'), icon: LayoutDashboard },
+              { key: 'MEMBERS', label: t('tabs.members'), icon: Users },
+              { key: 'SETTINGS', label: t('tabs.settings'), icon: UserCog }
             ].map(({ key, label, icon: Icon }) => (
               <button 
                 key={key}
@@ -393,9 +414,9 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                   <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                     <LayoutDashboard className="w-8 h-8 text-[var(--brand-light)]/30" />
                   </div>
-                  <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">Group Dashboard</h3>
+                  <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('dashboard.title')}</h3>
                   <p className="text-sm text-[var(--brand-light)]/50 max-w-md mx-auto">
-                    View analytics above or switch to Members tab to manage group members.
+                    {t('dashboard.description')}
                   </p>
                 </div>
               </div>
@@ -406,9 +427,9 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-[var(--brand-light)]">Group Members</h3>
+                    <h3 className="text-lg font-semibold text-[var(--brand-light)]">{t('members.title')}</h3>
                     <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-                      {members.length} {members.length === 1 ? 'member' : 'members'} total
+                      {members.length} {members.length === 1 ? t('members.member') : t('members.members')} {t('members.total')}
                     </p>
                   </div>
                 </div>
@@ -416,8 +437,8 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                 {members.length === 0 ? (
                   <div className="py-16 text-center">
                     <Users className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                    <p className="font-medium text-[var(--brand-light)] mb-1">No members yet</p>
-                    <p className="text-sm text-[var(--brand-light)]/50">Members will appear here once they join</p>
+                    <p className="font-medium text-[var(--brand-light)] mb-1">{t('members.noMembersYet')}</p>
+                    <p className="text-sm text-[var(--brand-light)]/50">{t('members.noMembersMessage')}</p>
                   </div>
                 ) : (
                   <>
@@ -426,11 +447,11 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <table className="w-full">
                         <thead>
                           <tr className="bg-[var(--dark-700)]/50">
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Member</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Email</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Joined</th>
-                            <th className="px-6 py-4 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('members.tableHeaders.member')}</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('members.tableHeaders.email')}</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('members.tableHeaders.status')}</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('members.tableHeaders.joined')}</th>
+                            <th className="px-6 py-4 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('members.tableHeaders.actions')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--dark-600)]">
@@ -482,7 +503,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                                     <button 
                                       onClick={() => handleApproveMember(m.id)}
                                       className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--brand-green)] hover:bg-[var(--brand-green)]/20 transition-colors"
-                                      title="Approve member"
+                                      title={t('members.actions.approve')}
                                     >
                                       <CheckCircle className="w-4 h-4" />
                                     </button>
@@ -490,7 +511,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                                   <button 
                                     onClick={() => setMemberToRemove(m.id)}
                                     className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 transition-colors"
-                                    title="Remove member"
+                                    title={t('members.actions.remove')}
                                   >
                                     <X className="w-4 h-4" />
                                   </button>
@@ -537,7 +558,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                               <div className="flex items-center justify-between mt-3">
                                 <div className="text-xs text-[var(--brand-light)]/40 flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
-                                  Joined {new Date(m.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  {t('members.joined')} {new Date(m.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   {m.status === 'PENDING' && (
@@ -578,50 +599,50 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
                         <Target className="w-4 h-4 text-[var(--brand-primary)]" />
                       </div>
-                      <h3 className="font-semibold text-[var(--brand-light)]">Membership Rules</h3>
+                      <h3 className="font-semibold text-[var(--brand-light)]">{t('settings.membershipRules.title')}</h3>
                     </div>
                     <div className="p-4 sm:p-5 space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Target Audience</div>
+                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('settings.membershipRules.targetAudience')}</div>
                           <div className="text-sm text-[var(--brand-light)] font-medium">
-                            {group.target_member_type === 'YOUTH' ? 'Youth Members' : 'Guardians'}
+                            {group.target_member_type === 'YOUTH' ? tForm('membershipRules.targetTypes.youth') : tForm('membershipRules.targetTypes.guardian')}
                           </div>
                         </div>
                         <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Age Range</div>
+                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('settings.membershipRules.ageRange')}</div>
                           <div className="text-sm text-[var(--brand-light)] font-medium">
-                            {group.min_age || 0} - {group.max_age || 'Any'} years
+                            {group.min_age || 0} - {group.max_age || tForm('membershipRules.agePlaceholder')} {t('settings.membershipRules.years')}
                           </div>
                         </div>
                       </div>
                       
                       <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                        <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Allowed Grades</div>
+                        <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">{t('settings.membershipRules.allowedGrades')}</div>
                         <div className="flex flex-wrap gap-2">
                           {group.grades?.length > 0 ? (
                             group.grades.map((grade: number) => (
                               <span key={grade} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]">
-                                Grade {grade}
+                                {t('analytics.grade')} {grade}
                               </span>
                             ))
                           ) : (
-                            <span className="text-sm text-[var(--brand-light)]/50">All Grades</span>
+                            <span className="text-sm text-[var(--brand-light)]/50">{t('settings.membershipRules.allGrades')}</span>
                           )}
                         </div>
                       </div>
 
                       <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                        <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Allowed Genders</div>
+                        <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">{t('settings.membershipRules.allowedGenders')}</div>
                         <div className="flex flex-wrap gap-2">
                           {group.genders?.length > 0 ? (
                             group.genders.map((gender: string) => (
                               <span key={gender} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--brand-pink)]/20 text-[var(--brand-pink)]">
-                                {gender}
+                                {tForm(`membershipRules.genders.${gender.toLowerCase()}`)}
                               </span>
                             ))
                           ) : (
-                            <span className="text-sm text-[var(--brand-light)]/50">All Genders</span>
+                            <span className="text-sm text-[var(--brand-light)]/50">{t('settings.membershipRules.allGenders')}</span>
                           )}
                         </div>
                       </div>
@@ -634,7 +655,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                         <Heart className="w-4 h-4 text-[var(--brand-purple)]" />
                       </div>
-                      <h3 className="font-semibold text-[var(--brand-light)]">Required Interests</h3>
+                      <h3 className="font-semibold text-[var(--brand-light)]">{t('settings.requiredInterests.title')}</h3>
                     </div>
                     <div className="p-4 sm:p-5">
                       <div className="flex flex-wrap gap-2">
@@ -645,7 +666,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                             </span>
                           ))
                         ) : (
-                          <span className="text-sm text-[var(--brand-light)]/50">No required interests</span>
+                          <span className="text-sm text-[var(--brand-light)]/50">{t('settings.requiredInterests.noInterests')}</span>
                         )}
                       </div>
                     </div>
@@ -658,7 +679,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                         <div className="w-8 h-8 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center">
                           <Settings className="w-4 h-4 text-[var(--brand-third)]" />
                         </div>
-                        <h3 className="font-semibold text-[var(--brand-light)]">Custom Field Rules</h3>
+                        <h3 className="font-semibold text-[var(--brand-light)]">{t('settings.customFieldRules.title')}</h3>
                       </div>
                       <div className="p-4 sm:p-5">
                         <div className="flex flex-wrap gap-2">
@@ -667,7 +688,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                             const fieldName = field?.name || `Field #${fieldId}`;
                             let displayValue = value;
                             if (typeof value === 'boolean') {
-                              displayValue = value ? 'Yes' : 'No';
+                              displayValue = value ? t('settings.customFieldRules.yes') : t('settings.customFieldRules.no');
                             }
                             return (
                               <span key={fieldId} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
@@ -690,18 +711,18 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
                         <Building className="w-4 h-4 text-[var(--brand-peach)]" />
                       </div>
-                      <h3 className="font-semibold text-[var(--brand-light)]">Organization</h3>
+                      <h3 className="font-semibold text-[var(--brand-light)]">{t('settings.organization.title')}</h3>
                     </div>
                     <div className="p-4 sm:p-5 space-y-3">
                       {group.municipality_name && (
                         <div className="p-3 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Municipality</div>
+                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('settings.organization.municipality')}</div>
                           <div className="text-sm text-[var(--brand-light)] font-medium">{group.municipality_name}</div>
                         </div>
                       )}
                       {group.club_name && (
                         <div className="p-3 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Club</div>
+                          <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('settings.organization.club')}</div>
                           <div className="text-sm text-[var(--brand-light)] font-medium">{group.club_name}</div>
                         </div>
                       )}
@@ -709,7 +730,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                         <div className="p-3 rounded-xl bg-[var(--brand-blue)]/10 border border-[var(--brand-blue)]/30">
                           <div className="flex items-center gap-2 text-[var(--brand-blue)]">
                             <Globe className="w-4 h-4" />
-                            <span className="text-sm font-medium">Global Group</span>
+                            <span className="text-sm font-medium">{t('settings.organization.globalGroup')}</span>
                           </div>
                         </div>
                       )}
@@ -722,24 +743,24 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                       <div className="w-8 h-8 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
                         <Layers className="w-4 h-4 text-[var(--brand-green)]" />
                       </div>
-                      <h3 className="font-semibold text-[var(--brand-light)]">Group Info</h3>
+                      <h3 className="font-semibold text-[var(--brand-light)]">{t('settings.groupInfo.title')}</h3>
                     </div>
                     <div className="p-4 sm:p-5 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-[var(--brand-light)]/70">Type</span>
+                        <span className="text-sm text-[var(--brand-light)]/70">{t('settings.groupInfo.type')}</span>
                         <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getTypeBadgeClasses(group.group_type)}`}>
-                          {group.group_type}
+                          {getTranslatedType(group.group_type)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-[var(--brand-light)]/70">Members</span>
+                        <span className="text-sm text-[var(--brand-light)]/70">{t('settings.groupInfo.members')}</span>
                         <span className="text-sm text-[var(--brand-light)] font-semibold">{members.length}</span>
                       </div>
                       {group.is_system_group && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-[var(--brand-light)]/70">System Group</span>
+                          <span className="text-sm text-[var(--brand-light)]/70">{t('settings.groupInfo.systemGroup')}</span>
                           <span className="px-3 py-1 rounded-lg text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]">
-                            Yes
+                            {t('settings.groupInfo.yes')}
                           </span>
                         </div>
                       )}
@@ -756,9 +777,9 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
           isVisible={!!memberToRemove}
           onClose={() => setMemberToRemove(null)}
           onConfirm={handleRemoveMember}
-          title="Remove Member"
-          message="Are you sure you want to remove this member from the group?"
-          confirmButtonText="Remove"
+          title={t('modals.removeMember.title')}
+          message={t('modals.removeMember.message')}
+          confirmButtonText={t('modals.removeMember.confirm')}
           variant="warning"
           darkMode={true}
         />
@@ -767,16 +788,15 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
           isVisible={showDuplicateConfirm}
           onClose={() => setShowDuplicateConfirm(false)}
           onConfirm={handleDuplicate}
-          title="Duplicate Group"
-          message="Create a copy of this group?"
-          confirmButtonText="Duplicate"
-          cancelButtonText="Cancel"
+          title={t('modals.duplicate.title')}
+          message={t('modals.duplicate.message')}
+          confirmButtonText={t('modals.duplicate.confirm')}
+          cancelButtonText={t('modals.duplicate.cancel')}
           variant="info"
           darkMode={true}
         />
 
-        <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} darkMode={true} />
-      </div>
+        </div>
     </div>
   );
 }

@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, FileText, Tag, Star, Newspaper } from 'lucide-react';
+import { Calendar, FileText, Tag, Star, Newspaper } from 'lucide-react';
 import api from '../../lib/api';
+import { sanitizeHtml } from '../../lib/sanitize';
 import { getMediaUrl } from '../../app/utils';
+import BackButton from './BackButton';
 
 interface NewsArticleReaderProps {
   articleId: string;
@@ -12,6 +15,7 @@ interface NewsArticleReaderProps {
 }
 
 export default function NewsArticleReader({ articleId, backLink }: NewsArticleReaderProps) {
+  const t = useTranslations('newsArticleReader');
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,7 +26,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
         const res = await api.get(`/news/${articleId}/`);
         setArticle(res.data);
       } catch (err: any) {
-        setError('Article not found or access denied.');
+        setError(t('accessDenied'));
         console.error(err);
       } finally {
         setLoading(false);
@@ -54,7 +58,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--brand-light)]/60">Loading article...</p>
+          <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
         </div>
       </div>
     );
@@ -65,14 +69,8 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <FileText className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
-          <p className="text-[var(--brand-light)] font-semibold mb-2">{error || 'Article not found'}</p>
-          <Link 
-            href={backLink}
-            className="inline-flex items-center gap-2 text-[var(--brand-primary)] text-sm hover:underline"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Feed
-          </Link>
+          <p className="text-[var(--brand-light)] font-semibold mb-2">{error || t('articleNotFound')}</p>
+          <BackButton href={backLink} translationKey="backToFeed" />
         </div>
       </div>
     );
@@ -84,12 +82,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
         
         {/* Navigation Header */}
         <div className="px-4 sm:px-0 mb-6">
-          <Link 
-            href={backLink}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to Feed
-          </Link>
+          <BackButton href={backLink} translationKey="backToFeed" />
         </div>
 
         {/* Hero Image Section */}
@@ -107,7 +100,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
               <div className="absolute top-4 right-4">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-peach)] text-[var(--dark-900)] text-xs font-bold uppercase">
                   <Star className="w-3.5 h-3.5" />
-                  Featured
+                  {t('featured')}
                 </span>
               </div>
             )}
@@ -131,7 +124,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
                 {article.is_hero && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-peach)] text-[var(--dark-900)] text-xs font-bold uppercase flex-shrink-0">
                     <Star className="w-3.5 h-3.5" />
-                    Featured
+                    {t('featured')}
                   </span>
                 )}
               </div>
@@ -151,7 +144,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
                 </div>
                 <div>
                   <p className="font-medium text-[var(--brand-light)] text-sm">{article.author_name}</p>
-                  <p className="text-xs text-[var(--brand-light)]/50">Author</p>
+                  <p className="text-xs text-[var(--brand-light)]/50">{t('author')}</p>
                 </div>
               </div>
 
@@ -217,7 +210,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
                 [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm
                 [&_th]:!bg-[var(--dark-700)] [&_th]:!text-[var(--brand-light)] [&_th]:font-semibold [&_th]:p-3 [&_th]:border [&_th]:border-[var(--dark-600)] [&_th]:text-left
                 [&_td]:p-3 [&_td]:border [&_td]:border-[var(--dark-600)] [&_td]:!text-[var(--brand-light)]/80"
-              dangerouslySetInnerHTML={{ __html: article.content }} 
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }} 
             />
           </div>
         </div>
@@ -226,13 +219,13 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mt-6 mb-6">
           <div className="p-6 text-center">
             <Newspaper className="w-10 h-10 text-[var(--brand-light)]/20 mx-auto mb-3" />
-            <p className="text-[var(--brand-light)]/60 mb-4">Want to read more?</p>
+            <p className="text-[var(--brand-light)]/60 mb-4">{t('wantToReadMore')}</p>
             <Link 
               href={backLink}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-purple)] transition-all text-sm font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-purple)] transition-all text-sm font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to News Feed
+              {t('backToNewsFeed')}
             </Link>
           </div>
         </div>

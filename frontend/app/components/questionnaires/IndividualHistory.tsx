@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '../../../lib/api';
 import { questionnaireApi } from '../../../lib/questionnaire-api';
 import { FileText, Calendar, CheckCircle2, X, Star, AlertCircle, Download, Eye } from 'lucide-react';
@@ -70,6 +71,8 @@ function QuestionnaireTableRowSkeleton() {
 }
 
 export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) {
+  const t = useTranslations('youthDetail.questionnaires.table');
+  const tModal = useTranslations('youthDetail.questionnaires.modal');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -146,7 +149,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
         
     } catch (err) {
         console.error("Download failed", err);
-        alert("Failed to download PDF.");
+        alert(tModal('downloadFailed'));
     } finally {
         setDownloadingId(null);
     }
@@ -193,9 +196,9 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--dark-600)]">
-                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Questionnaire</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Completed</th>
-                <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.questionnaire')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.completed')}</th>
+                <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -215,11 +218,11 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
         <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
           <FileText className="w-8 h-8 text-[var(--brand-light)]/30" />
         </div>
-        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No questionnaires found</h3>
+        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noQuestionnairesFound')}</h3>
         <p className="text-[var(--brand-light)]/50 text-sm">
           {history.length === 0 
-            ? 'This user has not completed any questionnaires yet.' 
-            : 'No questionnaires match your search.'}
+            ? t('emptyState.noQuestionnairesYet')
+            : t('emptyState.noMatch')}
         </p>
       </div>
     );
@@ -230,7 +233,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
       {/* Stats Bar */}
       <div className="px-4 sm:px-0">
         <p className="text-sm text-[var(--brand-light)]/50">
-          Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedHistory.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'questionnaire' : 'questionnaires'}
+          {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{paginatedHistory.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.questionnaire') : t('statsBar.questionnaires')}
         </p>
       </div>
 
@@ -251,7 +254,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
                 <div className="font-semibold text-[var(--brand-light)] truncate">{h.questionnaire_title}</div>
                 {h.is_anonymous && (
                   <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/60 mt-1">
-                    Anonymous
+                    {t('anonymous')}
                   </span>
                 )}
               </div>
@@ -292,9 +295,9 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Questionnaire</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Completed</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.questionnaire')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.completed')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -314,7 +317,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
                       <div className="font-semibold text-[var(--brand-light)] truncate">{h.questionnaire_title}</div>
                       {h.is_anonymous && (
                         <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/60 mt-1">
-                          Anonymous
+                          {t('anonymous')}
                         </span>
                       )}
                     </div>
@@ -338,7 +341,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
                       ) : (
                         <Download className="w-3.5 h-3.5" />
                       )}
-                      PDF
+                      {t('pdf')}
                     </button>
                     {!h.is_anonymous && (
                       <button 
@@ -346,7 +349,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:text-[var(--brand-purple)] hover:bg-[var(--dark-600)] transition-all text-xs font-medium border border-[var(--dark-500)]"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        View
+                        {t('view')}
                       </button>
                     )}
                   </div>
@@ -365,17 +368,17 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
             onClick={() => updateUrl('page', (currentPage - 1).toString())}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Previous
+            {t('pagination.previous')}
           </button>
           <div className="text-sm text-[var(--brand-light)]/50">
-            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
           </div>
           <button 
             disabled={currentPage >= totalPages} 
             onClick={() => updateUrl('page', (currentPage + 1).toString())}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Next
+            {t('pagination.next')}
           </button>
         </div>
       )}
@@ -396,7 +399,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
                             </div>
                             <div className="text-sm text-[var(--brand-light)]/50 flex items-center gap-2 ml-[52px]">
                                 <Calendar className="w-4 h-4" />
-                                Completed: {formatDate(selectedResponse.completed_at)}
+                                {tModal('completed')} {formatDate(selectedResponse.completed_at)}
                             </div>
                         </div>
                         <button 
@@ -461,7 +464,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
                                                 ) : (
                                                     <div className="flex items-center gap-2 text-[var(--brand-light)]/40 italic text-sm">
                                                         <AlertCircle className="w-4 h-4" />
-                                                        <span>No answer provided</span>
+                                                        <span>{tModal('noAnswerProvided')}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -480,7 +483,7 @@ export default function IndividualHistory({ userId, onAnalyticsUpdate }: Props) 
                         className="px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-purple)] text-[var(--dark-900)] font-semibold rounded-xl transition-colors flex items-center gap-2"
                     >
                         <X className="w-4 h-4" />
-                        Close
+                        {tModal('close')}
                     </button>
                 </div>
             </div>

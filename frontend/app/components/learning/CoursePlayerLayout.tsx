@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { learningApi } from '@/lib/learning-api';
 import { Course, ContentItem } from '@/types/learning';
 import CourseNavigation from './CourseNavigation';
 import ContentRenderer from './ContentRenderer';
 import StarRating from './StarRating';
-import { ArrowLeft, Menu, Star, X, BookOpen } from 'lucide-react';
-import Toast from '../Toast';
+import { Menu, Star, X, BookOpen } from 'lucide-react';
+import { useToast } from '../../../hooks/useToast';
+import BackButton from '../BackButton';
 
 interface Props {
     courseSlug: string;
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
+    const t = useTranslations('knowledgeAdmin.coursePlayer');
     const router = useRouter();
     const [course, setCourse] = useState<Course | null>(null);
     const [loading, setLoading] = useState(true);
@@ -24,7 +27,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [userRating, setUserRating] = useState<number>(0);
     const [isRating, setIsRating] = useState(false);
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+    const { success, error, info, warning } = useToast();
 
     useEffect(() => {
         loadCourse();
@@ -62,7 +65,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
 
         } catch (error) {
             console.error("Failed to load course", error);
-            setToast({ message: 'Failed to load course content', type: 'error', isVisible: true });
+            error(t('errors.failedToLoad'));
         } finally {
             setLoading(false);
         }
@@ -75,13 +78,13 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
         try {
             await learningApi.rateCourse(course.slug, rating);
             setUserRating(rating);
-            setToast({ message: `You rated this course ${rating} star${rating !== 1 ? 's' : ''}!`, type: 'success', isVisible: true });
+            success(t('rating.success'));
             
             const res = await learningApi.getCourse(course.slug);
             setCourse(res.data);
         } catch (error: any) {
             console.error("Failed to rate course", error);
-            setToast({ message: error.response?.data?.error || 'Failed to submit rating', type: 'error', isVisible: true });
+            error(error.response?.data?.error || t('errors.failedToRate'));
         } finally {
             setIsRating(false);
         }
@@ -94,7 +97,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
             const res = await learningApi.markItemComplete(course.slug, activeItem.id);
             
             setCompletedIds(prev => [...prev, activeItem.id]);
-            setToast({ message: 'Lesson completed!', type: 'success', isVisible: true });
+            success(t('lesson.completed'));
             
             const wasCompleted = course.user_progress?.status === 'COMPLETED';
             const newStatus = res.data.course_status;
@@ -150,7 +153,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
                         });
                     }, 250);
                     
-                    setToast({ message: "🎉 Congratulations! You've completed the course!", type: 'success', isVisible: true });
+                    success(t('course.congratulations'));
                 } catch (confettiError) {
                     console.log('Confetti not available:', confettiError);
                 }
@@ -158,7 +161,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
 
         } catch (error) {
             console.error(error);
-            setToast({ message: 'Failed to update progress', type: 'error', isVisible: true });
+            error(t('errors.failedToUpdate'));
         }
     };
 
@@ -184,7 +187,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
                     <BookOpen className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-[var(--brand-light)]/60 animate-pulse">Loading course...</div>
+                <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</div>
             </div>
         );
     }
@@ -195,7 +198,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
                 <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center">
                     <BookOpen className="w-8 h-8 text-[var(--brand-red)]" />
                 </div>
-                <div className="text-[var(--brand-red)] font-medium">Course not found</div>
+                <div className="text-[var(--brand-red)] font-medium">{t('errors.notFound')}</div>
             </div>
         );
     }
@@ -205,13 +208,10 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
             {/* Top Bar */}
             <div className="bg-[var(--dark-800)] border-b border-[var(--dark-600)] px-4 py-3 sticky top-0 z-20">
                 <div className="flex items-center gap-3">
-                    <button 
-                        onClick={() => router.push(backUrl)} 
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)] transition-all text-sm font-medium"
-                    >
-                        <ArrowLeft className="w-4 h-4" /> 
-                        <span className="hidden sm:inline">Back to Courses</span>
-                    </button>
+                    <BackButton 
+                        href={backUrl}
+                        label={t('backToCourses')}
+                    />
                     <div className="h-6 w-px bg-[var(--dark-600)]" />
                     <h1 className="font-semibold text-[var(--brand-light)] truncate flex-1 text-sm sm:text-base">
                         {course.title}
@@ -228,7 +228,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
                             </div>
                         )}
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-[var(--brand-light)]/50">Rate:</span>
+                            <span className="text-xs text-[var(--brand-light)]/50">{t('rating.label')}:</span>
                             <StarRating
                                 value={userRating}
                                 onChange={handleRateCourse}
@@ -285,13 +285,13 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
                             <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mb-4">
                                 <BookOpen className="w-8 h-8 text-[var(--brand-light)]/30" />
                             </div>
-                            <p className="text-[var(--brand-light)]/50 text-center mb-4">Select a lesson from the menu to start</p>
+                            <p className="text-[var(--brand-light)]/50 text-center mb-4">{t('selectLesson')}</p>
                             <button 
                                 onClick={() => setMobileNavOpen(true)}
                                 className="md:hidden px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-medium flex items-center gap-2"
                             >
                                 <Menu className="w-4 h-4" />
-                                Open Menu
+                                {t('openMenu')}
                             </button>
                         </div>
                     )}
@@ -321,7 +321,7 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
                     <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-[var(--dark-800)] border-l border-[var(--dark-600)] shadow-2xl overflow-auto">
                         {/* Close Button */}
                         <div className="sticky top-0 bg-[var(--dark-800)] border-b border-[var(--dark-600)] p-4 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Course Content</h2>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('courseContent')}</h2>
                             <button 
                                 onClick={() => setMobileNavOpen(false)}
                                 className="w-10 h-10 rounded-xl bg-[var(--dark-700)] flex items-center justify-center text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-all"
@@ -343,7 +343,6 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
                 </div>
             )}
 
-            <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-        </div>
+            </div>
     );
 }

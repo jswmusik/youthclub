@@ -8,9 +8,10 @@ import { getMediaUrl } from '../../utils';
 interface Props {
     article: NewsArticle;
     darkMode?: boolean;
+    basePath?: string; // Base path for the news detail link (e.g., '/dashboard/guardian/news' or '/dashboard/youth/news')
 }
 
-export default function NewsHero({ article, darkMode = false }: Props) {
+export default function NewsHero({ article, darkMode = false, basePath = '/dashboard/youth/news' }: Props) {
     const t = useTranslations('news');
     const heroImageUrl = article.hero_image ? getMediaUrl(article.hero_image) : null;
 
@@ -18,7 +19,7 @@ export default function NewsHero({ article, darkMode = false }: Props) {
         <div className={`relative w-full h-80 sm:h-96 sm:rounded-2xl overflow-hidden mb-8 group cursor-pointer ${
             darkMode ? 'border-y sm:border border-[var(--dark-600)]' : 'shadow-xl sm:rounded-xl'
         }`}>
-            <Link href={`/dashboard/youth/news/${article.id}`}>
+            <Link href={`${basePath}/${article.id}`}>
                 {/* Background Image with Overlay */}
                 <div 
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"

@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, 
   Users, Building, UsersRound, FolderX, ChevronLeft, Layers, Globe, Lock, FileQuestion
 } from 'lucide-react';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
 
 // Minimum loading time for skeleton display
@@ -24,6 +25,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick, showActions = true }: SwipeableCardProps) {
+  const t = useTranslations('groupsAdmin');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -114,14 +116,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick, showActions = true
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
           >
             <Edit className="w-5 h-5" />
-            <span className="text-xs font-medium">Edit</span>
+            <span className="text-xs font-medium">{t('actions.edit')}</span>
           </button>
           <button
             onClick={handleDeleteClick}
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
           >
             <Trash2 className="w-5 h-5" />
-            <span className="text-xs font-medium">Delete</span>
+            <span className="text-xs font-medium">{t('actions.delete')}</span>
           </button>
         </div>
       )}
@@ -209,6 +211,7 @@ function GroupTableRowSkeleton() {
 }
 
 function GroupPageSkeleton() {
+  const t = useTranslations('groupsAdmin');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -223,11 +226,11 @@ function GroupPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Group</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Location</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Members</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.group')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.location')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.type')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.members')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -263,6 +266,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('groupsAdmin');
   
   const [groups, setGroups] = useState<Group[]>([]);
   const [allGroups, setAllGroups] = useState<Group[]>([]);
@@ -308,7 +312,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
     });
   }, [allGroups]);
 
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [showDelete, setShowDelete] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   
@@ -413,7 +417,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
       applyFilters();
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Failed to load groups.', type: 'error', isVisible: true });
+      error(t('toast.failedToLoad'));
     } finally {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
@@ -480,13 +484,22 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
     if (!selectedGroup) return;
     try {
       await api.delete(`/groups/${selectedGroup.id}/`);
-      setToast({ message: 'Group deleted successfully.', type: 'success', isVisible: true });
+      success(t('toast.groupDeleted'));
       fetchGroups();
     } catch (err) {
-      setToast({ message: 'Failed to delete group.', type: 'error', isVisible: true });
+      error(t('toast.failedToDelete'));
     } finally {
       setShowDelete(false);
       setSelectedGroup(null);
+    }
+  };
+
+  const getTranslatedType = (type: string) => {
+    switch (type) {
+      case 'OPEN': return t('filters.open');
+      case 'APPLICATION': return t('filters.application');
+      case 'CLOSED': return t('filters.closed');
+      default: return type;
     }
   };
 
@@ -536,13 +549,13 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <Layers className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Groups</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage member segments and filters.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <Link href={`${basePath}/create`}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="h-4 w-4" /> Add Group
+            <Plus className="h-4 w-4" /> {t('addGroup')}
           </button>
         </Link>
       </div>
@@ -559,7 +572,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -574,7 +587,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Layers className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{stats.totalGroups}</div>
               </div>
@@ -585,7 +598,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Users className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Members</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('members')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{stats.totalMembers}</div>
               </div>
@@ -596,7 +609,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                     <UsersRound className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Active</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('active')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{stats.activeGroups}</div>
               </div>
@@ -607,7 +620,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                     <FolderX className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Empty</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('empty')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{stats.emptyGroups}</div>
               </div>
@@ -624,7 +637,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search by group name..." 
+              placeholder={t('searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -649,7 +662,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                   onChange={e => setMunicipalityFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Municipalities</option>
+                  <option value="">{t('filters.allMunicipalities')}</option>
                   {municipalities.map(m => (
                     <option key={m.id} value={m.id.toString()}>{m.name}</option>
                   ))}
@@ -664,7 +677,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                   onChange={e => setClubFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Clubs</option>
+                  <option value="">{t('filters.allClubs')}</option>
                   {clubs.map(c => (
                     <option key={c.id} value={c.id.toString()}>{c.name}</option>
                   ))}
@@ -678,10 +691,10 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                 onChange={e => setTypeFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">All Types</option>
-                <option value="OPEN">Open</option>
-                <option value="APPLICATION">Application</option>
-                <option value="CLOSED">Closed</option>
+                <option value="">{t('filters.allTypes')}</option>
+                <option value="OPEN">{t('filters.open')}</option>
+                <option value="APPLICATION">{t('filters.application')}</option>
+                <option value="CLOSED">{t('filters.closed')}</option>
               </select>
             </div>
             {hasFilters && (
@@ -689,7 +702,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                Clear All
+                {t('filters.clearAll')}
               </button>
             )}
           </div>
@@ -700,7 +713,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
       {!showSkeleton && groups.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{groups.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{allFilteredGroups.length}</span> {allFilteredGroups.length === 1 ? 'group' : 'groups'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{groups.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{allFilteredGroups.length}</span> {allFilteredGroups.length === 1 ? t('statsBar.group') : t('statsBar.groups')}
           </p>
         </div>
       )}
@@ -713,14 +726,14 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Layers className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No groups found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noGroupsFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by creating your first group.'}
+            {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Add Group
+                <Plus className="h-4 w-4" /> {t('addGroup')}
               </button>
             </Link>
           )}
@@ -752,7 +765,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                         </h3>
                         {group.is_system_group && (
                           <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
-                            System
+                            {t('badges.system')}
                           </span>
                         )}
                       </div>
@@ -764,7 +777,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                           {isSuperAdmin && group.municipality_name ? group.municipality_name : ''}
                           {isSuperAdmin && group.municipality_name && group.club_name ? ' • ' : ''}
                           {(isSuperAdmin || isMuniAdmin) && group.club_name ? group.club_name : ''}
-                          {!group.municipality_name && !group.club_name && 'Global'}
+                          {!group.municipality_name && !group.club_name && t('badges.global')}
                         </p>
                       </div>
                       
@@ -772,14 +785,14 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getTypeBadgeClasses(group.group_type)}`}>
                           {getTypeIcon(group.group_type)}
-                          {group.group_type}
+                          {getTranslatedType(group.group_type)}
                         </span>
                         <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
-                          {group.member_count ?? 0} members
+                          {group.member_count ?? 0} {t('badges.members')}
                         </span>
                         {(group.pending_request_count ?? 0) > 0 && (
                           <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
-                            {group.pending_request_count} pending
+                            {group.pending_request_count} {t('badges.pending')}
                           </span>
                         )}
                       </div>
@@ -795,13 +808,13 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Group</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.group')}</th>
                   {(isSuperAdmin || isMuniAdmin) && (
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Location</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.location')}</th>
                   )}
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Members</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.type')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.members')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -820,7 +833,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                             <span className="font-semibold text-[var(--brand-light)]">{group.name}</span>
                             {group.is_system_group && (
                               <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
-                                System
+                                {t('badges.system')}
                               </span>
                             )}
                           </div>
@@ -840,7 +853,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                             <span>{group.club_name}</span>
                           ) : null}
                           {!group.municipality_name && !group.club_name && (
-                            <span className="text-[var(--brand-light)]/30">Global</span>
+                            <span className="text-[var(--brand-light)]/30">{t('badges.global')}</span>
                           )}
                         </div>
                       </td>
@@ -848,7 +861,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getTypeBadgeClasses(group.group_type)}`}>
                         {getTypeIcon(group.group_type)}
-                        {group.group_type}
+                        {getTranslatedType(group.group_type)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -856,7 +869,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                         <span className="text-sm font-medium text-[var(--brand-light)]">{group.member_count ?? 0}</span>
                         {(group.pending_request_count ?? 0) > 0 && (
                           <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
-                            {group.pending_request_count} pending
+                            {group.pending_request_count} {t('badges.pending')}
                           </span>
                         )}
                       </div>
@@ -899,17 +912,17 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/50">
-                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}
@@ -921,14 +934,13 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
         isVisible={showDelete}
         onClose={() => setShowDelete(false)}
         onConfirm={handleDelete}
-        title="Delete Group"
-        message={`Are you sure you want to delete "${selectedGroup?.name}"? This will remove all members from this group. This action cannot be undone.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { name: selectedGroup?.name || '' })}
+        confirmButtonText={t('deleteModal.confirm')}
+        cancelButtonText={t('deleteModal.cancel')}
         variant="danger"
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} darkMode />
-    </div>
+      </div>
   );
 }

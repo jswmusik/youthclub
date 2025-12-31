@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { MoreHorizontal, Plus, Search, Globe, CreditCard, Trash2, Edit, Eye, Flag, Languages, Clock, ChevronLeft } from 'lucide-react';
 import api from '../../lib/api';
@@ -9,7 +10,7 @@ import { getMediaUrl } from '../../app/utils';
 
 // Your existing Modals (Preserved)
 import ConfirmationModal from './ConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -23,6 +24,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const t = useTranslations('countriesAdmin');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -109,14 +111,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -199,6 +201,7 @@ function CountryTableRowSkeleton() {
 }
 
 function CountriesPageSkeleton() {
+  const t = useTranslations('countriesAdmin');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -213,12 +216,12 @@ function CountriesPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Country</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Code</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Currency</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Language</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Timezone</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.country')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.code')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.currency')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.language')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.timezone')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -237,6 +240,7 @@ interface CountryManagerProps {
 }
 
 export default function CountryManager({ basePath }: CountryManagerProps) {
+  const t = useTranslations('countriesAdmin');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -248,7 +252,7 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
   
   // Delete
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Sync search input
   useEffect(() => {
@@ -308,10 +312,10 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
     if (!itemToDelete) return;
     try {
       await api.delete(`/countries/${itemToDelete.id}/`);
-      setToast({ message: 'Country deleted successfully.', type: 'success', isVisible: true });
+      success(t('toast.deleteSuccess'));
       fetchCountries();
     } catch (err) {
-      setToast({ message: 'Failed to delete. It might contain municipalities.', type: 'error', isVisible: true });
+      error(t('toast.deleteFailed'));
     } finally {
       setItemToDelete(null);
     }
@@ -325,7 +329,6 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
     return queryString ? `${path}?${queryString}` : path;
   };
 
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -335,13 +338,13 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <Flag className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Countries</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Configure the regions available in the application.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <Link href={`${basePath}/create`}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="h-4 w-4" /> Add Country
+            <Plus className="h-4 w-4" /> {t('addCountry')}
           </button>
         </Link>
       </div>
@@ -352,7 +355,7 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
           <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
           <input 
             type="text"
-            placeholder="Search by name or code..." 
+            placeholder={t('searchPlaceholder')} 
             className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
@@ -372,7 +375,7 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
       {!loading && countries.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{countries.length}</span> {countries.length === 1 ? 'country' : 'countries'}
+            {t('showing')} <span className="text-[var(--brand-primary)] font-semibold">{countries.length}</span> {countries.length === 1 ? t('country') : t('countries')}
           </p>
         </div>
       )}
@@ -385,14 +388,14 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Globe className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No countries found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('noCountriesFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {searchInput ? 'Try adjusting your search terms.' : 'Get started by adding your first country.'}
+            {searchInput ? t('noCountriesMessage') : t('noCountriesEmptyMessage')}
           </p>
           {!searchInput && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Add Country
+                <Plus className="h-4 w-4" /> {t('addCountry')}
               </button>
             </Link>
           )}
@@ -446,12 +449,12 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Country</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Code</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Currency</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Language</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Timezone</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.country')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.code')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.currency')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.language')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.timezone')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -514,13 +517,12 @@ export default function CountryManager({ basePath }: CountryManagerProps) {
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
         variant="danger"
-        title="Delete Country"
-        message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { name: itemToDelete?.name })}
+        confirmButtonText={t('deleteModal.confirm')}
+        cancelButtonText={t('deleteModal.cancel')}
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-    </div>
+      </div>
   );
 }

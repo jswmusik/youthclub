@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { NewsPageSkeleton } from '@/app/components/ui/Skeleton';
-import YouthFooter from '@/app/components/youth/YouthFooter';
+import Footer from '@/app/components/Footer';
 import { fetchNews, fetchHeroNews, fetchNewsTags } from '@/lib/api';
 import { NewsArticle, NewsTag } from '@/types/news';
 import NewsHero from '@/app/components/news/NewsHero';
@@ -130,7 +130,8 @@ export default function YouthNewsPage() {
     const showSkeleton = loading || !minLoadingComplete;
 
     return (
-        <div className="min-h-screen bg-[var(--dark-900)]">
+        <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+            <div className="flex-1">
             <NavBar 
                 darkMode={true} 
                 showBackButton={true}
@@ -169,7 +170,7 @@ export default function YouthNewsPage() {
             <div className="pt-14 sm:pt-16">
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
-                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
                         <YouthSidebar activePath={pathname} darkMode={true} />
                     </aside>
                     
@@ -323,9 +324,10 @@ export default function YouthNewsPage() {
                     </div>
                 </div>
             </div>
+            </div>
             
             {/* Footer */}
-            <YouthFooter />
+            <Footer />
         </div>
     );
 }

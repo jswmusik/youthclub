@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO, differenceInDays, isPast, differenceInMonths } from 'date-fns';
 import Skeleton from '@/app/components/ui/Skeleton';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../../hooks/useToast';
 
 interface Plan {
   id: number;
@@ -77,6 +78,9 @@ interface GlobalPricing {
 }
 
 export default function LicenseManagementPage() {
+  const t = useTranslations('licenses');
+  const tRequestTypes = useTranslations('licenses.requestTypes');
+  const tPlans = useTranslations('plans');
   const [licenses, setLicenses] = useState<License[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
@@ -118,7 +122,7 @@ export default function LicenseManagementPage() {
 
     } catch (error) {
       console.error("Failed to fetch licensing data", error);
-      showToast('Failed to load licensing data', 'error');
+      showToast(t('toast.failedToLoadLicensingData'), 'error');
     } finally {
       setLoading(false);
     }
@@ -133,13 +137,13 @@ export default function LicenseManagementPage() {
         has_analytics: editingLicense.has_analytics,
         extra_features: editingLicense.extra_features
       });
-      showToast('License updated successfully', 'success');
+      showToast(t('toast.licenseUpdatedSuccessfully'), 'success');
       setEditingLicense(null);
       setDialogOpen(false);
       fetchData();
     } catch (error) {
       console.error(error);
-      showToast('Failed to update license', 'error');
+      showToast(t('toast.failedToUpdateLicense'), 'error');
     }
   };
 
@@ -159,20 +163,20 @@ export default function LicenseManagementPage() {
     setRequestDialogOpen(true);
   };
 
-  const handleApproveRequest = async () => {
+      const handleApproveRequest = async () => {
     if (!selectedRequest) return;
     setProcessingRequest(true);
     try {
       await api.post(`/licensing/requests/${selectedRequest.id}/approve/`, {
         notes: adminNotes
       });
-      showToast('Request approved successfully', 'success');
+      showToast(t('toast.requestApprovedSuccessfully'), 'success');
       setRequestDialogOpen(false);
       setSelectedRequest(null);
       fetchData();
     } catch (error: any) {
       console.error(error);
-      showToast(error?.response?.data?.error || 'Failed to approve request', 'error');
+      showToast(error?.response?.data?.error || t('toast.failedToApproveRequest'), 'error');
     } finally {
       setProcessingRequest(false);
     }
@@ -185,13 +189,13 @@ export default function LicenseManagementPage() {
       await api.post(`/licensing/requests/${selectedRequest.id}/reject/`, {
         notes: adminNotes
       });
-      showToast('Request rejected', 'success');
+      showToast(t('toast.requestRejected'), 'success');
       setRequestDialogOpen(false);
       setSelectedRequest(null);
       fetchData();
     } catch (error: any) {
       console.error(error);
-      showToast(error?.response?.data?.error || 'Failed to reject request', 'error');
+      showToast(error?.response?.data?.error || t('toast.failedToRejectRequest'), 'error');
     } finally {
       setProcessingRequest(false);
     }
@@ -199,23 +203,55 @@ export default function LicenseManagementPage() {
 
   const getRequestTypeLabel = (type: string) => {
     switch (type) {
-      case 'NEW_CLUB': return 'Extra Club Slot';
-      case 'UPGRADE_PLAN': return 'Plan Upgrade';
-      case 'ADD_FEATURE': return 'Add-on Feature';
-      case 'ADD_ANALYTICS': return 'Analytics Package';
-      case 'RENEWAL': return 'License Renewal';
+      case 'NEW_CLUB': return tRequestTypes('extraClubSlot');
+      case 'UPGRADE_PLAN': return tRequestTypes('planUpgrade');
+      case 'ADD_FEATURE': return tRequestTypes('addonFeature');
+      case 'ADD_ANALYTICS': return tRequestTypes('analyticsPackage');
+      case 'RENEWAL': return tRequestTypes('licenseRenewal');
       default: return type;
     }
+  };
+
+  // Function to get translated feature name
+  const getFeatureDisplayName = (featureId: number | null, featureName: string | null): string => {
+    if (!featureId || !featureName) return featureName || '';
+    
+    // Find the feature by ID
+    const feature = features.find(f => f.id === featureId);
+    if (!feature) return featureName;
+    
+    // Translate based on slug (same mapping as in plans page)
+    const slugToKey: Record<string, string> = {
+      'posts': 'features.newsAndPosts',
+      'groups': 'features.interestGroups',
+      'learning': 'features.learningPlatform',
+      'custom_fields': 'features.customDataFields',
+      'visits': 'features.checkInSystem',
+      'events': 'features.eventsSystem',
+      'messenger': 'features.messengerAndChat',
+      'inventory': 'features.inventoryAndLending',
+      'bookings': 'features.facilityBookings',
+      'questionnaires': 'features.questionnairesAndVoting',
+      'rewards': 'features.rewardsAndGamification',
+      'analytics': 'features.analyticsDashboard',
+    };
+    
+    const translationKey = slugToKey[feature.slug];
+    if (translationKey) {
+      return tPlans(translationKey);
+    }
+    // Fallback to original name if slug not found
+    return featureName;
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return <Badge className="bg-yellow-500/20 text-yellow-400">Pending</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400">{t('status.pending')}</Badge>;
       case 'APPROVED':
-        return <Badge className="bg-green-500/20 text-green-400">Approved</Badge>;
+        return <Badge className="bg-green-500/20 text-green-400">{t('status.approved')}</Badge>;
       case 'REJECTED':
-        return <Badge variant="destructive">Rejected</Badge>;
+        return <Badge variant="destructive">{t('status.rejected')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -238,17 +274,17 @@ export default function LicenseManagementPage() {
         const newClubs = request.requested_club_count || (currentClubs + 1);
         const additionalClubs = newClubs - currentClubs;
         const price = additionalClubs * Number(globalPricing.price_per_extra_club_sek) * remainingMonths;
-        return { price, description: `${additionalClubs} club(s) × ${globalPricing.price_per_extra_club_sek} kr × ${remainingMonths} months` };
+        return { price, description: t('priceCalculation.clubs', { count: additionalClubs, price: globalPricing.price_per_extra_club_sek, months: remainingMonths }) };
       }
       case 'ADD_ANALYTICS': {
         const price = Number(globalPricing.analytics_package_price_sek) * remainingMonths;
-        return { price, description: `${globalPricing.analytics_package_price_sek} kr × ${remainingMonths} months` };
+        return { price, description: t('priceCalculation.analytics', { price: globalPricing.analytics_package_price_sek, months: remainingMonths }) };
       }
       case 'ADD_FEATURE': {
         const feature = features.find(f => f.id === request.requested_feature);
         if (!feature) return null;
         const price = Number(feature.monthly_price_sek) * remainingMonths;
-        return { price, description: `${feature.monthly_price_sek} kr × ${remainingMonths} months` };
+        return { price, description: t('priceCalculation.feature', { price: feature.monthly_price_sek, months: remainingMonths }) };
       }
       case 'UPGRADE_PLAN': {
         const newPlan = plans.find(p => p.id === request.requested_plan);
@@ -256,7 +292,7 @@ export default function LicenseManagementPage() {
         if (!newPlan || !currentPlan) return null;
         const priceDiff = Number(newPlan.monthly_price_sek) - Number(currentPlan.monthly_price_sek);
         const price = priceDiff * remainingMonths;
-        return { price, description: `(${newPlan.monthly_price_sek} - ${currentPlan.monthly_price_sek}) kr × ${remainingMonths} months` };
+        return { price, description: t('priceCalculation.planUpgrade', { newPrice: newPlan.monthly_price_sek, oldPrice: currentPlan.monthly_price_sek, months: remainingMonths }) };
       }
       case 'RENEWAL': {
         const currentPlan = plans.find(p => p.id === license.plan);
@@ -273,8 +309,8 @@ export default function LicenseManagementPage() {
         }
         
         const description = discountPercent > 0 
-          ? `${currentPlan.monthly_price_sek} kr × ${months} months - ${discountPercent}% discount`
-          : `${currentPlan.monthly_price_sek} kr × ${months} months`;
+          ? t('priceCalculation.renewalWithDiscount', { price: currentPlan.monthly_price_sek, months, discount: discountPercent })
+          : t('priceCalculation.renewal', { price: currentPlan.monthly_price_sek, months });
         return { price, description };
       }
       default:
@@ -343,8 +379,8 @@ export default function LicenseManagementPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--brand-light)]">License Management</h1>
-          <p className="text-[var(--brand-light)]/60 mt-1">Manage municipality subscriptions and requests</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--brand-light)]">{t('title')}</h1>
+          <p className="text-[var(--brand-light)]/60 mt-1">{t('description')}</p>
         </div>
       </div>
 
@@ -352,29 +388,29 @@ export default function LicenseManagementPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Total Licenses</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalLicenses')}</CardTitle>
             <Building2 className="h-4 w-4 text-[var(--brand-primary)]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[var(--brand-light)]">{totalLicenses}</div>
-            <p className="text-xs text-[var(--brand-light)]/50">Municipalities registered</p>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('stats.municipalitiesRegistered')}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Active Licenses</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.activeLicenses')}</CardTitle>
             <Crown className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-500">{activeLicenses}</div>
-            <p className="text-xs text-[var(--brand-light)]/50">{Math.round((activeLicenses / totalLicenses) * 100) || 0}% of total</p>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('stats.percentOfTotal', { percent: Math.round((activeLicenses / totalLicenses) * 100) || 0 })}</p>
           </CardContent>
         </Card>
 
         <Card className={`border-[var(--dark-600)] ${pendingRequests > 0 ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-[var(--dark-700)]'}`}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Pending Requests</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.pendingRequests')}</CardTitle>
             {pendingRequests > 0 ? (
               <Bell className="h-4 w-4 text-yellow-500 animate-pulse" />
             ) : (
@@ -386,19 +422,19 @@ export default function LicenseManagementPage() {
               {pendingRequests}
             </div>
             <p className="text-xs text-[var(--brand-light)]/50">
-              {pendingRequests > 0 ? 'Awaiting your review' : 'No pending requests'}
+              {pendingRequests > 0 ? t('stats.awaitingReview') : t('stats.noPendingRequests')}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Processed</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.processed')}</CardTitle>
             <History className="h-4 w-4 text-[var(--brand-sky)]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[var(--brand-sky)]">{processedRequests}</div>
-            <p className="text-xs text-[var(--brand-light)]/50">Total processed requests</p>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('stats.totalProcessedRequests')}</p>
           </CardContent>
         </Card>
       </div>
@@ -406,19 +442,28 @@ export default function LicenseManagementPage() {
       {/* Tabs for Licenses, Requests, and History */}
       <Tabs defaultValue="licenses" className="space-y-4">
         <TabsList className="bg-[var(--dark-700)] border border-[var(--dark-600)]">
-          <TabsTrigger value="licenses" className="data-[state=active]:bg-[var(--brand-primary)]">
-            Licenses
+          <TabsTrigger 
+            value="licenses" 
+            className="data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-black text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors"
+          >
+            {t('tabs.licenses')}
           </TabsTrigger>
-          <TabsTrigger value="requests" className="data-[state=active]:bg-[var(--brand-primary)] relative">
-            Pending
+          <TabsTrigger 
+            value="requests" 
+            className="data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-black text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors relative"
+          >
+            {t('tabs.pending')}
             {pendingRequests > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 text-black text-xs font-bold rounded-full flex items-center justify-center">
                 {pendingRequests}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="history" className="data-[state=active]:bg-[var(--brand-primary)]">
-            History
+          <TabsTrigger 
+            value="history" 
+            className="data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-black text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors"
+          >
+            {t('tabs.history')}
           </TabsTrigger>
         </TabsList>
 
@@ -426,29 +471,29 @@ export default function LicenseManagementPage() {
         <TabsContent value="licenses">
           <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
             <CardHeader>
-              <CardTitle className="text-[var(--brand-light)]">All Licenses</CardTitle>
+              <CardTitle className="text-[var(--brand-light)]">{t('licensesTab.title')}</CardTitle>
               <CardDescription className="text-[var(--brand-light)]/60">
-                Manage municipality subscriptions and features
+                {t('licensesTab.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow className="border-[var(--dark-600)] hover:bg-transparent">
-                    <TableHead className="text-[var(--brand-light)]/70">Municipality</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Plan</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Clubs</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Analytics</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Expires</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Status</TableHead>
-                    <TableHead className="text-right text-[var(--brand-light)]/70">Actions</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('licensesTab.tableHeaders.municipality')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('licensesTab.tableHeaders.plan')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('licensesTab.tableHeaders.clubs')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('licensesTab.tableHeaders.analytics')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('licensesTab.tableHeaders.expires')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('licensesTab.tableHeaders.status')}</TableHead>
+                    <TableHead className="text-right text-[var(--brand-light)]/70">{t('licensesTab.tableHeaders.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {licenses.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-[var(--brand-light)]/50 py-8">
-                        No licenses found.
+                        {t('licensesTab.emptyState')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -467,14 +512,14 @@ export default function LicenseManagementPage() {
                             </Badge>
                             {license.extra_features && license.extra_features.length > 0 && (
                               <span className="ml-2 text-xs text-[var(--brand-light)]/50">
-                                + {license.extra_features.length} extras
+                                + {license.extra_features.length} {t('licensesTab.extras')}
                               </span>
                             )}
                           </TableCell>
                           <TableCell className="text-[var(--brand-light)]">{license.max_clubs}</TableCell>
                           <TableCell>
                             {license.has_analytics ? (
-                              <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30">Active</Badge>
+                              <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30">{t('licensesTab.active')}</Badge>
                             ) : (
                               <span className="text-[var(--brand-light)]/30">-</span>
                             )}
@@ -485,7 +530,7 @@ export default function LicenseManagementPage() {
                                 {isExpired ? (
                                   <Badge variant="destructive" className="flex items-center gap-1">
                                     <AlertTriangle className="w-3 h-3" />
-                                    Expired
+                                    {t('licensesTab.expired')}
                                   </Badge>
                                 ) : isExpiringSoon ? (
                                   <div className="flex flex-col">
@@ -493,23 +538,23 @@ export default function LicenseManagementPage() {
                                       <AlertTriangle className="w-3 h-3" />
                                       {format(endDate, 'MMM d, yyyy')}
                                     </span>
-                                    <span className="text-xs text-amber-400/70">{daysUntilExpiry} days left</span>
+                                    <span className="text-xs text-amber-400/70">{t('licensesTab.daysLeft', { days: daysUntilExpiry })}</span>
                                   </div>
                                 ) : (
                                   <div className="flex flex-col">
                                     <span className="text-[var(--brand-light)] text-sm">{format(endDate, 'MMM d, yyyy')}</span>
-                                    <span className="text-xs text-[var(--brand-light)]/50">{daysUntilExpiry} days left</span>
+                                    <span className="text-xs text-[var(--brand-light)]/50">{t('licensesTab.daysLeft', { days: daysUntilExpiry })}</span>
                                   </div>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-[var(--brand-light)]/30">No date set</span>
+                              <span className="text-[var(--brand-light)]/30">{t('licensesTab.noDateSet')}</span>
                             )}
                           </TableCell>
                           <TableCell>
                             <Badge variant={license.is_active ? 'default' : 'destructive'} 
                                    className={license.is_active ? 'bg-[var(--brand-primary)]' : ''}>
-                              {license.is_active ? 'Active' : 'Inactive'}
+                              {license.is_active ? t('licensesTab.active') : t('licensesTab.inactive')}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
@@ -519,7 +564,7 @@ export default function LicenseManagementPage() {
                               onClick={() => openEditDialog(license)}
                               className="text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
                             >
-                              <Edit className="w-4 h-4 mr-2" /> Manage
+                              <Edit className="w-4 h-4 mr-2" /> {t('licensesTab.manage')}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -536,21 +581,21 @@ export default function LicenseManagementPage() {
         <TabsContent value="requests">
           <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
             <CardHeader>
-              <CardTitle className="text-[var(--brand-light)]">Pending Requests</CardTitle>
+              <CardTitle className="text-[var(--brand-light)]">{t('pendingTab.title')}</CardTitle>
               <CardDescription className="text-[var(--brand-light)]/60">
-                Review and process upgrade requests from municipalities
+                {t('pendingTab.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow className="border-[var(--dark-600)] hover:bg-transparent">
-                    <TableHead className="text-[var(--brand-light)]/70">Municipality</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Request Type</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Details</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Est. Price</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Date</TableHead>
-                    <TableHead className="text-right text-[var(--brand-light)]/70">Actions</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('pendingTab.tableHeaders.municipality')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('pendingTab.tableHeaders.requestType')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('pendingTab.tableHeaders.details')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('pendingTab.tableHeaders.estPrice')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('pendingTab.tableHeaders.date')}</TableHead>
+                    <TableHead className="text-right text-[var(--brand-light)]/70">{t('pendingTab.tableHeaders.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -558,7 +603,7 @@ export default function LicenseManagementPage() {
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-[var(--brand-light)]/50 py-8">
                         <Inbox className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                        No pending requests.
+                        {t('pendingTab.emptyState')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -578,11 +623,11 @@ export default function LicenseManagementPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-[var(--brand-light)]/70 text-sm">
-                            {request.requested_plan_name && `Plan: ${request.requested_plan_name}`}
-                            {request.requested_feature_name && `Feature: ${request.requested_feature_name}`}
-                            {request.requested_club_count && `Clubs: ${request.requested_club_count}`}
-                            {request.request_type === 'ADD_ANALYTICS' && 'Analytics Package'}
-                            {request.request_type === 'RENEWAL' && `Renewal: ${request.renewal_years || 1} year(s)`}
+                            {request.requested_plan_name && t('pendingTab.plan', { planName: request.requested_plan_name })}
+                            {request.requested_feature_name && ` ${t('pendingTab.feature', { featureName: getFeatureDisplayName(request.requested_feature, request.requested_feature_name) })}`}
+                            {request.requested_club_count && ` ${t('pendingTab.clubs', { count: request.requested_club_count })}`}
+                            {request.request_type === 'ADD_ANALYTICS' && ` ${t('pendingTab.analyticsPackage')}`}
+                            {request.request_type === 'RENEWAL' && ` ${t('pendingTab.renewal', { years: request.renewal_years || 1 })}`}
                           </TableCell>
                           <TableCell>
                             {priceInfo ? (
@@ -601,9 +646,9 @@ export default function LicenseManagementPage() {
                               variant="default" 
                               size="sm" 
                               onClick={() => openRequestDialog(request)}
-                              className="bg-[var(--brand-primary)]"
+                              className="bg-[var(--brand-primary)] text-black hover:bg-[var(--brand-primary)]/90 hover:text-black"
                             >
-                              <Clock className="w-4 h-4 mr-2" /> Review
+                              <Clock className="w-4 h-4 mr-2" /> {t('pendingTab.review')}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -620,20 +665,20 @@ export default function LicenseManagementPage() {
         <TabsContent value="history">
           <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
             <CardHeader>
-              <CardTitle className="text-[var(--brand-light)]">Request History</CardTitle>
+              <CardTitle className="text-[var(--brand-light)]">{t('historyTab.title')}</CardTitle>
               <CardDescription className="text-[var(--brand-light)]/60">
-                View all processed requests with filters
+                {t('historyTab.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Filters */}
               <div className="flex flex-wrap gap-4 p-4 bg-[var(--dark-600)] rounded-lg">
                 <div className="flex-1 min-w-[200px]">
-                  <Label className="text-[var(--brand-light)]/70 text-xs mb-1 block">Search</Label>
+                  <Label className="text-[var(--brand-light)]/70 text-xs mb-1 block">{t('historyTab.filters.search')}</Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/50" />
                     <Input 
-                      placeholder="Search municipality, feature..."
+                      placeholder={t('historyTab.filters.searchPlaceholder')}
                       value={historySearch}
                       onChange={(e) => setHistorySearch(e.target.value)}
                       className="pl-9 bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)]"
@@ -641,32 +686,32 @@ export default function LicenseManagementPage() {
                   </div>
                 </div>
                 <div className="w-[150px]">
-                  <Label className="text-[var(--brand-light)]/70 text-xs mb-1 block">Status</Label>
+                  <Label className="text-[var(--brand-light)]/70 text-xs mb-1 block">{t('historyTab.filters.status')}</Label>
                   <Select value={historyStatusFilter} onValueChange={setHistoryStatusFilter}>
                     <SelectTrigger className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-[var(--dark-600)] border-[var(--dark-500)]">
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="APPROVED">Approved</SelectItem>
-                      <SelectItem value="REJECTED">Rejected</SelectItem>
+                      <SelectItem value="all" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{t('historyTab.status.allStatus')}</SelectItem>
+                      <SelectItem value="PENDING" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{t('historyTab.status.pending')}</SelectItem>
+                      <SelectItem value="APPROVED" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{t('historyTab.status.approved')}</SelectItem>
+                      <SelectItem value="REJECTED" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{t('historyTab.status.rejected')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="w-[180px]">
-                  <Label className="text-[var(--brand-light)]/70 text-xs mb-1 block">Request Type</Label>
+                  <Label className="text-[var(--brand-light)]/70 text-xs mb-1 block">{t('historyTab.filters.requestType')}</Label>
                   <Select value={historyTypeFilter} onValueChange={setHistoryTypeFilter}>
                     <SelectTrigger className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-[var(--dark-600)] border-[var(--dark-500)]">
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="NEW_CLUB">Extra Club</SelectItem>
-                      <SelectItem value="UPGRADE_PLAN">Plan Upgrade</SelectItem>
-                      <SelectItem value="ADD_FEATURE">Add-on Feature</SelectItem>
-                      <SelectItem value="ADD_ANALYTICS">Analytics</SelectItem>
-                      <SelectItem value="RENEWAL">Renewal</SelectItem>
+                      <SelectItem value="all" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{tRequestTypes('allTypes')}</SelectItem>
+                      <SelectItem value="NEW_CLUB" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{tRequestTypes('extraClub')}</SelectItem>
+                      <SelectItem value="UPGRADE_PLAN" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{tRequestTypes('upgradePlan')}</SelectItem>
+                      <SelectItem value="ADD_FEATURE" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{tRequestTypes('addFeature')}</SelectItem>
+                      <SelectItem value="ADD_ANALYTICS" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{tRequestTypes('analytics')}</SelectItem>
+                      <SelectItem value="RENEWAL" className="text-[var(--brand-light)] hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] focus:bg-[var(--dark-500)] focus:text-[var(--brand-light)] cursor-pointer">{tRequestTypes('renewal')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -676,12 +721,12 @@ export default function LicenseManagementPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-[var(--dark-600)] hover:bg-transparent">
-                    <TableHead className="text-[var(--brand-light)]/70">Municipality</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Request Type</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Details</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Date</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Status</TableHead>
-                    <TableHead className="text-[var(--brand-light)]/70">Notes</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('historyTab.tableHeaders.municipality')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('historyTab.tableHeaders.requestType')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('historyTab.tableHeaders.details')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('historyTab.tableHeaders.date')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('historyTab.tableHeaders.status')}</TableHead>
+                    <TableHead className="text-[var(--brand-light)]/70">{t('historyTab.tableHeaders.notes')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -689,7 +734,7 @@ export default function LicenseManagementPage() {
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-[var(--brand-light)]/50 py-8">
                         <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                        No requests found matching your filters.
+                        {t('historyTab.emptyState')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -707,11 +752,11 @@ export default function LicenseManagementPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-[var(--brand-light)]/70 text-sm">
-                          {request.requested_plan_name && `Plan: ${request.requested_plan_name}`}
-                          {request.requested_feature_name && `Feature: ${request.requested_feature_name}`}
-                          {request.requested_club_count && `Clubs: ${request.requested_club_count}`}
-                          {request.request_type === 'ADD_ANALYTICS' && 'Analytics Package'}
-                          {request.request_type === 'RENEWAL' && `Renewal: ${request.renewal_years || 1} year(s)`}
+                          {request.requested_plan_name && t('historyTab.plan', { planName: request.requested_plan_name })}
+                          {request.requested_feature_name && ` ${t('historyTab.feature', { featureName: getFeatureDisplayName(request.requested_feature, request.requested_feature_name) })}`}
+                          {request.requested_club_count && ` ${t('historyTab.clubs', { count: request.requested_club_count })}`}
+                          {request.request_type === 'ADD_ANALYTICS' && ` ${t('historyTab.analyticsPackage')}`}
+                          {request.request_type === 'RENEWAL' && ` ${t('historyTab.renewal', { years: request.renewal_years || 1 })}`}
                         </TableCell>
                         <TableCell className="text-[var(--brand-light)]/60 text-sm">
                           {format(parseISO(request.created_at), 'MMM d, yyyy HH:mm')}
@@ -737,10 +782,10 @@ export default function LicenseManagementPage() {
         <DialogContent className="sm:max-w-[600px] bg-[var(--dark-700)] border-[var(--dark-600)]">
           <DialogHeader>
             <DialogTitle className="text-[var(--brand-light)]">
-              Edit License: {editingLicense?.municipality_name}
+              {t('editDialog.title', { municipalityName: editingLicense?.municipality_name || '' })}
             </DialogTitle>
             <DialogDescription className="text-[var(--brand-light)]/60">
-              Manage subscription plan and features for this municipality
+              {t('editDialog.description')}
             </DialogDescription>
           </DialogHeader>
           
@@ -748,7 +793,7 @@ export default function LicenseManagementPage() {
             <div className="grid gap-6 py-4">
               {/* Plan Selection */}
               <div className="space-y-2">
-                <Label className="text-[var(--brand-light)]">Subscription Plan</Label>
+                <Label className="text-[var(--brand-light)]">{t('editDialog.subscriptionPlan')}</Label>
                 <Select 
                   value={String(editingLicense.plan)} 
                   onValueChange={(val) => {
@@ -763,7 +808,7 @@ export default function LicenseManagementPage() {
                   }}
                 >
                   <SelectTrigger className="bg-[var(--dark-600)] border-[var(--dark-500)] text-[var(--brand-light)]">
-                    <SelectValue placeholder="Select a plan" />
+                    <SelectValue placeholder={t('editDialog.selectPlan')} />
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--dark-600)] border-[var(--dark-500)]">
                     {plans.map(p => (
@@ -777,7 +822,7 @@ export default function LicenseManagementPage() {
 
               {/* Club Limits */}
               <div className="space-y-2">
-                <Label className="text-[var(--brand-light)]">Max Clubs Allowed</Label>
+                <Label className="text-[var(--brand-light)]">{t('editDialog.maxClubsAllowed')}</Label>
                 <Input 
                   type="number" 
                   value={editingLicense.max_clubs}
@@ -791,8 +836,8 @@ export default function LicenseManagementPage() {
                 <div className="flex items-center gap-3">
                   <BarChart3 className="w-5 h-5 text-[var(--brand-peach)]" />
                   <div>
-                    <Label className="text-[var(--brand-light)]">Analytics Package</Label>
-                    <p className="text-xs text-[var(--brand-light)]/50">AI-powered analytics and reporting</p>
+                    <Label className="text-[var(--brand-light)]">{t('editDialog.analyticsPackage')}</Label>
+                    <p className="text-xs text-[var(--brand-light)]/50">{t('editDialog.analyticsDescription')}</p>
                   </div>
                 </div>
                 <Checkbox 
@@ -805,9 +850,9 @@ export default function LicenseManagementPage() {
 
               {/* Features */}
               <div className="space-y-2 border-t border-[var(--dark-600)] pt-4">
-                <Label className="text-[var(--brand-light)]">Features</Label>
+                <Label className="text-[var(--brand-light)]">{t('editDialog.features')}</Label>
                 <p className="text-xs text-[var(--brand-light)]/50 mb-3">
-                  Features included in the plan are shown as locked. Extra features can be toggled.
+                  {t('editDialog.featuresDescription')}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {editableFeatures.map(feat => {
@@ -847,7 +892,7 @@ export default function LicenseManagementPage() {
                         >
                           {feat.name}
                           {inPlan && (
-                            <span className="ml-1 text-xs text-[var(--brand-primary)]/70">(in plan)</span>
+                            <span className="ml-1 text-xs text-[var(--brand-primary)]/70">{t('editDialog.inPlan')}</span>
                           )}
                         </Label>
                       </div>
@@ -864,10 +909,10 @@ export default function LicenseManagementPage() {
               onClick={closeDialog}
               className="border-[var(--dark-500)] text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
             >
-              Cancel
+              {t('editDialog.cancel')}
             </Button>
             <Button onClick={handleSave} className="bg-[var(--brand-primary)]">
-              <Save className="w-4 h-4 mr-2" /> Save Changes
+              <Save className="w-4 h-4 mr-2" /> {t('editDialog.saveChanges')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -878,7 +923,7 @@ export default function LicenseManagementPage() {
         <DialogContent className="sm:max-w-[500px] bg-[var(--dark-700)] border-[var(--dark-600)]">
           <DialogHeader>
             <DialogTitle className="text-[var(--brand-light)]">
-              {selectedRequest?.status === 'PENDING' ? 'Review Request' : 'Request Details'}
+              {selectedRequest?.status === 'PENDING' ? t('requestDialog.reviewRequest') : t('requestDialog.requestDetails')}
             </DialogTitle>
             <DialogDescription className="text-[var(--brand-light)]/60">
               {selectedRequest?.municipality_name}
@@ -889,25 +934,25 @@ export default function LicenseManagementPage() {
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-[var(--brand-light)]/60 text-xs">Request Type</Label>
+                  <Label className="text-[var(--brand-light)]/60 text-xs">{t('requestDialog.requestType')}</Label>
                   <p className="text-[var(--brand-light)] font-medium">
                     {getRequestTypeLabel(selectedRequest.request_type)}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-[var(--brand-light)]/60 text-xs">Status</Label>
+                  <Label className="text-[var(--brand-light)]/60 text-xs">{t('requestDialog.status')}</Label>
                   <div className="mt-1">{getStatusBadge(selectedRequest.status)}</div>
                 </div>
               </div>
 
               <div>
-                <Label className="text-[var(--brand-light)]/60 text-xs">Details</Label>
+                <Label className="text-[var(--brand-light)]/60 text-xs">{t('requestDialog.details')}</Label>
                 <p className="text-[var(--brand-light)]">
-                  {selectedRequest.requested_plan_name && `Upgrade to: ${selectedRequest.requested_plan_name}`}
-                  {selectedRequest.requested_feature_name && `Add feature: ${selectedRequest.requested_feature_name}`}
-                  {selectedRequest.requested_club_count && `Increase clubs to: ${selectedRequest.requested_club_count}`}
-                  {selectedRequest.request_type === 'ADD_ANALYTICS' && 'Add Analytics Package'}
-                  {selectedRequest.request_type === 'RENEWAL' && `Renew License for ${selectedRequest.renewal_years || 1} year(s)`}
+                  {selectedRequest.requested_plan_name && t('requestDialog.upgradeTo', { planName: selectedRequest.requested_plan_name })}
+                  {selectedRequest.requested_feature_name && ` ${t('requestDialog.addFeature', { featureName: getFeatureDisplayName(selectedRequest.requested_feature, selectedRequest.requested_feature_name) })}`}
+                  {selectedRequest.requested_club_count && ` ${t('requestDialog.increaseClubsTo', { count: selectedRequest.requested_club_count })}`}
+                  {selectedRequest.request_type === 'ADD_ANALYTICS' && ` ${t('requestDialog.addAnalyticsPackage')}`}
+                  {selectedRequest.request_type === 'RENEWAL' && ` ${t('requestDialog.renewLicenseFor', { years: selectedRequest.renewal_years || 1 })}`}
                 </p>
               </div>
 
@@ -917,7 +962,7 @@ export default function LicenseManagementPage() {
                 if (priceInfo) {
                   return (
                     <div className="p-3 rounded-lg bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20">
-                      <Label className="text-[var(--brand-light)]/60 text-xs">Estimated Price</Label>
+                      <Label className="text-[var(--brand-light)]/60 text-xs">{t('requestDialog.estimatedPrice')}</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <DollarSign className="w-5 h-5 text-[var(--brand-primary)]" />
                         <span className="text-2xl font-bold text-[var(--brand-primary)]">
@@ -934,7 +979,7 @@ export default function LicenseManagementPage() {
               })()}
 
               <div>
-                <Label className="text-[var(--brand-light)]/60 text-xs">Submitted</Label>
+                <Label className="text-[var(--brand-light)]/60 text-xs">{t('requestDialog.submitted')}</Label>
                 <p className="text-[var(--brand-light)]">
                   {format(parseISO(selectedRequest.created_at), 'MMMM d, yyyy \'at\' HH:mm')}
                 </p>
@@ -942,11 +987,11 @@ export default function LicenseManagementPage() {
 
               {selectedRequest.status === 'PENDING' && (
                 <div className="space-y-2">
-                  <Label className="text-[var(--brand-light)]">Admin Notes (Invoice ID, etc.)</Label>
+                  <Label className="text-[var(--brand-light)]">{t('requestDialog.adminNotes')}</Label>
                   <Textarea 
                     value={adminNotes}
                     onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Add notes for this request..."
+                    placeholder={t('requestDialog.adminNotesPlaceholder')}
                     className="bg-[var(--dark-600)] border-[var(--dark-500)] text-[var(--brand-light)]"
                   />
                 </div>
@@ -954,7 +999,7 @@ export default function LicenseManagementPage() {
 
               {selectedRequest.admin_notes && selectedRequest.status !== 'PENDING' && (
                 <div>
-                  <Label className="text-[var(--brand-light)]/60 text-xs">Admin Notes</Label>
+                  <Label className="text-[var(--brand-light)]/60 text-xs">{t('requestDialog.adminNotesLabel')}</Label>
                   <p className="text-[var(--brand-light)]">{selectedRequest.admin_notes}</p>
                 </div>
               )}
@@ -968,26 +1013,26 @@ export default function LicenseManagementPage() {
                   variant="outline" 
                   onClick={handleRejectRequest}
                   disabled={processingRequest}
-                  className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                  className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/70"
                 >
                   {processingRequest ? (
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : (
                     <XCircle className="w-4 h-4 mr-2" />
                   )}
-                  Reject
+                  {t('requestDialog.reject')}
                 </Button>
                 <Button 
                   onClick={handleApproveRequest}
                   disabled={processingRequest}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 text-white hover:text-white"
                 >
                   {processingRequest ? (
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : (
                     <CheckCircle className="w-4 h-4 mr-2" />
                   )}
-                  Approve
+                  {t('requestDialog.approve')}
                 </Button>
               </>
             ) : (
@@ -996,7 +1041,7 @@ export default function LicenseManagementPage() {
                 onClick={() => setRequestDialogOpen(false)}
                 className="border-[var(--dark-500)] text-[var(--brand-light)]"
               >
-                Close
+                {t('requestDialog.close')}
               </Button>
             )}
           </DialogFooter>

@@ -1,8 +1,10 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { ContentItem } from '@/types/learning';
 import { CheckCircle, Download, FileText, ChevronRight, PlayCircle } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface Props {
     item: ContentItem;
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export default function ContentRenderer({ item, isCompleted, onMarkComplete, onNext, hasNext }: Props) {
+    const t = useTranslations('knowledgeAdmin.coursePlayer.content');
     
     // Helper to extract YouTube ID
     const getYoutubeId = (url: string) => {
@@ -84,19 +87,19 @@ export default function ContentRenderer({ item, isCompleted, onMarkComplete, onN
             icon: PlayCircle, 
             bg: 'bg-[var(--brand-red)]/20', 
             text: 'text-[var(--brand-red)]',
-            label: 'Video'
+            label: t('types.video')
         },
         TEXT: { 
             icon: FileText, 
             bg: 'bg-[var(--brand-purple)]/20', 
             text: 'text-[var(--brand-purple)]',
-            label: 'Article'
+            label: t('types.article')
         },
         FILE: { 
             icon: Download, 
             bg: 'bg-[var(--brand-green)]/20', 
             text: 'text-[var(--brand-green)]',
-            label: 'Download'
+            label: t('types.download')
         },
     };
 
@@ -116,7 +119,7 @@ export default function ContentRenderer({ item, isCompleted, onMarkComplete, onN
                     <span className="text-[var(--brand-light)]/50">• {item.estimated_duration} min</span>
                     {isCompleted && (
                         <span className="flex items-center gap-1 text-[var(--brand-green)] text-xs font-medium">
-                            <CheckCircle className="w-4 h-4" /> Completed
+                            <CheckCircle className="w-4 h-4" /> {t('completed')}
                         </span>
                     )}
                 </div>
@@ -159,7 +162,7 @@ export default function ContentRenderer({ item, isCompleted, onMarkComplete, onN
                           [&_figcaption]:!text-sm [&_figcaption]:!text-[var(--brand-light)]/50 [&_figcaption]:!mt-2 [&_figcaption]:!text-center
                           [&_video]:!rounded-xl [&_video]:!my-4 [&_video]:!w-full [&_video]:!h-auto [&_video]:!border [&_video]:!border-[var(--dark-600)]
                           [&_iframe]:!rounded-xl [&_iframe]:!my-4 [&_iframe]:!w-full [&_iframe]:!aspect-video [&_iframe]:!border [&_iframe]:!border-[var(--dark-600)]"
-                        dangerouslySetInnerHTML={{ __html: processHtmlContent(item.text_content) }} 
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(processHtmlContent(item.text_content)) }} 
                     />
                 </div>
             )}
@@ -187,9 +190,9 @@ export default function ContentRenderer({ item, isCompleted, onMarkComplete, onN
                         <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center mb-6">
                             <Download className="w-10 h-10 text-white" />
                         </div>
-                        <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] mb-3">Downloadable Resource</h3>
+                        <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] mb-3">{t('downloadableResource')}</h3>
                         <p className="text-[var(--brand-light)]/60 mb-8 max-w-md text-sm sm:text-base">
-                            This lesson contains a downloadable file. Click the button below to access the material.
+                            {t('downloadDescription')}
                         </p>
                         {item.file_upload ? (
                             <a 
@@ -198,10 +201,10 @@ export default function ContentRenderer({ item, isCompleted, onMarkComplete, onN
                                 rel="noopener noreferrer"
                                 className="px-6 py-3 rounded-xl bg-[var(--brand-green)] hover:bg-[var(--brand-green)]/90 text-white font-bold transition-all flex items-center gap-2"
                             >
-                                <Download className="w-5 h-5" /> Download File
+                                <Download className="w-5 h-5" /> {t('downloadFile')}
                             </a>
                         ) : (
-                            <p className="text-[var(--brand-red)]">File not found.</p>
+                            <p className="text-[var(--brand-red)]">{t('fileNotFound')}</p>
                         )}
                     </div>
                 </div>
@@ -214,13 +217,13 @@ export default function ContentRenderer({ item, isCompleted, onMarkComplete, onN
                         onClick={onMarkComplete} 
                         className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--brand-green)] hover:bg-[var(--brand-green)]/90 text-[var(--dark-900)] font-bold shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                        <CheckCircle className="w-5 h-5" /> Mark as Complete
+                        <CheckCircle className="w-5 h-5" /> {t('markComplete')}
                     </button>
                 ) : (
                     <button 
                         className="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-[var(--brand-green)] font-medium cursor-default flex items-center justify-center gap-2"
                     >
-                        <CheckCircle className="w-5 h-5" /> Completed
+                        <CheckCircle className="w-5 h-5" /> {t('completed')}
                     </button>
                 )}
 
@@ -229,7 +232,7 @@ export default function ContentRenderer({ item, isCompleted, onMarkComplete, onN
                         onClick={onNext}
                         className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                        Next Lesson <ChevronRight className="w-5 h-5" />
+                        {t('nextLesson')} <ChevronRight className="w-5 h-5" />
                     </button>
                 )}
             </div>

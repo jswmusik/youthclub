@@ -99,6 +99,40 @@ export interface Event {
     // Stats (Read only)
     confirmed_participants_count: number;
     waitlist_count: number;
+    
+    // Custom Fields for registration
+    event_custom_fields?: EventCustomField[];
+}
+
+// Custom Field types for events
+export interface CustomFieldDefinition {
+    id: number;
+    name: string;
+    help_text?: string;
+    field_type: 'TEXT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'BOOLEAN';
+    options: string[];
+    required: boolean;
+    is_published: boolean;
+    context: 'USER_PROFILE' | 'EVENT';
+    target_roles: string[];
+    owner_role: 'SUPER_ADMIN' | 'MUNICIPALITY_ADMIN' | 'CLUB_ADMIN';
+    municipality?: number;
+    club?: number;
+}
+
+export interface EventCustomField {
+    id: number;
+    field_id?: number;
+    field_detail: CustomFieldDefinition;
+    is_required: boolean;
+    order: number;
+}
+
+export interface EventRegistrationCustomFieldValue {
+    id: number;
+    field: number;
+    field_detail: CustomFieldDefinition;
+    value: any;
 }
 
 export enum RegistrationStatus {
@@ -130,6 +164,7 @@ export interface EventRegistration {
         is_active: boolean;
         checked_in_at?: string | null;
     };
+    custom_field_values?: EventRegistrationCustomFieldValue[];
     approved_by?: number | null;
     approval_date?: string | null;
     created_at: string;

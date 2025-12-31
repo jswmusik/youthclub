@@ -2,22 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
-    ArrowLeft, Edit, BarChart3, ChevronDown, ChevronUp, CheckCircle, Clock, Calendar, 
+    Edit, BarChart3, ChevronDown, ChevronUp, CheckCircle, Clock, Calendar, 
     MapPin, Users, Building, Settings, Target, Bell, Ticket, Eye, User, 
     CalendarDays, Globe, Shield, FileText, ChevronRight, Sparkles
 } from 'lucide-react';
 import api from '@/lib/api';
+import { sanitizeHtml } from '@/lib/sanitize';
 import ParticipantManager from '@/app/components/events/ParticipantManager';
 import { Event } from '@/types/event';
 import { getMediaUrl, getInitials } from '@/app/utils';
 import { format } from 'date-fns';
+import BackButton from '@/app/components/BackButton';
 
 export default function EventDashboardPage() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const t = useTranslations('eventDetail');
     const [event, setEvent] = useState<Event | null>(null);
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'PARTICIPANTS' | 'CHECKIN'>('PARTICIPANTS');
     const [registrations, setRegistrations] = useState<any[]>([]);
@@ -93,7 +97,7 @@ export default function EventDashboardPage() {
             <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-[var(--brand-light)]/60">Loading event details...</p>
+                    <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
                 </div>
             </div>
         );
@@ -148,17 +152,12 @@ export default function EventDashboardPage() {
                 
                 {/* Navigation Header */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
-                    <Link 
-                        href={buildBackUrl()}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
-                    >
-                        <ArrowLeft className="h-4 w-4" /> Back to Events
-                    </Link>
+                    <BackButton href={buildBackUrl()} translationKey="backToEvents" />
                     <Link 
                         href={`/admin/club/events/edit/${event.id}`}
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
                     >
-                        <Edit className="h-4 w-4" /> Edit Event
+                        <Edit className="h-4 w-4" /> {t('editEvent')}
                     </Link>
                 </div>
 
@@ -186,14 +185,14 @@ export default function EventDashboardPage() {
                         <div className={`absolute top-4 right-4 px-4 py-2 rounded-xl backdrop-blur-sm border flex items-center gap-2 ${getStatusBadgeClasses(event.status)}`}>
                             {event.status === 'PUBLISHED' && <CheckCircle className="w-4 h-4" />}
                             {event.status === 'SCHEDULED' && <Clock className="w-4 h-4" />}
-                            <span className="text-sm font-semibold">{event.status}</span>
+                            <span className="text-sm font-semibold">{t(`eventStatuses.${event.status.toLowerCase()}`) || event.status}</span>
                         </div>
 
                         {/* Recurring Badge - Top Left */}
                         {event.is_recurring && (
                             <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-sm bg-[var(--brand-purple)]/20 border border-[var(--brand-purple)]/30">
                                 <span className="text-sm text-[var(--brand-purple)] font-medium flex items-center gap-1.5">
-                                    <Sparkles className="w-4 h-4" /> Recurring Event
+                                    <Sparkles className="w-4 h-4" /> {t('recurringEvent')}
                                 </span>
                             </div>
                         )}
@@ -223,7 +222,7 @@ export default function EventDashboardPage() {
                                     </div>
                                     {event.is_global && (
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
-                                            <Globe className="w-3 h-3" /> Global
+                                            <Globe className="w-3 h-3" /> {t('global')}
                                         </span>
                                     )}
                                 </div>
@@ -243,7 +242,7 @@ export default function EventDashboardPage() {
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                     <BarChart3 className="h-5 w-5 text-white" />
                                 </div>
-                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Analytics Dashboard</h2>
+                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h2>
                             </div>
                             <ChevronUp className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform ${analyticsExpanded ? '' : 'rotate-180'}`} />
                         </button>
@@ -257,10 +256,10 @@ export default function EventDashboardPage() {
                                             <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
                                                 <CheckCircle className="h-5 w-5 text-[var(--brand-primary)]" />
                                             </div>
-                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">Confirmed</span>
+                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('confirmed')}</span>
                                         </div>
                                         <div className="text-3xl font-bold text-[var(--brand-light)]">{confirmedCount}</div>
-                                        <p className="text-xs text-[var(--brand-light)]/50 mt-1">of {event.max_seats || 'Unlimited'} seats</p>
+                                        <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('ofSeats')} {event.max_seats || t('unlimited')} {t('seats')}</p>
                                     </div>
 
                                     {/* Waitlist */}
@@ -269,10 +268,10 @@ export default function EventDashboardPage() {
                                             <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
                                                 <Clock className="h-5 w-5 text-[var(--brand-blue)]" />
                                             </div>
-                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">Waitlist</span>
+                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('waitlist')}</span>
                                         </div>
                                         <div className="text-3xl font-bold text-[var(--brand-light)]">{waitlistCount}</div>
-                                        <p className="text-xs text-[var(--brand-light)]/50 mt-1">people waiting</p>
+                                        <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('peopleWaiting')}</p>
                                     </div>
 
                                     {/* Demographics */}
@@ -281,19 +280,19 @@ export default function EventDashboardPage() {
                                             <div className="w-10 h-10 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
                                                 <Users className="h-5 w-5 text-[var(--brand-green)]" />
                                             </div>
-                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">Demographics</span>
+                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('demographics')}</span>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-[var(--brand-light)]/50">Male:</span>
+                                                <span className="text-[var(--brand-light)]/50">{t('male')}:</span>
                                                 <span className="font-semibold text-[var(--brand-light)]">{demographics.male}</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-[var(--brand-light)]/50">Female:</span>
+                                                <span className="text-[var(--brand-light)]/50">{t('female')}:</span>
                                                 <span className="font-semibold text-[var(--brand-light)]">{demographics.female}</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-[var(--brand-light)]/50">Other:</span>
+                                                <span className="text-[var(--brand-light)]/50">{t('other')}:</span>
                                                 <span className="font-semibold text-[var(--brand-light)]">{demographics.other}</span>
                                             </div>
                                         </div>
@@ -305,7 +304,7 @@ export default function EventDashboardPage() {
                                             <div className="w-10 h-10 rounded-lg bg-[var(--brand-pink)]/20 flex items-center justify-center">
                                                 <Target className="h-5 w-5 text-[var(--brand-pink)]" />
                                             </div>
-                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">Target Groups</span>
+                                            <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('targetGroups')}</span>
                                         </div>
                                         {event.target_groups_details && event.target_groups_details.length > 0 ? (
                                             <div className="space-y-1">
@@ -316,12 +315,12 @@ export default function EventDashboardPage() {
                                                 ))}
                                                 {event.target_groups_details.length > 3 && (
                                                     <div className="text-xs text-[var(--brand-light)]/50">
-                                                        +{event.target_groups_details.length - 3} more
+                                                        +{event.target_groups_details.length - 3} {t('more')}
                                                     </div>
                                                 )}
                                             </div>
                                         ) : (
-                                            <p className="text-sm text-[var(--brand-light)]/50">No target groups</p>
+                                            <p className="text-sm text-[var(--brand-light)]/50">{t('noTargetGroups')}</p>
                                         )}
                                     </div>
                                 </div>
@@ -343,7 +342,7 @@ export default function EventDashboardPage() {
                         >
                             <span className="flex items-center justify-center gap-2">
                                 <Users className="w-4 h-4" />
-                                <span className="hidden sm:inline">Participants</span>
+                                <span className="hidden sm:inline">{t('participants')}</span>
                             </span>
                         </button>
                         {event.enable_tickets && (
@@ -357,7 +356,7 @@ export default function EventDashboardPage() {
                             >
                                 <span className="flex items-center justify-center gap-2">
                                     <Ticket className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Check-in</span>
+                                    <span className="hidden sm:inline">{t('checkIn')}</span>
                                 </span>
                             </button>
                         )}
@@ -371,7 +370,7 @@ export default function EventDashboardPage() {
                         >
                             <span className="flex items-center justify-center gap-2">
                                 <Eye className="w-4 h-4" />
-                                <span className="hidden sm:inline">Overview</span>
+                                <span className="hidden sm:inline">{t('overview')}</span>
                             </span>
                         </button>
                     </div>
@@ -385,15 +384,15 @@ export default function EventDashboardPage() {
                         {activeTab === 'CHECKIN' && (
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold text-[var(--brand-light)]">Checked-In Members</h3>
+                                    <h3 className="text-lg font-semibold text-[var(--brand-light)]">{t('checkedInMembers')}</h3>
                                     <span className="text-sm text-[var(--brand-light)]/50">
-                                        {registrations.filter((r: any) => r.status === 'ATTENDED' || r.ticket?.checked_in_at).length} checked in
+                                        {registrations.filter((r: any) => r.status === 'ATTENDED' || r.ticket?.checked_in_at).length} {t('checkedIn')}
                                     </span>
                                 </div>
 
                                 {loading ? (
                                     <div className="py-12 text-center text-[var(--brand-light)]/50">
-                                        Loading check-ins...
+                                        {t('loadingCheckIns')}
                                     </div>
                                 ) : (() => {
                                     const checkedInRegistrations = registrations.filter((r: any) => 
@@ -408,8 +407,8 @@ export default function EventDashboardPage() {
                                         return (
                                             <div className="py-16 text-center">
                                                 <Clock className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                                                <p className="font-medium text-[var(--brand-light)] mb-1">No check-ins yet</p>
-                                                <p className="text-sm text-[var(--brand-light)]/50">Members will appear here once they check in.</p>
+                                                <p className="font-medium text-[var(--brand-light)] mb-1">{t('noCheckInsYet')}</p>
+                                                <p className="text-sm text-[var(--brand-light)]/50">{t('noCheckInsDesc')}</p>
                                             </div>
                                         );
                                     }
@@ -439,7 +438,7 @@ export default function EventDashboardPage() {
                                                             <div className="text-xs text-[var(--brand-light)]/50">{reg.user_detail?.email}</div>
                                                         </div>
                                                         <div className="text-right hidden sm:block">
-                                                            <div className="text-xs text-[var(--brand-light)]/50 mb-1">Ticket</div>
+                                                            <div className="text-xs text-[var(--brand-light)]/50 mb-1">{t('ticket')}</div>
                                                             <code className="text-xs bg-[var(--dark-600)] px-2 py-1 rounded text-[var(--brand-light)]/70">
                                                                 {reg.ticket?.ticket_code || 'N/A'}
                                                             </code>
@@ -454,7 +453,7 @@ export default function EventDashboardPage() {
                                                         </div>
                                                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-green)]/20 text-[var(--brand-green)] text-xs font-medium">
                                                             <CheckCircle className="w-3.5 h-3.5" />
-                                                            <span className="hidden sm:inline">Checked In</span>
+                                                            <span className="hidden sm:inline">{t('checkedInStatus')}</span>
                                                         </div>
                                                     </div>
                                                 );
@@ -476,22 +475,22 @@ export default function EventDashboardPage() {
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
                                                 <FileText className="w-4 h-4 text-[var(--brand-primary)]" />
                                             </div>
-                                            <h3 className="font-semibold text-[var(--brand-light)]">Basic Information</h3>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">{t('basicInformation')}</h3>
                                         </div>
                                         <div className="p-5 space-y-4">
                                             <div>
-                                                <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Title</label>
+                                                <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">{t('title')}</label>
                                                 <p className="text-lg font-semibold text-[var(--brand-light)]">{event.title}</p>
                                             </div>
                                             <div>
-                                                <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Description</label>
-                                                <div className="prose prose-invert prose-sm max-w-none text-[var(--brand-light)]/80" dangerouslySetInnerHTML={{ __html: event.description }} />
+                                                <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">{t('description')}</label>
+                                                <div className="prose prose-invert prose-sm max-w-none text-[var(--brand-light)]/80" dangerouslySetInnerHTML={{ __html: sanitizeHtml(event.description) }} />
                                             </div>
                                             {event.cost !== null && event.cost !== undefined && (
                                                 <div>
-                                                    <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Cost</label>
+                                                    <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">{t('cost')}</label>
                                                     <p className="text-lg font-semibold text-[var(--brand-light)]">
-                                                        {parseFloat(event.cost.toString()) === 0 ? 'Free' : `$${parseFloat(event.cost.toString()).toFixed(2)}`}
+                                                        {parseFloat(event.cost.toString()) === 0 ? t('free') : `$${parseFloat(event.cost.toString()).toFixed(2)}`}
                                                     </p>
                                                 </div>
                                             )}
@@ -504,12 +503,12 @@ export default function EventDashboardPage() {
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                                                 <Calendar className="w-4 h-4 text-[var(--brand-purple)]" />
                                             </div>
-                                            <h3 className="font-semibold text-[var(--brand-light)]">Date & Time</h3>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">{t('dateAndTime')}</h3>
                                         </div>
                                         <div className="p-5">
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Start</div>
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('start')}</div>
                                                     <div className="text-sm text-[var(--brand-light)] font-medium">
                                                         {new Date(event.start_date).toLocaleDateString()}
                                                     </div>
@@ -518,7 +517,7 @@ export default function EventDashboardPage() {
                                                     </div>
                                                 </div>
                                                 <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">End</div>
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('end')}</div>
                                                     <div className="text-sm text-[var(--brand-light)] font-medium">
                                                         {new Date(event.end_date).toLocaleDateString()}
                                                     </div>
@@ -530,12 +529,12 @@ export default function EventDashboardPage() {
                                             {event.is_recurring && (
                                                 <div className="mt-4 p-4 rounded-xl bg-[var(--brand-purple)]/10 border border-[var(--brand-purple)]/30">
                                                     <div className="flex items-center gap-2 text-[var(--brand-purple)] text-sm font-medium mb-2">
-                                                        <Sparkles className="w-4 h-4" /> Recurring Event
+                                                        <Sparkles className="w-4 h-4" /> {t('recurringEvent')}
                                                     </div>
                                                     <div className="text-xs text-[var(--brand-light)]/60">
-                                                        Pattern: {event.recurrence_pattern || 'NONE'}
+                                                        {t('pattern')}: {event.recurrence_pattern ? (t(`recurrencePatterns.${event.recurrence_pattern.toLowerCase()}`) || event.recurrence_pattern) : t('recurrencePatterns.none')}
                                                         {event.recurrence_end_date && (
-                                                            <span> • Ends: {new Date(event.recurrence_end_date).toLocaleDateString()}</span>
+                                                            <span> • {t('ends')}: {new Date(event.recurrence_end_date).toLocaleDateString()}</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -549,22 +548,22 @@ export default function EventDashboardPage() {
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
                                                 <MapPin className="w-4 h-4 text-[var(--brand-peach)]" />
                                             </div>
-                                            <h3 className="font-semibold text-[var(--brand-light)]">Location</h3>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">{t('location')}</h3>
                                         </div>
                                         <div className="p-5 space-y-3">
                                             <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                                                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Location Name</div>
+                                                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('locationName')}</div>
                                                 <div className="text-sm text-[var(--brand-light)] font-medium">{event.location_name}</div>
                                             </div>
                                             {event.address && (
                                                 <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Address</div>
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('address')}</div>
                                                     <div className="text-sm text-[var(--brand-light)]/70">{event.address}</div>
                                                 </div>
                                             )}
                                             <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/50">
                                                 <span className={`w-2 h-2 rounded-full ${event.is_map_visible ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}></span>
-                                                Map {event.is_map_visible ? 'visible' : 'hidden'} on event page
+                                                {event.is_map_visible ? t('mapVisible') : t('mapHidden')}
                                             </div>
                                         </div>
                                     </div>
@@ -575,39 +574,39 @@ export default function EventDashboardPage() {
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
                                                 <Settings className="w-4 h-4 text-[var(--brand-green)]" />
                                             </div>
-                                            <h3 className="font-semibold text-[var(--brand-light)]">Registration Settings</h3>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">{t('registrationSettings')}</h3>
                                         </div>
                                         <div className="p-5 space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-[var(--brand-light)]/70">Registration</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('registration')}</span>
                                                 <span className={`px-3 py-1 rounded-lg text-xs font-medium ${event.allow_registration ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'}`}>
-                                                    {event.allow_registration ? 'Enabled' : 'Disabled'}
+                                                    {event.allow_registration ? t('enabled') : t('disabled')}
                                                 </span>
                                             </div>
                                             {event.allow_registration && (
                                                 <>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                                                            <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Max Seats</div>
+                                                            <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('maxSeats')}</div>
                                                             <div className="text-lg font-semibold text-[var(--brand-light)]">
                                                                 {event.max_seats === 0 ? '∞' : event.max_seats}
                                                             </div>
                                                         </div>
                                                         <div className="p-4 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                                                            <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Waitlist</div>
+                                                            <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('waitlistLabel')}</div>
                                                             <div className="text-lg font-semibold text-[var(--brand-light)]">
-                                                                {event.max_waitlist === 0 ? 'None' : event.max_waitlist}
+                                                                {event.max_waitlist === 0 ? t('none') : event.max_waitlist}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="space-y-2 pt-2">
                                                         <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/70">
                                                             <span className={`w-2 h-2 rounded-full ${event.requires_guardian_approval ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}></span>
-                                                            Guardian Approval {event.requires_guardian_approval ? 'Required' : 'Not Required'}
+                                                            {event.requires_guardian_approval ? t('guardianApprovalRequired') : t('guardianApprovalNotRequired')}
                                                         </div>
                                                         <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/70">
                                                             <span className={`w-2 h-2 rounded-full ${event.requires_admin_approval ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}></span>
-                                                            Admin Approval {event.requires_admin_approval ? 'Required' : 'Not Required'}
+                                                            {event.requires_admin_approval ? t('adminApprovalRequired') : t('adminApprovalNotRequired')}
                                                         </div>
                                                     </div>
                                                 </>
@@ -625,18 +624,18 @@ export default function EventDashboardPage() {
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center">
                                                 <Building className="w-4 h-4 text-[var(--brand-third)]" />
                                             </div>
-                                            <h3 className="font-semibold text-[var(--brand-light)]">Organization</h3>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">{t('organization')}</h3>
                                         </div>
                                         <div className="p-5 space-y-3">
                                             <div className="p-3 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                                                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Municipality</div>
+                                                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('municipality')}</div>
                                                 <div className="text-sm text-[var(--brand-light)] font-medium">
                                                     {event.municipality_detail?.name || (typeof event.municipality === 'object' ? event.municipality.name : 'N/A')}
                                                 </div>
                                             </div>
                                             {(event.club_detail || event.club) && (
                                                 <div className="p-3 rounded-xl bg-[var(--dark-600)]/50 border border-[var(--dark-500)]">
-                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Club</div>
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('club')}</div>
                                                     <div className="text-sm text-[var(--brand-light)] font-medium">
                                                         {event.club_detail?.name || (typeof event.club === 'object' ? event.club.name : 'N/A')}
                                                     </div>
@@ -651,22 +650,22 @@ export default function EventDashboardPage() {
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-pink)]/20 flex items-center justify-center">
                                                 <Target className="w-4 h-4 text-[var(--brand-pink)]" />
                                             </div>
-                                            <h3 className="font-semibold text-[var(--brand-light)]">Targeting</h3>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">{t('targeting')}</h3>
                                         </div>
                                         <div className="p-5 space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-[var(--brand-light)]/70">Audience</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('audience')}</span>
                                                 <span className="text-sm text-[var(--brand-light)] font-medium">{event.target_audience}</span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-[var(--brand-light)]/70">Visibility</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('visibility')}</span>
                                                 <span className={`px-3 py-1 rounded-lg text-xs font-medium ${event.is_global ? 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'}`}>
-                                                    {event.is_global ? 'Global' : 'Limited'}
+                                                    {event.is_global ? t('global') : t('limited')}
                                                 </span>
                                             </div>
                                             {event.target_groups_details && event.target_groups_details.length > 0 && (
                                                 <div>
-                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Target Groups</div>
+                                                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">{t('targetGroupsLabel')}</div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {event.target_groups_details.map((group: any) => (
                                                             <span key={group.id} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]">
@@ -678,7 +677,7 @@ export default function EventDashboardPage() {
                                             )}
                                             {(event.target_min_age || event.target_max_age) && (
                                                 <div className="text-sm text-[var(--brand-light)]/70">
-                                                    Age: {event.target_min_age || 'Any'} - {event.target_max_age || 'Any'}
+                                                    {t('age')}: {event.target_min_age || t('any')} - {event.target_max_age || t('any')}
                                                 </div>
                                             )}
                                         </div>
@@ -690,19 +689,19 @@ export default function EventDashboardPage() {
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
                                                 <Bell className="w-4 h-4 text-[var(--brand-blue)]" />
                                             </div>
-                                            <h3 className="font-semibold text-[var(--brand-light)]">Notifications</h3>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">{t('notifications')}</h3>
                                         </div>
                                         <div className="p-5 space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-[var(--brand-light)]/70">Reminders</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('reminders')}</span>
                                                 <span className={`px-3 py-1 rounded-lg text-xs font-medium ${event.send_reminders ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'}`}>
-                                                    {event.send_reminders ? 'On' : 'Off'}
+                                                    {event.send_reminders ? t('on') : t('off')}
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-[var(--brand-light)]/70">Tickets</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('tickets')}</span>
                                                 <span className={`px-3 py-1 rounded-lg text-xs font-medium ${event.enable_tickets ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'}`}>
-                                                    {event.enable_tickets ? 'Enabled' : 'Disabled'}
+                                                    {event.enable_tickets ? t('enabled') : t('disabled')}
                                                 </span>
                                             </div>
                                         </div>
@@ -714,21 +713,21 @@ export default function EventDashboardPage() {
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
                                                 <BarChart3 className="w-4 h-4 text-[var(--brand-primary)]" />
                                             </div>
-                                            <h3 className="font-semibold text-[var(--brand-light)]">Status</h3>
+                                            <h3 className="font-semibold text-[var(--brand-light)]">{t('status')}</h3>
                                         </div>
                                         <div className="p-5 space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-[var(--brand-light)]/70">Status</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('status')}</span>
                                                 <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getStatusBadgeClasses(event.status)}`}>
-                                                    {event.status}
+                                                    {t(`eventStatuses.${event.status.toLowerCase()}`) || event.status}
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-[var(--brand-light)]/70">Confirmed</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('confirmedLabel')}</span>
                                                 <span className="text-sm text-[var(--brand-light)] font-semibold">{event.confirmed_participants_count}</span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-[var(--brand-light)]/70">Waitlist</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('waitlistLabel2')}</span>
                                                 <span className="text-sm text-[var(--brand-light)] font-semibold">{event.waitlist_count}</span>
                                             </div>
                                         </div>

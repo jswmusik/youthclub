@@ -25,7 +25,20 @@ class GroupViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """
         Apply license-based permissions for the groups feature.
+        For actions with their own permission_classes (like join/leave), use those instead.
         """
+        # Check if the current action has its own permission_classes defined
+        if hasattr(self, 'action') and self.action:
+            action_method = getattr(self, self.action, None)
+            if action_method and hasattr(action_method, 'kwargs'):
+                action_permission_classes = action_method.kwargs.get('permission_classes')
+                if action_permission_classes:
+                    # Use action-specific permissions + license check
+                    permissions_list = [perm() for perm in action_permission_classes]
+                    permissions_list.append(HasLicenseFeature('groups')()())
+                    return permissions_list
+        
+        # Default permissions for other actions
         permission_classes = [IsGroupAdminOrReadOnly]
         permission_classes.append(HasLicenseFeature('groups')())
         return [permission() for permission in permission_classes]

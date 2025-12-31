@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 
 interface DeleteConfirmationModalProps {
@@ -22,17 +23,21 @@ export default function DeleteConfirmationModal({
   title,
   message,
   itemName,
-  confirmButtonText = 'Delete',
-  cancelButtonText = 'Cancel',
+  confirmButtonText,
+  cancelButtonText,
   isLoading = false,
   darkMode = false,
 }: DeleteConfirmationModalProps) {
+  const t = useTranslations('common.deleteModal');
+  
   if (!isVisible) return null;
 
-  const defaultTitle = title || 'Confirm Deletion';
+  const defaultTitle = title || t('title');
   const defaultMessage = message || (itemName 
-    ? `Are you sure you want to delete "${itemName}"? This action cannot be undone.`
-    : 'Are you sure you want to delete this item? This action cannot be undone.');
+    ? t('messageWithItem', { item: itemName })
+    : t('message'));
+  const defaultConfirmText = confirmButtonText || t('confirm');
+  const defaultCancelText = cancelButtonText || t('cancel');
 
   const handleConfirm = () => {
     if (!isLoading) {
@@ -96,7 +101,7 @@ export default function DeleteConfirmationModal({
                 : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
             }`}
           >
-            {cancelButtonText}
+            {defaultCancelText}
           </button>
           <button
             type="button"
@@ -129,10 +134,10 @@ export default function DeleteConfirmationModal({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                <span>Deleting...</span>
+                <span>{t('deleting')}</span>
               </>
             ) : (
-              confirmButtonText
+              defaultConfirmText
             )}
           </button>
         </div>

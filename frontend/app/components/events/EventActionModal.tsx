@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import AddMemberModal from './AddMemberModal';
 import { Event } from '@/types/event';
@@ -27,6 +28,7 @@ export default function EventActionModal({
     darkMode = false
 }: EventActionModalProps) {
     const router = useRouter();
+    const t = useTranslations('eventsAdmin.calendar.modal');
     const [showDraftModal, setShowDraftModal] = useState(false);
     const [showPublishModal, setShowPublishModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -63,7 +65,7 @@ export default function EventActionModal({
             onClose();
         } catch (error: any) {
             console.error('Error setting event to draft:', error);
-            alert(error.response?.data?.error || 'Failed to set event to draft');
+            alert(error.response?.data?.error || t('errors.setDraftFailed'));
         } finally {
             setLoading(false);
         }
@@ -82,7 +84,7 @@ export default function EventActionModal({
             onClose();
         } catch (error: any) {
             console.error('Error publishing event:', error);
-            alert(error.response?.data?.error || 'Failed to publish event');
+            alert(error.response?.data?.error || t('errors.publishFailed'));
         } finally {
             setLoading(false);
         }
@@ -118,7 +120,7 @@ export default function EventActionModal({
             onClose();
         } catch (error: any) {
             console.error('Error deleting event:', error);
-            alert(error.response?.data?.error || 'Failed to delete event');
+            alert(error.response?.data?.error || t('errors.deleteFailed'));
         } finally {
             setLoading(false);
         }
@@ -195,7 +197,7 @@ export default function EventActionModal({
                                     ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'
                                     : 'bg-gray-200 text-gray-600'
                             }`}>
-                                Past Event
+                                {t('pastEvent')}
                             </span>
                         )}
                     </div>
@@ -209,8 +211,7 @@ export default function EventActionModal({
                                     : 'bg-gray-50 border-gray-200'
                             }`}>
                                 <p className={`text-sm text-center ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                                    This is a past recurring event. Actions are not available from the calendar. 
-                                    Please use the event detail page to manage this event.
+                                    {t('pastRecurringMessage')}
                                 </p>
                             </div>
                         </div>
@@ -228,8 +229,8 @@ export default function EventActionModal({
                                     >
                                         <Eye className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-blue)]' : 'text-blue-600'}`} />
                                         <div>
-                                            <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>View Event Details</div>
-                                            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Go to event detail page</div>
+                                            <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('actions.viewDetails.title')}</div>
+                                            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('actions.viewDetails.subtitle')}</div>
                                         </div>
                                     </button>
 
@@ -244,8 +245,8 @@ export default function EventActionModal({
                                         >
                                             <Send className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-green)]' : 'text-green-600'}`} />
                                             <div>
-                                                <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Publish Event</div>
-                                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Make event visible to public</div>
+                                                <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('actions.publish.title')}</div>
+                                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('actions.publish.subtitle')}</div>
                                             </div>
                                         </button>
                                     ) : (
@@ -259,8 +260,8 @@ export default function EventActionModal({
                                         >
                                             <FileEdit className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`} />
                                             <div>
-                                                <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Set to Draft</div>
-                                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Hide event from public view</div>
+                                                <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('actions.setDraft.title')}</div>
+                                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('actions.setDraft.subtitle')}</div>
                                             </div>
                                         </button>
                                     )}
@@ -275,8 +276,8 @@ export default function EventActionModal({
                                     >
                                         <UserPlus className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-green-600'}`} />
                                         <div>
-                                            <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Add Member</div>
-                                            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Add eligible member to event</div>
+                                            <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('actions.addMember.title')}</div>
+                                            <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('actions.addMember.subtitle')}</div>
                                         </div>
                                     </button>
                                 </>
@@ -297,16 +298,16 @@ export default function EventActionModal({
                                     <Trash2 className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-red)]' : eventIsPast ? 'text-gray-600' : 'text-red-600'}`} />
                                     <div>
                                         <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : eventIsPast ? 'text-gray-700' : 'text-gray-900'}`}>
-                                            Delete Event
+                                            {t('actions.delete.title')}
                                         </div>
                                         <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
                                             {eventIsPast && event.parent_event
-                                                ? 'Delete only this past instance'
+                                                ? t('actions.delete.subtitle.pastInstance')
                                                 : event.is_recurring && !event.parent_event 
-                                                ? 'Delete this event and all instances'
+                                                ? t('actions.delete.subtitle.recurringParent')
                                                 : event.parent_event 
-                                                ? 'Delete this instance or future instances'
-                                                : 'Permanently delete this event'}
+                                                ? t('actions.delete.subtitle.recurringInstance')
+                                                : t('actions.delete.subtitle.regular')}
                                         </div>
                                     </div>
                                 </button>
@@ -322,7 +323,7 @@ export default function EventActionModal({
                                 : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
                         }`}
                     >
-                        Cancel
+                        {t('actions.cancel')}
                     </button>
                 </div>
             </div>
@@ -332,10 +333,10 @@ export default function EventActionModal({
                 isVisible={showDraftModal}
                 onClose={() => setShowDraftModal(false)}
                 onConfirm={handleSetDraftConfirm}
-                title="Set Event to Draft?"
-                message={`Are you sure you want to set "${event.title}" to draft? This will hide it from public view.`}
-                confirmButtonText="Set to Draft"
-                cancelButtonText="Cancel"
+                title={t('confirmations.setDraft.title')}
+                message={t('confirmations.setDraft.message', { title: event.title })}
+                confirmButtonText={t('confirmations.setDraft.confirm')}
+                cancelButtonText={t('confirmations.setDraft.cancel')}
                 isLoading={loading}
                 variant="warning"
                 darkMode={darkMode}
@@ -346,10 +347,10 @@ export default function EventActionModal({
                 isVisible={showPublishModal}
                 onClose={() => setShowPublishModal(false)}
                 onConfirm={handlePublishConfirm}
-                title="Publish Event?"
-                message={`Are you sure you want to publish "${event.title}"? This will make it visible to the public.`}
-                confirmButtonText="Publish"
-                cancelButtonText="Cancel"
+                title={t('confirmations.publish.title')}
+                message={t('confirmations.publish.message', { title: event.title })}
+                confirmButtonText={t('confirmations.publish.confirm')}
+                cancelButtonText={t('confirmations.publish.cancel')}
                 isLoading={loading}
                 variant="success"
                 darkMode={darkMode}
@@ -361,14 +362,14 @@ export default function EventActionModal({
                     isVisible={showDeleteModal}
                     onClose={() => setShowDeleteModal(false)}
                     onConfirm={handleDeleteConfirm}
-                    title={event.is_recurring ? "Delete Recurring Event?" : "Delete Event?"}
+                    title={event.is_recurring ? t('confirmations.deleteRecurring.title') : t('confirmations.deleteRegular.title')}
                     message={
                         event.is_recurring
-                            ? `Are you sure you want to delete "${event.title}"? This will permanently delete this event and ALL its recurring instances. This action cannot be undone.`
-                            : `Are you sure you want to delete "${event.title}"? This action cannot be undone.`
+                            ? t('confirmations.deleteRecurring.message', { title: event.title })
+                            : t('confirmations.deleteRegular.message', { title: event.title })
                     }
-                    confirmButtonText="Delete"
-                    cancelButtonText="Cancel"
+                    confirmButtonText={t('confirmations.deleteRecurring.confirm')}
+                    cancelButtonText={t('confirmations.deleteRecurring.cancel')}
                     isLoading={loading}
                     variant="danger"
                     darkMode={darkMode}
@@ -394,10 +395,10 @@ export default function EventActionModal({
                             <Trash2 className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'}`} />
                         </div>
                         <h2 className={`text-xl font-bold text-center mb-3 ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
-                            Delete Recurring Event Instance?
+                            {t('confirmations.deleteInstance.title')}
                         </h2>
                         <p className={`text-center mb-6 leading-relaxed text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                            This is an instance of a recurring event. How would you like to proceed?
+                            {t('confirmations.deleteInstance.message')}
                         </p>
 
                         <div className="space-y-3 mb-6">
@@ -413,8 +414,8 @@ export default function EventActionModal({
                                         : 'bg-gray-50 hover:bg-gray-100 border-transparent hover:border-gray-300'
                                 }`}
                             >
-                                <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Delete Only This Instance</div>
-                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Remove just this occurrence</div>
+                                <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('confirmations.deleteInstance.deleteOnlyThis.title')}</div>
+                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('confirmations.deleteInstance.deleteOnlyThis.subtitle')}</div>
                             </button>
 
                             <button
@@ -429,8 +430,8 @@ export default function EventActionModal({
                                         : 'bg-red-50 hover:bg-red-100 border-transparent hover:border-red-300'
                                 }`}
                             >
-                                <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>Delete This and All Future Instances</div>
-                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Remove this instance and all occurrences after it</div>
+                                <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('confirmations.deleteInstance.deleteFuture.title')}</div>
+                                <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('confirmations.deleteInstance.deleteFuture.subtitle')}</div>
                             </button>
                         </div>
 
@@ -445,7 +446,7 @@ export default function EventActionModal({
                                     : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
                             }`}
                         >
-                            Cancel
+                            {t('confirmations.deleteInstance.cancel')}
                         </button>
                     </div>
                 </div>
@@ -460,16 +461,16 @@ export default function EventActionModal({
                         setDeleteFuture(false);
                     }}
                     onConfirm={handleDeleteConfirm}
-                    title={eventIsPast ? "Delete Past Instance?" : (deleteFuture ? "Delete Future Instances?" : "Delete This Instance?")}
+                    title={eventIsPast ? t('confirmations.deletePastInstance.title') : (deleteFuture ? t('confirmations.deleteFutureInstances.title') : t('confirmations.deleteThisInstance.title'))}
                     message={
                         eventIsPast
-                            ? `Are you sure you want to delete this past instance of "${event.title}"? This action cannot be undone.`
+                            ? t('confirmations.deletePastInstance.message', { title: event.title })
                             : deleteFuture
-                            ? `Are you sure you want to delete this instance and ALL future instances of "${event.title}"? This action cannot be undone.`
-                            : `Are you sure you want to delete this instance of "${event.title}"? This action cannot be undone.`
+                            ? t('confirmations.deleteFutureInstances.message', { title: event.title })
+                            : t('confirmations.deleteThisInstance.message', { title: event.title })
                     }
-                    confirmButtonText="Delete"
-                    cancelButtonText="Cancel"
+                    confirmButtonText={t('confirmations.deletePastInstance.confirm')}
+                    cancelButtonText={t('confirmations.deletePastInstance.cancel')}
                     isLoading={loading}
                     variant="danger"
                     darkMode={darkMode}

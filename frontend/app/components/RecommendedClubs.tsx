@@ -7,7 +7,7 @@ import { fetchClubsByMunicipality, followClub, unfollowClub } from '../../lib/ap
 import { getMediaUrl } from '../utils';
 import { useAuth } from '../../context/AuthContext';
 import api, { API_URL } from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 interface Club {
     id: number;
@@ -31,7 +31,7 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFollowing, setIsFollowing] = useState<Record<number, boolean>>({});
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+    const { success, error, info, warning } = useToast();
 
     // Number of clubs to show at once - responsive: 2 on mobile, 3 on desktop
     const [clubsPerView, setClubsPerView] = useState(3);
@@ -116,11 +116,11 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
             if (previouslyFollowing) {
                 // It was true, so now we are UNFOLLOWING
                 await unfollowClub(clubId);
-                setToast({ message: t('unfollowedClub'), type: 'success', isVisible: true });
+                success(t('unfollowedClub'));
             } else {
                 // It was false/undefined, so now we are FOLLOWING
                 await followClub(clubId);
-                setToast({ message: t('followingClub'), type: 'success', isVisible: true });
+                success(t('followingClub'));
             }
             
             // Refresh user context to sync the 'followed_clubs_ids' array
@@ -128,7 +128,7 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
             
         } catch (error) {
             console.error("Follow action failed", error);
-            setToast({ message: t('actionFailed'), type: 'error', isVisible: true });
+            error(t('actionFailed'));
             // Revert UI on error
             setIsFollowing(prev => ({ ...prev, [clubId]: previouslyFollowing }));
         }
@@ -298,12 +298,6 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
             </div>
 
             {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast({ ...toast, isVisible: false })}
-            />
         </>
     );
 }

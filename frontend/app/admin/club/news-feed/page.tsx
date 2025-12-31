@@ -1,10 +1,13 @@
 'use client';
 
 import { Suspense } from 'react';
+import { useTranslations } from 'next-intl';
 import { Newspaper } from 'lucide-react';
 import NewsFeed from '../../../components/NewsFeed';
 
 function NewsFeedContent() {
+  const t = useTranslations('newsFeed');
+  
   return (
     <div className="min-h-screen bg-[var(--dark-900)]">
       {/* Header */}
@@ -15,8 +18,8 @@ function NewsFeedContent() {
               <Newspaper className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">News Feed</h1>
-              <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">Latest updates and featured stories</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+              <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">{t('description')}</p>
             </div>
           </div>
         </div>
@@ -27,19 +30,24 @@ function NewsFeedContent() {
   );
 }
 
+function LoadingFallback() {
+  const t = useTranslations('newsFeed');
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <Newspaper className="w-8 h-8 text-white" />
+        </div>
+        <div className="w-8 h-8 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function ClubAdminNewsFeed() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Newspaper className="w-8 h-8 text-white" />
-          </div>
-          <div className="w-8 h-8 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--brand-light)]/60">Loading news feed...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingFallback />}>
       <NewsFeedContent />
     </Suspense>
   );

@@ -11,7 +11,7 @@ import BookingDetailModal from '../../../components/bookings/youth/BookingDetail
 import NavBar from '../../../components/NavBar';
 import YouthSidebar from '../../../components/youth/YouthSidebar';
 import { BookingsPageSkeleton } from '../../../components/ui/Skeleton';
-import YouthFooter from '../../../components/youth/YouthFooter';
+import Footer from '@/app/components/Footer';
 import { Plus, Calendar, Clock, XCircle, CalendarDays, X } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import Cookies from 'js-cookie';
@@ -122,7 +122,8 @@ export default function YouthBookingsPage() {
   const showSkeleton = loading || !minLoadingComplete;
 
   return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
+    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+      <div className="flex-1">
       <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
       
       {/* Mobile Sidebar Overlay */}
@@ -157,7 +158,7 @@ export default function YouthBookingsPage() {
       <div className="pt-14 sm:pt-16">
         <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
           {/* Desktop Sidebar - Fixed position aligned with container */}
-          <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+          <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
             <YouthSidebar activePath={pathname} darkMode={true} />
           </aside>
           
@@ -304,9 +305,10 @@ export default function YouthBookingsPage() {
           darkMode={true}
         />
       )}
+      </div>
       
       {/* Footer */}
-      <YouthFooter />
+      <Footer />
     </div>
   );
 }

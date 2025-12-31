@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Toast from '../../../components/Toast';
+import { useTranslations } from 'next-intl';
+import { useToast } from '../../../../hooks/useToast';
 
 interface MessageComposerProps {
     onSend: (content: string, attachment?: File) => Promise<void>;
@@ -10,6 +11,7 @@ interface MessageComposerProps {
 }
 
 export default function MessageComposer({ onSend, disabled, darkMode = false }: MessageComposerProps) {
+    const t = useTranslations('messages');
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [sending, setSending] = useState(false);
@@ -17,11 +19,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     
     // Toast state
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '',
-        type: 'error',
-        isVisible: false,
-    });
+    const { success, error, info, warning } = useToast();
 
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -35,11 +33,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
             // Textarea stays at fixed height, no need to reset
         } catch (err) {
             console.error(err);
-            setToast({ 
-                message: 'Failed to send message', 
-                type: 'error', 
-                isVisible: true 
-            });
+            error(t('failedToSendMessage'));
         } finally {
             setSending(false);
         }
@@ -71,7 +65,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
                                 ? 'text-[var(--brand-light)]/40 hover:text-[var(--brand-red)] active:text-[var(--brand-red)]' 
                                 : 'text-gray-400 hover:text-red-500 active:text-red-700'
                         }`}
-                        aria-label="Remove file"
+                        aria-label={t('removeFile')}
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -91,7 +85,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
                             : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200'
                     }`}
                     disabled={disabled || sending}
-                    aria-label="Attach file"
+                    aria-label={t('attachFile')}
                 >
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -114,7 +108,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
+                    placeholder={t('typeMessage')}
                     className={`flex-1 border-0 rounded-2xl px-3 sm:px-4 py-2 sm:py-3 text-base transition-all resize-none h-[40px] max-h-[40px] min-h-[40px] overflow-y-auto overflow-x-hidden w-full max-w-full min-w-0 break-words ${
                         darkMode 
                             ? 'bg-[var(--dark-600)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:bg-[var(--dark-700)]' 
@@ -133,7 +127,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
                             ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-purple)] disabled:hover:bg-[var(--brand-primary)]' 
                             : 'bg-[#4D4DA4] text-white hover:bg-[#FF5485] disabled:hover:bg-[#4D4DA4]'
                     }`}
-                    aria-label="Send message"
+                    aria-label={t('sendMessage')}
                 >
                     {sending ? (
                         <div className={`w-5 h-5 border-2 border-t-transparent rounded-full animate-spin ${
@@ -148,12 +142,6 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
             </form>
             
             {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast({ ...toast, isVisible: false })}
-            />
         </div>
     );
 }

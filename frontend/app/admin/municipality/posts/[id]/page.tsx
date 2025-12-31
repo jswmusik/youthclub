@@ -4,15 +4,17 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { 
-    ArrowLeft, Edit, Eye, MessageSquare, Calendar, Globe, Building, Users, 
+    Edit, Eye, MessageSquare, Calendar, Globe, Building, Users, 
     CheckCircle2, XCircle, Clock, Pin, Trash2, X, ChevronLeft, ChevronRight,
     FileText, Bell, Settings, Target, Heart, BarChart3, Image, Video
 } from 'lucide-react';
 import api from '../../../../../lib/api';
+import { sanitizeHtml } from '../../../../../lib/sanitize';
 import { Post } from '../../../../../types/post';
 import { getMediaUrl } from '../../../../utils';
 import ConfirmationModal from '../../../../components/ConfirmationModal';
-import Toast from '../../../../components/Toast';
+import { useToast } from '../../../../../hooks/useToast';
+import BackButton from '@/app/components/BackButton';
 
 export default function PostDetailPage() {
     const router = useRouter();
@@ -46,9 +48,7 @@ export default function PostDetailPage() {
     const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '', type: 'success', isVisible: false,
-    });
+    const { success, error, info, warning } = useToast();
 
     const fetchData = async () => {
         if (!postId) return;
@@ -73,10 +73,10 @@ export default function PostDetailPage() {
     const handleApproveComment = async (commentId: number, currentStatus: boolean) => {
         try {
             await api.patch(`/post-comments/${commentId}/`, { is_approved: !currentStatus });
-            setToast({ message: currentStatus ? 'Comment hidden' : 'Comment approved', type: 'success', isVisible: true });
+            success(currentStatus ? 'Comment hidden' : 'Comment approved');
             fetchData();
         } catch (err) {
-            setToast({ message: 'Failed to update comment', type: 'error', isVisible: true });
+            error('Failed to update comment');
         }
     };
 
@@ -92,10 +92,10 @@ export default function PostDetailPage() {
             await api.delete(`/post-comments/${commentToDelete}/`);
             setShowDeleteModal(false);
             setCommentToDelete(null);
-            setToast({ message: 'Comment deleted', type: 'success', isVisible: true });
+            success('Comment deleted');
             fetchData();
         } catch (err) {
-            setToast({ message: 'Failed to delete comment', type: 'error', isVisible: true });
+            error('Failed to delete comment');
         } finally {
             setIsDeleting(false);
         }
@@ -232,12 +232,10 @@ export default function PostDetailPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between gap-4 mb-6 px-4 sm:px-0">
                     <div className="flex items-center gap-4">
-                        <button 
+                        <BackButton 
                             onClick={() => router.push(buildBackUrl())}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
+                            translationKey="backToList"
+                        />
                         <div>
                             <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Post Details</h1>
                             <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">View and manage post</p>
@@ -391,7 +389,7 @@ export default function PostDetailPage() {
                                 [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--brand-primary)] [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4 
                                 [&_code]:bg-[var(--dark-700)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm 
                                 [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4"
-                            dangerouslySetInnerHTML={{ __html: post.content }} 
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }} 
                         />
                     </div>
                 </div>
@@ -726,8 +724,7 @@ export default function PostDetailPage() {
                     </div>
                 )}
 
-                <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode duration={1250} />
-            </div>
+                </div>
         </div>
     );
 }

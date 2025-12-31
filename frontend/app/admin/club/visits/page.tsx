@@ -1,14 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, UserPlus, Users } from 'lucide-react';
+import { ExternalLink, UserPlus, Users } from 'lucide-react';
 import LiveAttendanceList from '@/app/components/visits/LiveAttendanceList';
 import ManualCheckInModal from '@/app/components/visits/ManualCheckInModal';
 import VisitsTabs from '@/app/components/visits/VisitsTabs';
+import BackButton from '@/app/components/BackButton';
 
 export default function VisitsDashboard() {
+  const t = useTranslations('clubVisits');
   const { user } = useAuth();
   const [isManualModalOpen, setManualModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -29,7 +32,7 @@ export default function VisitsDashboard() {
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mb-4 animate-pulse">
             <Users className="w-8 h-8 text-white" />
           </div>
-          <p className="text-lg font-medium">Loading...</p>
+          <p className="text-lg font-medium">{t('loading')}</p>
         </div>
       </div>
     );
@@ -42,12 +45,7 @@ export default function VisitsDashboard() {
       <div className="max-w-7xl mx-auto space-y-6 px-0 sm:px-6 lg:px-8">
         {/* Back Link */}
         <div>
-          <Link href="/admin/club/details">
-            <button className="flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-colors">
-              <ArrowLeft className="h-4 w-4" /> 
-              <span className="text-sm font-medium">Back to Club</span>
-            </button>
-          </Link>
+          <BackButton href="/admin/club/details" translationKey="backToClub" />
         </div>
 
         {/* Header Section */}
@@ -57,9 +55,9 @@ export default function VisitsDashboard() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <Users className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Visits & Attendance</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
-            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage check-ins for your club</p>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
           </div>
           
           <div className="flex flex-wrap gap-2">
@@ -70,8 +68,8 @@ export default function VisitsDashboard() {
             >
               <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
                 <ExternalLink className="h-4 w-4" /> 
-                <span className="hidden sm:inline">Launch Kiosk Screen</span>
-                <span className="sm:hidden">Kiosk</span>
+                <span className="hidden sm:inline">{t('launchKiosk')}</span>
+                <span className="sm:hidden">{t('kiosk')}</span>
               </button>
             </Link>
             
@@ -81,8 +79,8 @@ export default function VisitsDashboard() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold transition-all"
             >
               <UserPlus className="h-4 w-4" /> 
-              <span className="hidden sm:inline">Manual Check-in</span>
-              <span className="sm:hidden">Check-in</span>
+              <span className="hidden sm:inline">{t('manualCheckIn')}</span>
+              <span className="sm:hidden">{t('checkIn')}</span>
             </button>
           </div>
         </div>

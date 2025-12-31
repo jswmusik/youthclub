@@ -60,6 +60,10 @@ class MunicipalitySerializer(serializers.ModelSerializer):
     allowed_features = serializers.SerializerMethodField()
     license_status = serializers.SerializerMethodField()
     
+    # Data retention fields (GDPR)
+    effective_retention_months = serializers.IntegerField(read_only=True)
+    data_retention_info = serializers.SerializerMethodField()
+    
     class Meta:
         model = Municipality
         fields = [
@@ -80,6 +84,9 @@ class MunicipalitySerializer(serializers.ModelSerializer):
             'social_media',
             'allow_self_registration',
             'require_guardian_at_registration',
+            'data_retention_months',  # Can be set by municipality admin
+            'effective_retention_months',  # Computed: shows actual value used
+            'data_retention_info',  # Full info including global defaults
             'created_at',
             # License fields
             'allowed_features',
@@ -90,6 +97,36 @@ class MunicipalitySerializer(serializers.ModelSerializer):
             'license_end_date',
             'license_is_active',
         ]
+    
+    def get_data_retention_info(self, obj):
+        """Returns full data retention info including global defaults."""
+        from licensing.models import GlobalDataRetentionSettings
+        global_settings = GlobalDataRetentionSettings.get_settings()
+        
+        return {
+            'municipality_override': obj.data_retention_months,
+            'effective_months': obj.effective_retention_months,
+            'global_default_months': global_settings.default_retention_months,
+            'min_allowed_months': global_settings.min_allowed_retention_months,
+            'max_allowed_months': global_settings.max_allowed_retention_months,
+            'is_using_global_default': obj.data_retention_months is None
+        }
+    
+    def validate_data_retention_months(self, value):
+        """Validate that data_retention_months is within allowed range."""
+        if value is not None:
+            from licensing.models import GlobalDataRetentionSettings
+            settings = GlobalDataRetentionSettings.get_settings()
+            
+            if value < settings.min_allowed_retention_months:
+                raise serializers.ValidationError(
+                    f"Data retention period cannot be less than {settings.min_allowed_retention_months} months."
+                )
+            if value > settings.max_allowed_retention_months:
+                raise serializers.ValidationError(
+                    f"Data retention period cannot exceed {settings.max_allowed_retention_months} months."
+                )
+        return value
     
     def get_allowed_features(self, obj):
         """Returns list of feature slugs the municipality has access to."""

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -49,7 +50,8 @@ import {
   Navigation,
   Sparkles,
   Cookie,
-  Crown
+  Crown,
+  Trash2
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -57,6 +59,9 @@ import { getMediaUrl } from '../../utils';
 import { ToastProvider } from '../../components/ToastProvider';
 import RoleGuard from '../../components/RoleGuard';
 import api from '../../../lib/api';
+import { messengerApi } from '../../../lib/messenger-api';
+import { Toaster } from '../../components/Toaster';
+import { useAdminInactivityTimeout } from '../../../hooks/useAdminInactivityTimeout';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -67,6 +72,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { BackgroundGlow } from '@/components/BackgroundGlow';
 
 // Helper to get initials
 const getInitials = (first?: string | null, last?: string | null) => {
@@ -74,9 +80,13 @@ const getInitials = (first?: string | null, last?: string | null) => {
 };
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('adminSidebar');
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  
+  // Admin inactivity timeout - logs out after 20 minutes of inactivity
+  useAdminInactivityTimeout();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   
   // Collapsible groups state
@@ -99,10 +109,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
   const [pendingEventApplicationsCount, setPendingEventApplicationsCount] = useState(0);
+  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
 
   // Keep your existing useEffects logic exactly as it was
   useEffect(() => {
     refreshMessageCount();
+    refreshInboxUnreadCount();
     refreshPendingRequestsCount();
     refreshPendingBookingsCount();
     refreshPendingEventApplicationsCount();
@@ -190,132 +202,154 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
   };
 
+  const refreshInboxUnreadCount = async () => {
+    if (!user) {
+      setInboxUnreadCount(0);
+      return;
+    }
+    
+    try {
+      const res = await messengerApi.getUnreadCount();
+      setInboxUnreadCount(res.data.count || 0);
+    } catch (err: any) {
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        setInboxUnreadCount(0);
+        return;
+      }
+      console.error('Failed to load inbox unread count', err);
+      setInboxUnreadCount(0);
+    }
+  };
+
   // Navigation structure with groups
   const navigationGroups = [
     {
       id: 'main',
       items: [
-        { name: 'Overview', href: '/admin/super', icon: LayoutDashboard },
-        { name: 'Inbox', href: '/admin/super/inbox', showBadge: true, icon: MessageSquare },
+        { name: t('main.overview'), href: '/admin/super', icon: LayoutDashboard },
+        { name: t('main.inbox'), href: '/admin/super/inbox', showBadge: true, icon: MessageSquare },
       ]
     },
     {
       id: 'organization',
-      title: 'Organization',
+      title: t('groups.organization'),
       icon: BuildingIcon,
       items: [
-        { name: 'Manage Countries', href: '/admin/super/countries', icon: Flag },
-        { name: 'Manage Municipalities', href: '/admin/super/municipalities', icon: MapPinned },
-        { name: 'Manage Clubs', href: '/admin/super/clubs', icon: Building },
-        { name: 'Plan Builder', href: '/admin/super/plans', icon: Package },
-        { name: 'License Management', href: '/admin/super/licenses', icon: Crown },
-        { name: 'Feature Pricing', href: '/admin/super/licensing/features', icon: Tag },
+        { name: t('items.manageCountries'), href: '/admin/super/countries', icon: Flag },
+        { name: t('items.manageMunicipalities'), href: '/admin/super/municipalities', icon: MapPinned },
+        { name: t('items.manageClubs'), href: '/admin/super/clubs', icon: Building },
+        { name: t('items.planBuilder'), href: '/admin/super/plans', icon: Package },
+        { name: t('items.licenseManagement'), href: '/admin/super/licenses', icon: Crown },
+        { name: t('items.featurePricing'), href: '/admin/super/licensing/features', icon: Tag },
       ]
     },
     {
       id: 'users',
-      title: 'Users & Access',
+      title: t('groups.usersAndAccess'),
       icon: Users,
       items: [
-        { name: 'Manage Admins', href: '/admin/super/admins', icon: UserCog },
-        { name: 'Manage Youth', href: '/admin/super/youth', icon: Users },
-        { name: 'Manage Guardians', href: '/admin/super/guardians', icon: Shield },
+        { name: t('items.manageAdmins'), href: '/admin/super/admins', icon: UserCog },
+        { name: t('items.manageYouth'), href: '/admin/super/youth', icon: Users },
+        { name: t('items.manageGuardians'), href: '/admin/super/guardians', icon: Shield },
       ]
     },
     {
       id: 'content',
-      title: 'Content',
+      title: t('groups.content'),
       icon: Newspaper,
       items: [
-        { name: 'News Management', href: '/admin/super/news', icon: Newspaper },
-        { name: 'News Tags', href: '/admin/super/news/tags', icon: Tag },
-        { name: 'News Feed', href: '/admin/super/news-feed', icon: Rss },
-        { name: 'Manage Posts', href: '/admin/super/posts', icon: FileEdit },
+        { name: t('items.newsManagement'), href: '/admin/super/news', icon: Newspaper },
+        { name: t('items.newsTags'), href: '/admin/super/news/tags', icon: Tag },
+        { name: t('items.newsFeed'), href: '/admin/super/news-feed', icon: Rss },
+        { name: t('items.managePosts'), href: '/admin/super/posts', icon: FileEdit },
       ]
     },
     {
       id: 'events',
-      title: 'Events',
+      title: t('groups.events'),
       icon: Calendar,
       items: [
-        { name: 'Events', href: '/admin/super/events', icon: Calendar },
-        { name: 'Event Calendar', href: '/admin/super/events/calendar', icon: CalendarDays },
-        { name: 'Event Applications', href: '/admin/super/events/applications', icon: ClipboardList },
+        { name: t('items.events'), href: '/admin/super/events', icon: Calendar },
+        { name: t('items.eventCalendar'), href: '/admin/super/events/calendar', icon: CalendarDays },
+        { name: t('items.eventApplications'), href: '/admin/super/events/applications', icon: ClipboardList },
       ]
     },
     {
       id: 'groups',
-      title: 'Groups & Social',
+      title: t('groups.groupsAndSocial'),
       icon: UsersRound,
       items: [
-        { name: 'Manage Groups', href: '/admin/super/groups', icon: UsersRound },
-        { name: 'Applications', href: '/admin/super/groups/requests', showBadge: true, icon: FileText },
+        { name: t('items.manageGroups'), href: '/admin/super/groups', icon: UsersRound },
+        { name: t('items.applications'), href: '/admin/super/groups/requests', showBadge: true, icon: FileText },
       ]
     },
     {
       id: 'rewards',
-      title: 'Rewards and Loyalty',
+      title: t('groups.rewardsAndLoyalty'),
       icon: Gift,
       items: [
-        { name: 'Manage Rewards', href: '/admin/super/rewards', icon: Gift },
+        { name: t('items.manageRewards'), href: '/admin/super/rewards', icon: Gift },
       ]
     },
     {
       id: 'inventory',
-      title: 'Inventory',
+      title: t('groups.inventory'),
       icon: Box,
       items: [
-        { name: 'Inventory', href: '/admin/super/inventory', icon: Box },
-        { name: 'Inventory History', href: '/admin/super/inventory/history', icon: Clock },
+        { name: t('items.inventory'), href: '/admin/super/inventory', icon: Box },
+        { name: t('items.inventoryHistory'), href: '/admin/super/inventory/history', icon: Clock },
       ]
     },
     {
       id: 'bookings',
-      title: 'Bookings',
+      title: t('groups.bookings'),
       icon: BookOpen,
       items: [
-        { name: 'Bookings', href: '/admin/super/bookings', icon: BookOpen },
-        { name: 'Booking Calendar', href: '/admin/super/bookings/calendar', icon: CalendarDays },
-        { name: 'Booking Resources', href: '/admin/super/bookings/resources', icon: Package },
+        { name: t('items.bookings'), href: '/admin/super/bookings', icon: BookOpen },
+        { name: t('items.bookingCalendar'), href: '/admin/super/bookings/calendar', icon: CalendarDays },
+        { name: t('items.bookingResources'), href: '/admin/super/bookings/resources', icon: Package },
       ]
     },
     {
       id: 'learning',
-      title: 'Learning Center',
+      title: t('groups.learningCenter'),
       icon: GraduationCap,
       items: [
-        { name: 'Courses', href: '/admin/super/knowledge/courses', icon: GraduationCap },
+        { name: t('items.courses'), href: '/admin/super/knowledge/courses', icon: GraduationCap },
       ]
     },
     {
       id: 'marketing',
-      title: 'Marketing',
+      title: t('groups.marketing'),
       icon: Megaphone,
       items: [
-        { name: 'Homepage & SEO', href: '/admin/super/marketing', icon: Globe },
-        { name: 'Customers', href: '/admin/super/marketing/customers', icon: Building2 },
+        { name: t('items.homepageAndSeo'), href: '/admin/super/marketing', icon: Globe },
+        { name: t('items.customers'), href: '/admin/super/marketing/customers', icon: Building2 },
+        { name: t('items.newsletter'), href: '/admin/super/marketing/newsletter', icon: Mail },
       ]
     },
     {
       id: 'cms',
-      title: 'CMS',
+      title: t('groups.cms'),
       icon: Layers,
       items: [
-        { name: 'Pages', href: '/admin/super/cms/pages', icon: FileText },
-        { name: 'Navigation', href: '/admin/super/cms/navigation', icon: Navigation },
-        { name: 'Features', href: '/admin/super/cms/features', icon: Sparkles },
-        { name: 'Cookie Consent', href: '/admin/super/cms/cookies', icon: Cookie },
+        { name: t('items.pages'), href: '/admin/super/cms/pages', icon: FileText },
+        { name: t('items.navigation'), href: '/admin/super/cms/navigation', icon: Navigation },
+        { name: t('items.features'), href: '/admin/super/cms/features', icon: Sparkles },
+        { name: t('items.cookieConsent'), href: '/admin/super/cms/cookies', icon: Cookie },
       ]
     },
     {
       id: 'settings',
-      title: 'Settings & Configuration',
+      title: t('groups.settingsAndConfiguration'),
       icon: Wrench,
       items: [
-        { name: 'Custom Fields', href: '/admin/super/custom-fields', icon: Wrench },
-        { name: 'Questionnaires', href: '/admin/super/questionnaires', icon: FileText },
-        { name: 'Manage Interests', href: '/admin/super/interests', icon: HelpCircle },
-        { name: 'System Messages', href: '/admin/super/messages', icon: MessageCircle },
+        { name: t('items.dataRetention'), href: '/admin/super/settings/data-retention', icon: Trash2 },
+        { name: t('items.emailTemplates'), href: '/admin/super/settings/email-templates', icon: Mail },
+        { name: t('items.customFields'), href: '/admin/super/custom-fields', icon: Wrench },
+        { name: t('items.questionnaires'), href: '/admin/super/questionnaires', icon: FileText },
+        { name: t('items.manageInterests'), href: '/admin/super/interests', icon: HelpCircle },
+        { name: t('items.systemMessages'), href: '/admin/super/messages', icon: MessageCircle },
       ]
     },
   ];
@@ -350,7 +384,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           <h2 className="text-sm font-semibold truncate text-[var(--brand-light)]">
             {user?.first_name} {user?.last_name}
           </h2>
-          <p className="text-xs text-[var(--brand-light)]/50 truncate">Super Admin</p>
+          <p className="text-xs text-[var(--brand-light)]/50 truncate">{t('role')}</p>
         </div>
       </div>
 
@@ -370,11 +404,31 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 if (!group.title) {
                   return group.items.map((item) => {
                     const isActive = pathname === item.href;
-                    const hasBadge = 
-                      ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
-                      ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
-                      (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
-                      (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+                    // Determine badge count and visibility for each specific item
+                    let badgeCount = 0;
+                    let hasBadge = false;
+                    
+                    if (item.href === '/admin/super/inbox') {
+                      // Inbox: use inbox unread count
+                      badgeCount = inboxUnreadCount;
+                      hasBadge = inboxUnreadCount > 0;
+                    } else if (item.href.includes('/msgboard')) {
+                      // Message board: use system messages count
+                      badgeCount = messageCount;
+                      hasBadge = messageCount > 0;
+                    } else if (item.href.includes('/requests')) {
+                      // Group requests: use pending requests count
+                      badgeCount = pendingRequestsCount;
+                      hasBadge = pendingRequestsCount > 0;
+                    } else if (item.href === '/admin/super/bookings') {
+                      // Bookings main page only: use pending bookings count
+                      badgeCount = pendingBookingsCount;
+                      hasBadge = pendingBookingsCount > 0;
+                    } else if (item.href.includes('/events/applications')) {
+                      // Event applications: use pending event applications count
+                      badgeCount = pendingEventApplicationsCount;
+                      hasBadge = pendingEventApplicationsCount > 0;
+                    }
 
                     const navItem = (
                       <Link
@@ -406,7 +460,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                                 ? "opacity-0 max-w-0 w-0 ml-0" 
                                 : "opacity-100 max-w-full"
                             )}>
-                              {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                              {badgeCount}
                             </span>
                             {isCollapsed && (
                               <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--brand-primary)] ring-2 ring-[var(--dark-800)] transition-opacity duration-500 ease-in-out"></span>
@@ -464,11 +518,26 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                         <div className="space-y-1">
                           {group.items.map((item) => {
                             const isActive = pathname === item.href;
-                            const hasBadge = 
-                              ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
-                              ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
-                              (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
-                              (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+                            // Determine badge count and visibility for each specific item
+                            let badgeCount = 0;
+                            let hasBadge = false;
+                            
+                            if (item.href === '/admin/super/inbox') {
+                              badgeCount = inboxUnreadCount;
+                              hasBadge = inboxUnreadCount > 0;
+                            } else if (item.href.includes('/msgboard')) {
+                              badgeCount = messageCount;
+                              hasBadge = messageCount > 0;
+                            } else if (item.href.includes('/requests')) {
+                              badgeCount = pendingRequestsCount;
+                              hasBadge = pendingRequestsCount > 0;
+                            } else if (item.href === '/admin/super/bookings') {
+                              badgeCount = pendingBookingsCount;
+                              hasBadge = pendingBookingsCount > 0;
+                            } else if (item.href.includes('/events/applications')) {
+                              badgeCount = pendingEventApplicationsCount;
+                              hasBadge = pendingEventApplicationsCount > 0;
+                            }
 
                             return (
                               <Link
@@ -488,7 +557,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                                 <span className="flex-1 truncate">{item.name}</span>
                                 {hasBadge && (
                                   <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-[10px] font-bold text-[var(--dark-900)] flex-shrink-0">
-                                    {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                                    {badgeCount}
                                   </span>
                                 )}
                               </Link>
@@ -529,11 +598,26 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                     <CollapsibleContent className="mt-1 space-y-1 pl-4">
                       {group.items.map((item) => {
                         const isActive = pathname === item.href;
-                        const hasBadge = 
-                          ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
-                          ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
-                          (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
-                          (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+                        // Determine badge count and visibility for each specific item
+                        let badgeCount = 0;
+                        let hasBadge = false;
+                        
+                        if (item.href === '/admin/super/inbox') {
+                          badgeCount = inboxUnreadCount;
+                          hasBadge = inboxUnreadCount > 0;
+                        } else if (item.href.includes('/msgboard')) {
+                          badgeCount = messageCount;
+                          hasBadge = messageCount > 0;
+                        } else if (item.href.includes('/requests')) {
+                          badgeCount = pendingRequestsCount;
+                          hasBadge = pendingRequestsCount > 0;
+                        } else if (item.href === '/admin/super/bookings') {
+                          badgeCount = pendingBookingsCount;
+                          hasBadge = pendingBookingsCount > 0;
+                        } else if (item.href.includes('/events/applications')) {
+                          badgeCount = pendingEventApplicationsCount;
+                          hasBadge = pendingEventApplicationsCount > 0;
+                        }
 
                         return (
                           <Link
@@ -553,7 +637,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                             <span className="flex-1 truncate">{item.name}</span>
                             {hasBadge && (
                               <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-[10px] font-bold text-[var(--dark-900)] flex-shrink-0">
-                                {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                                {badgeCount}
                               </span>
                             )}
                           </Link>
@@ -586,12 +670,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 isCollapsed 
                   ? "opacity-0 max-w-0 w-0" 
                   : "opacity-100 max-w-full"
-              )}>Sign Out</span>
+              )}>{t('signOut')}</span>
             </Button>
           </TooltipTrigger>
           {isCollapsed && (
             <TooltipContent side="right" className="bg-[var(--dark-700)] text-[var(--brand-light)] border-[var(--dark-600)]">
-              <p>Sign Out</p>
+              <p>{t('signOut')}</p>
             </TooltipContent>
           )}
         </Tooltip>
@@ -602,15 +686,19 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   return (
     <RoleGuard allowedRoles={['SUPER_ADMIN']}>
       <div className="flex min-h-screen bg-[var(--dark-900)]">
+        {/* Background Glow Effect */}
+        <BackgroundGlow variant="admin" />
         
         {/* DESKTOP SIDEBAR */}
         <aside 
           className={cn(
-            "hidden md:block fixed inset-y-0 z-50",
+            "hidden md:block fixed z-50",
             isSidebarCollapsed ? "w-16" : "w-72"
           )}
           style={{
-            transition: 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+            top: 'var(--system-alert-height, 0px)',
+            bottom: 0
           }}
         >
           <div className="relative h-full w-full">
@@ -621,7 +709,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
               className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] shadow-md flex items-center justify-center hover:bg-[var(--brand-purple)]/20 hover:border-[var(--brand-primary)]/30 transition-all duration-300 ease-in-out z-50 hover:scale-110"
               style={{ right: '-12px' }}
-              aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={isSidebarCollapsed ? t('expandSidebar') : t('collapseSidebar')}
             >
               {isSidebarCollapsed ? (
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--brand-light)]/60 transition-transform duration-300" />
@@ -638,12 +726,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           isSidebarCollapsed ? "md:ml-16" : "md:ml-72"
         )}
           style={{
-            transition: 'margin-left 500ms cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: 'margin-left 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+            paddingTop: 'var(--system-alert-height, 0px)'
           }}
         >
           
-          {/* Mobile Header - Fixed at top */}
-          <header className="md:hidden flex items-center justify-between p-4 bg-[var(--dark-800)] border-b border-[var(--dark-600)] fixed top-0 left-0 right-0 z-50">
+          {/* Mobile Header - Fixed at top, positioned below system alert */}
+          <header className="md:hidden flex items-center justify-between p-4 bg-[var(--dark-800)] border-b border-[var(--dark-600)] fixed left-0 right-0 z-50" style={{ top: 'var(--system-alert-height, 0px)' }}>
             <div className="flex items-center gap-3">
               <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                 <SheetTrigger asChild>
@@ -652,13 +741,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-72 bg-[var(--dark-800)] border-r-[var(--dark-600)]">
-                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  <SheetTitle className="sr-only">{t('navigationMenu')}</SheetTitle>
                   <SidebarContent />
                 </SheetContent>
               </Sheet>
               <span className="font-semibold text-lg text-[var(--brand-light)]">Ungdomsappen</span>
             </div>
-            {messageCount > 0 && (
+            {(inboxUnreadCount > 0 || messageCount > 0 || pendingRequestsCount > 0 || pendingBookingsCount > 0 || pendingEventApplicationsCount > 0) && (
               <div className="relative">
                 <Bell className="h-5 w-5 text-[var(--brand-light)]/60" />
                 <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[var(--brand-primary)] ring-2 ring-[var(--dark-800)]"></span>
@@ -673,6 +762,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 {children}
               </ToastProvider>
             </div>
+            <Toaster />
           </main>
         </div>
       </div>

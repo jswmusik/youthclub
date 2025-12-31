@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X,
@@ -10,7 +11,7 @@ import {
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -24,6 +25,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const t = useTranslations('youthManager');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -122,14 +124,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -216,6 +218,7 @@ function YouthTableRowSkeleton() {
 }
 
 function YouthPageSkeleton() {
+  const t = useTranslations('youthManager');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -230,10 +233,10 @@ function YouthPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Grade / Age</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.user')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.gradeAge')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -253,6 +256,7 @@ interface YouthManagerProps {
 }
 
 export default function YouthManager({ basePath, scope }: YouthManagerProps) {
+  const t = useTranslations('youthManager');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -271,7 +275,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
   
   // Delete
   const [userToDelete, setUserToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Filter State
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -501,11 +505,11 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     if (!userToDelete) return;
     try {
       await api.delete(`/users/${userToDelete.id}/`);
-      setToast({ message: 'Youth member deleted.', type: 'success', isVisible: true });
+      success(t('toast.memberDeleted'));
       fetchYouth();
       fetchAllUsersForAnalytics();
     } catch (err) {
-      setToast({ message: 'Failed to delete.', type: 'error', isVisible: true });
+      error(t('toast.failedToDelete'));
     } finally {
       setUserToDelete(null);
     }
@@ -539,10 +543,24 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
   };
 
   const getClubName = (user: any) => {
-    if (!user.preferred_club) return 'No club';
+    if (!user.preferred_club) return t('noClub');
     const clubId = typeof user.preferred_club === 'object' ? user.preferred_club.id : user.preferred_club;
     const club = clubs.find(c => c.id === clubId);
-    return club?.name || 'No club';
+    return club?.name || t('noClub');
+  };
+
+  const getGenderDisplay = (gender: string) => {
+    if (gender === 'MALE') return t('genders.MALE');
+    if (gender === 'FEMALE') return t('genders.FEMALE');
+    if (gender === 'OTHER') return t('genders.OTHER');
+    return gender;
+  };
+
+  const getStatusDisplay = (status: string) => {
+    if (status === 'VERIFIED') return t('statuses.VERIFIED');
+    if (status === 'PENDING') return t('statuses.PENDING');
+    if (status === 'UNVERIFIED') return t('statuses.UNVERIFIED');
+    return status;
   };
 
   // Calculate analytics from allUsersForAnalytics
@@ -601,13 +619,13 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <Users className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Youth Members</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">View and manage youth member accounts across the platform.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <Link href={`${basePath}/create`}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="h-4 w-4" /> Add Youth
+            <Plus className="h-4 w-4" /> {t('addYouth')}
           </button>
         </Link>
       </div>
@@ -624,7 +642,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -639,7 +657,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Users className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_youth}</div>
               </div>
@@ -650,7 +668,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                     <UserPlus className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">New (7d)</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('newLast7Days')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.new_last_7_days}</div>
               </div>
@@ -661,11 +679,11 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                     <UsersRound className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Gender</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('gender')}</span>
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/60">M/F/O:</span>
+                    <span className="text-[var(--brand-light)]/60">{t('genderBreakdown')}</span>
                     <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.male}/{analytics.gender.female}/{analytics.gender.other}</span>
                   </div>
                 </div>
@@ -677,7 +695,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Verified</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('verified')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.verification.verified}</div>
               </div>
@@ -694,7 +712,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search by name or email..." 
+              placeholder={t('searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -718,10 +736,10 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 onChange={e => setGenderFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">All Genders</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
+                <option value="">{t('filters.allGenders')}</option>
+                <option value="MALE">{t('genders.MALE')}</option>
+                <option value="FEMALE">{t('genders.FEMALE')}</option>
+                <option value="OTHER">{t('genders.OTHER')}</option>
               </select>
             </div>
             <div className="w-full sm:w-[160px]">
@@ -731,10 +749,10 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 onChange={e => setStatusFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">All Statuses</option>
-                <option value="VERIFIED">Verified</option>
-                <option value="PENDING">Pending</option>
-                <option value="UNVERIFIED">Unverified</option>
+                <option value="">{t('filters.allStatuses')}</option>
+                <option value="VERIFIED">{t('statuses.VERIFIED')}</option>
+                <option value="PENDING">{t('statuses.PENDING')}</option>
+                <option value="UNVERIFIED">{t('statuses.UNVERIFIED')}</option>
               </select>
             </div>
             {scope === 'SUPER' && (
@@ -745,7 +763,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                   onChange={e => setMunicipalityFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Municipalities</option>
+                  <option value="">{t('filters.allMunicipalities')}</option>
                   {municipalities.map(m => (
                     <option key={m.id} value={m.id.toString()}>{m.name}</option>
                   ))}
@@ -759,7 +777,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 onChange={e => setClubFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">All Clubs</option>
+                <option value="">{t('filters.allClubs')}</option>
                 {clubs.map(c => (
                   <option key={c.id} value={c.id.toString()}>{c.name}</option>
                 ))}
@@ -770,7 +788,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                Clear All
+                {t('filters.clearAll')}
               </button>
             )}
           </div>
@@ -781,7 +799,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
       {!showSkeleton && paginatedUsers.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedUsers.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'member' : 'members'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{paginatedUsers.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.member') : t('statsBar.members')}
           </p>
         </div>
       )}
@@ -794,14 +812,14 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Users className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No youth members found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noMembersFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by adding your first youth member.'}
+            {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.addFirstMember')}
           </p>
           {!hasFilters && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Add Youth
+                <Plus className="h-4 w-4" /> {t('addYouth')}
               </button>
             </Link>
           )}
@@ -841,16 +859,16 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                         {/* Status & Grade/Age - Inline */}
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
-                            {user.verification_status}
+                            {getStatusDisplay(user.verification_status)}
                           </span>
                           {user.grade && (
                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
-                              Grade {user.grade}
+                              {t('grade')} {user.grade}
                             </span>
                           )}
                           {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]">
-                              {calculateAge(user.date_of_birth)}y
+                              {calculateAge(user.date_of_birth)}{t('yearsShort')}
                             </span>
                           )}
                         </div>
@@ -867,10 +885,10 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Grade / Age</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.user')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.gradeAge')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -901,19 +919,19 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
-                        {user.verification_status}
+                        {getStatusDisplay(user.verification_status)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap items-center gap-2">
                         {user.grade && (
                           <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
-                            Grade {user.grade}
+                            {t('grade')} {user.grade}
                           </span>
                         )}
                         {user.date_of_birth && calculateAge(user.date_of_birth) !== null && (
                           <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]">
-                            {calculateAge(user.date_of_birth)} years
+                            {calculateAge(user.date_of_birth)} {t('years')}
                           </span>
                         )}
                         {!user.grade && (!user.date_of_birth || calculateAge(user.date_of_birth) === null) && (
@@ -955,17 +973,17 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/50">
-                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}
@@ -977,14 +995,13 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
         isVisible={!!userToDelete}
         onClose={() => setUserToDelete(null)}
         onConfirm={handleDelete}
-        title="Delete Youth Member"
-        message={`Are you sure you want to delete "${userToDelete?.first_name} ${userToDelete?.last_name}"? This action cannot be undone.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { firstName: userToDelete?.first_name || '', lastName: userToDelete?.last_name || '' })}
+        confirmButtonText={t('deleteModal.delete')}
+        cancelButtonText={t('deleteModal.cancel')}
         variant="danger"
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-    </div>
+      </div>
   );
 }

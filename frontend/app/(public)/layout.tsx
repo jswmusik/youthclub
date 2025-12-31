@@ -9,6 +9,8 @@ import { Menu, X, ExternalLink, ChevronRight, User, LogOut, LayoutDashboard } fr
 import { cmsApi } from '@/lib/cms-api';
 import { MenuItem } from '@/types/cms';
 import CookieConsentBanner from '@/app/components/cms/CookieConsentBanner';
+import NewsletterModal from '@/app/components/NewsletterModal';
+import { BackgroundGlow } from '@/components/BackgroundGlow';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function PublicLayout({
@@ -22,6 +24,17 @@ export default function PublicLayout({
   const [headerItems, setHeaderItems] = useState<MenuItem[]>([]);
   const [footerItems, setFooterItems] = useState<MenuItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
+  
+  // Newsletter state
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [showNewsletterModal, setShowNewsletterModal] = useState(false);
+  
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newsletterEmail && newsletterEmail.includes('@')) {
+      setShowNewsletterModal(true);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -86,13 +99,17 @@ export default function PublicLayout({
 
   return (
     <div className="min-h-screen bg-[var(--dark-900)]">
-      {/* Floating Header */}
+      {/* Background Glow Effect */}
+      <BackgroundGlow variant="default" />
+      
+      {/* Floating Header - positioned below system alert if present */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
             ? 'bg-[var(--dark-800)]/95 backdrop-blur-lg shadow-xl border-b border-[var(--dark-600)]'
             : 'bg-transparent'
         }`}
+        style={{ top: 'var(--system-alert-height, 0px)' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
@@ -398,36 +415,53 @@ export default function PublicLayout({
               </p>
             </div>
 
-            {/* CMS Footer Items */}
-            {footerItems.length > 0 && (
-              <div>
-                <h4 className="text-[var(--brand-light)] font-semibold mb-4">Snabblänkar</h4>
-                <ul className="space-y-2">
-                  {footerItems.map((item) => (
-                    <li key={item.id}>
-                      {isExternalLink(item) ? (
-                        <a
-                          href={getMenuItemHref(item)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1"
-                        >
-                          {item.label}
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ) : (
-                        <Link 
-                          href={getMenuItemHref(item)} 
-                          className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors"
-                        >
-                          {item.label}
-                        </Link>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Quick Links - Static + CMS Footer Items */}
+            <div>
+              <h4 className="text-[var(--brand-light)] font-semibold mb-4">Snabblänkar</h4>
+              <ul className="space-y-2">
+                {/* Static pricing link */}
+                <li>
+                  <Link 
+                    href="/pricing" 
+                    className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors"
+                  >
+                    Priser
+                  </Link>
+                </li>
+                {/* Static contact link */}
+                <li>
+                  <Link 
+                    href="/contact" 
+                    className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors"
+                  >
+                    Kontakt
+                  </Link>
+                </li>
+                {/* CMS Footer Items */}
+                {footerItems.map((item) => (
+                  <li key={item.id}>
+                    {isExternalLink(item) ? (
+                      <a
+                        href={getMenuItemHref(item)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1"
+                      >
+                        {item.label}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <Link 
+                        href={getMenuItemHref(item)} 
+                        className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             {/* Contact */}
             <div>
@@ -439,13 +473,51 @@ export default function PublicLayout({
             </div>
           </div>
 
-          <div className="mt-12 pt-8 border-t border-[var(--dark-600)] flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* Newsletter Section */}
+          <div className="mt-12 pt-8 border-t border-[var(--dark-600)]">
+            <form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div>
+                <h3 className="text-[var(--brand-light)] font-bold mb-1">Håll dig uppdaterad</h3>
+                <p className="text-[var(--brand-light)]/60 text-sm">
+                  Få de senaste nyheterna och uppdateringarna.
+                </p>
+              </div>
+              <div className="flex gap-2 max-w-md w-full md:w-auto">
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="Ange din e-post"
+                  className="flex-1 md:w-64 px-4 py-2.5 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] outline-none transition-all"
+                  required
+                />
+                <button 
+                  type="submit"
+                  className="px-5 py-2.5 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold text-sm rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all whitespace-nowrap"
+                >
+                  Prenumerera
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-[var(--dark-600)] flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-[var(--brand-light)]/40 text-sm">
               © {new Date().getFullYear()} Ungdomsappen. Alla rättigheter förbehållna.
             </p>
           </div>
         </div>
       </footer>
+      
+      {/* Newsletter Modal */}
+      <NewsletterModal
+        isOpen={showNewsletterModal}
+        onClose={() => {
+          setShowNewsletterModal(false);
+          setNewsletterEmail('');
+        }}
+        email={newsletterEmail}
+      />
 
       {/* Cookie Consent Banner */}
       <CookieConsentBanner />

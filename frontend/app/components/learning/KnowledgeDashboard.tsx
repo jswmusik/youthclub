@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { learningApi } from '@/lib/learning-api';
 import { Course, LearningCategory } from '@/types/learning';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function KnowledgeDashboard({ basePath }: Props) {
+    const t = useTranslations('knowledgeAdmin.dashboard');
     const [courses, setCourses] = useState<Course[]>([]);
     const [categories, setCategories] = useState<LearningCategory[]>([]);
     const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
                         <GraduationCap className="w-6 h-6 text-white" />
                     </div>
-                    <p className="text-[var(--brand-light)]/60">Loading knowledge center...</p>
+                    <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
                 </div>
             </div>
         );
@@ -98,19 +100,18 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                         </div>
                         <div className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-full text-xs font-semibold flex items-center gap-1.5">
                             <Sparkles className="w-3 h-3" />
-                            Knowledge Center
+                            {t('hero.badge')}
                         </div>
                     </div>
                     
                     <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 leading-tight">
-                        Master Your Platform
+                        {t('hero.title')}
                         <br />
-                        <span className="text-[var(--brand-third)]">One Course at a Time</span>
+                        <span className="text-[var(--brand-third)]">{t('hero.titleHighlight')}</span>
                     </h1>
                     
                     <p className="text-base md:text-lg text-white/90 max-w-2xl mb-6 leading-relaxed">
-                        Unlock the full potential of your platform with our comprehensive learning resources. 
-                        From beginner guides to advanced techniques, everything you need is here.
+                        {t('hero.description')}
                     </p>
                     
                     <div className="flex flex-wrap gap-4">
@@ -119,14 +120,14 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                             className="px-6 py-3 rounded-xl bg-white text-[var(--brand-primary)] hover:bg-white/90 font-semibold transition-all flex items-center gap-2"
                         >
                             <BookOpen className="w-5 h-5" />
-                            Browse All Courses
+                            {t('hero.browseAllCourses')}
                         </Link>
                         <Link 
                             href={`${basePath}?filter=recommended`}
                             className="px-6 py-3 rounded-xl bg-white/10 backdrop-blur-sm text-white border border-white/30 hover:bg-white/20 font-semibold transition-all flex items-center gap-2"
                         >
                             <TrendingUp className="w-5 h-5" />
-                            Recommended
+                            {t('hero.recommended')}
                         </Link>
                     </div>
                 </div>
@@ -141,13 +142,13 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                                 <PlayCircle className="w-5 h-5 text-[var(--brand-blue)]" />
                             </div>
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Continue Learning</h2>
-                                <p className="text-sm text-[var(--brand-light)]/50">Pick up where you left off</p>
+                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('sections.continueLearning.title')}</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">{t('sections.continueLearning.subtitle')}</p>
                             </div>
                         </div>
                         <Link href={`${basePath}`}>
                             <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all flex items-center gap-2">
-                                View all <ArrowRight className="w-4 h-4" />
+                                {t('sections.viewAll')} <ArrowRight className="w-4 h-4" />
                             </button>
                         </Link>
                     </div>
@@ -168,13 +169,13 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                                 <TrendingUp className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Recommended for You</h2>
-                                <p className="text-sm text-[var(--brand-light)]/50">Curated courses just for you</p>
+                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('sections.recommended.title')}</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">{t('sections.recommended.subtitle')}</p>
                             </div>
                         </div>
                         <Link href={`${basePath}`}>
                             <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all flex items-center gap-2">
-                                View all <ArrowRight className="w-4 h-4" />
+                                {t('sections.viewAll')} <ArrowRight className="w-4 h-4" />
                             </button>
                         </Link>
                     </div>
@@ -195,13 +196,13 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                                 <Sparkles className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Latest Courses</h2>
-                                <p className="text-sm text-[var(--brand-light)]/50">Fresh content added recently</p>
+                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('sections.latest.title')}</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">{t('sections.latest.subtitle')}</p>
                             </div>
                         </div>
                         <Link href={`${basePath}`}>
                             <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all flex items-center gap-2">
-                                View all <ArrowRight className="w-4 h-4" />
+                                {t('sections.viewAll')} <ArrowRight className="w-4 h-4" />
                             </button>
                         </Link>
                     </div>
@@ -222,8 +223,8 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                                 <BarChart3 className="w-5 h-5 text-[var(--brand-purple)]" />
                             </div>
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Browse by Category</h2>
-                                <p className="text-sm text-[var(--brand-light)]/50">Explore courses organized by topic</p>
+                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('sections.byCategory.title')}</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">{t('sections.byCategory.subtitle')}</p>
                             </div>
                         </div>
                     </div>
@@ -243,7 +244,7 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                                                 {category.name}
                                             </h3>
                                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
-                                                {categoryCourses.length} {categoryCourses.length === 1 ? 'course' : 'courses'}
+                                                {categoryCourses.length} {categoryCourses.length === 1 ? t('sections.byCategory.course') : t('sections.byCategory.courses')}
                                             </span>
                                         </div>
                                     </div>
@@ -280,7 +281,7 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                                         {categoryCourses.length >= 3 && (
                                             <Link href={`${basePath}?category=${category.id}`}>
                                                 <button className="w-full px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10 hover:border-[var(--brand-primary)]/30 transition-all flex items-center justify-center gap-2">
-                                                    View all courses <ArrowRight className="w-3 h-3" />
+                                                    {t('sections.byCategory.viewAllCourses')} <ArrowRight className="w-3 h-3" />
                                                 </button>
                                             </Link>
                                         )}
@@ -299,8 +300,8 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                         <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                             <GraduationCap className="w-8 h-8 text-[var(--brand-light)]/30" />
                         </div>
-                        <h3 className="text-xl font-semibold text-[var(--brand-light)] mb-2">No courses available yet</h3>
-                        <p className="text-[var(--brand-light)]/50 mb-6">Check back soon for new learning resources!</p>
+                        <h3 className="text-xl font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.title')}</h3>
+                        <p className="text-[var(--brand-light)]/50 mb-6">{t('emptyState.description')}</p>
                     </div>
                 </div>
             )}

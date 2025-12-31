@@ -7,11 +7,10 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/context/AuthContext';
 import { Item, inventoryApi } from '@/lib/inventory-api';
 import { Package, Clock, Users, AlertCircle, LogIn } from 'lucide-react';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../hooks/useToast';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { differenceInMinutes, parseISO } from 'date-fns';
 import { visits } from '@/lib/api';
-
 
 interface InventoryCardProps {
   item: Item;

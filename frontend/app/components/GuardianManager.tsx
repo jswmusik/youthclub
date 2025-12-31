@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, UserPlus, UsersRound, CheckCircle2, Mail, Building, ChevronLeft } from 'lucide-react';
+import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, Users, UserPlus, UsersRound, CheckCircle2, Mail, Building, ChevronLeft, FileCheck, Clock, AlertCircle } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { cn } from '@/lib/utils';
 
 // Minimum loading time for skeleton display
@@ -22,6 +23,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const t = useTranslations('guardianManager');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -108,14 +110,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -199,6 +201,7 @@ function GuardianTableRowSkeleton() {
 }
 
 function GuardiansPageSkeleton() {
+  const t = useTranslations('guardianManager');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -213,10 +216,10 @@ function GuardiansPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Guardian</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Connected Youth</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.guardian')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.connectedYouth')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -236,6 +239,7 @@ interface GuardianManagerProps {
 }
 
 export default function GuardianManager({ basePath, scope }: GuardianManagerProps) {
+  const t = useTranslations('guardianManager');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -251,12 +255,12 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
   // Dropdowns
   const [municipalities, setMunicipalities] = useState<any[]>([]);
   
+  // Pending Verifications
+  const [pendingVerificationCount, setPendingVerificationCount] = useState(0);
+  const [pendingGuardianIds, setPendingGuardianIds] = useState<number[]>([]);
+  
   // Toast State
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
   
   // Delete Confirmation Modal State
   const [userToDelete, setUserToDelete] = useState<any>(null);
@@ -265,6 +269,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
   useEffect(() => {
     fetchDropdowns();
     fetchAllUsersForAnalytics();
+    fetchPendingVerifications();
   }, []);
 
   useEffect(() => {
@@ -287,6 +292,16 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchPendingVerifications = async () => {
+    try {
+      const res = await api.get('/users/pending_verifications/');
+      setPendingVerificationCount(res.data.pending_count || 0);
+      setPendingGuardianIds(res.data.pending_guardian_ids || []);
+    } catch (err) {
+      console.error('Error fetching pending verifications:', err);
     }
   };
 
@@ -355,6 +370,9 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
       
       const status = searchParams.get('verification_status');
       if (status) params.set('verification_status', status);
+
+      const idDocStatus = searchParams.get('id_doc_status');
+      if (idDocStatus) params.set('id_document_review_status', idDocStatus);
       
       const municipality = searchParams.get('municipality');
       if (municipality) params.set('municipality', municipality);
@@ -364,15 +382,20 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
       
       const res = await api.get(`/users/?${params.toString()}`);
       
+      let guardiansOnly: any[] = [];
       if (res.data.results) {
-        const guardiansOnly = res.data.results.filter((user: any) => user.role === 'GUARDIAN');
-        setUsers(guardiansOnly);
-        setTotalCount(res.data.count || guardiansOnly.length);
+        guardiansOnly = res.data.results.filter((user: any) => user.role === 'GUARDIAN');
       } else {
-        const guardiansOnly = (Array.isArray(res.data) ? res.data : []).filter((user: any) => user.role === 'GUARDIAN');
-        setUsers(guardiansOnly);
-        setTotalCount(guardiansOnly.length);
+        guardiansOnly = (Array.isArray(res.data) ? res.data : []).filter((user: any) => user.role === 'GUARDIAN');
       }
+
+      // If filtering by id_doc_status=PENDING_REVIEW, also filter by pendingGuardianIds
+      if (idDocStatus === 'PENDING_REVIEW' && pendingGuardianIds.length > 0) {
+        guardiansOnly = guardiansOnly.filter((user: any) => pendingGuardianIds.includes(user.id));
+      }
+      
+      setUsers(guardiansOnly);
+      setTotalCount(res.data.count || guardiansOnly.length);
     } catch (err) { 
       console.error('Error fetching guardians:', err); 
     } 
@@ -396,12 +419,14 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     const status = searchParams.get('verification_status');
     const gender = searchParams.get('legal_gender');
     const municipality = searchParams.get('municipality');
+    const idDocStatus = searchParams.get('id_doc_status');
     
     if (page && page !== '1') params.set('page', page);
     if (search) params.set('search', search);
     if (status) params.set('verification_status', status);
     if (gender) params.set('legal_gender', gender);
     if (municipality) params.set('municipality', municipality);
+    if (idDocStatus) params.set('id_doc_status', idDocStatus);
     
     const queryString = params.toString();
     return queryString ? `${path}?${queryString}` : path;
@@ -411,22 +436,12 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
     if (!userToDelete) return;
     try { 
       await api.delete(`/users/${userToDelete.id}/`);
-      setToast({
-        message: 'Guardian deleted successfully!',
-        type: 'success',
-        isVisible: true,
-      });
       setUserToDelete(null);
       fetchGuardians(); 
       fetchAllUsersForAnalytics(); 
     } 
     catch (err) { 
-      setToast({
-        message: 'Failed to delete guardian.',
-        type: 'error',
-        isVisible: true,
-      });
-    }
+      }
   };
 
   const getInitials = (firstName: string = '', lastName: string = '') => {
@@ -478,7 +493,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
   };
 
   const hasActiveFilters = searchParams.get('search') || searchParams.get('legal_gender') || 
-    searchParams.get('verification_status') || searchParams.get('municipality');
+    searchParams.get('verification_status') || searchParams.get('municipality') || searchParams.get('id_doc_status');
 
   return (
     <div className="space-y-6">
@@ -489,13 +504,13 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <Users className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Guardians</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage guardians and their information.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <Link href={`${basePath}/create`}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="h-4 w-4" /> Add Guardian
+            <Plus className="h-4 w-4" /> {t('addGuardian')}
           </button>
         </Link>
       </div>
@@ -511,7 +526,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h3>
             </div>
             <ChevronUp className={cn(
               "h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300",
@@ -526,7 +541,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
                   <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
                     <Users className="h-5 w-5 text-[var(--brand-purple)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total Guardians</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.totalGuardians')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_guardians}</div>
               </div>
@@ -537,7 +552,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
                   <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
                     <UserPlus className="h-5 w-5 text-[var(--brand-blue)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">New (7 Days)</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.newLast7Days')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.new_last_7_days}</div>
               </div>
@@ -548,19 +563,19 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
                   <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
                     <UsersRound className="h-5 w-5 text-[var(--brand-primary)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Gender</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.gender')}</span>
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/50">Male:</span>
+                    <span className="text-[var(--brand-light)]/50">{t('analytics.male')}</span>
                     <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.male}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/50">Female:</span>
+                    <span className="text-[var(--brand-light)]/50">{t('analytics.female')}</span>
                     <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.female}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/50">Other:</span>
+                    <span className="text-[var(--brand-light)]/50">{t('analytics.other')}</span>
                     <span className="font-semibold text-[var(--brand-light)]">{analytics.gender.other}</span>
                   </div>
                 </div>
@@ -572,19 +587,41 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
                   <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 text-[var(--brand-green)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Verification</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.verification')}</span>
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/50">Verified:</span>
+                    <span className="text-[var(--brand-light)]/50">{t('analytics.verified')}</span>
                     <span className="font-semibold text-[var(--brand-green)]">{analytics.verification.verified}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[var(--brand-light)]/50">Pending:</span>
+                    <span className="text-[var(--brand-light)]/50">{t('analytics.pending')}</span>
                     <span className="font-semibold text-[var(--brand-light)]">{analytics.verification.unverified_pending}</span>
                   </div>
                 </div>
               </div>
+
+              {/* Card 5: Pending ID Reviews (only show if there are pending reviews) */}
+              {pendingVerificationCount > 0 && (
+                <div 
+                  className="bg-[var(--dark-700)] rounded-xl p-4 border-2 border-[var(--brand-peach)]/50 hover:border-[var(--brand-peach)] transition-all cursor-pointer animate-pulse-subtle"
+                  onClick={() => updateUrl('id_doc_status', 'PENDING_REVIEW')}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)]/20 flex items-center justify-center relative">
+                      <FileCheck className="h-5 w-5 text-[var(--brand-peach)]" />
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-[var(--brand-peach)] text-[var(--dark-900)] text-xs font-bold rounded-full flex items-center justify-center">
+                        {pendingVerificationCount}
+                      </span>
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-peach)]">{t('analytics.idReviewsPending')}</span>
+                  </div>
+                  <p className="text-sm text-[var(--brand-light)]/70">
+                    <span className="font-bold text-[var(--brand-peach)]">{pendingVerificationCount}</span> {t('analytics.guardiansAwaiting')}
+                  </p>
+                  <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('analytics.clickToFilter')}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -598,7 +635,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search by name or email..." 
+              placeholder={t('filters.searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchParams.get('search') || ''}
               onChange={e => updateUrl('search', e.target.value)}
@@ -620,10 +657,10 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
               value={searchParams.get('legal_gender') || ''} 
               onChange={e => updateUrl('legal_gender', e.target.value)}
             >
-              <option value="">All Genders</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-              <option value="OTHER">Other</option>
+              <option value="">{t('filters.allGenders')}</option>
+              <option value="MALE">{t('filters.male')}</option>
+              <option value="FEMALE">{t('filters.female')}</option>
+              <option value="OTHER">{t('filters.other')}</option>
             </select>
             
             <select 
@@ -631,10 +668,26 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
               value={searchParams.get('verification_status') || ''} 
               onChange={e => updateUrl('verification_status', e.target.value)}
             >
-              <option value="">All Statuses</option>
-              <option value="VERIFIED">Verified</option>
-              <option value="PENDING">Pending</option>
-              <option value="UNVERIFIED">Unverified</option>
+              <option value="">{t('filters.allStatuses')}</option>
+              <option value="VERIFIED">{t('filters.verified')}</option>
+              <option value="PENDING">{t('filters.pending')}</option>
+              <option value="UNVERIFIED">{t('filters.unverified')}</option>
+            </select>
+
+            <select 
+              className={`flex-1 min-w-[140px] h-9 rounded-lg border-2 px-3 text-sm focus:outline-none transition-colors ${
+                searchParams.get('id_doc_status') === 'PENDING_REVIEW'
+                  ? 'border-[var(--brand-peach)] bg-[var(--brand-peach)]/10 text-[var(--brand-peach)] focus:border-[var(--brand-peach)]'
+                  : 'border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] focus:border-[var(--brand-primary)]'
+              }`}
+              value={searchParams.get('id_doc_status') || ''} 
+              onChange={e => updateUrl('id_doc_status', e.target.value)}
+            >
+              <option value="">{t('filters.allIdDocStatus')}</option>
+              <option value="PENDING_REVIEW">{t('filters.pendingReview')}</option>
+              <option value="APPROVED">{t('filters.approved')}</option>
+              <option value="REJECTED">{t('filters.rejected')}</option>
+              <option value="NOT_SUBMITTED">{t('filters.notSubmitted')}</option>
             </select>
             
             {scope === 'SUPER' && (
@@ -643,7 +696,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
                 value={searchParams.get('municipality') || ''} 
                 onChange={e => updateUrl('municipality', e.target.value)}
               >
-                <option value="">All Municipalities</option>
+                <option value="">{t('filters.allMunicipalities')}</option>
                 {municipalities.map(m => (
                   <option key={m.id} value={m.id.toString()}>{m.name}</option>
                 ))}
@@ -657,7 +710,7 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
       {!isLoading && paginatedUsers.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedUsers.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> guardians
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{paginatedUsers.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {t('statsBar.guardians')}
           </p>
         </div>
       )}
@@ -670,14 +723,14 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Users className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No guardians found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noGuardiansFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {hasActiveFilters ? 'Try adjusting your search or filters.' : 'Get started by adding your first guardian.'}
+            {hasActiveFilters ? t('emptyState.adjustFilters') : t('emptyState.addFirstGuardian')}
           </p>
           {!hasActiveFilters && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Add Guardian
+                <Plus className="h-4 w-4" /> {t('addGuardian')}
               </button>
             </Link>
           )}
@@ -714,10 +767,16 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
-                          {user.verification_status || 'UNVERIFIED'}
+                          {user.verification_status ? t(`statuses.${user.verification_status}`) : t('statuses.UNVERIFIED')}
                         </span>
+                        {user.id_document_review_status === 'PENDING_REVIEW' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
+                            <Clock className="w-3 h-3" />
+                            {t('badges.idReview')}
+                          </span>
+                        )}
                         <span className="text-xs text-[var(--brand-light)]/50">
-                          <span className="font-semibold text-[var(--brand-primary)]">{user.youth_members ? user.youth_members.length : 0}</span> youth connected
+                          <span className="font-semibold text-[var(--brand-primary)]">{user.youth_members ? user.youth_members.length : 0}</span> {t('badges.youthConnected')}
                         </span>
                       </div>
                     </div>
@@ -732,10 +791,10 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Guardian</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Connected Youth</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.guardian')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.connectedYouth')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -762,9 +821,17 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
-                        {user.verification_status || 'UNVERIFIED'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(user.verification_status)}`}>
+                          {user.verification_status ? t(`statuses.${user.verification_status}`) : t('statuses.UNVERIFIED')}
+                        </span>
+                        {user.id_document_review_status === 'PENDING_REVIEW' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30" title="ID document pending review">
+                            <Clock className="w-3 h-3" />
+                            ID
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="font-semibold text-[var(--brand-primary)]">{user.youth_members ? user.youth_members.length : 0}</span>
@@ -803,17 +870,17 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
                 onClick={() => updateUrl('page', (currentPage - 1).toString())}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)] border border-[var(--dark-500)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Prev
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/70">
-                Page <span className="font-bold text-[var(--brand-primary)]">{currentPage}</span> of {totalPages}
+                {t('pagination.page')} <span className="font-bold text-[var(--brand-primary)]">{currentPage}</span> {t('pagination.of')} {totalPages}
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => updateUrl('page', (currentPage + 1).toString())}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-700)] border border-[var(--dark-500)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}
@@ -825,21 +892,15 @@ export default function GuardianManager({ basePath, scope }: GuardianManagerProp
         isVisible={!!userToDelete}
         onClose={() => setUserToDelete(null)}
         onConfirm={handleDelete}
-        title="Delete Guardian"
-        message={`Are you sure you want to delete ${userToDelete?.first_name} ${userToDelete?.last_name}? This action cannot be undone.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={`${t('deleteModal.message')} ${userToDelete?.first_name} ${userToDelete?.last_name}? ${t('deleteModal.cannotUndone')}`}
+        confirmButtonText={t('deleteModal.delete')}
+        cancelButtonText={t('deleteModal.cancel')}
         variant="danger"
         darkMode={true}
       />
 
       {/* Toast Notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-      />
     </div>
   );
 }

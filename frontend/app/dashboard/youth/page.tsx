@@ -3,7 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { format } from 'date-fns';
+import { sv, enUS } from 'date-fns/locale';
+import { useLocale } from 'next-intl';
 import { fetchYouthFeed } from '../../../lib/api';
+import api from '../../../lib/api';
 import PostCard from '../../components/posts/PostCard';
 import QuestionnaireCard from '../../components/questionnaires/QuestionnaireCard';
 import EventCard from '../../components/events/youth/EventCard';
@@ -15,14 +19,16 @@ import RecommendedClubs from '../../components/RecommendedClubs';
 import RecommendedGroups from '../../components/RecommendedGroups';
 import PreferredClubCard from '../../components/PreferredClubCard';
 import { questionnaireApi } from '../../../lib/questionnaire-api';
-import { X } from 'lucide-react';
+import { X, Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { 
     DashboardFeedSkeleton, 
     WelcomeBannerSkeleton, 
     ClubCardSkeleton, 
     SidebarCardSkeleton 
 } from '../../components/ui/Skeleton';
-import YouthFooter from '../../components/youth/YouthFooter';
+import Footer from '@/app/components/Footer';
+import Link from 'next/link';
+import { getMediaUrl } from '@/app/utils';
 
 // Define interface for the mixed feed items
 interface FeedItem {
@@ -33,11 +39,15 @@ interface FeedItem {
 
 export default function YouthDashboard() {
     const t = useTranslations('dashboard');
+    const tEvents = useTranslations('events');
     const tErrors = useTranslations('errors');
+    const locale = useLocale();
+    const dateLocale = locale === 'sv' ? sv : enUS;
     const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [minLoadingComplete, setMinLoadingComplete] = useState(false);
+    const [nextEvent, setNextEvent] = useState<any>(null);
     
     // Minimum skeleton display time (in ms) for better UX
     const MIN_LOADING_TIME = 400;
@@ -149,6 +159,46 @@ export default function YouthDashboard() {
         }
     };
 
+    const loadNextEvent = async () => {
+        try {
+            // Fetch user's event registrations (the API filters by user automatically for YOUTH_MEMBER)
+            const res = await api.get('/registrations/?page_size=100');
+            const registrations = res.data.results || res.data;
+            
+            // Filter for approved registrations with future events
+            const now = new Date();
+            const upcomingRegistrations = registrations
+                .filter((reg: any) => {
+                    // Only show APPROVED registrations (user has a confirmed spot)
+                    if (reg.status !== 'APPROVED') return false;
+                    
+                    // Only show future events
+                    const eventStartDate = reg.event_detail?.start_date || reg.event?.start_date;
+                    if (!eventStartDate) return false;
+                    
+                    const eventDate = new Date(eventStartDate);
+                    return eventDate > now;
+                })
+                .sort((a: any, b: any) => {
+                    // Sort by event start date, earliest first
+                    const dateA = new Date(a.event_detail?.start_date || a.event?.start_date);
+                    const dateB = new Date(b.event_detail?.start_date || b.event?.start_date);
+                    return dateA.getTime() - dateB.getTime();
+                });
+            
+            // Get the next upcoming event
+            if (upcomingRegistrations.length > 0) {
+                const nextReg = upcomingRegistrations[0];
+                setNextEvent(nextReg.event_detail || nextReg.event);
+            } else {
+                setNextEvent(null);
+            }
+        } catch (err) {
+            console.error('Failed to load next event:', err);
+            setNextEvent(null);
+        }
+    };
+
     useEffect(() => {
         // Check if user is authenticated
         const token = Cookies.get('access_token');
@@ -174,6 +224,7 @@ export default function YouthDashboard() {
         setHasMore(true);
         loadFeed(1, false);
         loadUnfinishedCount();
+        loadNextEvent();
         
         return () => clearTimeout(minLoadingTimer);
     }, [user, router, loadFeed]);
@@ -244,7 +295,8 @@ export default function YouthDashboard() {
 
 
     return (
-        <div className="min-h-screen bg-[var(--dark-900)]">
+        <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+            <div className="flex-1">
             <NavBar onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} darkMode />
             
             {/* Mobile Sidebar Overlay */}
@@ -279,7 +331,7 @@ export default function YouthDashboard() {
             <div className="">
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
-                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
                         <YouthSidebar activePath={pathname} darkMode />
                     </aside>
                     
@@ -417,11 +469,58 @@ export default function YouthDashboard() {
                                                 {/* Preferred Club Card */}
                                                 <PreferredClubCard club={user?.preferred_club || null} darkMode />
                                                 
-                                                {/* Placeholders for upcoming features */}
-                                                <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] p-6">
-                                                    <h3 className="font-bold text-[var(--brand-light)] mb-4">{t('upcomingEvents')}</h3>
-                                                    <p className="text-sm text-[var(--brand-light)]/60">{t('noEventsScheduled')}</p>
-                                                </div>
+                                                {/* Next Upcoming Event - Only show if user has a confirmed event */}
+                                                {nextEvent && (
+                                                    <Link 
+                                                        href={`/dashboard/youth/events/${nextEvent.id}`}
+                                                        className="block bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all group"
+                                                    >
+                                                        {/* Event Image */}
+                                                        {nextEvent.cover_image && (
+                                                            <div className="relative h-24 overflow-hidden">
+                                                                <img 
+                                                                    src={getMediaUrl(nextEvent.cover_image) || ''} 
+                                                                    alt={nextEvent.title}
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                />
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-700)] to-transparent" />
+                                                            </div>
+                                                        )}
+                                                        
+                                                        <div className="p-4">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <h3 className="font-bold text-[var(--brand-light)] text-sm">{t('upcomingEvents')}</h3>
+                                                                <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--brand-green)]/20 text-[var(--brand-green)] font-medium">
+                                                                    {tEvents('goingStatus')}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            <h4 className="font-bold text-[var(--brand-light)] line-clamp-2 mb-2 group-hover:text-[var(--brand-primary)] transition-colors">
+                                                                {nextEvent.title}
+                                                            </h4>
+                                                            
+                                                            <div className="space-y-1.5 text-xs text-[var(--brand-light)]/60">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Calendar className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+                                                                    <span>
+                                                                        {format(new Date(nextEvent.start_date), 'EEE, d MMM HH:mm', { locale: dateLocale })}
+                                                                    </span>
+                                                                </div>
+                                                                {nextEvent.location_name && (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <MapPin className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+                                                                        <span className="line-clamp-1">{nextEvent.location_name}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            <div className="flex items-center justify-end mt-3 text-xs text-[var(--brand-primary)] font-medium group-hover:gap-2 transition-all">
+                                                                <span>{tEvents('viewDetails')}</span>
+                                                                <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </div>
+                                                        </div>
+                                                    </Link>
+                                                )}
                                             </>
                                         )}
                                     </div>
@@ -430,9 +529,10 @@ export default function YouthDashboard() {
                     </div>
                 </div>
             </div>
+            </div>
             
             {/* Footer */}
-            <YouthFooter />
+            <Footer />
         </div>
     );
 }

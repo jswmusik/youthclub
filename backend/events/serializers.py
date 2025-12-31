@@ -5,6 +5,56 @@ from users.serializers import UserListSerializer
 from organization.serializers import MunicipalitySerializer, ClubSerializer
 from organization.models import Municipality, Club
 from groups.serializers import GroupSerializer
+from custom_fields.models import EventCustomField, CustomFieldDefinition, EventRegistrationCustomFieldValue
+from custom_fields.serializers import EventCustomFieldSerializer, CustomFieldDefinitionSerializer, EventRegistrationCustomFieldValueSerializer
+import json
+
+
+class CustomFieldsListField(serializers.Field):
+    """
+    Custom field that handles JSON string or dict conversion to list.
+    This handles FormData sending JSON strings or nested dict notation.
+    """
+    def to_internal_value(self, data):
+        print(f"[CustomFieldsListField] to_internal_value called with type: {type(data)}, value: {data}")
+        
+        if data is None or data == '':
+            return []
+        
+        # If it's a string, try to parse as JSON
+        if isinstance(data, str):
+            try:
+                parsed = json.loads(data)
+                if isinstance(parsed, list):
+                    return parsed
+                elif isinstance(parsed, dict):
+                    # Handle numeric keys from FormData array notation
+                    if all(str(k).isdigit() for k in parsed.keys()):
+                        return [parsed[k] for k in sorted(parsed.keys(), key=lambda x: int(x))]
+                    elif parsed:
+                        return [parsed]
+                    return []
+                return []
+            except (json.JSONDecodeError, ValueError):
+                return []
+        
+        # If it's already a list, return as-is
+        if isinstance(data, list):
+            return data
+        
+        # If it's a dict (from FormData array notation like custom_fields[0][field_id])
+        if isinstance(data, dict):
+            # Check if keys are numeric (array-like)
+            if all(str(k).isdigit() for k in data.keys()):
+                return [data[k] for k in sorted(data.keys(), key=lambda x: int(x))]
+            elif data:
+                return [data]
+            return []
+        
+        return []
+    
+    def to_representation(self, value):
+        return value
 
 
 # =============================================================================
@@ -163,10 +213,11 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
     ticket = EventTicketSerializer(read_only=True)
     user_detail = UserListSerializer(source='user', read_only=True)
     event_detail = serializers.SerializerMethodField()
+    custom_field_values = EventRegistrationCustomFieldValueSerializer(many=True, read_only=True)
 
     class Meta:
         model = EventRegistration
-        fields = ['id', 'event', 'user', 'user_detail', 'status', 'created_at', 'ticket', 'event_detail']
+        fields = ['id', 'event', 'user', 'user_detail', 'status', 'created_at', 'ticket', 'event_detail', 'custom_field_values']
         read_only_fields = ['approved_by', 'approval_date', 'ticket']
 
     def get_event_detail(self, obj):
@@ -174,7 +225,14 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
             'id': obj.event.id,
             'title': obj.event.title,
             'start_date': obj.event.start_date,
+            'end_date': obj.event.end_date,
             'location_name': obj.event.location_name,
+            'registration_close_date': obj.event.registration_close_date,
+            'cover_image': obj.event.cover_image.url if obj.event.cover_image else None,
+            'description': obj.event.description,
+            'cost': obj.event.cost,
+            'max_seats': obj.event.max_seats,
+            'confirmed_participants_count': obj.event.confirmed_participants_count,
         }
 
 class EventSerializer(serializers.ModelSerializer):
@@ -187,6 +245,14 @@ class EventSerializer(serializers.ModelSerializer):
     
     # Read-only details for target groups
     target_groups_details = GroupSerializer(source='target_groups', many=True, read_only=True)
+    
+    # Custom Fields for event registration
+    event_custom_fields = EventCustomFieldSerializer(many=True, read_only=True)
+    custom_fields = CustomFieldsListField(
+        write_only=True,
+        required=False,
+        help_text="List of custom fields to attach: [{'field_id': 1, 'is_required': true, 'order': 0}]"
+    )
     
     # Write-only fields for media upload (handled in create/update if needed, or separate endpoints)
     # Typically in React we upload files to separate endpoints or use FormData with nested naming
@@ -233,6 +299,14 @@ class EventSerializer(serializers.ModelSerializer):
         from django.http import QueryDict
         import json
         import ast
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Debug: Log incoming custom_fields data
+        if hasattr(data, 'get'):
+            cf_raw = data.get('custom_fields')
+            print(f"[EventSerializer DEBUG] Incoming data type: {type(data)}")
+            print(f"[EventSerializer DEBUG] Incoming custom_fields type: {type(cf_raw)}, value: {cf_raw}")
         
         # Create a new dict to avoid pickle issues with file objects
         # Don't use copy() on QueryDict with files - it tries to deepcopy file objects
@@ -266,6 +340,58 @@ class EventSerializer(serializers.ModelSerializer):
             data = dict(data)
         
         if isinstance(data, dict):
+            # Handle custom_fields JSON string from FormData
+            if 'custom_fields' in data:
+                custom_fields_value = data.get('custom_fields')
+                print(f"[EventSerializer DEBUG] Processing custom_fields - type: {type(custom_fields_value)}, value: {custom_fields_value}")
+                
+                if isinstance(custom_fields_value, str):
+                    try:
+                        parsed = json.loads(custom_fields_value)
+                        print(f"[EventSerializer DEBUG] Parsed custom_fields - type: {type(parsed)}, value: {parsed}")
+                        # Ensure it's a list
+                        if isinstance(parsed, list):
+                            data['custom_fields'] = parsed
+                        elif isinstance(parsed, dict):
+                            # If a single dict was passed, wrap it in a list
+                            # Also handle the case where dict keys are numeric strings (FormData array notation)
+                            if all(k.isdigit() for k in parsed.keys()):
+                                # Convert {'0': {...}, '1': {...}} to [{...}, {...}]
+                                data['custom_fields'] = [parsed[k] for k in sorted(parsed.keys(), key=int)]
+                            elif parsed:
+                                data['custom_fields'] = [parsed]
+                            else:
+                                data['custom_fields'] = []
+                        else:
+                            data['custom_fields'] = []
+                    except (json.JSONDecodeError, ValueError) as e:
+                        print(f"[EventSerializer DEBUG] JSON parse error: {e}")
+                        data['custom_fields'] = []
+                elif isinstance(custom_fields_value, dict):
+                    # If already a dict (not string), it might be from FormData array notation
+                    # e.g., custom_fields[0][field_id]=1 becomes {'0': {'field_id': '1'}}
+                    print(f"[EventSerializer DEBUG] custom_fields is dict: {custom_fields_value}")
+                    if all(str(k).isdigit() for k in custom_fields_value.keys()):
+                        # Convert {'0': {...}, '1': {...}} to [{...}, {...}]
+                        sorted_keys = sorted(custom_fields_value.keys(), key=lambda x: int(x))
+                        data['custom_fields'] = [custom_fields_value[k] for k in sorted_keys]
+                        print(f"[EventSerializer DEBUG] Converted numeric dict to list: {data['custom_fields']}")
+                    elif custom_fields_value:
+                        # Single dict, wrap in list
+                        data['custom_fields'] = [custom_fields_value]
+                    else:
+                        data['custom_fields'] = []
+                elif isinstance(custom_fields_value, list):
+                    # Already a list, keep as is
+                    print(f"[EventSerializer DEBUG] custom_fields is already a list")
+                    data['custom_fields'] = custom_fields_value
+                else:
+                    # If not a list, string, or dict, set to empty list
+                    print(f"[EventSerializer DEBUG] custom_fields has unexpected type: {type(custom_fields_value)}")
+                    data['custom_fields'] = []
+                
+                print(f"[EventSerializer DEBUG] Final custom_fields - type: {type(data.get('custom_fields'))}, value: {data.get('custom_fields')}")
+            
             # Fields that should be arrays (ManyToMany or JSON fields)
             array_fields = ['target_groups', 'target_interests', 'target_genders', 'target_grades']
             json_fields = ['target_genders', 'target_grades']
@@ -383,6 +509,9 @@ class EventSerializer(serializers.ModelSerializer):
                 if key == 'club':
                     if value == '' or (isinstance(value, str) and value.strip() == ''):
                         data[key] = None
+        
+        # Final debug before calling super()
+        print(f"[EventSerializer DEBUG] Before super().to_internal_value - custom_fields type: {type(data.get('custom_fields'))}, value: {data.get('custom_fields')}")
         
         return super().to_internal_value(data)
     
@@ -527,13 +656,17 @@ class EventSerializer(serializers.ModelSerializer):
             logger.info(f"Final validated_data has municipality: {validated_data.get('municipality') is not None}")
             logger.info(f"Final validated_data has club: {validated_data.get('club') is not None}")
             
+            # Pop custom_fields before creating event
+            custom_fields_data = validated_data.pop('custom_fields', None)
+            
             # Try to create the event, handling slug conflicts
             max_retries = 5
+            event = None
             for attempt in range(max_retries):
                 try:
-                    result = super().create(validated_data)
-                    logger.info(f"Event created successfully: {result.id}")
-                    return result
+                    event = super().create(validated_data)
+                    logger.info(f"Event created successfully: {event.id}")
+                    break
                 except Exception as e:
                     error_str = str(e)
                     # Check if it's a slug uniqueness error
@@ -547,11 +680,51 @@ class EventSerializer(serializers.ModelSerializer):
                     else:
                         # Re-raise if it's not a slug error or we've exhausted retries
                         raise
+            
+            # Handle custom fields after event creation
+            if event and custom_fields_data:
+                self._save_custom_fields(event, custom_fields_data)
+            
+            return event
         except Exception as e:
             import traceback
             logger.error(f"Error in serializer.create(): {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
+    
+    def _save_custom_fields(self, event, custom_fields_data):
+        """
+        Helper method to save custom fields for an event.
+        Expected format: [{'field_id': 1, 'is_required': True, 'order': 0}, ...]
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Clear existing custom fields
+        EventCustomField.objects.filter(event=event).delete()
+        
+        if not custom_fields_data:
+            return
+        
+        for cf_data in custom_fields_data:
+            field_id = cf_data.get('field_id')
+            is_required = cf_data.get('is_required', False)
+            order = cf_data.get('order', 0)
+            
+            if not field_id:
+                continue
+            
+            try:
+                field = CustomFieldDefinition.objects.get(id=field_id, context='EVENT')
+                EventCustomField.objects.create(
+                    event=event,
+                    field=field,
+                    is_required=is_required,
+                    order=order
+                )
+                logger.info(f"Added custom field {field.name} to event {event.id}")
+            except CustomFieldDefinition.DoesNotExist:
+                logger.warning(f"Custom field {field_id} not found or not an EVENT context field")
     
     def update(self, instance, validated_data):
         # Ensure slug is generated if empty or missing during update
@@ -578,4 +751,14 @@ class EventSerializer(serializers.ModelSerializer):
             if club_value == '' or (isinstance(club_value, str) and club_value.strip() == ''):
                 validated_data['club'] = None
         
-        return super().update(instance, validated_data)
+        # Pop custom_fields before updating event
+        custom_fields_data = validated_data.pop('custom_fields', None)
+        
+        # Update the event
+        event = super().update(instance, validated_data)
+        
+        # Handle custom fields if provided
+        if custom_fields_data is not None:
+            self._save_custom_fields(event, custom_fields_data)
+        
+        return event

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Edit, History, Gift, Clock, Calendar, TrendingUp, 
@@ -18,6 +19,7 @@ interface RewardDetailProps {
 
 export default function RewardDetailView({ rewardId, basePath }: RewardDetailProps) {
   const searchParams = useSearchParams();
+  const t = useTranslations('rewardsAdmin.detail');
   const [reward, setReward] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -73,7 +75,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--brand-light)]/60">Loading reward details...</p>
+          <p className="text-[var(--brand-light)]/60">{t('loadingDetails')}</p>
         </div>
       </div>
     );
@@ -84,9 +86,9 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <Gift className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
-          <p className="text-[var(--brand-light)] font-semibold">Reward not found</p>
+          <p className="text-[var(--brand-light)] font-semibold">{t('rewardNotFound')}</p>
           <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
-            Return to list
+            {t('returnToList')}
           </Link>
         </div>
       </div>
@@ -95,10 +97,10 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
 
   const getTriggerInfo = (trigger: string) => {
     const triggers: Record<string, { icon: string; label: string }> = {
-      'BIRTHDAY': { icon: '🎂', label: 'On Birthday' },
-      'WELCOME': { icon: '👋', label: 'On Signup' },
-      'VERIFIED': { icon: '✅', label: 'On Verification' },
-      'MOST_ACTIVE': { icon: '🔥', label: 'Most Active' },
+      'BIRTHDAY': { icon: '🎂', label: t('triggers.onBirthday') },
+      'WELCOME': { icon: '👋', label: t('triggers.onSignup') },
+      'VERIFIED': { icon: '✅', label: t('triggers.onVerification') },
+      'MOST_ACTIVE': { icon: '🔥', label: t('triggers.mostActive') },
     };
     return triggers[trigger] || { icon: '⚡', label: trigger };
   };
@@ -111,7 +113,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
           href={buildUrlWithParams(basePath)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to List
+          <ArrowLeft className="h-4 w-4" /> {t('backToList')}
         </Link>
         <div className="flex flex-wrap gap-2">
           <Link 
@@ -119,13 +121,13 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
             <History className="h-4 w-4" />
-            <span className="hidden sm:inline">Claim History</span>
+            <span className="hidden sm:inline">{t('claimHistory')}</span>
           </Link>
           <Link 
             href={buildUrlWithParams(`${basePath}/edit/${reward.id}`)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
           >
-            <Edit className="h-4 w-4" /> Edit
+            <Edit className="h-4 w-4" /> {t('edit')}
           </Link>
         </div>
       </div>
@@ -147,14 +149,14 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
               : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]'
           }`}>
             {reward.is_active && <CheckCircle2 className="w-4 h-4" />}
-            <span className="text-sm font-semibold">{reward.is_active ? 'Active' : 'Inactive'}</span>
+            <span className="text-sm font-semibold">{reward.is_active ? t('active') : t('inactive')}</span>
           </div>
 
           {/* Owner Badge - Top Left */}
           <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-sm bg-[var(--dark-800)]/80 border border-[var(--dark-500)]">
             <span className="text-sm text-[var(--brand-light)] flex items-center gap-2">
               <Building2 className="w-4 h-4 text-[var(--brand-primary)]" />
-              {reward.municipality_name || reward.club_name || 'Super Admin'}
+              {reward.municipality_name || reward.club_name || t('superAdmin')}
             </span>
           </div>
         </div>
@@ -186,15 +188,15 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                 {reward.sponsor_name && (
                   <div className="flex items-center gap-2 text-[var(--brand-light)]/50 text-sm">
                     <Sparkles className="h-4 w-4 text-[var(--brand-peach)]" />
-                    <span>Sponsored by <span className="text-[var(--brand-light)]">{reward.sponsor_name}</span></span>
+                    <span>{t('sponsoredBy')} <span className="text-[var(--brand-light)]">{reward.sponsor_name}</span></span>
                   </div>
                 )}
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]">
-                  <Users className="w-3 h-3" /> {reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}
+                  <Users className="w-3 h-3" /> {reward.target_member_type === 'YOUTH_MEMBER' ? t('youthMembers') : t('guardians')}
                 </span>
                 {reward.expiration_date && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
-                    <Calendar className="w-3 h-3" /> Expires {new Date(reward.expiration_date).toLocaleDateString()}
+                    <Calendar className="w-3 h-3" /> {t('expires')} {new Date(reward.expiration_date).toLocaleDateString()}
                   </span>
                 )}
               </div>
@@ -214,7 +216,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Analytics Dashboard</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h2>
             </div>
             {analyticsExpanded ? (
               <ChevronUp className="w-5 h-5 text-[var(--brand-light)]/50" />
@@ -232,7 +234,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                       <Gift className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Total Claims</span>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('totalClaims')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_uses}</div>
                 </div>
@@ -243,7 +245,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                       <Clock className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Last 24h</span>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('last24h')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.uses_last_24h}</div>
                 </div>
@@ -254,7 +256,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-[var(--dark-900)]" />
                     </div>
-                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Last 7 Days</span>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('last7Days')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.uses_last_7d}</div>
                 </div>
@@ -265,7 +267,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                       <Calendar className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Last 30 Days</span>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('last30Days')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.uses_last_30d}</div>
                 </div>
@@ -276,7 +278,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
                       <Clock className="w-4 h-4 text-[var(--dark-900)]" />
                     </div>
-                    <span className="text-xs font-medium text-[var(--brand-light)]/60">Days Left</span>
+                    <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('daysLeft')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
                     {analytics.days_remaining !== null ? analytics.days_remaining : '∞'}
@@ -297,7 +299,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
           {/* About Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">About</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('about')}</h2>
             </div>
             <div className="p-6 space-y-4">
               <p className="text-sm sm:text-base text-[var(--brand-light)]/80 whitespace-pre-wrap leading-relaxed">
@@ -307,10 +309,10 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
               {(reward.sponsor_name || reward.sponsor_link) && (
                 <div className="pt-4 border-t border-[var(--dark-600)]">
                   <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Sponsor</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">{t('sponsor')}</div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-[var(--brand-light)]">
-                        {reward.sponsor_name || 'Anonymous'}
+                        {reward.sponsor_name || t('anonymous')}
                       </span>
                       {reward.sponsor_link && (
                         <a 
@@ -319,7 +321,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                           rel="noopener noreferrer" 
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/30 transition-all"
                         >
-                          <ExternalLink className="w-3 h-3" /> Visit Website
+                          <ExternalLink className="w-3 h-3" /> {t('visitWebsite')}
                         </a>
                       )}
                     </div>
@@ -332,10 +334,10 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
           {/* Latest Claims Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Latest Claims</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('latestClaims')}</h2>
               {history.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]">
-                  {history.length} {history.length === 1 ? 'claim' : 'claims'}
+                  {history.length} {history.length === 1 ? t('claim') : t('claims')}
                 </span>
               )}
             </div>
@@ -343,7 +345,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
               {history.length === 0 ? (
                 <div className="p-8 sm:p-12 text-center">
                   <Gift className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-3" />
-                  <p className="text-sm text-[var(--brand-light)]/50">No one has claimed this reward yet.</p>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('noClaimsYet')}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-[var(--dark-600)]">
@@ -402,30 +404,30 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
                 <Target className="h-5 w-5 text-[var(--brand-peach)]" />
-                Targeting Rules
+                {t('targetingRules')}
               </h2>
             </div>
             <div className="p-6 space-y-4">
               {/* Target Audience */}
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Target Audience</div>
+                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('targetAudience')}</div>
                 <div className="text-sm text-[var(--brand-light)] font-medium">
-                  {reward.target_member_type === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}
+                  {reward.target_member_type === 'YOUTH_MEMBER' ? t('youthMembers') : t('guardians')}
                 </div>
               </div>
               
               {/* Age Range */}
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Age Range</div>
+                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('ageRange')}</div>
                 <div className="text-sm text-[var(--brand-light)] font-medium">
-                  {reward.min_age || 0} - {reward.max_age || 'Any'} years
+                  {reward.min_age || 0} - {reward.max_age || t('availability.noExpiration')} {t('years')}
                 </div>
               </div>
 
               {/* Grades */}
               {reward.target_grades && reward.target_grades.length > 0 && (
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Grades</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">{t('grades')}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {reward.target_grades.map((g: number) => (
                       <span key={g} className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] flex items-center justify-center text-sm font-bold">
@@ -439,7 +441,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
               {/* Genders */}
               {reward.target_genders && reward.target_genders.length > 0 && (
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Genders</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">{t('genders')}</div>
                   <div className="flex flex-wrap gap-2">
                     {reward.target_genders.map((g: string) => (
                       <span key={g} className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] capitalize">
@@ -453,7 +455,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
               {/* Target Groups */}
               {reward.target_groups_details && reward.target_groups_details.length > 0 && (
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">Specific Groups</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2">{t('specificGroups')}</div>
                   <div className="flex flex-wrap gap-2">
                     {reward.target_groups_details.map((g: any) => (
                       <span key={g.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
@@ -472,7 +474,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
                 <Zap className="h-5 w-5 text-[var(--brand-third)]" />
-                Active Triggers
+                {t('activeTriggers')}
               </h2>
             </div>
             <div className="p-6">
@@ -491,8 +493,8 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
               ) : (
                 <div className="text-center py-6 text-[var(--brand-light)]/40">
                   <Zap className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm italic">No automatic triggers set</p>
-                  <p className="text-xs mt-1">Manual claim only</p>
+                  <p className="text-sm italic">{t('noAutomaticTriggers')}</p>
+                  <p className="text-xs mt-1">{t('manualClaimOnly')}</p>
                 </div>
               )}
             </div>
@@ -503,23 +505,23 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-[var(--brand-blue)]" />
-                Availability
+                {t('availability.title')}
               </h2>
             </div>
             <div className="p-6 space-y-4">
               {/* Expiration */}
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Expires On</div>
+                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('availability.expiresOn')}</div>
                 <div className={`text-sm font-medium ${reward.expiration_date ? 'text-[var(--brand-light)]' : 'text-[var(--brand-light)]/40 italic'}`}>
-                  {reward.expiration_date ? new Date(reward.expiration_date).toLocaleDateString() : 'No Expiration'}
+                  {reward.expiration_date ? new Date(reward.expiration_date).toLocaleDateString() : t('availability.noExpiration')}
                 </div>
               </div>
 
               {/* Usage Limit */}
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Usage Limit</div>
+                <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('availability.usageLimit')}</div>
                 <div className="text-sm text-[var(--brand-light)] font-medium">
-                  {reward.usage_limit ? `${reward.usage_limit} total claims` : 'Unlimited'}
+                  {reward.usage_limit ? `${reward.usage_limit} ${t('availability.totalClaims')}` : t('availability.unlimited')}
                 </div>
               </div>
             </div>

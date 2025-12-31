@@ -1,12 +1,14 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import MessengerManager from '../../../components/messenger/MessengerManager';
 import { Inbox } from 'lucide-react';
 
 const MIN_LOADING_TIME = 400;
 
 function InboxPageContent() {
+    const t = useTranslations('inboxMunicipality');
     const [showSkeleton, setShowSkeleton] = useState(true);
     
     useEffect(() => {
@@ -24,15 +26,15 @@ function InboxPageContent() {
                     <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center">
                         <Inbox className="w-5 h-5 text-[var(--brand-primary)]" />
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Municipality Inbox</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                 </div>
-                <p className="text-sm text-[var(--brand-light)]/50 pl-[52px]">Communications for your municipality.</p>
+                <p className="text-sm text-[var(--brand-light)]/50 pl-[52px]">{t('description')}</p>
             </div>
             
             {/* Messenger Container */}
             <div className="flex-1 min-h-0 overflow-hidden md:px-4 sm:md:px-6 md:pb-6">
                 {showSkeleton ? (
-                    <InboxSkeleton />
+                    <InboxSkeleton t={t} />
                 ) : (
                     <MessengerManager role="ADMIN" scope="MUNICIPALITY" darkMode={true} />
                 )}
@@ -41,7 +43,7 @@ function InboxPageContent() {
     );
 }
 
-function InboxSkeleton() {
+function InboxSkeleton({ t }: { t: any }) {
     return (
         <div className="flex h-full bg-[var(--dark-800)] md:rounded-2xl md:border md:border-[var(--dark-600)] overflow-hidden">
             <div className="hidden md:flex flex-col w-16 lg:w-48 xl:w-64 border-r border-[var(--dark-600)] bg-[var(--dark-700)]/50 p-4 gap-3">
@@ -78,7 +80,7 @@ function InboxSkeleton() {
                         <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                             <Inbox className="w-8 h-8 text-[var(--brand-light)]/30" />
                         </div>
-                        <p className="text-[var(--brand-light)]/40">Select a conversation to start</p>
+                        <p className="text-[var(--brand-light)]/40">{t('skeleton.selectConversation')}</p>
                     </div>
                 </div>
             </div>
@@ -87,6 +89,8 @@ function InboxSkeleton() {
 }
 
 export default function MunicipalityInbox() {
+    const t = useTranslations('inboxMunicipality');
+    
     return (
         <Suspense fallback={
             <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
@@ -94,7 +98,7 @@ export default function MunicipalityInbox() {
                     <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
                         <Inbox className="w-6 h-6 text-[var(--brand-primary)]" />
                     </div>
-                    <p className="text-[var(--brand-light)]/60">Loading inbox...</p>
+                    <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
                 </div>
             </div>
         }>

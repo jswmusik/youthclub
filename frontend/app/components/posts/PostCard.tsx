@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Post } from '../../../types/post';
 import { addPostReaction, updatePostReaction, removePostReaction, fetchPostComments, createPostComment, deletePostComment } from '../../../lib/api';
+import { sanitizeHtml } from '../../../lib/sanitize';
 import { getMediaUrl } from '../../utils';
 import { useAuth } from '../../../context/AuthContext';
 import ConfirmationModal from '../ConfirmationModal';
@@ -604,7 +605,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                         className={`${darkMode ? 'text-[var(--brand-light)]/80 prose-headings:text-[var(--brand-light)] prose-p:text-[var(--brand-light)]/80 prose-a:text-[var(--brand-primary)] prose-strong:text-[var(--brand-light)] prose-li:text-[var(--brand-light)]/80 prose-ul:text-[var(--brand-light)]/80 prose-ol:text-[var(--brand-light)]/80' : 'text-gray-700 prose-headings:text-gray-800 prose-p:text-gray-700 prose-a:text-[#6D6DD4] prose-strong:text-gray-800 prose-li:text-gray-700 prose-ul:text-gray-700 prose-ol:text-gray-700'} prose prose-sm max-w-none overflow-hidden transition-all ${
                             shouldTruncate && !isContentExpanded ? 'max-h-[144px]' : ''
                         }`}
-                        dangerouslySetInnerHTML={{ __html: post.content }} 
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }} 
                     />
                     {shouldTruncate && (
                         <button

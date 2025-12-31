@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -11,7 +12,7 @@ import {
     ArrowLeft, BookOpen, FileText, Image, Upload, X, Users, Eye, 
     CheckCircle2, Lightbulb, Save, Clock, Star, Calendar, FolderOpen
 } from 'lucide-react';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface Props {
     initialData?: Course;
@@ -40,17 +41,18 @@ const formatDateTimeForInput = (dateString?: string | null): string => {
     }
 };
 
-const ROLES = [
-    { id: 'MUNICIPALITY_ADMIN', label: 'Municipality Admins', icon: '🏛️' },
-    { id: 'CLUB_ADMIN', label: 'Club Admins', icon: '🏢' },
-];
-
 const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
     ({ initialData, isEditing = false, hideActions = false, basePath = '/admin/super/knowledge' }, ref) => {
+    const t = useTranslations('knowledgeAdmin.courses.form');
     const router = useRouter();
+    
+    const ROLES = [
+        { id: 'MUNICIPALITY_ADMIN', label: t('sections.targetAudience.roles.MUNICIPALITY_ADMIN'), icon: '🏛️' },
+        { id: 'CLUB_ADMIN', label: t('sections.targetAudience.roles.CLUB_ADMIN'), icon: '🏢' },
+    ];
     const [categories, setCategories] = useState<LearningCategory[]>([]);
     const [uploading, setUploading] = useState(false);
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+    const { success, error, info, warning } = useToast();
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const [isProgressFixed, setIsProgressFixed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -151,7 +153,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                 if (dateStr && dateStr.includes('T')) {
                     submitData.published_at = new Date(dateStr).toISOString();
                 } else {
-                    setToast({ message: 'Please select a publication date and time for scheduled courses', type: 'error', isVisible: true });
+                    error(t('toast.selectPublicationDate'));
                     setUploading(false);
                     return;
                 }
@@ -166,19 +168,19 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
 
             if (isEditing && initialData) {
                 await learningApi.updateCourse(initialData.slug, submitData);
-                setToast({ message: 'Course updated successfully!', type: 'success', isVisible: true });
+                success(t('toast.courseUpdated'));
                 if (exitAfter) {
                     setTimeout(() => router.push(`${basePath}/courses`), 1000);
                 }
             } else {
                 const response = await learningApi.createCourse(submitData);
                 const createdCourse = response.data;
-                setToast({ message: 'Course created successfully!', type: 'success', isVisible: true });
+                success(t('toast.courseCreated'));
                 setTimeout(() => router.push(`${basePath}/courses/${createdCourse.slug}/edit?tab=curriculum`), 1000);
             }
         } catch (error: any) {
             console.error(error);
-            setToast({ message: 'Failed to save course', type: 'error', isVisible: true });
+            error(t('toast.failedToSave'));
         } finally {
             setUploading(false);
         }
@@ -275,12 +277,12 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                         </Link>
                         <div className="flex-1">
                             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-                                {isEditing ? 'Edit Course' : 'Create New Course'}
+                                {isEditing ? t('pageTitle.edit') : t('pageTitle.create')}
                             </h1>
                             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
                                 {isEditing 
-                                    ? 'Update course information and settings' 
-                                    : 'Define the basic information for your course'}
+                                    ? t('pageDescription.edit')
+                                    : t('pageDescription.create')}
                             </p>
                         </div>
                     </div>
@@ -291,7 +293,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                     <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
                         <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                             </div>
                             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -300,7 +302,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                             {completionPercent === 100 && (
                                 <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                                     <CheckCircle2 className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Ready to create!</span>
+                                    <span className="text-sm font-medium">{t('progress.readyToCreate')}</span>
                                 </div>
                             )}
                         </div>
@@ -312,7 +314,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                     <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
                         <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                             </div>
                             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -333,8 +335,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                     <BookOpen className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Enter the course title and description</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.basicInformation.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('sections.basicInformation.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -342,37 +344,37 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                         <div className="p-6 space-y-6">
                             {/* Title */}
                             <div>
-                                <label className={labelClasses}>Course Title <span className="text-[var(--brand-red)]">*</span></label>
+                                <label className={labelClasses}>{t('sections.basicInformation.courseTitle')} <span className="text-[var(--brand-red)]">*</span></label>
                                 <input 
                                     type="text"
-                                    placeholder="Enter a compelling title..."
+                                    placeholder={t('sections.basicInformation.titlePlaceholder')}
                                     className={inputClasses('title')}
-                                    {...register('title', { required: 'Title is required' })} 
+                                    {...register('title', { required: t('validation.titleRequired') })} 
                                     onFocus={() => setFocusedField('title')}
                                     onBlur={() => setFocusedField(null)}
                                 />
                                 {errors.title && <p className="text-[var(--brand-red)] text-sm mt-1">{errors.title.message}</p>}
-                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">A clear, engaging title helps users find your course</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.basicInformation.titleHint')}</p>
                             </div>
 
                             {/* Description */}
                             <div>
-                                <label className={labelClasses}>Description <span className="text-[var(--brand-red)]">*</span></label>
+                                <label className={labelClasses}>{t('sections.basicInformation.description')} <span className="text-[var(--brand-red)]">*</span></label>
                                 <textarea 
                                     rows={4}
-                                    placeholder="Describe what this course covers..."
+                                    placeholder={t('sections.basicInformation.descriptionPlaceholder')}
                                     className={textareaClasses('description')}
-                                    {...register('description', { required: 'Description is required' })} 
+                                    {...register('description', { required: t('validation.descriptionRequired') })} 
                                     onFocus={() => setFocusedField('description')}
                                     onBlur={() => setFocusedField(null)}
                                 />
                                 {errors.description && <p className="text-[var(--brand-red)] text-sm mt-1">{errors.description.message}</p>}
-                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">This appears in course previews and search results</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.basicInformation.descriptionHint')}</p>
                             </div>
 
                             {/* Category */}
                             <div>
-                                <label className={labelClasses}>Category</label>
+                                <label className={labelClasses}>{t('sections.basicInformation.category')}</label>
                                 <div className="relative">
                                     <select 
                                         className={selectClasses('category')}
@@ -382,7 +384,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         onFocus={() => setFocusedField('category')}
                                         onBlur={() => setFocusedField(null)}
                                     >
-                                        <option value="">Select category...</option>
+                                        <option value="">{t('sections.basicInformation.selectCategory')}</option>
                                         {Array.isArray(categories) && categories.map(cat => (
                                             <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
                                         ))}
@@ -390,7 +392,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                 </div>
                                 <div className="flex items-center gap-2 mt-2">
                                     <Link href={`${basePath}/categories`} className="text-xs text-[var(--brand-primary)] hover:underline flex items-center gap-1">
-                                        <FolderOpen className="w-3 h-3" /> Manage categories
+                                        <FolderOpen className="w-3 h-3" /> {t('sections.basicInformation.manageCategories')}
                                     </Link>
                                 </div>
                             </div>
@@ -405,8 +407,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                     <Image className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Cover Image</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Featured image for the course</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.coverImage.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('sections.coverImage.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -427,26 +429,26 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                     ) : (
                                         <div className="text-center p-4">
                                             <Image className="h-8 w-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
-                                            <span className="text-sm text-[var(--brand-light)]/40">Click to upload</span>
-                                            <p className="text-xs text-[var(--brand-light)]/30 mt-1">16:9 ratio</p>
+                                            <span className="text-sm text-[var(--brand-light)]/40">{t('sections.coverImage.clickToUpload')}</span>
+                                            <p className="text-xs text-[var(--brand-light)]/30 mt-1">{t('sections.coverImage.ratio')}</p>
                                         </div>
                                     )}
                                 </div>
                                 <div className="flex-1 space-y-3">
                                     <div className="flex gap-2">
                                         <button type="button" onClick={() => coverImageRef.current?.click()} className="px-4 py-2.5 bg-[var(--dark-600)] text-[var(--brand-light)] text-sm font-medium rounded-xl hover:bg-[var(--dark-500)] transition-all">
-                                            Choose File
+                                            {t('sections.coverImage.chooseFile')}
                                         </button>
                                         {coverPreview && (
                                             <button type="button" onClick={handleRemoveImage} className="px-4 py-2.5 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-sm font-medium rounded-xl hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-2">
-                                                <X className="h-4 w-4" /> Remove
+                                                <X className="h-4 w-4" /> {t('sections.coverImage.remove')}
                                             </button>
                                         )}
                                     </div>
                                     <div className="bg-[var(--dark-700)] rounded-xl p-3 border border-[var(--dark-500)]">
                                         <div className="flex items-start gap-2">
                                             <Lightbulb className="w-4 h-4 text-[var(--brand-peach)] flex-shrink-0 mt-0.5" />
-                                            <p className="text-xs text-[var(--brand-light)]/50">High-quality images (16:9 ratio) work best for course covers.</p>
+                                            <p className="text-xs text-[var(--brand-light)]/50">{t('sections.coverImage.hint')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -463,8 +465,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                     <Eye className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Publication Status</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Control when and how this course is published</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.publicationStatus.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('sections.publicationStatus.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -481,8 +483,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         <FileText className={`w-5 h-5 ${status === 'DRAFT' ? 'text-[var(--brand-light)]' : 'text-[var(--brand-light)]/40'}`} />
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="font-medium text-[var(--brand-light)]">Draft</h3>
-                                        <p className="text-xs text-[var(--brand-light)]/50">Hidden from users</p>
+                                        <h3 className="font-medium text-[var(--brand-light)]">{t('sections.publicationStatus.draft.label')}</h3>
+                                        <p className="text-xs text-[var(--brand-light)]/50">{t('sections.publicationStatus.draft.description')}</p>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${status === 'DRAFT' ? 'bg-[var(--brand-light)] border-[var(--brand-light)]' : 'border-[var(--dark-400)]'}`}>
                                         {status === 'DRAFT' && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
@@ -498,8 +500,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         <Calendar className={`w-5 h-5 ${status === 'SCHEDULED' ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/40'}`} />
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="font-medium text-[var(--brand-light)]">Scheduled</h3>
-                                        <p className="text-xs text-[var(--brand-light)]/50">Publish later</p>
+                                        <h3 className="font-medium text-[var(--brand-light)]">{t('sections.publicationStatus.scheduled.label')}</h3>
+                                        <p className="text-xs text-[var(--brand-light)]/50">{t('sections.publicationStatus.scheduled.description')}</p>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${status === 'SCHEDULED' ? 'bg-[var(--brand-peach)] border-[var(--brand-peach)]' : 'border-[var(--dark-400)]'}`}>
                                         {status === 'SCHEDULED' && <CheckCircle2 className="w-3 h-3 text-white" />}
@@ -515,8 +517,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         <Eye className={`w-5 h-5 ${status === 'PUBLISHED' ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/40'}`} />
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="font-medium text-[var(--brand-light)]">Published</h3>
-                                        <p className="text-xs text-[var(--brand-light)]/50">Visible now</p>
+                                        <h3 className="font-medium text-[var(--brand-light)]">{t('sections.publicationStatus.published.label')}</h3>
+                                        <p className="text-xs text-[var(--brand-light)]/50">{t('sections.publicationStatus.published.description')}</p>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${status === 'PUBLISHED' ? 'bg-[var(--brand-green)] border-[var(--brand-green)]' : 'border-[var(--dark-400)]'}`}>
                                         {status === 'PUBLISHED' && <CheckCircle2 className="w-3 h-3 text-white" />}
@@ -528,7 +530,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                             {status === 'SCHEDULED' && (
                                 <div className="bg-[var(--brand-peach)]/10 rounded-xl p-4 border border-[var(--brand-peach)]/20">
                                     <label className="block text-sm font-medium text-[var(--brand-peach)] mb-2 flex items-center gap-2">
-                                        <Clock className="w-4 h-4" /> Schedule Publication
+                                        <Clock className="w-4 h-4" /> {t('sections.publicationStatus.scheduled.scheduleLabel')}
                                     </label>
                                     <input 
                                         type="datetime-local" 
@@ -538,7 +540,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         className="w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none focus:border-[var(--brand-peach)] transition-all"
                                     />
                                     <p className="text-xs text-[var(--brand-peach)]/70 mt-2">
-                                        The course will be automatically published at the selected date and time.
+                                        {t('sections.publicationStatus.scheduled.hint')}
                                     </p>
                                 </div>
                             )}
@@ -553,8 +555,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         <Star className={`w-5 h-5 ${isRecommended ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]/40'}`} />
                                     </div>
                                     <div>
-                                        <h3 className="font-medium text-[var(--brand-light)]">Recommended Course</h3>
-                                        <p className="text-xs text-[var(--brand-light)]/50">{isRecommended ? 'Featured in recommendations' : 'Show in "Recommended for You"'}</p>
+                                        <h3 className="font-medium text-[var(--brand-light)]">{t('sections.recommended.label')}</h3>
+                                        <p className="text-xs text-[var(--brand-light)]/50">{isRecommended ? t('sections.recommended.enabled') : t('sections.recommended.disabled')}</p>
                                     </div>
                                 </div>
                                 <div className={`w-12 h-7 rounded-full p-1 transition-all ${isRecommended ? 'bg-[var(--brand-primary)]' : 'bg-[var(--dark-500)]'}`}>
@@ -572,8 +574,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                     <Users className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Choose who can see this course</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.targetAudience.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('sections.targetAudience.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -587,8 +589,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                 <div className="flex items-center gap-3">
                                     <span className="text-2xl">🌍</span>
                                     <div>
-                                        <h3 className="font-medium text-[var(--brand-light)]">All Admins</h3>
-                                        <p className="text-xs text-[var(--brand-light)]/50">Visible to all admin types</p>
+                                        <h3 className="font-medium text-[var(--brand-light)]">{t('sections.targetAudience.allAdmins.label')}</h3>
+                                        <p className="text-xs text-[var(--brand-light)]/50">{t('sections.targetAudience.allAdmins.description')}</p>
                                     </div>
                                 </div>
                                 <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedRoles.length === 0 ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' : 'border-[var(--dark-400)]'}`}>
@@ -598,7 +600,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
 
                             {/* Specific Roles */}
                             <div className="space-y-2 pt-2">
-                                <p className="text-xs text-[var(--brand-light)]/40 mb-3">Or restrict to specific admin types:</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mb-3">{t('sections.targetAudience.restrictTo')}</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {ROLES.map(role => (
                                         <div 
@@ -626,11 +628,11 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                     <Lightbulb className="w-4 h-4 text-[var(--brand-peach)]" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-1">Quick Tips</h3>
+                                    <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-1">{t('sections.quickTips.title')}</h3>
                                     <ul className="text-xs text-[var(--brand-light)]/50 space-y-1">
-                                        <li>• Keep titles clear and descriptive</li>
-                                        <li>• Write descriptions that explain what users will learn</li>
-                                        <li>• After creating, you'll be redirected to add course content</li>
+                                        <li>• {t('sections.quickTips.tip1')}</li>
+                                        <li>• {t('sections.quickTips.tip2')}</li>
+                                        <li>• {t('sections.quickTips.tip3')}</li>
                                     </ul>
                                 </div>
                             </div>
@@ -646,7 +648,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                     onClick={() => router.push(`${basePath}/courses`)} 
                                     className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all"
                                 >
-                                    Cancel
+                                    {t('actions.cancel')}
                                 </button>
                                 
                                 {isEditing && (
@@ -656,7 +658,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         onClick={handleSubmit((data) => onSubmit(data, false))}
                                         className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-600)] text-[var(--brand-light)] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--dark-500)]"
                                     >
-                                        {uploading ? 'Saving...' : 'Save & Continue Editing'}
+                                        {uploading ? t('actions.saving') : t('actions.saveAndContinue')}
                                     </button>
                                 )}
                                 
@@ -668,12 +670,12 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                     {uploading ? (
                                         <>
                                             <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                                            Saving...
+                                            {t('actions.saving')}
                                         </>
                                     ) : (
                                         <>
                                             <Save className="w-4 h-4" />
-                                            {isEditing ? 'Save & Exit' : 'Create Course'}
+                                            {isEditing ? t('actions.saveAndExit') : t('actions.createCourse')}
                                         </>
                                     )}
                                 </button>
@@ -682,8 +684,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                     )}
                 </form>
 
-                <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-            </div>
+                </div>
         </div>
     );
 });

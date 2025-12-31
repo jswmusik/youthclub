@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ArrowLeft, Upload, X, MapPin, Building2, Mail, Phone, 
@@ -11,7 +12,7 @@ import {
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { queueToastForNavigation } from './ToastProvider';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -24,25 +25,8 @@ interface ClubFormProps {
   scope: 'SUPER' | 'MUNICIPALITY';
 }
 
-const WEEKDAYS = [
-  { id: 1, name: 'Monday' }, { id: 2, name: 'Tuesday' }, { id: 3, name: 'Wednesday' },
-  { id: 4, name: 'Thursday' }, { id: 5, name: 'Friday' }, { id: 6, name: 'Saturday' }, { id: 7, name: 'Sunday' },
-];
-
-const CYCLES = [
-  { id: 'ALL', name: 'Every Week' },
-  { id: 'ODD', name: 'Odd Weeks' },
-  { id: 'EVEN', name: 'Even Weeks' },
-];
-
-const GENDER_RESTRICTIONS = [
-  { id: 'ALL', name: 'All Genders' },
-  { id: 'BOYS', name: 'Boys Only' },
-  { id: 'GIRLS', name: 'Girls Only' },
-  { id: 'OTHER', name: 'Other' },
-];
-
 export default function ClubForm({ initialData, redirectPath, scope }: ClubFormProps) {
+  const t = useTranslations('clubsAdmin.form');
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -50,8 +34,32 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
   const avatarRef = useRef<HTMLInputElement>(null);
   const heroRef = useRef<HTMLInputElement>(null);
 
+  // Translation-based constants
+  const WEEKDAYS = [
+    { id: 1, name: t('openingHours.weekdays.monday') }, 
+    { id: 2, name: t('openingHours.weekdays.tuesday') }, 
+    { id: 3, name: t('openingHours.weekdays.wednesday') },
+    { id: 4, name: t('openingHours.weekdays.thursday') }, 
+    { id: 5, name: t('openingHours.weekdays.friday') }, 
+    { id: 6, name: t('openingHours.weekdays.saturday') }, 
+    { id: 7, name: t('openingHours.weekdays.sunday') },
+  ];
+
+  const CYCLES = [
+    { id: 'ALL', name: t('openingHours.cycles.all') },
+    { id: 'ODD', name: t('openingHours.cycles.odd') },
+    { id: 'EVEN', name: t('openingHours.cycles.even') },
+  ];
+
+  const GENDER_RESTRICTIONS = [
+    { id: 'ALL', name: t('openingHours.genderRestrictions.all') },
+    { id: 'BOYS', name: t('openingHours.genderRestrictions.boys') },
+    { id: 'GIRLS', name: t('openingHours.genderRestrictions.girls') },
+    { id: 'OTHER', name: t('openingHours.genderRestrictions.other') },
+  ];
+
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error'|'info'|'warning', isVisible: false, title: '' });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -183,14 +191,14 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
   // Opening Hours Logic
   const checkOverlap = (newItem: any) => {
-    const toMins = (t: string) => {
-      const [h, m] = t.split(':').map(Number);
+    const toMins = (time: string) => {
+      const [h, m] = time.split(':').map(Number);
       return h * 60 + m;
     };
     const start = toMins(newItem.open_time);
     const end = toMins(newItem.close_time);
 
-    if (end <= start) return "Close time must be after Open time.";
+    if (end <= start) return t('openingHours.closeTimeAfterOpen');
 
     for (const h of openingHours) {
       if (h.weekday !== newItem.weekday) continue;
@@ -202,7 +210,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
       const e2 = toMins(h.close_time);
 
       if (start < e2 && end > s2) {
-        return `Overlap detected with existing hour: ${h.open_time}-${h.close_time} (${h.week_cycle === 'ALL' ? 'Every Week' : h.week_cycle})`;
+        const cycleName = CYCLES.find(c => c.id === h.week_cycle)?.name || h.week_cycle;
+        return t('openingHours.overlapDetected', { time: `${h.open_time}-${h.close_time}`, cycle: cycleName });
       }
     }
     return null;
@@ -243,16 +252,16 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
     if (!trimmedName || !isValidMunicipality || !trimmedEmail || !trimmedPhone || 
         !trimmedDescription || !trimmedTerms || !trimmedPolicies) {
       const missingFields = [];
-      if (!trimmedName) missingFields.push('Name');
-      if (scope === 'SUPER' && !isValidMunicipality) missingFields.push('Municipality');
-      if (scope === 'MUNICIPALITY' && !isValidMunicipality) missingFields.push('Municipality (not assigned to your account)');
-      if (!trimmedEmail) missingFields.push('Email');
-      if (!trimmedPhone) missingFields.push('Phone');
-      if (!trimmedDescription) missingFields.push('Description');
-      if (!trimmedTerms) missingFields.push('Terms & Conditions');
-      if (!trimmedPolicies) missingFields.push('Club Policies');
+      if (!trimmedName) missingFields.push(t('basicInfo.clubName'));
+      if (scope === 'SUPER' && !isValidMunicipality) missingFields.push(t('basicInfo.municipality'));
+      if (scope === 'MUNICIPALITY' && !isValidMunicipality) missingFields.push(t('validation.municipalityNotAssigned'));
+      if (!trimmedEmail) missingFields.push(t('contactLocation.email'));
+      if (!trimmedPhone) missingFields.push(t('contactLocation.phone'));
+      if (!trimmedDescription) missingFields.push(t('basicInfo.descriptionLabel'));
+      if (!trimmedTerms) missingFields.push(t('legalDocuments.termsConditions'));
+      if (!trimmedPolicies) missingFields.push(t('legalDocuments.clubPolicies'));
       
-      setToast({ message: `Please fill in: ${missingFields.join(', ')}`, type: 'error', isVisible: true, title: 'Missing Fields' });
+      error(t('validation.missingFields', { fields: missingFields.join(', ') }));
       return;
     }
     
@@ -328,17 +337,17 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
       if (initialData) {
         await api.patch(`/clubs/${initialData.id}/`, data, config);
         queueToastForNavigation(
-          `${formData.name} has been updated with your changes.`,
+          t('formToast.clubUpdated', { name: formData.name }),
           'success',
-          'Club Updated!',
+          t('formToast.clubUpdatedTitle'),
           2500
         );
       } else {
         await api.post('/clubs/', data, config);
         queueToastForNavigation(
-          `${formData.name} has been added to your platform.`,
+          t('formToast.clubCreated', { name: formData.name }),
           'success',
-          'Club Created!',
+          t('formToast.clubCreatedTitle'),
           2500
         );
       }
@@ -346,8 +355,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
       router.push(buildUrlWithParams(redirectPath));
     } catch (err: any) {
       console.error(err);
-      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || JSON.stringify(err?.response?.data) || 'Failed to save. Check inputs.';
-      setToast({ message: errorMessage, type: 'error', isVisible: true, title: 'Operation Failed' });
+      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || JSON.stringify(err?.response?.data) || t('validation.failedToSave');
+      error(errorMessage, t('validation.operationFailed') );
       setLoading(false);
     }
   };
@@ -433,10 +442,10 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Club' : 'Create New Club'}
+              {initialData ? t('edit.title') : t('create.title')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              {initialData ? 'Update club information and settings' : 'Configure details, location, and opening hours'}
+              {initialData ? t('edit.description') : t('create.description')}
             </p>
           </div>
         </div>
@@ -453,7 +462,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
             aria-label="Form completion progress"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('progress.label')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -465,7 +474,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">All required fields completed!</span>
+                <span className="text-sm font-medium">{t('progress.completed')}</span>
               </div>
             )}
           </div>
@@ -481,7 +490,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
           >
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.label')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -493,7 +502,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               {completionPercent === 100 && (
                 <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">All required fields completed!</span>
+                  <span className="text-sm font-medium">{t('progress.completed')}</span>
                 </div>
               )}
             </div>
@@ -513,8 +522,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <Building2 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter the essential details for the club</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('basicInfo.description')}</p>
                 </div>
               </div>
             </div>
@@ -525,7 +534,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="name" className={labelClasses}>
-                    Club Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('basicInfo.clubName')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="name"
@@ -542,7 +551,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 {scope === 'SUPER' && (
                   <div>
                     <label htmlFor="municipality" className={labelClasses}>
-                      Municipality <span className="text-[var(--brand-primary)]">*</span>
+                      {t('basicInfo.municipality')} <span className="text-[var(--brand-primary)]">*</span>
                     </label>
                     <select 
                       id="municipality"
@@ -554,7 +563,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                       className={selectClasses('municipality')}
                       style={selectArrowStyle}
                     >
-                      <option value="">Select Municipality</option>
+                      <option value="">{t('basicInfo.selectMunicipality')}</option>
                       {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
                   </div>
@@ -564,13 +573,13 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               {/* Description */}
               <div>
                 <label htmlFor="description" className={labelClasses}>
-                  Description <span className="text-[var(--brand-primary)]">*</span>
+                  {t('basicInfo.descriptionLabel')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
                 <textarea 
                   id="description"
                   rows={4} 
                   required
-                  placeholder="Describe what this club offers..."
+                  placeholder={t('basicInfo.descriptionPlaceholder')}
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                   onFocus={() => setFocusedField('description')}
@@ -583,12 +592,12 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               <div>
                 <label htmlFor="club_categories" className={labelClasses}>
                   <Tag className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-purple)]" />
-                  Categories
+                  {t('basicInfo.categories')}
                 </label>
                 <input 
                   id="club_categories"
                   type="text"
-                  placeholder="e.g. Sports, Arts, Music"
+                  placeholder={t('basicInfo.categoriesPlaceholder')}
                   value={formData.club_categories}
                   onChange={e => setFormData({ ...formData, club_categories: e.target.value })}
                   onFocus={() => setFocusedField('club_categories')}
@@ -604,7 +613,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Logo / Avatar */}
                 <div>
-                  <label className={labelClasses}>Logo / Avatar</label>
+                  <label className={labelClasses}>{t('basicInfo.logoAvatar')}</label>
                   <div className="flex items-start gap-4">
                     <div 
                       className="relative group w-20 h-20 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -620,7 +629,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                       ) : (
                         <div className="text-center p-2">
                           <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
-                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                          <span className="text-[10px] text-[var(--brand-light)]/40">{t('basicInfo.upload')}</span>
                         </div>
                       )}
                     </div>
@@ -631,7 +640,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                           onClick={() => avatarRef.current?.click()}
                           className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                         >
-                          Choose File
+                          {t('basicInfo.chooseFile')}
                         </button>
                         {avatarPreview && (
                           <button 
@@ -639,11 +648,11 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                             onClick={() => handleRemoveImage('avatar')}
                             className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" /> Remove
+                            <X className="h-3 w-3" /> {t('basicInfo.remove')}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--brand-light)]/40">Square image, 400x400px</p>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('basicInfo.avatarHint')}</p>
                     </div>
                     <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'avatar')} />
                   </div>
@@ -651,7 +660,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
                 {/* Hero Image */}
                 <div>
-                  <label className={labelClasses}>Hero Image</label>
+                  <label className={labelClasses}>{t('basicInfo.heroImage')}</label>
                   <div className="flex items-start gap-4">
                     <div 
                       className="relative group w-24 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -667,7 +676,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                       ) : (
                         <div className="text-center p-2">
                           <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
-                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                          <span className="text-[10px] text-[var(--brand-light)]/40">{t('basicInfo.upload')}</span>
                         </div>
                       )}
                     </div>
@@ -678,7 +687,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                           onClick={() => heroRef.current?.click()}
                           className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                         >
-                          Choose File
+                          {t('basicInfo.chooseFile')}
                         </button>
                         {heroPreview && (
                           <button 
@@ -686,11 +695,11 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                             onClick={() => handleRemoveImage('hero')}
                             className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" /> Remove
+                            <X className="h-3 w-3" /> {t('basicInfo.remove')}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--brand-light)]/40">1200x400px (JPG, PNG)</p>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('basicInfo.heroHint')}</p>
                     </div>
                     <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'hero')} />
                   </div>
@@ -708,8 +717,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <MapPin className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact & Location</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Contact information and physical address</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('contactLocation.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('contactLocation.description')}</p>
                 </div>
               </div>
             </div>
@@ -720,13 +729,13 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 <div>
                   <label htmlFor="email" className={labelClasses}>
                     <Mail className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
-                    Email <span className="text-[var(--brand-primary)]">*</span>
+                    {t('contactLocation.email')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="email"
                     type="email"
                     required
-                    placeholder="contact@club.se"
+                    placeholder={t('contactLocation.emailPlaceholder')}
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                     onFocus={() => setFocusedField('email')}
@@ -737,13 +746,13 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 <div>
                   <label htmlFor="phone" className={labelClasses}>
                     <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                    Phone <span className="text-[var(--brand-primary)]">*</span>
+                    {t('contactLocation.phone')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="phone"
                     type="tel"
                     required
-                    placeholder="+46..."
+                    placeholder={t('contactLocation.phonePlaceholder')}
                     value={formData.phone}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                     onFocus={() => setFocusedField('phone')}
@@ -759,17 +768,17 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               {/* Location Header */}
               <div className="flex items-center gap-2 text-[var(--brand-light)]/70">
                 <Map className="w-4 h-4 text-[var(--brand-purple)]" />
-                <span className="text-sm font-medium">Location</span>
+                <span className="text-sm font-medium">{t('contactLocation.location')}</span>
               </div>
 
               <div>
                 <label htmlFor="address" className={labelClasses}>
-                  Street Address
+                  {t('contactLocation.streetAddress')}
                 </label>
                 <input 
                   id="address"
                   type="text"
-                  placeholder="e.g. Storgatan 1, 111 23 Stockholm"
+                  placeholder={t('contactLocation.addressPlaceholder')}
                   value={formData.address}
                   onChange={e => setFormData({ ...formData, address: e.target.value })}
                   onFocus={() => setFocusedField('address')}
@@ -781,13 +790,13 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="latitude" className={labelClasses}>
-                    Latitude
+                    {t('contactLocation.latitude')}
                   </label>
                   <input 
                     id="latitude"
                     type="number"
                     step="any"
-                    placeholder="59.3293"
+                    placeholder={t('contactLocation.latitudePlaceholder')}
                     value={formData.latitude}
                     onChange={e => setFormData({ ...formData, latitude: e.target.value })}
                     onFocus={() => setFocusedField('latitude')}
@@ -797,13 +806,13 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 </div>
                 <div>
                   <label htmlFor="longitude" className={labelClasses}>
-                    Longitude
+                    {t('contactLocation.longitude')}
                   </label>
                   <input 
                     id="longitude"
                     type="number"
                     step="any"
-                    placeholder="18.0686"
+                    placeholder={t('contactLocation.longitudePlaceholder')}
                     value={formData.longitude}
                     onChange={e => setFormData({ ...formData, longitude: e.target.value })}
                     onFocus={() => setFocusedField('longitude')}
@@ -824,8 +833,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <Clock className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Opening Hours</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Define when the club is open and any restrictions</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('openingHours.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('openingHours.description')}</p>
                 </div>
               </div>
             </div>
@@ -837,7 +846,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               <div className="bg-[var(--dark-700)]/50 p-5 rounded-xl border border-[var(--dark-500)] space-y-4">
                 <div className="flex items-center gap-2 text-[var(--brand-light)]/70 mb-2">
                   <Plus className="w-4 h-4 text-[var(--brand-third)]" />
-                  <span className="text-sm font-medium">Add New Time Slot</span>
+                  <span className="text-sm font-medium">{t('openingHours.addNewTimeSlot')}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -876,17 +885,17 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Optional Title</label>
+                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">{t('openingHours.optionalTitle')}</label>
                     <input 
                       type="text"
-                      placeholder="e.g. Teen Night"
+                      placeholder={t('openingHours.titlePlaceholder')}
                       className={`${inputClasses('title')} py-2.5`}
                       value={newHour.title} 
                       onChange={e => setNewHour({...newHour, title: e.target.value})} 
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Gender Restriction</label>
+                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">{t('openingHours.genderRestriction')}</label>
                     <select 
                       className={`${selectClasses('gender_restriction')} py-2.5`}
                       style={selectArrowStyle}
@@ -900,35 +909,35 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                   <div>
-                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Restriction Mode</label>
+                    <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">{t('openingHours.restrictionMode')}</label>
                     <select 
                       className={`${selectClasses('restriction_mode')} py-2.5`}
                       style={selectArrowStyle}
                       value={newHour.restriction_mode} 
                       onChange={e => setNewHour({...newHour, restriction_mode: e.target.value})}
                     >
-                      <option value="NONE">No Restriction</option>
-                      <option value="AGE">Age Range</option>
-                      <option value="GRADE">Grade Range</option>
+                      <option value="NONE">{t('openingHours.noRestriction')}</option>
+                      <option value="AGE">{t('openingHours.ageRange')}</option>
+                      <option value="GRADE">{t('openingHours.gradeRange')}</option>
                     </select>
                   </div>
                   {newHour.restriction_mode !== 'NONE' && (
                     <div className="flex gap-2 items-end">
                       <div className="flex-1">
-                        <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">From</label>
+                        <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">{t('openingHours.from')}</label>
                         <input 
                           type="number" 
-                          placeholder="Min" 
+                          placeholder={t('openingHours.min')} 
                           className={`${inputClasses('min_value')} py-2.5`}
                           value={newHour.min_value} 
                           onChange={e => setNewHour({...newHour, min_value: e.target.value})} 
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">To</label>
+                        <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">{t('openingHours.to')}</label>
                         <input 
                           type="number" 
-                          placeholder="Max" 
+                          placeholder={t('openingHours.max')} 
                           className={`${inputClasses('max_value')} py-2.5`}
                           value={newHour.max_value} 
                           onChange={e => setNewHour({...newHour, max_value: e.target.value})} 
@@ -944,7 +953,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                     onClick={addHour}
                     className="px-5 py-2.5 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
                   >
-                    <Plus className="h-4 w-4" /> Add Time Slot
+                    <Plus className="h-4 w-4" /> {t('openingHours.addTimeSlot')}
                   </button>
                 </div>
                 
@@ -981,7 +990,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                         <div className="flex flex-wrap gap-2 items-center">
                           {hour.restriction_mode !== 'NONE' && (
                             <Badge className="bg-[var(--brand-third)]/20 text-[var(--brand-third)] border-[var(--brand-third)]/30 hover:bg-[var(--brand-third)]/30">
-                              {hour.restriction_mode === 'AGE' ? 'Age' : 'Grade'} {hour.min_value}-{hour.max_value}
+                              {hour.restriction_mode === 'AGE' ? t('openingHours.restrictionLabels.age') : t('openingHours.restrictionLabels.grade')} {hour.min_value}-{hour.max_value}
                             </Badge>
                           )}
                           {hour.gender_restriction !== 'ALL' && (
@@ -1004,8 +1013,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 {openingHours.length === 0 && (
                   <div className="text-center py-8 text-[var(--brand-light)]/40 italic">
                     <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>No opening hours added yet</p>
-                    <p className="text-xs mt-1">Use the form above to add time slots</p>
+                    <p>{t('openingHours.noHoursAdded')}</p>
+                    <p className="text-xs mt-1">{t('openingHours.useFormAbove')}</p>
                   </div>
                 )}
               </div>
@@ -1021,8 +1030,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Legal Documents</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Terms, conditions, and policies for club members</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('legalDocuments.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('legalDocuments.description')}</p>
                 </div>
               </div>
             </div>
@@ -1031,13 +1040,13 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
             <div className="p-6 space-y-6">
               <div>
                 <label htmlFor="terms_and_conditions" className={labelClasses}>
-                  Terms & Conditions <span className="text-[var(--brand-primary)]">*</span>
+                  {t('legalDocuments.termsConditions')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
                 <textarea 
                   id="terms_and_conditions"
                   rows={5} 
                   required
-                  placeholder="Enter terms and conditions for club membership..."
+                  placeholder={t('legalDocuments.termsPlaceholder')}
                   value={formData.terms_and_conditions}
                   onChange={e => setFormData({ ...formData, terms_and_conditions: e.target.value })}
                   onFocus={() => setFocusedField('terms_and_conditions')}
@@ -1048,13 +1057,13 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
               <div>
                 <label htmlFor="club_policies" className={labelClasses}>
-                  Club Policies <span className="text-[var(--brand-primary)]">*</span>
+                  {t('legalDocuments.clubPolicies')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
                 <textarea 
                   id="club_policies"
                   rows={5} 
                   required
-                  placeholder="Enter club policies and guidelines..."
+                  placeholder={t('legalDocuments.policiesPlaceholder')}
                   value={formData.club_policies}
                   onChange={e => setFormData({ ...formData, club_policies: e.target.value })}
                   onFocus={() => setFocusedField('club_policies')}
@@ -1074,8 +1083,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <Shield className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Registration Settings</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Override default municipality settings for this club</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('registrationSettings.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('registrationSettings.description')}</p>
                 </div>
               </div>
             </div>
@@ -1089,8 +1098,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                     <Users className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
                   <div>
-                    <div className="font-medium text-[var(--brand-light)]">Self Registration</div>
-                    <div className="text-sm text-[var(--brand-light)]/50">Override municipality default</div>
+                    <div className="font-medium text-[var(--brand-light)]">{t('registrationSettings.selfRegistration')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/50">{t('registrationSettings.overrideMunicipalityDefault')}</div>
                   </div>
                 </div>
                 <select 
@@ -1099,9 +1108,9 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   value={formData.allow_self_registration_override} 
                   onChange={e => setFormData({...formData, allow_self_registration_override: e.target.value})}
                 >
-                  <option value="">Use Default</option>
-                  <option value="true">Yes, Allow</option>
-                  <option value="false">No, Block</option>
+                  <option value="">{t('registrationSettings.useDefault')}</option>
+                  <option value="true">{t('registrationSettings.yesAllow')}</option>
+                  <option value="false">{t('registrationSettings.noBlock')}</option>
                 </select>
               </div>
 
@@ -1112,8 +1121,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                     <Shield className="w-4 h-4 text-[var(--brand-peach)]" />
                   </div>
                   <div>
-                    <div className="font-medium text-[var(--brand-light)]">Require Guardian</div>
-                    <div className="text-sm text-[var(--brand-light)]/50">Override municipality default</div>
+                    <div className="font-medium text-[var(--brand-light)]">{t('registrationSettings.requireGuardian')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/50">{t('registrationSettings.overrideMunicipalityDefault')}</div>
                   </div>
                 </div>
                 <select 
@@ -1122,9 +1131,9 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   value={formData.require_guardian_override} 
                   onChange={e => setFormData({...formData, require_guardian_override: e.target.value})}
                 >
-                  <option value="">Use Default</option>
-                  <option value="true">Yes, Require</option>
-                  <option value="false">No, Optional</option>
+                  <option value="">{t('registrationSettings.useDefault')}</option>
+                  <option value="true">{t('registrationSettings.yesRequire')}</option>
+                  <option value="false">{t('registrationSettings.noOptional')}</option>
                 </select>
               </div>
             </div>
@@ -1138,7 +1147,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 onClick={() => router.push(buildUrlWithParams(redirectPath))} 
                 className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
               >
-                Cancel
+                {t('formActions.cancel')}
               </button>
               <button 
                 type="submit" 
@@ -1148,12 +1157,12 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-[var(--dark-900)]/20 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                    Saving...
+                    {t('formActions.saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    {initialData ? 'Save Changes' : 'Create Club'}
+                    {initialData ? t('formActions.saveChanges') : t('formActions.createClub')}
                   </>
                 )}
               </button>
@@ -1165,25 +1174,17 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
         <div className="mt-6 p-4 bg-[var(--dark-800)]/50 rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
           <h3 className="text-sm font-semibold text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
-            Quick Tips
+            {t('quickTips.title')}
           </h3>
           <ul className="text-sm text-[var(--brand-light)]/50 space-y-1.5">
-            <li>• Add opening hours to let users know when the club is available</li>
-            <li>• Use age or grade restrictions to target specific youth groups</li>
-            <li>• Override registration settings only if this club needs different rules than the municipality default</li>
-            <li>• Categories help users discover your club when searching</li>
+            <li>• {t('quickTips.tip1')}</li>
+            <li>• {t('quickTips.tip2')}</li>
+            <li>• {t('quickTips.tip3')}</li>
+            <li>• {t('quickTips.tip4')}</li>
           </ul>
         </div>
       </div>
       
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        title={toast.title}
-        onClose={() => setToast({...toast, isVisible: false})} 
-        darkMode 
-      />
-    </div>
+      </div>
   );
 }

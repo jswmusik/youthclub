@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { 
@@ -17,6 +18,7 @@ interface MunicipalityDetailViewProps {
 }
 
 export default function MunicipalityDetailView({ municipalityId, basePath }: MunicipalityDetailViewProps) {
+  const t = useTranslations('municipalitiesAdmin');
   const searchParams = useSearchParams();
   const [municipality, setMunicipality] = useState<any>(null);
   const [clubs, setClubs] = useState<any[]>([]);
@@ -52,7 +54,7 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
             <MapPin className="w-6 h-6 text-white" />
           </div>
-          <span className="text-[var(--brand-light)]/60 animate-pulse">Loading municipality details...</span>
+          <span className="text-[var(--brand-light)]/60 animate-pulse">{t('detail.loadingDetails')}</span>
         </div>
       </div>
     );
@@ -65,12 +67,12 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
           <div className="w-16 h-16 rounded-2xl bg-[var(--brand-red)]/10 flex items-center justify-center">
             <MapPin className="w-8 h-8 text-[var(--brand-red)]" />
           </div>
-          <p className="text-[var(--brand-red)]">Municipality not found.</p>
+          <p className="text-[var(--brand-red)]">{t('detail.municipalityNotFound')}</p>
           <Link 
             href={basePath}
             className="text-sm text-[var(--brand-primary)] hover:underline"
           >
-            ← Back to municipalities list
+            {t('detail.backToMunicipalitiesList')}
           </Link>
         </div>
       </div>
@@ -89,13 +91,13 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
           href={basePath}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to List
+          <ArrowLeft className="h-4 w-4" /> {t('detail.backToList')}
         </Link>
         <Link 
           href={`${basePath}/edit/${municipality.id}`}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
         >
-          <Edit className="h-4 w-4" /> Edit Municipality
+          <Edit className="h-4 w-4" /> {t('detail.editMunicipality')}
         </Link>
       </div>
 
@@ -167,9 +169,9 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
                     : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]'
                 }`}>
                   {municipality.allow_self_registration ? (
-                    <><CheckCircle className="w-3 h-3" /> Open Registration</>
+                    <><CheckCircle className="w-3 h-3" /> {t('detail.openRegistration')}</>
                   ) : (
-                    <><XCircle className="w-3 h-3" /> Restricted</>
+                    <><XCircle className="w-3 h-3" /> {t('detail.restricted')}</>
                   )}
                 </span>
               </div>
@@ -187,14 +189,14 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
           {/* Description Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">About</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('detail.about')}</h2>
             </div>
             <div className="p-6">
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
                 {municipality.description ? (
                   <p className="text-sm leading-relaxed text-[var(--brand-light)]/80 whitespace-pre-wrap">{municipality.description}</p>
                 ) : (
-                  <p className="text-sm italic text-[var(--brand-light)]/30">No description provided.</p>
+                  <p className="text-sm italic text-[var(--brand-light)]/30">{t('detail.noDescription')}</p>
                 )}
               </div>
             </div>
@@ -208,14 +210,14 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
                   <Building2 className="w-4 h-4 text-[var(--brand-purple)]" />
                 </div>
                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">
-                  Clubs <span className="text-[var(--brand-light)]/50">({clubs.length})</span>
+                  {t('detail.clubs')} <span className="text-[var(--brand-light)]/50">({clubs.length})</span>
                 </h2>
               </div>
               <Link 
                 href={`/admin/super/clubs?municipality=${municipality.id}`}
                 className="text-sm text-[var(--brand-primary)] hover:underline font-medium"
               >
-                View All →
+                {t('detail.viewAll')}
               </Link>
             </div>
             <div className="p-4 sm:p-6">
@@ -224,7 +226,7 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
                   <div className="w-12 h-12 rounded-xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-3">
                     <Building2 className="w-6 h-6 text-[var(--brand-light)]/30" />
                   </div>
-                  <p className="text-sm text-[var(--brand-light)]/50">No clubs registered yet.</p>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('detail.noClubsRegistered')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -242,7 +244,7 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
                       </div>
                       <div className="flex-1 overflow-hidden min-w-0">
                         <h4 className="text-sm font-semibold text-[var(--brand-light)] truncate">{club.name}</h4>
-                        <p className="text-xs text-[var(--brand-light)]/50 truncate">{club.email || 'No email'}</p>
+                        <p className="text-xs text-[var(--brand-light)]/50 truncate">{club.email || t('detail.noEmail')}</p>
                       </div>
                       <Link href={`/admin/super/clubs/${club.id}`}>
                         <button className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-600)] transition-all">
@@ -263,7 +265,7 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
           {/* Contact Info Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('detail.contact')}</h2>
             </div>
             <div className="p-6 space-y-4">
               {municipality.email && (
@@ -293,13 +295,13 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
                     rel="noreferrer" 
                     className="text-sm text-[var(--brand-primary)] hover:underline truncate"
                   >
-                    Website →
+                    {t('detail.website')}
                   </a>
                 </div>
               )}
               
               {!municipality.email && !municipality.phone && !municipality.website_link && (
-                <p className="text-sm text-[var(--brand-light)]/30 italic text-center py-4">No contact info provided.</p>
+                <p className="text-sm text-[var(--brand-light)]/30 italic text-center py-4">{t('detail.noContactInfo')}</p>
               )}
               
               {/* Social Media */}
@@ -330,7 +332,7 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
           {/* Settings Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Settings</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('detail.settings')}</h2>
             </div>
             <div className="p-6 space-y-4">
               {/* Self Registration */}
@@ -339,14 +341,14 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-third)]/20 flex items-center justify-center">
                     <Users className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
-                  <span className="text-sm text-[var(--brand-light)]/70">Self Registration</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('detail.selfRegistration')}</span>
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                   municipality.allow_self_registration 
                     ? 'bg-[var(--brand-third)]/20 text-[var(--brand-third)]' 
                     : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]'
                 }`}>
-                  {municipality.allow_self_registration ? 'Allowed' : 'Disabled'}
+                  {municipality.allow_self_registration ? t('detail.allowed') : t('detail.disabled')}
                 </span>
               </div>
 
@@ -356,14 +358,14 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
                     <Shield className="w-4 h-4 text-[var(--brand-peach)]" />
                   </div>
-                  <span className="text-sm text-[var(--brand-light)]/70">Guardian Required</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('detail.guardianRequired')}</span>
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                   municipality.require_guardian_at_registration 
                     ? 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]' 
                     : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'
                 }`}>
-                  {municipality.require_guardian_at_registration ? 'Yes' : 'No'}
+                  {municipality.require_guardian_at_registration ? t('detail.yes') : t('detail.no')}
                 </span>
               </div>
             </div>
@@ -376,13 +378,13 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
                 {municipality.created_at && (
                   <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/40">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>Created: {new Date(municipality.created_at).toLocaleDateString()}</span>
+                    <span>{t('detail.created')}: {new Date(municipality.created_at).toLocaleDateString()}</span>
                   </div>
                 )}
                 {municipality.updated_at && (
                   <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/40">
                     <Clock className="h-3.5 w-3.5" />
-                    <span>Updated: {new Date(municipality.updated_at).toLocaleDateString()}</span>
+                    <span>{t('detail.updated')}: {new Date(municipality.updated_at).toLocaleDateString()}</span>
                   </div>
                 )}
               </div>

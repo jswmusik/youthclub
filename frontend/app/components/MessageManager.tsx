@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Search, BarChart3, ChevronUp, Trash2, X, MessageSquare, Info, AlertTriangle, AlertCircle, ChevronLeft, Calendar, Users } from 'lucide-react';
 import api from '../../lib/api';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -16,9 +17,10 @@ interface SwipeableCardProps {
   children: React.ReactNode;
   onDelete: () => void;
   onClick: () => void;
+  deleteText: string;
 }
 
-function SwipeableCard({ children, onDelete, onClick }: SwipeableCardProps) {
+function SwipeableCard({ children, onDelete, onClick, deleteText }: SwipeableCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -98,7 +100,7 @@ function SwipeableCard({ children, onDelete, onClick }: SwipeableCardProps) {
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{deleteText}</span>
         </button>
       </div>
 
@@ -188,11 +190,11 @@ function MessagePageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Content</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Audience</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70"><Skeleton className="h-4 w-16" /></th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70"><Skeleton className="h-4 w-24" /></th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70"><Skeleton className="h-4 w-20" /></th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70"><Skeleton className="h-4 w-20" /></th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70"><Skeleton className="h-4 w-16" /></th>
             </tr>
           </thead>
           <tbody>
@@ -211,6 +213,7 @@ interface MessageManagerProps {
 }
 
 export default function MessageManager({ basePath }: MessageManagerProps) {
+  const t = useTranslations('systemMessages');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -229,7 +232,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
   
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   useEffect(() => {
     fetchAllMessagesForAnalytics();
@@ -428,11 +431,11 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
     if (!itemToDelete) return;
     try {
       await api.delete(`/messages/${itemToDelete.id}/`);
-      setToast({ message: 'Message deleted.', type: 'success', isVisible: true });
+      success(t('toasts.deleteSuccess'));
       fetchMessages();
       fetchAllMessagesForAnalytics();
     } catch (err) {
-      setToast({ message: 'Failed to delete.', type: 'error', isVisible: true });
+      error(t('toasts.deleteFailed'));
     } finally {
       setItemToDelete(null);
     }
@@ -478,18 +481,19 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
 
   const getRoleLabel = (role: string) => {
     const roleMap: Record<string, string> = {
-      'SUPER_ADMIN': 'Super Admin',
-      'MUNICIPALITY_ADMIN': 'Municipality Admin',
-      'CLUB_ADMIN': 'Club Admin',
-      'YOUTH_MEMBER': 'Youth Member',
-      'GUARDIAN': 'Guardian',
-      'ALL': 'All Users'
+      'PUBLIC': t('roles.public'),
+      'SUPER_ADMIN': t('roles.superAdmin'),
+      'MUNICIPALITY_ADMIN': t('roles.municipalityAdmin'),
+      'CLUB_ADMIN': t('roles.clubAdmin'),
+      'YOUTH_MEMBER': t('roles.youthMember'),
+      'GUARDIAN': t('roles.guardian'),
+      'ALL': t('roles.allUsers')
     };
     return roleMap[role] || role;
   };
 
   const formatTargetRoles = (roles: string[]) => {
-    if (roles.includes("ALL")) return "All Users";
+    if (roles.includes("ALL")) return t('roles.allUsers');
     return roles.map(role => getRoleLabel(role)).join(", ");
   };
 
@@ -527,13 +531,13 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
               <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">System Messages</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
-            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Create and manage system-wide messages.</p>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('subtitle')}</p>
           </div>
           <Link href={`${basePath}/create`}>
             <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all text-sm">
-              <Plus className="h-4 w-4" /> Create Message
+              <Plus className="h-4 w-4" /> {t('createMessage')}
             </button>
           </Link>
         </div>
@@ -549,7 +553,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                   <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                 </div>
-                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h3>
               </div>
               <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
             </button>
@@ -563,7 +567,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                     <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
                       <MessageSquare className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
                 </div>
@@ -574,7 +578,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                     <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                       <Info className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Information</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.information')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.info}</div>
                 </div>
@@ -585,7 +589,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                     <div className="w-10 h-10 rounded-xl bg-[#F59E0B] flex items-center justify-center">
                       <AlertCircle className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Important</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.important')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[#F59E0B]">{analytics.important}</div>
                 </div>
@@ -596,7 +600,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                     <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)] flex items-center justify-center">
                       <AlertTriangle className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Warning</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.warning')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.warning}</div>
                 </div>
@@ -613,7 +617,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
               <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
               <input 
                 type="text"
-                placeholder="Search by title or message..." 
+                placeholder={t('search')} 
                 className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
@@ -637,10 +641,10 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                   onChange={e => setTypeFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Types</option>
-                  <option value="INFO">Information</option>
-                  <option value="IMPORTANT">Important</option>
-                  <option value="WARNING">Warning</option>
+                  <option value="">{t('filters.allTypes')}</option>
+                  <option value="INFO">{t('analytics.information')}</option>
+                  <option value="IMPORTANT">{t('analytics.important')}</option>
+                  <option value="WARNING">{t('analytics.warning')}</option>
                 </select>
               </div>
               <div className="w-full sm:w-[160px]">
@@ -650,9 +654,9 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                   onChange={e => setStatusFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Statuses</option>
-                  <option value="active">Active</option>
-                  <option value="expired">Expired</option>
+                  <option value="">{t('filters.allStatuses')}</option>
+                  <option value="active">{t('filters.active')}</option>
+                  <option value="expired">{t('filters.expired')}</option>
                 </select>
               </div>
               {hasFilters && (
@@ -670,7 +674,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
         {/* Stats Bar */}
         {!showSkeleton && messages.length > 0 && (
           <p className="text-sm text-[var(--brand-light)]/50 px-4 sm:px-0">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{messages.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'message' : 'messages'}
+            {totalCount === 1 ? t('statsPlural', { count: messages.length, total: totalCount }) : t('stats', { count: messages.length, total: totalCount })}
           </p>
         )}
 
@@ -707,6 +711,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
                     key={msg.id}
                     onClick={() => router.push(`${basePath}/${msg.id}`)}
                     onDelete={() => setItemToDelete(msg)}
+                    deleteText={t('swipeActions.delete')}
                   >
                     <div className="border-y border-[var(--dark-600)] p-4">
                       <div className="flex items-start gap-3">
@@ -860,7 +865,6 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
         message={`Are you sure you want to delete "${itemToDelete?.title}"? This action cannot be undone.`}
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode duration={1250} />
-    </div>
+      </div>
   );
 }

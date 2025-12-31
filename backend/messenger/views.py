@@ -898,57 +898,63 @@ class InboxViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def search_admins(self, request):
         """
-        Search for admins that youth members can contact.
+        List and search admins that youth members and guardians can contact.
         Youth can contact:
         - Admins within their municipality
         - Admins of clubs they follow (even if different municipality)
-        Query params: q (search query)
+        Guardians can contact:
+        - Admins within their municipality only
+        
+        Excludes admins who have enabled "hide_contact_info" privacy mode.
+        Query params: q (optional search query to filter results)
         """
         user = request.user
         
-        # Only youth members can use this endpoint
-        if user.role != 'YOUTH_MEMBER':
+        # Only youth members and guardians can use this endpoint
+        if user.role not in ['YOUTH_MEMBER', 'GUARDIAN']:
             return Response({"error": "Unauthorized"}, status=403)
         
         search_query = request.query_params.get('q', '').strip()
         
-        if not search_query:
-            return Response({"results": []})
-        
-        # Build base queryset for admins (EXCLUDE SUPER_ADMIN)
+        # Build base queryset for admins (EXCLUDE SUPER_ADMIN and those with hidden contact info)
         queryset = User.objects.filter(
             is_active=True,
-            role__in=['CLUB_ADMIN', 'MUNICIPALITY_ADMIN']
+            role__in=['CLUB_ADMIN', 'MUNICIPALITY_ADMIN'],
+            hide_contact_info=False  # Exclude admins who don't want to be contacted
         )
         
-        # Apply search filter
-        queryset = queryset.filter(
-            Q(first_name__icontains=search_query) |
-            Q(last_name__icontains=search_query) |
-            Q(email__icontains=search_query) |
-            Q(nickname__icontains=search_query)
-        )
+        # Get user's municipality
+        user_municipality = None
+        followed_club_ids = []
         
-        # Get youth's municipality (from preferred_club)
-        youth_municipality = None
-        if user.preferred_club and user.preferred_club.municipality:
-            youth_municipality = user.preferred_club.municipality
+        if user.role == 'YOUTH_MEMBER':
+            # Youth: Get municipality from preferred_club
+            if user.preferred_club and user.preferred_club.municipality:
+                user_municipality = user.preferred_club.municipality
+            # Get clubs the youth follows
+            followed_club_ids = list(user.followed_clubs.values_list('id', flat=True))
+        elif user.role == 'GUARDIAN':
+            # Guardian: Get municipality from their children's preferred clubs
+            from users.models import GuardianYouthLink
+            child_link = GuardianYouthLink.objects.filter(
+                guardian=user,
+                status='ACTIVE'  # Active links are approved guardian-youth relationships
+            ).select_related('youth__preferred_club__municipality').first()
+            if child_link and child_link.youth.preferred_club and child_link.youth.preferred_club.municipality:
+                user_municipality = child_link.youth.preferred_club.municipality
         
-        # Get clubs the youth follows
-        followed_club_ids = list(user.followed_clubs.values_list('id', flat=True))
-        
-        # Build filter: admins youth can contact
+        # Build filter: admins user can contact
         admin_filters = Q()
         
-        # 1. Admins in youth's municipality (only if youth has a municipality)
-        if youth_municipality:
+        # 1. Admins in user's municipality (only if user has a municipality)
+        if user_municipality:
             admin_filters |= Q(
-                Q(role='MUNICIPALITY_ADMIN', assigned_municipality=youth_municipality) |
-                Q(role='CLUB_ADMIN', assigned_club__municipality=youth_municipality)
+                Q(role='MUNICIPALITY_ADMIN', assigned_municipality=user_municipality) |
+                Q(role='CLUB_ADMIN', assigned_club__municipality=user_municipality)
             )
         
-        # 2. Admins of clubs the youth follows (even if outside their municipality)
-        if followed_club_ids:
+        # 2. For youth only: Admins of clubs they follow (even if outside their municipality)
+        if user.role == 'YOUTH_MEMBER' and followed_club_ids:
             admin_filters |= Q(
                 role='CLUB_ADMIN',
                 assigned_club__id__in=followed_club_ids
@@ -959,6 +965,18 @@ class InboxViewSet(viewsets.ViewSet):
             return Response({"results": []})
         
         queryset = queryset.filter(admin_filters).distinct()
+        
+        # Apply search filter if provided
+        if search_query:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(nickname__icontains=search_query)
+            )
+        
+        # Order by name for consistent display
+        queryset = queryset.order_by('first_name', 'last_name')
         
         # Limit results
         queryset = queryset[:50]
@@ -983,13 +1001,13 @@ class InboxViewSet(viewsets.ViewSet):
                     'name': admin.assigned_club.name,
                     'municipality': admin.assigned_club.municipality.name if admin.assigned_club.municipality else None,
                 }
-                # Check if this club is in youth's municipality or if youth follows it
-                is_in_youth_municipality = (
-                    youth_municipality and 
-                    admin.assigned_club.municipality == youth_municipality
+                # Check if this club is in user's municipality or if youth follows it
+                is_in_user_municipality = (
+                    user_municipality and 
+                    admin.assigned_club.municipality == user_municipality
                 )
                 is_followed = admin.assigned_club.id in followed_club_ids
-                admin_data['club']['is_in_youth_municipality'] = is_in_youth_municipality
+                admin_data['club']['is_in_youth_municipality'] = is_in_user_municipality
                 admin_data['club']['is_followed'] = is_followed
             elif admin.role == 'MUNICIPALITY_ADMIN' and admin.assigned_municipality:
                 admin_data['municipality'] = {

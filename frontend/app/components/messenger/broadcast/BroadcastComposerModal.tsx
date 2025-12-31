@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { X, Paperclip, Send, Loader2, ArrowLeft, Users } from 'lucide-react';
 import { messengerApi } from '../../../../lib/messenger-api';
 import api from '../../../../lib/api';
 import { BroadcastFilters } from '../../../../types/messenger';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 
 interface BroadcastComposerModalProps {
     onClose: () => void;
@@ -24,6 +25,7 @@ export default function BroadcastComposerModal({
     initialTargetId,
     darkMode = false
 }: BroadcastComposerModalProps) {
+    const t = useTranslations('messages');
     const [step, setStep] = useState<1 | 2>(1);
     const [loading, setLoading] = useState(false);
     const [estimating, setEstimating] = useState(false);
@@ -31,11 +33,7 @@ export default function BroadcastComposerModal({
     const [focusedField, setFocusedField] = useState<string | null>(null);
     
     // Toast state
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '',
-        type: 'success',
-        isVisible: false,
-    });
+    const { success, error, info, warning } = useToast();
     
     // Data Options
     const [interestsOptions, setInterestsOptions] = useState<{id: number, name: string}[]>([]);
@@ -111,20 +109,12 @@ export default function BroadcastComposerModal({
             const res = await messengerApi.estimateBroadcast(payload);
             setEstimatedCount(res.data.count);
             if (res.data.count === 0) {
-                setToast({ 
-                    message: "No recipients found matching these filters.", 
-                    type: 'warning', 
-                    isVisible: true 
-                });
+                warning(t('broadcast.noRecipientsFound'));
             }
         } catch (err: any) {
             console.error('Estimate error:', err);
-            const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || "Failed to calculate recipients.";
-            setToast({ 
-                message: errorMsg, 
-                type: 'error', 
-                isVisible: true 
-            });
+            const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || t('broadcast.failedToCalculate');
+            error(errorMsg);
             // Also notify parent if callback provided
             if (onError) {
                 onError(errorMsg);
@@ -136,21 +126,13 @@ export default function BroadcastComposerModal({
 
     const handleSend = async () => {
         if (!subject.trim() || !content.trim()) {
-            setToast({ 
-                message: "Please fill in subject and content.", 
-                type: 'warning', 
-                isVisible: true 
-            });
+            warning(t('broadcast.pleaseFillInSubjectAndContent'));
             return;
         }
         
         // Warn if no recipients estimated
         if (estimatedCount === 0) {
-            setToast({ 
-                message: "No recipients found. Please adjust your filters.", 
-                type: 'warning', 
-                isVisible: true 
-            });
+            warning(t('broadcast.noRecipientsAdjustFilters'));
             return;
         }
         
@@ -170,11 +152,7 @@ export default function BroadcastComposerModal({
         } catch (err: any) {
             console.error('Send error:', err);
             const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || "Failed to send.";
-            setToast({ 
-                message: errorMsg, 
-                type: 'error', 
-                isVisible: true 
-            });
+            error(errorMsg);
             // Also notify parent if callback provided
             if (onError) {
                 onError(errorMsg);
@@ -234,9 +212,9 @@ export default function BroadcastComposerModal({
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                     <Users className="w-5 h-5 text-white" />
                                 </div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">New Broadcast</h2>
+                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('broadcast.title')}</h2>
                             </div>
-                            <p className="text-sm text-[var(--brand-light)]/50 ml-[52px]">Step {step} of 2: {step === 1 ? 'Select Audience' : 'Compose Message'}</p>
+                            <p className="text-sm text-[var(--brand-light)]/50 ml-[52px]">{t('broadcast.step', { step })}: {step === 1 ? t('broadcast.step1') : t('broadcast.step2')}</p>
                         </div>
                         <button 
                             onClick={onClose}
@@ -255,7 +233,7 @@ export default function BroadcastComposerModal({
                         <div className="space-y-5 sm:space-y-6">
                             {/* 1. Recipient Type */}
                             <div className="space-y-2">
-                                <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)]">Who are you messaging?</label>
+                                <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)]">{t('broadcast.whoAreYouMessaging')}</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                                     {['YOUTH', 'GUARDIAN', 'BOTH', 'ADMINS'].map(type => (
                                         <button
@@ -275,7 +253,7 @@ export default function BroadcastComposerModal({
                                                     : 'border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:border-[var(--brand-primary)]/50 hover:bg-[var(--dark-700)]'}
                                             `}
                                         >
-                                            {type.charAt(0) + type.slice(1).toLowerCase()}
+                                            {t(`broadcast.recipientTypes.${type.toLowerCase()}`)}
                                         </button>
                                     ))}
                                 </div>
@@ -286,9 +264,9 @@ export default function BroadcastComposerModal({
                                 <div className="bg-[var(--dark-700)] p-4 sm:p-5 rounded-xl border-2 border-[var(--dark-500)]">
                                     <h3 className="text-sm sm:text-base font-semibold text-[var(--brand-light)] mb-2 flex items-center gap-2">
                                         <Users className="h-4 w-4 text-[var(--brand-primary)]" />
-                                        Select Groups <span className="text-xs text-[var(--brand-light)]/50 font-normal">(Overrides other filters)</span>
+                                        {t('broadcast.selectGroups')} <span className="text-xs text-[var(--brand-light)]/50 font-normal">{t('broadcast.overridesOtherFilters')}</span>
                                     </h3>
-                                    <p className="text-xs sm:text-sm text-[var(--brand-light)]/50 mb-3">Sending to a group targets all approved members of that group.</p>
+                                    <p className="text-xs sm:text-sm text-[var(--brand-light)]/50 mb-3">{t('broadcast.groupDescription')}</p>
                                     <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                                         {groupOptions.map(g => (
                                             <button
@@ -310,7 +288,7 @@ export default function BroadcastComposerModal({
                                                 {g.name}
                                             </button>
                                         ))}
-                                        {groupOptions.length === 0 && <span className="text-xs text-[var(--brand-light)]/50">No groups available.</span>}
+                                        {groupOptions.length === 0 && <span className="text-xs text-[var(--brand-light)]/50">{t('broadcast.noGroupsAvailable')}</span>}
                                     </div>
                                 </div>
                             )}
@@ -318,12 +296,12 @@ export default function BroadcastComposerModal({
                             {/* 3. Demographic Filters */}
                             {showDemographics && !hasGroups && (
                                 <div className="bg-[var(--dark-700)] p-4 sm:p-5 rounded-xl border-2 border-[var(--dark-500)] space-y-4">
-                                    <h3 className="text-sm sm:text-base font-semibold text-[var(--brand-light)] uppercase tracking-wide">Demographics</h3>
+                                    <h3 className="text-sm sm:text-base font-semibold text-[var(--brand-light)] uppercase tracking-wide">{t('broadcast.demographics')}</h3>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                         {/* Gender (Valid for Youth & Guardians) */}
                                         <div className="space-y-2">
-                                            <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">Gender</label>
+                                            <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">{t('broadcast.gender')}</label>
                                             <select 
                                                 value={selectedGender} 
                                                 onChange={e => { setSelectedGender(e.target.value); resetEstimate(); }}
@@ -332,21 +310,21 @@ export default function BroadcastComposerModal({
                                                 onFocus={() => setFocusedField('gender')}
                                                 onBlur={() => setFocusedField(null)}
                                             >
-                                                <option value="">All Genders</option>
-                                                <option value="MALE">Male</option>
-                                                <option value="FEMALE">Female</option>
-                                                <option value="OTHER">Other</option>
+                                                <option value="">{t('broadcast.allGenders')}</option>
+                                                <option value="MALE">{t('broadcast.male')}</option>
+                                                <option value="FEMALE">{t('broadcast.female')}</option>
+                                                <option value="OTHER">{t('broadcast.other')}</option>
                                             </select>
                                         </div>
 
                                         {/* Age Range (Mostly Youth) */}
                                         {showYouthFilters && (
                                             <div className="space-y-2">
-                                                <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">Age Range</label>
+                                                <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">{t('broadcast.ageRange')}</label>
                                                 <div className="flex gap-2">
                                                     <input 
                                                         type="number" 
-                                                        placeholder="Min" 
+                                                        placeholder={t('broadcast.min')} 
                                                         value={ageMin}
                                                         onChange={e => { setAgeMin(e.target.value); resetEstimate(); }}
                                                         className={`${inputClasses('ageMin')} flex-1`}
@@ -355,7 +333,7 @@ export default function BroadcastComposerModal({
                                                     />
                                                     <input 
                                                         type="number" 
-                                                        placeholder="Max" 
+                                                        placeholder={t('broadcast.max')} 
                                                         value={ageMax}
                                                         onChange={e => { setAgeMax(e.target.value); resetEstimate(); }}
                                                         className={`${inputClasses('ageMax')} flex-1`}
@@ -369,7 +347,7 @@ export default function BroadcastComposerModal({
                                         {/* Grade (Only Youth) */}
                                         {showYouthFilters && (
                                             <div className="space-y-2">
-                                                <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">Grade</label>
+                                                <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">{t('broadcast.grade')}</label>
                                                 <select 
                                                     value={selectedGrade} 
                                                     onChange={e => { setSelectedGrade(e.target.value); resetEstimate(); }}
@@ -378,9 +356,9 @@ export default function BroadcastComposerModal({
                                                     onFocus={() => setFocusedField('grade')}
                                                     onBlur={() => setFocusedField(null)}
                                                 >
-                                                    <option value="">All Grades</option>
+                                                    <option value="">{t('broadcast.allGrades')}</option>
                                                     {[...Array(10)].map((_, i) => (
-                                                        <option key={i} value={i + 1}>Grade {i + 1}</option>
+                                                        <option key={i} value={i + 1}>{t('broadcast.gradeNumber', { grade: i + 1 })}</option>
                                                     ))}
                                                 </select>
                                             </div>
@@ -390,7 +368,7 @@ export default function BroadcastComposerModal({
                                     {/* Interests (Only Youth) */}
                                     {showYouthFilters && (
                                         <div className="space-y-2">
-                                            <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">Interests</label>
+                                            <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70">{t('broadcast.interests')}</label>
                                             <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
                                                 {interestsOptions.map(interest => (
                                                     <button
@@ -426,10 +404,10 @@ export default function BroadcastComposerModal({
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="text-sm sm:text-base font-bold text-[var(--brand-light)]">
-                                            {estimatedCount !== null ? `${estimatedCount} Recipients` : 'Ready to calculate'}
+                                            {estimatedCount !== null ? `${estimatedCount} ${t('broadcast.recipients')}` : t('broadcast.readyToCalculate')}
                                         </p>
                                         <p className="text-xs sm:text-sm text-[var(--brand-light)]/50">
-                                            {hasGroups ? 'Targeting Group Members' : 'Based on filters'}
+                                            {hasGroups ? t('broadcast.targetingGroupMembers') : t('broadcast.basedOnFilters')}
                                         </p>
                                     </div>
                                 </div>
@@ -441,10 +419,10 @@ export default function BroadcastComposerModal({
                                     {estimating ? (
                                         <>
                                             <Loader2 className="h-4 w-4 animate-spin mr-2 inline" />
-                                            Calculating...
+                                            {t('broadcast.calculating')}
                                         </>
                                     ) : (
-                                        'Refresh Count'
+                                        t('broadcast.refreshCount')
                                     )}
                                 </button>
                             </div>
@@ -455,13 +433,13 @@ export default function BroadcastComposerModal({
                         <div className="space-y-4 sm:space-y-5">
                             <div className="space-y-2">
                                 <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)]">
-                                    Subject <span className="text-[var(--brand-primary)]">*</span>
+                                    {t('broadcast.subject')} <span className="text-[var(--brand-primary)]">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     value={subject}
                                     onChange={e => setSubject(e.target.value)}
-                                    placeholder="e.g. Important Update regarding Friday's Event"
+                                    placeholder={t('broadcast.subjectPlaceholder')}
                                     className={inputClasses('subject')}
                                     onFocus={() => setFocusedField('subject')}
                                     onBlur={() => setFocusedField(null)}
@@ -469,12 +447,12 @@ export default function BroadcastComposerModal({
                             </div>
                             <div className="space-y-2">
                                 <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)]">
-                                    Message <span className="text-[var(--brand-primary)]">*</span>
+                                    {t('broadcast.message')} <span className="text-[var(--brand-primary)]">*</span>
                                 </label>
                                 <textarea
                                     value={content}
                                     onChange={e => setContent(e.target.value)}
-                                    placeholder="Type your broadcast message here..."
+                                    placeholder={t('typeBroadcastMessageHere')}
                                     rows={5}
                                     className={`${inputClasses('content')} resize-none min-h-[120px]`}
                                     onFocus={() => setFocusedField('content')}
@@ -482,9 +460,9 @@ export default function BroadcastComposerModal({
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                                    <label className="block text-sm sm:text-base font-semibold text-[var(--brand-light)] flex items-center gap-2">
                                     <Paperclip className="h-4 w-4 text-[var(--brand-light)]/60" />
-                                    Attachment <span className="font-normal text-xs text-[var(--brand-light)]/50">(Optional)</span>
+                                    {t('broadcast.attachment')} <span className="font-normal text-xs text-[var(--brand-light)]/50">{t('broadcast.optional')}</span>
                                 </label>
                                 
                                 {!attachment ? (
@@ -507,10 +485,10 @@ export default function BroadcastComposerModal({
                                                     <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--brand-light)]/60 group-hover:text-[var(--brand-primary)] transition-colors" />
                                                 </div>
                                                 <p className="mb-0.5 text-xs sm:text-sm font-semibold text-[var(--brand-light)]/80 group-hover:text-[var(--brand-primary)] transition-colors text-center">
-                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                    <span className="font-semibold">{t('broadcast.clickToUpload')}</span> {t('broadcast.orDragAndDrop')}
                                                 </p>
                                                 <p className="text-xs text-[var(--brand-light)]/50 text-center">
-                                                    PNG, JPG, GIF up to 10MB
+                                                    {t('broadcast.fileTypes')}
                                                 </p>
                                             </div>
                                         </label>
@@ -585,12 +563,12 @@ export default function BroadcastComposerModal({
                             {loading ? (
                                 <>
                                     <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-                                    <span>Sending...</span>
+                                    <span>{t('broadcast.sending')}</span>
                                 </>
                             ) : (
                                 <>
                                     <Send className="h-4 w-4 sm:h-5 sm:w-5" />
-                                    <span>Send Broadcast</span>
+                                    <span>{t('broadcast.sendBroadcast')}</span>
                                 </>
                             )}
                         </button>
@@ -599,14 +577,6 @@ export default function BroadcastComposerModal({
             </div>
             
             {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast({ ...toast, isVisible: false })}
-                darkMode
-                duration={1250}
-            />
         </div>
     );
 }

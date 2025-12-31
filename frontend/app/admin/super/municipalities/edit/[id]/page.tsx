@@ -2,11 +2,13 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import MunicipalityForm from '@/app/components/MunicipalityForm';
 import { MapPin } from 'lucide-react';
 
 function EditPageContent() {
+  const t = useTranslations('municipalitiesAdmin');
   const { id } = useParams() as { id: string };
   const searchParams = useSearchParams();
   const [data, setData] = useState(null);
@@ -35,7 +37,7 @@ function EditPageContent() {
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
           <MapPin className="w-6 h-6 text-white" />
         </div>
-        <div className="text-[var(--brand-light)]/60 animate-pulse">Loading municipality data...</div>
+        <div className="text-[var(--brand-light)]/60 animate-pulse">{t('edit.loadingMunicipalityData')}</div>
       </div>
     );
   }

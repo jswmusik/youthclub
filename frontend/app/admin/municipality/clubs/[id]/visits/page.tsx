@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import LiveAttendanceList from '@/app/components/visits/LiveAttendanceList';
 import VisitsTabs from '@/app/components/visits/VisitsTabs';
-import { Button } from '@/components/ui/button';
+import BackButton from '@/app/components/BackButton';
 
 export default function MunicipalityClubVisitsPage() {
   const params = useParams();
@@ -21,11 +20,7 @@ export default function MunicipalityClubVisitsPage() {
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       {/* Back Link */}
       <div>
-        <Link href={`/admin/municipality/clubs/${clubId}`}>
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="h-4 w-4" /> Back to Club
-          </Button>
-        </Link>
+        <BackButton href={`/admin/municipality/clubs/${clubId}`} label="Back to Club" />
       </div>
 
       {/* Header Section */}

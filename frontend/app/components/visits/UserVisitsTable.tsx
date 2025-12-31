@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { VisitSession } from '@/types/visit';
 import { getMediaUrl } from '@/app/utils';
 import { MapPin, Clock, LogIn, LogOut } from 'lucide-react';
@@ -78,6 +79,7 @@ export default function UserVisitsTable({
   totalCount,
   onPageChange 
 }: Props) {
+  const t = useTranslations('youthDetail.visits.table');
   const pageSize = 10;
   const totalPages = Math.ceil(totalCount / pageSize);
   
@@ -94,7 +96,7 @@ export default function UserVisitsTable({
   };
 
   const calculateDuration = (start: string, end?: string | null) => {
-    if (!end) return 'Active';
+    if (!end) return t('active');
     const diff = new Date(end).getTime() - new Date(start).getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
@@ -117,12 +119,12 @@ export default function UserVisitsTable({
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--dark-600)]">
-                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Check In</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Check Out</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Duration</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.club')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.date')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.checkIn')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.checkOut')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.duration')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -142,9 +144,9 @@ export default function UserVisitsTable({
         <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
           <MapPin className="w-8 h-8 text-[var(--brand-light)]/30" />
         </div>
-        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No visits found</h3>
+        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noVisitsFound')}</h3>
         <p className="text-[var(--brand-light)]/50 text-sm">
-          Try adjusting your date filters or check back later.
+          {t('emptyState.adjustFilters')}
         </p>
       </div>
     );
@@ -155,16 +157,16 @@ export default function UserVisitsTable({
       {/* Desktop Table */}
       <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
         <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Check In</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Check Out</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Duration</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-            </tr>
-          </thead>
+            <thead>
+              <tr className="border-b border-[var(--dark-600)]">
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.club')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.date')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.checkIn')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.checkOut')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.duration')}</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('headers.status')}</th>
+              </tr>
+            </thead>
           <tbody>
             {visits.map((visit, index) => {
               const isGuestVisit = preferredClubId && visit.club !== preferredClubId;
@@ -194,7 +196,7 @@ export default function UserVisitsTable({
                         </div>
                         {isGuestVisit && (
                           <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] mt-1">
-                            Guest Visit
+                            {t('guestVisit')}
                           </span>
                         )}
                       </div>
@@ -215,11 +217,11 @@ export default function UserVisitsTable({
                   <td className="px-6 py-4">
                     {visit.check_out_at ? (
                       <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
-                        Completed
+                        {t('completed')}
                       </span>
                     ) : (
                       <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
-                        Active
+                        {t('active')}
                       </span>
                     )}
                   </td>
@@ -260,7 +262,7 @@ export default function UserVisitsTable({
                     <div className="text-sm text-[var(--brand-light)]/50">{formatDate(visit.check_in_at)}</div>
                     {isGuestVisit && (
                       <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] mt-1">
-                        Guest Visit
+                        {t('guestVisit')}
                       </span>
                     )}
                   </div>
@@ -268,11 +270,11 @@ export default function UserVisitsTable({
                 <div>
                   {visit.check_out_at ? (
                     <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
-                      Completed
+                      {t('completed')}
                     </span>
                   ) : (
                     <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
-                      Active
+                      {t('active')}
                     </span>
                   )}
                 </div>
@@ -283,21 +285,21 @@ export default function UserVisitsTable({
                 <div className="text-center p-2 rounded-lg bg-[var(--dark-700)]">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <LogIn className="w-3 h-3 text-[var(--brand-light)]/40" />
-                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">In</span>
+                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">{t('mobile.in')}</span>
                   </div>
                   <div className="text-sm font-semibold text-[var(--brand-light)]">{formatTime(visit.check_in_at)}</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-[var(--dark-700)]">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <LogOut className="w-3 h-3 text-[var(--brand-light)]/40" />
-                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">Out</span>
+                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">{t('mobile.out')}</span>
                   </div>
                   <div className="text-sm font-semibold text-[var(--brand-light)]">{visit.check_out_at ? formatTime(visit.check_out_at) : '—'}</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-[var(--dark-700)]">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Clock className="w-3 h-3 text-[var(--brand-light)]/40" />
-                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">Time</span>
+                    <span className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold">{t('mobile.time')}</span>
                   </div>
                   <div className="text-sm font-semibold text-[var(--brand-primary)]">{calculateDuration(visit.check_in_at, visit.check_out_at)}</div>
                 </div>
@@ -315,17 +317,17 @@ export default function UserVisitsTable({
             onClick={() => onPageChange(page - 1)}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Previous
+            {t('pagination.previous')}
           </button>
           <div className="text-sm text-[var(--brand-light)]/50">
-            Page <span className="text-[var(--brand-primary)] font-semibold">{page}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{page}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
           </div>
           <button 
             disabled={page >= totalPages} 
             onClick={() => onPageChange(page + 1)}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Next
+            {t('pagination.next')}
           </button>
         </div>
       )}

@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import api from '../../../../lib/api';
 import { formatDistanceToNow, format } from 'date-fns';
+import { sv } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 import BookingDetailModal from './BookingDetailModal';
 import { 
   Users, ChevronLeft, ChevronRight, Search, X, Eye, 
@@ -146,6 +149,9 @@ function SwipeableCard({ children, onClick, onView }: SwipeableCardProps) {
 
 // Accept scope prop
 export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICIPALITY' | 'SUPER' }) {
+  const t = useTranslations('bookingsAdmin.requestList');
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSkeleton, setShowSkeleton] = useState(true);
@@ -257,7 +263,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             {analyticsExpanded ? (
               <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
@@ -275,7 +281,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-primary)] flex items-center justify-center">
                     <Clock className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Pending</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.pending')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{totalCount}</div>
               </div>
@@ -286,7 +292,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
                     <CalendarCheck className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Resources</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.resources')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-purple)]">{resources.length}</div>
               </div>
@@ -298,7 +304,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                       <Users className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Clubs</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.clubs')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{clubs.length}</div>
                 </div>
@@ -313,14 +319,14 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Resource Filter */}
           <div className="w-full sm:w-[200px]">
-            <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Resource</label>
+            <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">{t('filters.resource')}</label>
             <div className="relative">
               <select 
                 className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
                 value={selectedResource}
                 onChange={e => setSelectedResource(e.target.value)}
               >
-                <option value="">All Resources</option>
+                <option value="">{t('filters.allResources')}</option>
                 {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40 pointer-events-none" />
@@ -330,14 +336,14 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
           {/* Club Filter for High-Level Admins */}
           {(scope === 'MUNICIPALITY' || scope === 'SUPER') && (
             <div className="w-full sm:w-[180px]">
-              <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Club</label>
+              <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">{t('filters.club')}</label>
               <div className="relative">
                 <select 
                   className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
                   value={selectedClub}
                   onChange={e => setSelectedClub(e.target.value)}
                 >
-                  <option value="">All Clubs</option>
+                  <option value="">{t('filters.allClubs')}</option>
                   {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40 pointer-events-none" />
@@ -352,7 +358,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                 onClick={clearFilters}
                 className="px-4 py-2 h-10 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
               >
-                <X className="h-4 w-4" /> Clear
+                <X className="h-4 w-4" /> {t('filters.clear')}
               </button>
             </div>
           )}
@@ -363,7 +369,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
       {!showSkeleton && requests.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{requests.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> pending {totalCount === 1 ? 'request' : 'requests'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{requests.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {t('statsBar.pending')} {totalCount === 1 ? t('statsBar.request') : t('statsBar.requests')}
           </p>
         </div>
       )}
@@ -383,14 +389,14 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Resource</th>
-                  {scope !== 'CLUB' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>}
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Guests</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Requested</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.user')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.resource')}</th>
+                  {scope !== 'CLUB' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.club')}</th>}
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.date')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.time')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.guests')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.requested')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -406,8 +412,8 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <CalendarCheck className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No pending requests 🎉</h3>
-          <p className="text-[var(--brand-light)]/50 text-sm">All booking requests have been processed.</p>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noPendingRequests')}</h3>
+          <p className="text-[var(--brand-light)]/50 text-sm">{t('emptyState.allProcessed')}</p>
         </div>
       ) : (
         <>
@@ -452,34 +458,34 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                         
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="text-[var(--brand-light)]/50">Resource:</span>
+                            <span className="text-[var(--brand-light)]/50">{t('mobileCard.resource')}</span>
                             <span className="font-medium text-[var(--brand-primary)]">{req.resource_name}</span>
                           </div>
                           {scope !== 'CLUB' && req.club_name && (
                             <div className="flex items-center gap-2 text-sm">
-                              <span className="text-[var(--brand-light)]/50">Club:</span>
+                              <span className="text-[var(--brand-light)]/50">{t('mobileCard.club')}</span>
                               <span className="font-medium text-[var(--brand-light)]">{req.club_name}</span>
                             </div>
                           )}
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="text-[var(--brand-light)]/50">Date:</span>
-                            <span className="font-medium text-[var(--brand-light)]">{format(startDate, 'MMM d, yyyy')}</span>
+                            <span className="text-[var(--brand-light)]/50">{t('mobileCard.date')}</span>
+                            <span className="font-medium text-[var(--brand-light)]">{format(startDate, 'MMM d, yyyy', { locale: dateLocale })}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="text-[var(--brand-light)]/50">Time:</span>
+                            <span className="text-[var(--brand-light)]/50">{t('mobileCard.time')}</span>
                             <span className="font-medium text-[var(--brand-light)]">
-                              {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
+                              {format(startDate, 'HH:mm', { locale: dateLocale })} - {format(endDate, 'HH:mm', { locale: dateLocale })}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <Users className="w-4 h-4 text-[var(--brand-light)]/40" />
-                            <span className="text-[var(--brand-light)]/50">Guests:</span>
+                            <span className="text-[var(--brand-light)]/50">{t('mobileCard.guests')}</span>
                             <span className="font-medium text-[var(--brand-light)]">{participantCount}</span>
                           </div>
                         </div>
                         
                         <div className="text-xs text-[var(--brand-light)]/40 mt-2">
-                          Requested {formatDistanceToNow(new Date(req.created_at))} ago
+                          {t('mobileCard.requested')} {formatDistanceToNow(new Date(req.created_at), { locale: dateLocale, addSuffix: true })}
                         </div>
                       </div>
                     </div>
@@ -494,14 +500,14 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">User</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Resource</th>
-                  {scope !== 'CLUB' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Club</th>}
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Guests</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Requested</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.user')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.resource')}</th>
+                  {scope !== 'CLUB' && <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.club')}</th>}
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.date')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.time')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.guests')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.requested')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -554,11 +560,11 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                         </td>
                       )}
                       <td className="px-6 py-4">
-                        <span className="text-sm text-[var(--brand-light)]">{format(startDate, 'MMM d, yyyy')}</span>
+                        <span className="text-sm text-[var(--brand-light)]">{format(startDate, 'MMM d, yyyy', { locale: dateLocale })}</span>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm text-[var(--brand-light)]">
-                          {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
+                          {format(startDate, 'HH:mm', { locale: dateLocale })} - {format(endDate, 'HH:mm', { locale: dateLocale })}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -569,7 +575,7 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-xs text-[var(--brand-light)]/50">
-                          {formatDistanceToNow(new Date(req.created_at))} ago
+                          {formatDistanceToNow(new Date(req.created_at), { locale: dateLocale, addSuffix: true })}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -600,17 +606,17 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
             onClick={() => setCurrentPage(currentPage - 1)}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Previous
+            {t('pagination.previous')}
           </button>
           <div className="text-sm text-[var(--brand-light)]/50">
-            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
           </div>
           <button 
             disabled={currentPage >= totalPages} 
             onClick={() => setCurrentPage(currentPage + 1)}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Next
+            {t('pagination.next')}
           </button>
         </div>
       )}

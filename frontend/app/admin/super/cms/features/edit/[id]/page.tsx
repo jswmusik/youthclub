@@ -1,11 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import FeatureForm from '../../components/FeatureForm';
 import { cmsApi } from '@/lib/cms-api';
 import { FeatureShowcase } from '@/types/cms';
 
 export default function EditFeaturePage() {
+  const t = useTranslations('cmsAdmin.features.form');
   const { id } = useParams();
   const [feature, setFeature] = useState<FeatureShowcase | null>(null);
 
@@ -21,11 +23,11 @@ export default function EditFeaturePage() {
     }
   }, [id]);
 
-  if (!feature) return <div>Loading...</div>;
+  if (!feature) return <div>{t('loading')}</div>;
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Edit Feature</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('editTitle')}</h1>
       <FeatureForm initialData={feature} isEditing={true} />
     </div>
   );

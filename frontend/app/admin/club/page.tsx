@@ -3,21 +3,16 @@
 import { useAuth } from '../../../context/AuthContext';
 
 export default function ClubAdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-100 p-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-green-600">Club Admin</h1>
-        <div className="flex gap-4 items-center">
-          <span className="text-gray-600">Welcome, {user?.first_name}</span>
-          <button onClick={logout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-            Logout
-          </button>
+    <div className="py-4 sm:py-6 md:py-8 px-0">
+      <div className="px-4 sm:px-6 md:px-8">
+        <h1 className="text-3xl font-bold text-[var(--brand-primary)] mb-3">Club Admin</h1>
+        <p className="text-[var(--brand-light)]/60 mb-6">Welcome, {user?.first_name || 'Club Admin'}.</p>
+        <div className="bg-[var(--dark-800)] p-6 rounded-xl border border-[var(--dark-600)]">
+          <p className="text-[var(--brand-light)]">Manage your daily club operations, events, and members from the navigation menu.</p>
         </div>
-      </div>
-      <div className="bg-white p-6 rounded-lg shadow">
-        <p>Manage your daily club operations, events, and members here.</p>
       </div>
     </div>
   );

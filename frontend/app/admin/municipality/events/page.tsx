@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, Calendar, Clock, Users, Repeat, MapPin, ChevronLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { Event } from '@/types/event';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -18,9 +19,11 @@ interface SwipeableCardProps {
     onEdit: () => void;
     onDelete: () => void;
     onClick: () => void;
+    editLabel?: string;
+    deleteLabel?: string;
 }
 
-function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+function SwipeableCard({ children, onEdit, onDelete, onClick, editLabel = 'Edit', deleteLabel = 'Delete' }: SwipeableCardProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [startX, setStartX] = useState(0);
     const [currentX, setCurrentX] = useState(0);
@@ -107,14 +110,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
                 >
                     <Edit className="w-5 h-5" />
-                    <span className="text-xs font-medium">Edit</span>
+                    <span className="text-xs font-medium">{editLabel}</span>
                 </button>
                 <button
                     onClick={handleDeleteClick}
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
                 >
                     <Trash2 className="w-5 h-5" />
-                    <span className="text-xs font-medium">Delete</span>
+                    <span className="text-xs font-medium">{deleteLabel}</span>
                 </button>
             </div>
 
@@ -200,6 +203,8 @@ function EventTableRowSkeleton() {
 }
 
 function EventPageSkeleton() {
+    const t = useTranslations('eventsAdmin');
+    
     return (
         <>
             {/* Mobile Cards Skeleton */}
@@ -214,12 +219,12 @@ function EventPageSkeleton() {
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-[var(--dark-600)]">
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Event</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Recurring</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Registrations</th>
-                            <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.event')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.date')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.recurring')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.registrations')}</th>
+                            <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -237,6 +242,7 @@ export default function MunicipalityEventsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const t = useTranslations('eventsAdmin');
 
     const [events, setEvents] = useState<Event[]>([]);
     const [allEventsForAnalytics, setAllEventsForAnalytics] = useState<Event[]>([]);
@@ -256,7 +262,7 @@ export default function MunicipalityEventsPage() {
     const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
     const [deleteMode, setDeleteMode] = useState<'single' | 'future' | null>(null);
     const [deleting, setDeleting] = useState(false);
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+    const { success, error, info, warning } = useToast();
     const [clubs, setClubs] = useState<any[]>([]);
 
     useEffect(() => {
@@ -578,7 +584,7 @@ export default function MunicipalityEventsPage() {
                 await api.delete(`/events/${eventToDelete.id}/`);
             }
 
-            setToast({ message: 'Event deleted successfully.', type: 'success', isVisible: true });
+            success(t('toast.eventDeleted'));
             await fetchEvents();
             await fetchAllEventsForAnalytics();
 
@@ -586,7 +592,7 @@ export default function MunicipalityEventsPage() {
             setDeleteMode(null);
         } catch (error: any) {
             console.error('Error deleting event:', error);
-            setToast({ message: error.response?.data?.error || 'Failed to delete event', type: 'error', isVisible: true });
+            error(error.response?.data?.error || t('toast.failedToDelete'));
         } finally {
             setDeleting(false);
         }
@@ -642,13 +648,13 @@ export default function MunicipalityEventsPage() {
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                 <Calendar className="w-5 h-5 text-white" />
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Events</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                         </div>
-                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Create and manage events for your municipality.</p>
+                        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('subtitle')}</p>
                     </div>
                     <Link href="/admin/municipality/events/create">
                         <button className="flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all text-sm">
-                            <Plus className="h-4 w-4" /> Create Event
+                            <Plus className="h-4 w-4" /> {t('createEvent')}
                         </button>
                     </Link>
                 </div>
@@ -664,7 +670,7 @@ export default function MunicipalityEventsPage() {
                                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                                     <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                                 </div>
-                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                                <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
                             </div>
                             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
                         </button>
@@ -677,7 +683,7 @@ export default function MunicipalityEventsPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                             <Calendar className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_events}</div>
                                 </div>
@@ -688,7 +694,7 @@ export default function MunicipalityEventsPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                                             <Clock className="h-5 w-5 text-white" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Upcoming</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('upcoming')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.upcoming_events}</div>
                                 </div>
@@ -699,7 +705,7 @@ export default function MunicipalityEventsPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                                             <Users className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Attended</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('attended')}</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.total_attended}</div>
                                 </div>
@@ -716,7 +722,7 @@ export default function MunicipalityEventsPage() {
                             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
                             <input
                                 type="text"
-                                placeholder="Search by title or location..."
+                                placeholder={t('searchPlaceholder')}
                                 className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
@@ -740,11 +746,11 @@ export default function MunicipalityEventsPage() {
                                     onChange={e => setStatusFilter(e.target.value)}
                                     style={selectArrowStyle}
                                 >
-                                    <option value="">All Statuses</option>
-                                    <option value="DRAFT">Draft</option>
-                                    <option value="SCHEDULED">Scheduled</option>
-                                    <option value="PUBLISHED">Published</option>
-                                    <option value="CANCELLED">Cancelled</option>
+                                    <option value="">{t('filters.allStatuses')}</option>
+                                    <option value="DRAFT">{t('status.draft')}</option>
+                                    <option value="SCHEDULED">{t('status.scheduled')}</option>
+                                    <option value="PUBLISHED">{t('status.published')}</option>
+                                    <option value="CANCELLED">{t('status.cancelled')}</option>
                                 </select>
                             </div>
                             <div className="w-full sm:w-[180px]">
@@ -754,9 +760,9 @@ export default function MunicipalityEventsPage() {
                                     onChange={e => setRecurringFilter(e.target.value)}
                                     style={selectArrowStyle}
                                 >
-                                    <option value="">All Events</option>
-                                    <option value="only">Only Recurring</option>
-                                    <option value="exclude">Exclude Recurring</option>
+                                    <option value="">{t('filters.allEvents')}</option>
+                                    <option value="only">{t('filters.onlyRecurring')}</option>
+                                    <option value="exclude">{t('filters.excludeRecurring')}</option>
                                 </select>
                             </div>
                             <div className="w-full sm:w-[180px]">
@@ -766,7 +772,7 @@ export default function MunicipalityEventsPage() {
                                     onChange={e => setClubFilter(e.target.value)}
                                     style={selectArrowStyle}
                                 >
-                                    <option value="">All Clubs</option>
+                                    <option value="">{t('filters.allClubs')}</option>
                                     {clubs.map(club => (
                                         <option key={club.id} value={club.id.toString()}>
                                             {club.name}
@@ -779,7 +785,7 @@ export default function MunicipalityEventsPage() {
                                     onClick={clearFilters}
                                     className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
                                 >
-                                    Clear All
+                                    {t('filters.clearAll')}
                                 </button>
                             )}
                         </div>
@@ -790,7 +796,7 @@ export default function MunicipalityEventsPage() {
                 {!showSkeleton && events.length > 0 && (
                     <div className="px-4 sm:px-0">
                         <p className="text-sm text-[var(--brand-light)]/50">
-                            Showing <span className="text-[var(--brand-primary)] font-semibold">{events.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'event' : 'events'}
+                            {t('stats.showing', { count: events.length, total: totalCount })}
                         </p>
                     </div>
                 )}
@@ -803,14 +809,14 @@ export default function MunicipalityEventsPage() {
                         <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                             <Calendar className="w-8 h-8 text-[var(--brand-light)]/30" />
                         </div>
-                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No events found</h3>
+                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noEventsFound')}</h3>
                         <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-                            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by creating your first event.'}
+                            {hasFilters ? t('emptyState.tryAdjustingFilters') : t('emptyState.getStarted')}
                         </p>
                         {!hasFilters && (
                             <Link href="/admin/municipality/events/create">
                                 <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                                    <Plus className="h-4 w-4" /> Create Event
+                                    <Plus className="h-4 w-4" /> {t('createEvent')}
                                 </button>
                             </Link>
                         )}
@@ -825,6 +831,8 @@ export default function MunicipalityEventsPage() {
                                     onClick={() => router.push(buildUrlWithParams(`/admin/municipality/events/${event.id}`))}
                                     onEdit={() => router.push(buildUrlWithParams(`/admin/municipality/events/edit/${event.id}`))}
                                     onDelete={() => handleDeleteClick(event)}
+                                    editLabel={t('actions.edit')}
+                                    deleteLabel={t('actions.delete')}
                                 >
                                     <div className="border-y border-[var(--dark-600)] p-4">
                                         <div className="flex items-start gap-3">
@@ -841,12 +849,12 @@ export default function MunicipalityEventsPage() {
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-2 mt-2">
                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(event.status)}`}>
-                                                        {event.status}
+                                                        {t(`status.${event.status.toLowerCase()}`)}
                                                     </span>
                                                     {(event.is_recurring || event.parent_event) && (
                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
                                                             <Repeat className="w-3 h-3" />
-                                                            {event.parent_event ? 'Instance' : event.recurrence_pattern || 'Recurring'}
+                                                            {event.parent_event ? t('recurring.instance') : event.recurrence_pattern || t('recurring.recurring')}
                                                         </span>
                                                     )}
                                                     <span className="flex items-center gap-1 text-xs text-[var(--brand-light)]/40">
@@ -919,12 +927,12 @@ export default function MunicipalityEventsPage() {
                                                         {event.is_recurring && (
                                                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
                                                                 <Repeat className="w-3 h-3" />
-                                                                {event.recurrence_pattern || 'Recurring'}
+                                                                {event.recurrence_pattern || t('recurring.recurring')}
                                                             </span>
                                                         )}
                                                         {event.parent_event && (
                                                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
-                                                                Instance
+                                                                {t('recurring.instance')}
                                                             </span>
                                                         )}
                                                     </div>
@@ -934,7 +942,7 @@ export default function MunicipalityEventsPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusBadge(event.status)}`}>
-                                                    {event.status}
+                                                    {t(`status.${event.status.toLowerCase()}`)}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
@@ -1012,12 +1020,12 @@ export default function MunicipalityEventsPage() {
                                 <Trash2 className="w-6 h-6 text-[var(--brand-red)]" />
                             </div>
                             <h2 className="text-xl font-bold text-[var(--brand-light)] text-center mb-3">
-                                Delete Recurring Event
+                                {t('deleteModal.recurringTitle')}
                             </h2>
                             <p className="text-[var(--brand-light)]/60 text-center mb-6">
                                 {eventToDelete.parent_event
-                                    ? `"${eventToDelete.title}" is part of a recurring series. How would you like to proceed?`
-                                    : `"${eventToDelete.title}" is a recurring event. How would you like to proceed?`
+                                    ? t('deleteModal.recurringInstanceMessage', { title: eventToDelete.title })
+                                    : t('deleteModal.recurringParentMessage', { title: eventToDelete.title })
                                 }
                             </p>
 
@@ -1030,8 +1038,8 @@ export default function MunicipalityEventsPage() {
                                                 : 'border-[var(--dark-500)] hover:border-[var(--dark-400)]'
                                             }`}
                                     >
-                                        <div className="font-semibold text-[var(--brand-light)]">Delete only this instance</div>
-                                        <div className="text-sm text-[var(--brand-light)]/50 mt-1">Only this event will be deleted. Past and future instances will remain.</div>
+                                        <div className="font-semibold text-[var(--brand-light)]">{t('deleteModal.deleteOnlyInstance')}</div>
+                                        <div className="text-sm text-[var(--brand-light)]/50 mt-1">{t('deleteModal.deleteOnlyInstanceDesc')}</div>
                                     </button>
                                     <button
                                         onClick={() => setDeleteMode('future')}
@@ -1040,15 +1048,15 @@ export default function MunicipalityEventsPage() {
                                                 : 'border-[var(--dark-500)] hover:border-[var(--dark-400)]'
                                             }`}
                                     >
-                                        <div className="font-semibold text-[var(--brand-light)]">Delete this and all future instances</div>
-                                        <div className="text-sm text-[var(--brand-light)]/50 mt-1">This event and all future events in the series will be deleted.</div>
+                                        <div className="font-semibold text-[var(--brand-light)]">{t('deleteModal.deleteFutureInstances')}</div>
+                                        <div className="text-sm text-[var(--brand-light)]/50 mt-1">{t('deleteModal.deleteFutureInstancesDesc')}</div>
                                     </button>
                                 </div>
                             )}
 
                             {!eventToDelete.parent_event && eventToDelete.is_recurring && (
                                 <p className="text-sm text-[var(--brand-light)]/60 text-center mb-6">
-                                    Deleting the parent event will delete all instances in the series.
+                                    {t('deleteModal.deleteParentMessage')}
                                 </p>
                             )}
 
@@ -1061,7 +1069,7 @@ export default function MunicipalityEventsPage() {
                                     disabled={deleting}
                                     className="flex-1 px-4 py-2.5 text-[var(--brand-light)] bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl font-semibold hover:bg-[var(--dark-600)] transition-colors disabled:opacity-50"
                                 >
-                                    Cancel
+                                    {t('deleteModal.cancel')}
                                 </button>
                                 <button
                                     onClick={handleDeleteConfirm}
@@ -1074,10 +1082,10 @@ export default function MunicipalityEventsPage() {
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                             </svg>
-                                            Deleting...
+                                            {t('deleteModal.deleting')}
                                         </>
                                     ) : (
-                                        'Delete'
+                                        t('deleteModal.delete')
                                     )}
                                 </button>
                             </div>
@@ -1099,18 +1107,17 @@ export default function MunicipalityEventsPage() {
                             setDeleteMode('single');
                             handleDeleteConfirm();
                         }}
-                        title="Delete Event"
-                        message={`Are you sure you want to delete "${eventToDelete.title}"? This action cannot be undone.`}
-                        confirmButtonText="Delete"
-                        cancelButtonText="Cancel"
+                        title={t('deleteModal.title')}
+                        message={t('deleteModal.message', { title: eventToDelete.title })}
+                        confirmButtonText={t('deleteModal.delete')}
+                        cancelButtonText={t('deleteModal.cancel')}
                         isLoading={deleting}
                         variant="danger"
                         darkMode={true}
                     />
                 )}
 
-                <Toast {...toast} onClose={() => setToast({ ...toast, isVisible: false })} darkMode duration={1250} />
-            </div>
+                </div>
         </div>
     );
 }

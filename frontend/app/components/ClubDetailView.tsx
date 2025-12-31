@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { GoogleMap, Marker, LoadScript } from '@react-google-maps/api';
@@ -21,22 +22,29 @@ interface ClubDetailProps {
   backLabel?: string;
 }
 
-const WEEKDAYS = [
-    { id: 1, name: 'Monday' }, { id: 2, name: 'Tuesday' }, { id: 3, name: 'Wednesday' },
-    { id: 4, name: 'Thursday' }, { id: 5, name: 'Friday' }, { id: 6, name: 'Saturday' }, { id: 7, name: 'Sunday' },
-];
-
 export default function ClubDetailView({ 
   clubId, 
   basePath, 
   editPath,
   followersPath,
   visitsPath,
-  backLabel = 'Back to List'
+  backLabel
 }: ClubDetailProps) {
+  const t = useTranslations('detail');
   const searchParams = useSearchParams();
   const [club, setClub] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Translation-based constants
+  const WEEKDAYS = [
+    { id: 1, name: t('weekdays.monday') }, 
+    { id: 2, name: t('weekdays.tuesday') }, 
+    { id: 3, name: t('weekdays.wednesday') },
+    { id: 4, name: t('weekdays.thursday') }, 
+    { id: 5, name: t('weekdays.friday') }, 
+    { id: 6, name: t('weekdays.saturday') }, 
+    { id: 7, name: t('weekdays.sunday') },
+  ];
 
   useEffect(() => {
     api.get(`/clubs/${clubId}/`).then(res => {
@@ -77,7 +85,7 @@ export default function ClubDetailView({
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
             <Building2 className="w-6 h-6 text-white" />
           </div>
-          <span className="text-[var(--brand-light)]/60 animate-pulse">Loading club details...</span>
+          <span className="text-[var(--brand-light)]/60 animate-pulse">{t('loadingDetails')}</span>
         </div>
       </div>
     );
@@ -90,12 +98,12 @@ export default function ClubDetailView({
           <div className="w-16 h-16 rounded-2xl bg-[var(--brand-red)]/10 flex items-center justify-center">
             <Building2 className="w-8 h-8 text-[var(--brand-red)]" />
           </div>
-          <p className="text-[var(--brand-red)]">Club not found.</p>
+          <p className="text-[var(--brand-red)]">{t('clubNotFound')}</p>
           <Link 
             href={buildUrlWithParams(basePath)}
             className="text-sm text-[var(--brand-primary)] hover:underline"
           >
-            ← Back to clubs list
+            {t('backToClubsList')}
           </Link>
         </div>
       </div>
@@ -110,7 +118,7 @@ export default function ClubDetailView({
           href={buildUrlWithParams(basePath)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
         >
-          <ArrowLeft className="h-4 w-4" /> {backLabel}
+          <ArrowLeft className="h-4 w-4" /> {backLabel || t('backToList')}
         </Link>
         <div className="flex flex-wrap gap-2">
           {showVisits && (
@@ -119,8 +127,8 @@ export default function ClubDetailView({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
             >
               <LogIn className="h-4 w-4" />
-              <span className="hidden sm:inline">View Visitors</span>
-              <span className="sm:hidden">Visitors</span>
+              <span className="hidden sm:inline">{t('viewVisitors')}</span>
+              <span className="sm:hidden">{t('visitors')}</span>
             </Link>
           )}
           {showFollowers && (
@@ -129,8 +137,8 @@ export default function ClubDetailView({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
             >
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">View Followers</span>
-              <span className="sm:hidden">Followers</span>
+              <span className="hidden sm:inline">{t('viewFollowers')}</span>
+              <span className="sm:hidden">{t('followers')}</span>
             </Link>
           )}
           {showEdit && (
@@ -138,7 +146,7 @@ export default function ClubDetailView({
               href={getEditPath()!}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
             >
-              <Edit className="h-4 w-4" /> Edit Club
+              <Edit className="h-4 w-4" /> {t('editClub')}
             </Link>
           )}
         </div>
@@ -224,14 +232,14 @@ export default function ClubDetailView({
           {/* About Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">About</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('about')}</h2>
             </div>
             <div className="p-6">
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
                 {club.description ? (
                   <p className="text-sm leading-relaxed text-[var(--brand-light)]/80 whitespace-pre-wrap">{club.description}</p>
                 ) : (
-                  <p className="text-sm italic text-[var(--brand-light)]/30">No description provided.</p>
+                  <p className="text-sm italic text-[var(--brand-light)]/30">{t('noDescription')}</p>
                 )}
               </div>
             </div>
@@ -240,7 +248,7 @@ export default function ClubDetailView({
           {/* Opening Hours Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Opening Hours</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('openingHours')}</h2>
             </div>
             <div className="p-6 space-y-3">
               {club.regular_hours && club.regular_hours.length > 0 ? (
@@ -253,14 +261,14 @@ export default function ClubDetailView({
                   const restrictions = [];
                   if (h.gender_restriction && h.gender_restriction !== 'ALL') {
                     restrictions.push(
-                      h.gender_restriction === 'GIRLS' ? 'Girls Only' : 
-                      h.gender_restriction === 'BOYS' ? 'Boys Only' : 'Other Gender'
+                      h.gender_restriction === 'GIRLS' ? t('girlsOnly') : 
+                      h.gender_restriction === 'BOYS' ? t('boysOnly') : t('otherGender')
                     );
                   }
                   if (h.restriction_mode === 'AGE' && h.min_value && h.max_value) {
-                    restrictions.push(`Age ${h.min_value}-${h.max_value}`);
+                    restrictions.push(`${t('age')} ${h.min_value}-${h.max_value}`);
                   } else if (h.restriction_mode === 'GRADE' && h.min_value && h.max_value) {
-                    restrictions.push(`Grades ${h.min_value}-${h.max_value}`);
+                    restrictions.push(`${t('grades')} ${h.min_value}-${h.max_value}`);
                   }
                   
                   return (
@@ -280,12 +288,12 @@ export default function ClubDetailView({
                             </span>
                             {isToday && (
                               <span className="bg-[var(--brand-primary)] text-[var(--dark-900)] text-[10px] px-2 py-0.5 rounded-full font-bold">
-                                Today
+                                {t('today')}
                               </span>
                             )}
                             {h.week_cycle !== 'ALL' && (
                               <span className="bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30 text-[10px] px-2 py-0.5 rounded-full">
-                                {h.week_cycle === 'ODD' ? 'Odd Weeks' : h.week_cycle === 'EVEN' ? 'Even Weeks' : h.week_cycle}
+                                {h.week_cycle === 'ODD' ? t('oddWeeks') : h.week_cycle === 'EVEN' ? t('evenWeeks') : h.week_cycle}
                               </span>
                             )}
                           </div>
@@ -323,7 +331,7 @@ export default function ClubDetailView({
               ) : (
                 <div className="text-center py-8 text-[var(--brand-light)]/40">
                   <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="italic">No opening hours defined</p>
+                  <p className="italic">{t('noOpeningHours')}</p>
                 </div>
               )}
             </div>
@@ -336,12 +344,12 @@ export default function ClubDetailView({
               <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-[var(--brand-peach)]" />
-                  <h3 className="text-sm font-semibold text-[var(--brand-light)]">Terms & Conditions</h3>
+                  <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('termsConditions')}</h3>
                 </div>
               </div>
               <div className="p-4">
                 <div className="h-32 overflow-y-auto text-xs text-[var(--brand-light)]/70 bg-[var(--dark-700)]/50 p-4 rounded-xl border border-[var(--dark-500)]">
-                  {club.terms_and_conditions || <span className="italic text-[var(--brand-light)]/40">None provided</span>}
+                  {club.terms_and_conditions || <span className="italic text-[var(--brand-light)]/40">{t('noneProvided')}</span>}
                 </div>
               </div>
             </div>
@@ -351,12 +359,12 @@ export default function ClubDetailView({
               <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-[var(--brand-blue)]" />
-                  <h3 className="text-sm font-semibold text-[var(--brand-light)]">Club Policies</h3>
+                  <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('clubPolicies')}</h3>
                 </div>
               </div>
               <div className="p-4">
                 <div className="h-32 overflow-y-auto text-xs text-[var(--brand-light)]/70 bg-[var(--dark-700)]/50 p-4 rounded-xl border border-[var(--dark-500)]">
-                  {club.club_policies || <span className="italic text-[var(--brand-light)]/40">None provided</span>}
+                  {club.club_policies || <span className="italic text-[var(--brand-light)]/40">{t('noneProvided')}</span>}
                 </div>
               </div>
             </div>
@@ -369,7 +377,7 @@ export default function ClubDetailView({
           {/* Contact Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('contact')}</h2>
             </div>
             <div className="p-6 space-y-3">
               {club.email && (
@@ -407,7 +415,7 @@ export default function ClubDetailView({
               {!club.email && !club.phone && !club.address && (
                 <div className="text-center py-6 text-[var(--brand-light)]/40">
                   <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="italic text-sm">No contact information</p>
+                  <p className="italic text-sm">{t('noContactInfo')}</p>
                 </div>
               )}
             </div>
@@ -417,7 +425,7 @@ export default function ClubDetailView({
           {(club.latitude && club.longitude && !isNaN(parseFloat(club.latitude)) && !isNaN(parseFloat(club.longitude))) && (
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
               <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Location</h2>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('location')}</h2>
               </div>
               <div className="h-64 bg-[var(--dark-700)] relative">
                 {(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) ? (
@@ -425,7 +433,7 @@ export default function ClubDetailView({
                     googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''}
                     loadingElement={
                       <div className="w-full h-full flex items-center justify-center bg-[var(--dark-700)]">
-                        <div className="text-[var(--brand-light)]/50 text-sm">Loading map...</div>
+                        <div className="text-[var(--brand-light)]/50 text-sm">{t('loadingMap')}</div>
                       </div>
                     }
                   >
@@ -454,8 +462,8 @@ export default function ClubDetailView({
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
                     <MapPin className="w-10 h-10 text-[var(--brand-light)]/30 mb-3" />
-                    <p className="text-sm text-[var(--brand-light)]/50 mb-1">Map Preview Unavailable</p>
-                    <p className="text-xs text-[var(--brand-light)]/30 mb-4">API key not configured</p>
+                    <p className="text-sm text-[var(--brand-light)]/50 mb-1">{t('mapUnavailable')}</p>
+                    <p className="text-xs text-[var(--brand-light)]/30 mb-4">{t('apiKeyNotConfigured')}</p>
                     <a 
                       href={`https://www.google.com/maps?q=${club.latitude},${club.longitude}`} 
                       target="_blank" 
@@ -463,7 +471,7 @@ export default function ClubDetailView({
                       className="px-4 py-2 bg-[var(--brand-primary)] text-[var(--dark-900)] text-sm font-semibold rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all flex items-center gap-2"
                     >
                       <ExternalLink className="w-4 h-4" />
-                      Open in Google Maps
+                      {t('openInGoogleMaps')}
                     </a>
                   </div>
                 )}

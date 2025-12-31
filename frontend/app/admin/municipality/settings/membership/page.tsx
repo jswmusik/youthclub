@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import Skeleton from '@/app/components/ui/Skeleton';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../../../hooks/useToast';
 import { format, parseISO, differenceInDays, differenceInMonths, addYears } from 'date-fns';
 import { sv, enUS, type Locale } from 'date-fns/locale';
 

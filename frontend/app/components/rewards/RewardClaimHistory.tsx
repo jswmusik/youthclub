@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Search, BarChart3, ChevronUp, ChevronDown, X, Calendar, Gift, 
@@ -22,6 +23,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onView, onClick, showActions = true }: SwipeableCardProps) {
+  const t = useTranslations('rewardsAdmin.history');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -105,7 +107,7 @@ function SwipeableCard({ children, onView, onClick, showActions = true }: Swipea
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
           >
             <Eye className="w-5 h-5" />
-            <span className="text-xs font-medium">View</span>
+            <span className="text-xs font-medium">{t('actions.view')}</span>
           </button>
         </div>
       )}
@@ -194,6 +196,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('rewardsAdmin.history');
   
   const [reward, setReward] = useState<any>(null);
   const [claims, setClaims] = useState<any[]>([]);
@@ -360,7 +363,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
     if (claim.user_first_name || claim.user_last_name) {
       return `${claim.user_first_name || ''} ${claim.user_last_name || ''}`.trim();
     }
-    return 'Unknown User';
+    return t('na');
   };
 
   const calculateAge = (birthDate: string) => {
@@ -411,9 +414,9 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <Gift className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
-          <p className="text-[var(--brand-light)] font-semibold">Reward not found</p>
+          <p className="text-[var(--brand-light)] font-semibold">{t('rewardNotFound')}</p>
           <Link href={basePath} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
-            Return to list
+            {t('returnToList')}
           </Link>
         </div>
       </div>
@@ -428,7 +431,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
           href={buildUrlWithParams(`${basePath}/${rewardId}`)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Reward
+          <ArrowLeft className="h-4 w-4" /> {t('backToReward')}
         </Link>
       </div>
 
@@ -439,7 +442,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
             <Gift className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Claim History</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             {reward && (
               <p className="text-[var(--brand-light)]/50 text-sm">{reward.name}</p>
             )}
@@ -458,7 +461,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             {analyticsExpanded ? (
               <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
@@ -476,7 +479,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Gift className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total Claims</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('totalClaims')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_claims}</div>
               </div>
@@ -487,7 +490,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                     <TrendingUp className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last 30 Days</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('last30Days')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.claims_last_30_days}</div>
               </div>
@@ -498,19 +501,19 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                     <UsersRound className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Demographics</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('demographics')}</span>
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--brand-light)]/50">Male:</span>
+                    <span className="text-[var(--brand-light)]/50">{t('male')}</span>
                     <span className="font-bold text-[var(--brand-light)]">{analytics.gender.male}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--brand-light)]/50">Female:</span>
+                    <span className="text-[var(--brand-light)]/50">{t('female')}</span>
                     <span className="font-bold text-[var(--brand-light)]">{analytics.gender.female}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--brand-light)]/50">Other:</span>
+                    <span className="text-[var(--brand-light)]/50">{t('other')}</span>
                     <span className="font-bold text-[var(--brand-light)]">{analytics.gender.other}</span>
                   </div>
                 </div>
@@ -528,7 +531,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search by name..." 
+              placeholder={t('searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -550,7 +553,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                 <input
                   type="date"
-                  placeholder="From date"
+                  placeholder={t('fromDate')}
                   className="w-full h-10 pl-10 pr-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors"
                   value={dateFrom}
                   onChange={e => setDateFrom(e.target.value)}
@@ -562,7 +565,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                 <input
                   type="date"
-                  placeholder="To date"
+                  placeholder={t('toDate')}
                   className="w-full h-10 pl-10 pr-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors"
                   value={dateTo}
                   onChange={e => setDateTo(e.target.value)}
@@ -574,7 +577,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
               >
-                <X className="h-4 w-4" /> Clear
+                <X className="h-4 w-4" /> {t('clear')}
               </button>
             )}
           </div>
@@ -585,7 +588,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
       {!showSkeleton && claims.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{claims.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'claim' : 'claims'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{claims.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.claim') : t('statsBar.claims')}
           </p>
         </div>
       )}
@@ -605,10 +608,10 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Member</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Gender</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Age</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date Claimed</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.member')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.gender')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.age')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.dateClaimed')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -624,9 +627,9 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Gift className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No claims found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noClaimsFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm">
-            {hasFilters ? 'Try adjusting your search or date filters.' : 'No one has claimed this reward yet.'}
+            {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.noClaimsYet')}
           </p>
         </div>
       ) : (
@@ -665,7 +668,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                         
                         {/* Club */}
                         <p className="text-xs text-[var(--brand-light)]/50 truncate">
-                          {claim.user_club_name || 'No club'}
+                          {claim.user_club_name || t('noClub')}
                         </p>
                         
                         {/* Details */}
@@ -677,7 +680,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                           )}
                           {age && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
-                              {age} years
+                              {age} {t('years')}
                             </span>
                           )}
                           {claimDate && (
@@ -700,10 +703,10 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Member</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Gender</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Age</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Date Claimed</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.member')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.gender')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.age')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.dateClaimed')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -732,7 +735,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                               {getFullName(claim)}
                             </div>
                             <div className="text-xs text-[var(--brand-light)]/50 truncate">
-                              {claim.user_club_name || 'No club'}
+                              {claim.user_club_name || t('noClub')}
                             </div>
                           </div>
                         </div>
@@ -743,14 +746,14 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                             {claim.user_gender.toLowerCase()}
                           </span>
                         ) : (
-                          <span className="text-sm text-[var(--brand-light)]/40">N/A</span>
+                          <span className="text-sm text-[var(--brand-light)]/40">{t('na')}</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         {age ? (
-                          <span className="text-sm text-[var(--brand-light)]">{age} years</span>
+                          <span className="text-sm text-[var(--brand-light)]">{age} {t('years')}</span>
                         ) : (
-                          <span className="text-sm text-[var(--brand-light)]/40">N/A</span>
+                          <span className="text-sm text-[var(--brand-light)]/40">{t('na')}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -760,7 +763,7 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                             <div className="text-xs text-[var(--brand-light)]/40">{claimDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                           </div>
                         ) : (
-                          <span className="text-sm text-[var(--brand-light)]/40">N/A</span>
+                          <span className="text-sm text-[var(--brand-light)]/40">{t('na')}</span>
                         )}
                       </td>
                     </tr>
@@ -778,17 +781,17 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/50">
-                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}

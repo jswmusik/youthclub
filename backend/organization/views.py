@@ -2,7 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.db.models import Q
+from django.db.models import Q, F
+from django.db.models.functions import Sqrt, Power
 from users.permissions import IsSuperAdmin, IsMunicipalityAdmin, IsClubOrMunicipalityAdmin
 from .models import Country, Municipality, Club, Interest
 from .serializers import (
@@ -97,12 +98,18 @@ class ClubViewSet(viewsets.ModelViewSet):
     API endpoint that allows Clubs to be viewed and managed.
     Read: Public
     Write: Super Admin OR Municipality Admin (for their own clubs)
+    
+    Query Parameters:
+    - municipality: Filter by municipality ID
+    - country: Filter by country ID (via municipality)
+    - search: Text search in name, email, description
+    - lat/lng: Geolocation for "Near Me" sorting
     """
     queryset = Club.objects.all()
     serializer_class = ClubSerializer
 
     def get_queryset(self):
-        base_queryset = Club.objects.all().order_by('name')
+        base_queryset = Club.objects.all()  # Remove default ordering if using geo-sort
         user = self.request.user
 
         if not user.is_authenticated:
@@ -116,10 +123,19 @@ class ClubViewSet(viewsets.ModelViewSet):
         else:
             queryset = base_queryset
 
+        # --- Filters ---
+        
+        # 1. Municipality
         municipality = self.request.query_params.get('municipality', None)
         if municipality:
             queryset = queryset.filter(municipality=municipality)
 
+        # 2. Country (via Municipality)
+        country = self.request.query_params.get('country', None)
+        if country:
+            queryset = queryset.filter(municipality__country=country)
+
+        # 3. Text Search
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
@@ -127,6 +143,33 @@ class ClubViewSet(viewsets.ModelViewSet):
                 Q(email__icontains=search) |
                 Q(description__icontains=search)
             )
+
+        # 4. Geolocation ("Near Me")
+        lat = self.request.query_params.get('lat')
+        lng = self.request.query_params.get('lng')
+        
+        if lat and lng:
+            try:
+                lat_val = float(lat)
+                lng_val = float(lng)
+                
+                # Filter out clubs without coordinates
+                queryset = queryset.filter(latitude__isnull=False, longitude__isnull=False)
+                
+                # Annotate with distance (Euclidean approximation is faster for simple sorting)
+                # For exact km, use Haversine on frontend or PostGIS backend
+                queryset = queryset.annotate(
+                    distance=Sqrt(
+                        Power(F('latitude') - lat_val, 2) + 
+                        Power(F('longitude') - lng_val, 2)
+                    )
+                ).order_by('distance')
+            except ValueError:
+                # Fallback if invalid coords
+                queryset = queryset.order_by('name')
+        else:
+            # Default ordering
+            queryset = queryset.order_by('name')
 
         return queryset
 
@@ -158,13 +201,14 @@ class ClubViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def follow(self, request, pk=None):
         """
-        Allows a youth member to follow a club.
+        Allows a youth member OR GUARDIAN to follow a club.
         """
         club = self.get_object()
         user = request.user
 
-        if user.role != 'YOUTH_MEMBER':
-            return Response({"error": "Only youth members can follow clubs."}, status=status.HTTP_403_FORBIDDEN)
+        # Allow Guardians to follow too
+        if user.role not in ['YOUTH_MEMBER', 'GUARDIAN']:
+            return Response({"error": "Only members can follow clubs."}, status=status.HTTP_403_FORBIDDEN)
 
         if user.preferred_club and user.preferred_club.id == club.id:
             return Response({"message": "You cannot follow your home club (you are already a member)."}, status=status.HTTP_400_BAD_REQUEST)

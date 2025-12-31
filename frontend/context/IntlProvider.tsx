@@ -2,8 +2,9 @@
 
 import { NextIntlClientProvider } from 'next-intl';
 import { ReactNode, useEffect, useState } from 'react';
+import Cookies from 'js-cookie';
 import { useLocale } from './LocaleContext';
-import { defaultLocale, type Locale } from '../i18n/config';
+import { defaultLocale, locales, type Locale } from '../i18n/config';
 
 // Import all message files
 import enMessages from '../messages/en.json';
@@ -27,23 +28,58 @@ const messagesMap: Record<Locale, typeof enMessages> = {
   prs: prsMessages,
 };
 
+const LOCALE_COOKIE_NAME = 'NEXT_LOCALE';
+
+function isValidLocale(locale: string | undefined | null): locale is Locale {
+  return !!locale && locales.includes(locale as Locale);
+}
+
+// Helper to get initial locale from cookie or browser
+function getInitialLocale(): Locale {
+  if (typeof window === 'undefined') return defaultLocale;
+  
+  const cookieLocale = Cookies.get(LOCALE_COOKIE_NAME);
+  if (isValidLocale(cookieLocale)) {
+    return cookieLocale;
+  }
+  
+  if (typeof navigator !== 'undefined') {
+    const browserLang = navigator.language.split('-')[0];
+    if (isValidLocale(browserLang)) {
+      return browserLang;
+    }
+  }
+  
+  return defaultLocale;
+}
+
 interface IntlProviderWrapperProps {
   children: ReactNode;
 }
 
 export function IntlProviderWrapper({ children }: IntlProviderWrapperProps) {
   const { locale } = useLocale();
-  const [messages, setMessages] = useState(messagesMap[defaultLocale]);
+  // Initialize with locale from cookie/browser to avoid English flash
+  const initialLocale = getInitialLocale();
+  const [currentLocale, setCurrentLocale] = useState<Locale>(initialLocale);
+  const [messages, setMessages] = useState(() => {
+    return messagesMap[initialLocale] || messagesMap[defaultLocale];
+  });
 
   useEffect(() => {
-    // Get messages for the current locale, fallback to English
-    const localeMessages = messagesMap[locale] || messagesMap[defaultLocale];
-    setMessages(localeMessages);
-  }, [locale]);
+    // Only sync if locale from useLocale() is different from defaultLocale
+    // This prevents overwriting Swedish with English during LocaleProvider initialization
+    // If locale is still defaultLocale, LocaleProvider hasn't initialized yet, so keep using initial locale
+    if (locale !== defaultLocale || initialLocale === defaultLocale) {
+      const localeMessages = messagesMap[locale] || messagesMap[defaultLocale];
+      setCurrentLocale(locale);
+      setMessages(localeMessages);
+    }
+  }, [locale, initialLocale]);
 
   return (
     <NextIntlClientProvider 
-      locale={locale} 
+      locale={currentLocale} 
       messages={messages}
       timeZone="Europe/Stockholm"
     >

@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
 import { cmsApi } from '@/lib/cms-api';
 import { Page } from '@/types/cms';
-import { Plus, Pencil, Trash2, FileText, Eye, EyeOff, Search, X, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileText, Eye, EyeOff, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { useToast } from '@/app/components/ToastProvider';
+import { sv, enUS } from 'date-fns/locale';
+import { useToast } from '../../../../../hooks/useToast';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
 
 // Skeleton Component
 function Skeleton({ className }: { className?: string }) {
@@ -23,9 +26,14 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 export default function PagesList() {
+  const t = useTranslations('cmsAdmin.pages');
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? sv : enUS;
+  
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
+  const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
   const { showToast } = useToast();
 
   const fetchPages = async () => {
@@ -34,7 +42,7 @@ export default function PagesList() {
       setPages(data);
     } catch (error) {
       console.error("Failed to fetch pages", error);
-      showToast("Failed to load pages", "error");
+      showToast(t('toast.loadFailed'), "error");
     } finally {
       setLoading(false);
     }
@@ -44,14 +52,16 @@ export default function PagesList() {
     fetchPages();
   }, []);
 
-  const handleDelete = async (slug: string) => {
-    if (!confirm('Are you sure you want to delete this page?')) return;
+  const handleDelete = async () => {
+    if (!pageToDelete) return;
     try {
-      await cmsApi.deletePage(slug);
-      showToast("Page deleted", "success");
+      await cmsApi.deletePage(pageToDelete.slug);
+      showToast(t('toast.deleted'), "success");
       fetchPages();
     } catch (error) {
-      showToast("Error deleting page", "error");
+      showToast(t('toast.deleteFailed'), "error");
+    } finally {
+      setPageToDelete(null);
     }
   };
 
@@ -73,7 +83,7 @@ export default function PagesList() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <FileText className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total Pages</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalPages')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-primary)]">{pages.length}</div>
         </div>
@@ -83,7 +93,7 @@ export default function PagesList() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
               <Eye className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Published</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.published')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{publishedCount}</div>
         </div>
@@ -93,7 +103,7 @@ export default function PagesList() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
               <EyeOff className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Drafts</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.drafts')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{draftCount}</div>
         </div>
@@ -103,7 +113,7 @@ export default function PagesList() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
               <Search className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Filtered</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.filtered')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{filteredPages.length}</div>
         </div>
@@ -115,7 +125,7 @@ export default function PagesList() {
           <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
           <input 
             type="text"
-            placeholder="Search pages..." 
+            placeholder={t('searchPlaceholder')} 
             className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
@@ -132,7 +142,7 @@ export default function PagesList() {
         <Link href="/admin/super/cms/pages/create">
           <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all w-full sm:w-auto justify-center">
             <Plus className="w-4 h-4" />
-            Create New Page
+            {t('createNewPage')}
           </button>
         </Link>
       </div>
@@ -141,7 +151,7 @@ export default function PagesList() {
       {!loading && pages.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{filteredPages.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{pages.length}</span> pages
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{filteredPages.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{pages.length}</span> {t('statsBar.pages')}
           </p>
         </div>
       )}
@@ -166,12 +176,12 @@ export default function PagesList() {
         <div className="text-center py-16 bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
           <FileText className="w-12 h-12 mx-auto text-[var(--brand-light)]/20 mb-4" />
           <p className="text-[var(--brand-light)]/50 mb-2">
-            {searchInput ? 'No pages matched your search' : 'No pages yet'}
+            {searchInput ? t('emptyState.noMatch') : t('emptyState.noPages')}
           </p>
           {!searchInput && (
             <Link href="/admin/super/cms/pages/create">
               <button className="text-[var(--brand-primary)] hover:underline text-sm font-medium">
-                Create your first page
+                {t('emptyState.createFirst')}
               </button>
             </Link>
           )}
@@ -204,19 +214,19 @@ export default function PagesList() {
                           ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 
                           : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'
                       }`}>
-                        {page.is_published ? 'Published' : 'Draft'}
+                        {page.is_published ? t('status.published') : t('status.draft')}
                       </span>
                       <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
                         page.page_type === 'creative'
                           ? 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]'
                           : 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]'
                       }`}>
-                        {page.page_type}
+                        {page.page_type === 'creative' ? t('pageType.creative') : t('pageType.standard')}
                       </span>
                     </div>
                     <p className="text-sm text-[var(--brand-light)]/50 mb-2">/{page.slug}</p>
                     <p className="text-xs text-[var(--brand-light)]/40">
-                      Updated {format(new Date(page.updated_at), 'MMM d, yyyy')}
+                      {t('updated')} {format(new Date(page.updated_at), 'd MMM yyyy', { locale: dateLocale })}
                     </p>
                   </div>
                 </div>
@@ -228,7 +238,7 @@ export default function PagesList() {
                     </button>
                   </Link>
                   <button
-                    onClick={() => handleDelete(page.slug)}
+                    onClick={() => setPageToDelete(page)}
                     className="p-2.5 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -239,6 +249,19 @@ export default function PagesList() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isVisible={!!pageToDelete}
+        onClose={() => setPageToDelete(null)}
+        onConfirm={handleDelete}
+        title={t('deleteModal.title')}
+        message={t('deleteConfirm')}
+        confirmButtonText={t('deleteModal.confirm')}
+        cancelButtonText={t('deleteModal.cancel')}
+        variant="danger"
+        darkMode={true}
+      />
     </div>
   );
 }

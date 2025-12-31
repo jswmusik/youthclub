@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { Check, ChevronLeft, ChevronRight, MapPin, Lock, User, Users, FileCheck, Eye, EyeOff, AlertCircle, Sparkles, Building2 } from 'lucide-react';
 
 // --- Interfaces ---
@@ -35,19 +36,20 @@ interface CustomFieldDef {
     help_text?: string;
 }
 
-const STEPS = [
-  { id: 1, title: 'Location', icon: MapPin },
-  { id: 2, title: 'Account', icon: Lock },
-  { id: 3, title: 'Profile', icon: User },
-  { id: 4, title: 'Guardian', icon: Users },
-  { id: 5, title: 'Confirm', icon: FileCheck },
-];
-
 export default function YouthRegistrationWizard() {
+  const t = useTranslations('registrationWizard');
   const router = useRouter();
+  
+  const STEPS = [
+    { id: 1, title: t('steps.location'), icon: MapPin },
+    { id: 2, title: t('steps.account'), icon: Lock },
+    { id: 3, title: t('steps.profile'), icon: User },
+    { id: 4, title: t('steps.guardian'), icon: Users },
+    { id: 5, title: t('steps.confirm'), icon: FileCheck },
+  ];
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // --- Data Sources ---
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
@@ -184,7 +186,7 @@ export default function YouthRegistrationWizard() {
         const res = await api.post('/register/check-email/', { email: formData.email }, { skipAuth: true } as any);
         if (res.data.exists) {
             setEmailTaken(true);
-            setToast({ message: 'This email is already registered.', type: 'error', isVisible: true });
+            error(t('toasts.emailAlreadyRegistered'));
         } else {
             setEmailTaken(false);
         }
@@ -203,7 +205,7 @@ export default function YouthRegistrationWizard() {
         const res = await api.post('/register/check-guardian/', { email: formData.guardian_email }, { skipAuth: true } as any);
         setGuardianExists(res.data.exists);
         if (res.data.exists) {
-            setToast({ message: 'Guardian found! We will link your account.', type: 'success', isVisible: true });
+            success(t('toasts.guardianFound'));
         }
     } catch (e) {
         console.error(e);
@@ -255,12 +257,12 @@ export default function YouthRegistrationWizard() {
 
   const handleSubmit = async () => {
     if (!formData.terms_accepted) {
-      setToast({ message: 'You must accept the terms.', type: 'error', isVisible: true });
+      error(t('toasts.mustAcceptTerms'));
       return;
     }
     
     if (!isCaptchaValid()) {
-        setToast({ message: 'Incorrect math answer. Are you a robot?', type: 'error', isVisible: true });
+        error(t('toasts.incorrectCaptcha'));
         generateCaptcha();
         return;
     }
@@ -302,13 +304,13 @@ export default function YouthRegistrationWizard() {
 
       await api.post('/register/youth/', payload, { skipAuth: true } as any);
       
-      setToast({ message: 'Registration Successful! Redirecting...', type: 'success', isVisible: true });
+      success(t('toasts.registrationSuccess'));
       setTimeout(() => router.push('/login'), 2000);
 
     } catch (err: any) {
       console.error(err);
-      const msg = err.response?.data ? JSON.stringify(err.response.data) : 'Registration failed.';
-      setToast({ message: msg, type: 'error', isVisible: true });
+      const msg = err.response?.data ? JSON.stringify(err.response.data) : t('toasts.registrationFailed');
+      error(msg);
       setLoading(false);
     }
   };
@@ -336,7 +338,7 @@ export default function YouthRegistrationWizard() {
                         checked={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || false}
                         onChange={e => updateCF(field.id, e.target.checked, isGuardian)}
                     />
-                    <span className="text-[var(--brand-light)]/80">Yes</span>
+                    <span className="text-[var(--brand-light)]/80">{t('common.yes')}</span>
                 </label>
             )}
             {field.field_type === 'SINGLE_SELECT' && (
@@ -345,7 +347,7 @@ export default function YouthRegistrationWizard() {
                     value={(isGuardian ? formData.guardian_custom_field_values : formData.custom_field_values)[field.id] || ''}
                     onChange={e => updateCF(field.id, e.target.value, isGuardian)}
                 >
-                    <option value="">Select...</option>
+                    <option value="">{t('common.select')}</option>
                     {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
             )}
@@ -429,13 +431,13 @@ export default function YouthRegistrationWizard() {
             <div>
               <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
                 <MapPin className="w-6 h-6 text-[var(--brand-primary)]" />
-                Where do you hang out?
+                {t('step1.title')}
               </h3>
-              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Select your municipality and youth club</p>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">{t('step1.subtitle')}</p>
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Municipality</label>
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step1.municipality')}</label>
               <select 
                 className={`${inputClasses} appearance-none`}
                 onChange={(e) => {
@@ -444,18 +446,18 @@ export default function YouthRegistrationWizard() {
                   setSelectedClub(null);
                 }}
               >
-                <option value="">-- Choose Municipality --</option>
+                <option value="">-- {t('step1.chooseMunicipality')} --</option>
                 {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
             
             {selectedMuni && (
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-3">Select Your Club</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-3">{t('step1.selectClub')}</label>
                 {clubs.length === 0 ? (
                   <div className="text-center py-8 bg-[var(--dark-700)] rounded-xl border border-dashed border-[var(--dark-500)]">
                     <Building2 className="w-10 h-10 text-[var(--brand-light)]/30 mx-auto mb-2" />
-                    <p className="text-[var(--brand-light)]/60 text-sm">No clubs available for registration in this municipality</p>
+                    <p className="text-[var(--brand-light)]/60 text-sm">{t('step1.noClubsAvailable')}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -473,7 +475,7 @@ export default function YouthRegistrationWizard() {
                         <div className="font-bold text-[var(--brand-light)]">{club.name}</div>
                         {selectedClub?.id === club.id && (
                           <div className="flex items-center gap-1 mt-2 text-[var(--brand-primary)] text-xs font-medium">
-                            <Check className="w-3 h-3" /> Selected
+                            <Check className="w-3 h-3" /> {t('common.selected')}
                           </div>
                         )}
                       </button>
@@ -491,17 +493,17 @@ export default function YouthRegistrationWizard() {
             <div>
               <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
                 <Lock className="w-6 h-6 text-[var(--brand-primary)]" />
-                Create Your Login
+                {t('step2.title')}
               </h3>
-              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Set up your email and a secure password</p>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">{t('step2.subtitle')}</p>
             </div>
             
             {/* Email */}
             <div>
-              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Email Address</label>
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.emailAddress')}</label>
               <input 
                 type="email" 
-                placeholder="your@email.com"
+                placeholder={t('step2.emailPlaceholder')}
                 className={`${inputClasses} ${emailTaken ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
                 value={formData.email} 
                 onChange={e => { 
@@ -510,11 +512,11 @@ export default function YouthRegistrationWizard() {
                 }}
                 onBlur={checkEmailAvailability} 
               />
-              {checkingEmail && <p className="text-xs text-[var(--brand-light)]/50 mt-1">Checking availability...</p>}
+              {checkingEmail && <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('step2.checkingAvailability')}</p>}
               {emailTaken && (
                 <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  This email is already registered. <a href="/login" className="underline hover:text-[var(--brand-red)]/80">Log in instead?</a>
+                  {t('step2.emailAlreadyRegistered')} <a href="/login" className="underline hover:text-[var(--brand-red)]/80">{t('step2.loginInstead')}</a>
                 </p>
               )}
             </div>
@@ -522,7 +524,7 @@ export default function YouthRegistrationWizard() {
             {/* Passwords */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Password</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.password')}</label>
                 <div className="relative">
                   <input 
                     type={showPassword ? 'text' : 'password'} 
@@ -541,7 +543,7 @@ export default function YouthRegistrationWizard() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Confirm Password</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.confirmPassword')}</label>
                 <div className="relative">
                   <input 
                     type={showConfirmPassword ? 'text' : 'password'} 
@@ -563,19 +565,19 @@ export default function YouthRegistrationWizard() {
 
             {/* Password Requirements */}
             <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)]">
-              <p className="font-bold text-[var(--brand-light)] text-sm mb-2">Password Requirements:</p>
+              <p className="font-bold text-[var(--brand-light)] text-sm mb-2">{t('step2.passwordRequirements')}:</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <RequirementItem met={pwValid.length} text="8+ characters" />
-                <RequirementItem met={pwValid.number} text="1 number" />
-                <RequirementItem met={pwValid.special} text="1 special char" />
-                <RequirementItem met={pwValid.match && !!formData.confirm_password} text="Passwords match" />
+                <RequirementItem met={pwValid.length} text={t('step2.req8chars')} />
+                <RequirementItem met={pwValid.number} text={t('step2.req1number')} />
+                <RequirementItem met={pwValid.special} text={t('step2.req1special')} />
+                <RequirementItem met={pwValid.match && !!formData.confirm_password} text={t('step2.reqMatch')} />
               </div>
             </div>
 
             {/* Captcha */}
             <div className="bg-[var(--brand-purple)]/10 border border-[var(--brand-purple)]/30 p-4 rounded-xl">
               <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">
-                Human Check: What is {captchaParams.num1} + {captchaParams.num2}?
+                {t('step2.humanCheck')}: {t('step2.whatIs')} {captchaParams.num1} + {captchaParams.num2}?
               </label>
               <div className="flex items-center gap-3">
                 <input 
@@ -593,11 +595,11 @@ export default function YouthRegistrationWizard() {
                 />
                 {captchaAnswer && isCaptchaValid() && (
                   <span className="text-[var(--brand-green)] font-bold flex items-center gap-1">
-                    <Check className="w-4 h-4" /> Correct!
+                    <Check className="w-4 h-4" /> {t('step2.correct')}
                   </span>
                 )}
                 {captchaAnswer && !isCaptchaValid() && (
-                  <span className="text-[var(--brand-red)] text-sm">Try again</span>
+                  <span className="text-[var(--brand-red)] text-sm">{t('step2.tryAgain')}</span>
                 )}
               </div>
             </div>
@@ -610,51 +612,51 @@ export default function YouthRegistrationWizard() {
             <div>
               <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
                 <User className="w-6 h-6 text-[var(--brand-primary)]" />
-                About You
+                {t('step3.title')}
               </h3>
-              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Tell us a bit about yourself</p>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">{t('step3.subtitle')}</p>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">First Name *</label>
-                <input type="text" placeholder="First Name" className={inputClasses} value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.firstName')} *</label>
+                <input type="text" placeholder={t('step3.firstName')} className={inputClasses} value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Last Name *</label>
-                <input type="text" placeholder="Last Name" className={inputClasses} value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.lastName')} *</label>
+                <input type="text" placeholder={t('step3.lastName')} className={inputClasses} value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
               </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Date of Birth</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.dateOfBirth')}</label>
                 <input type="date" className={`${inputClasses} appearance-none`} style={{ minHeight: '50px' }} value={formData.date_of_birth} onChange={e => setFormData({...formData, date_of_birth: e.target.value})} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Grade</label>
-                <input type="number" placeholder="e.g. 9" className={inputClasses} value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} />
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.grade')}</label>
+                <input type="number" placeholder={t('step3.gradePlaceholder')} className={inputClasses} value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} />
               </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Legal Gender *</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.legalGender')} *</label>
                 <select className={`${inputClasses} appearance-none`} value={formData.legal_gender} onChange={e => setFormData({...formData, legal_gender: e.target.value})}>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
+                  <option value="MALE">{t('gender.male')}</option>
+                  <option value="FEMALE">{t('gender.female')}</option>
+                  <option value="OTHER">{t('gender.other')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Preferred Gender</label>
-                <input type="text" placeholder="e.g. They/Them" className={inputClasses} value={formData.preferred_gender} onChange={e => setFormData({...formData, preferred_gender: e.target.value})} />
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.preferredGender')}</label>
+                <input type="text" placeholder={t('step3.preferredGenderPlaceholder')} className={inputClasses} value={formData.preferred_gender} onChange={e => setFormData({...formData, preferred_gender: e.target.value})} />
               </div>
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Nickname</label>
-              <input type="text" placeholder="What should we call you?" className={inputClasses} value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} />
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.nickname')}</label>
+              <input type="text" placeholder={t('step3.nicknamePlaceholder')} className={inputClasses} value={formData.nickname} onChange={e => setFormData({...formData, nickname: e.target.value})} />
             </div>
 
             {/* Interests */}
@@ -662,7 +664,7 @@ export default function YouthRegistrationWizard() {
               <div>
                 <label className="block text-sm font-bold text-[var(--brand-light)] mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-[var(--brand-primary)]" />
-                  Interests
+                  {t('step3.interests')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {interestsList.map(i => (
@@ -686,11 +688,11 @@ export default function YouthRegistrationWizard() {
             {/* Youth Custom Fields */}
             {loadingYouthFields ? (
               <div className="pt-4 border-t border-[var(--dark-600)]">
-                <p className="text-sm text-[var(--brand-light)]/50">Loading additional questions...</p>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('common.loadingQuestions')}</p>
               </div>
             ) : youthCustomFields.length > 0 && (
               <div className="pt-4 border-t border-[var(--dark-600)]">
-                <h4 className="font-bold text-[var(--brand-light)] mb-4">Additional Questions</h4>
+                <h4 className="font-bold text-[var(--brand-light)] mb-4">{t('common.additionalQuestions')}</h4>
                 {renderCustomFields(youthCustomFields, false)}
               </div>
             )}
@@ -703,20 +705,20 @@ export default function YouthRegistrationWizard() {
             <div>
               <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
                 <Users className="w-6 h-6 text-[var(--brand-primary)]" />
-                Guardian Information
+                {t('step4.title')}
               </h3>
               <p className="text-[var(--brand-light)]/60 text-sm mt-1">
                 {selectedClub?.effective_require_guardian 
-                  ? 'A guardian is required for this club' 
-                  : 'Optional: Add a guardian to your account'}
+                  ? t('step4.guardianRequired') 
+                  : t('step4.guardianOptional')}
               </p>
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Guardian Email</label>
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step4.guardianEmail')}</label>
               <input 
                 type="email" 
-                placeholder="guardian@email.com"
+                placeholder={t('step4.guardianEmailPlaceholder')}
                 className={`${inputClasses} ${guardianExists ? 'border-[var(--brand-green)] bg-[var(--brand-green)]/10' : ''}`}
                 value={formData.guardian_email} 
                 onChange={e => {
@@ -725,14 +727,14 @@ export default function YouthRegistrationWizard() {
                 }}
                 onBlur={checkGuardianEmail}
               />
-              {checkingGuardian && <p className="text-xs text-[var(--brand-light)]/50 mt-1">Checking...</p>}
+              {checkingGuardian && <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('common.checking')}</p>}
             </div>
             
             {guardianExists && (
               <div className="p-4 bg-[var(--brand-green)]/10 border border-[var(--brand-green)]/30 rounded-xl">
                 <p className="text-[var(--brand-green)] text-sm font-medium flex items-center gap-2">
                   <Check className="w-4 h-4" />
-                  Guardian found! We will link your accounts automatically.
+                  {t('step4.guardianFoundMessage')}
                 </p>
               </div>
             )}
@@ -741,32 +743,32 @@ export default function YouthRegistrationWizard() {
               <div className="space-y-4 animate-fade-in">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">First Name</label>
-                    <input type="text" placeholder="Guardian's first name" className={inputClasses} value={formData.guardian_first_name} onChange={e => setFormData({...formData, guardian_first_name: e.target.value})} />
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.firstName')}</label>
+                    <input type="text" placeholder={t('step4.guardianFirstNamePlaceholder')} className={inputClasses} value={formData.guardian_first_name} onChange={e => setFormData({...formData, guardian_first_name: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Last Name</label>
-                    <input type="text" placeholder="Guardian's last name" className={inputClasses} value={formData.guardian_last_name} onChange={e => setFormData({...formData, guardian_last_name: e.target.value})} />
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.lastName')}</label>
+                    <input type="text" placeholder={t('step4.guardianLastNamePlaceholder')} className={inputClasses} value={formData.guardian_last_name} onChange={e => setFormData({...formData, guardian_last_name: e.target.value})} />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Phone</label>
-                    <input type="tel" placeholder="Phone number" className={inputClasses} value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step4.phone')}</label>
+                    <input type="tel" placeholder={t('step4.phonePlaceholder')} className={inputClasses} value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Gender</label>
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step4.gender')}</label>
                     <select className={`${inputClasses} appearance-none`} value={formData.guardian_legal_gender} onChange={e => setFormData({...formData, guardian_legal_gender: e.target.value})}>
-                      <option value="MALE">Male</option>
-                      <option value="FEMALE">Female</option>
-                      <option value="OTHER">Other</option>
+                      <option value="MALE">{t('gender.male')}</option>
+                      <option value="FEMALE">{t('gender.female')}</option>
+                      <option value="OTHER">{t('gender.other')}</option>
                     </select>
                   </div>
                 </div>
                 
                 {guardianCustomFields.length > 0 && (
                   <div className="pt-4 border-t border-[var(--dark-600)]">
-                    <h4 className="font-bold text-[var(--brand-light)] mb-4">Guardian Details</h4>
+                    <h4 className="font-bold text-[var(--brand-light)] mb-4">{t('step4.guardianDetails')}</h4>
                     {renderCustomFields(guardianCustomFields, true)}
                   </div>
                 )}
@@ -776,7 +778,7 @@ export default function YouthRegistrationWizard() {
             {!formData.guardian_email && !selectedClub?.effective_require_guardian && (
               <div className="p-4 bg-[var(--dark-700)] rounded-xl border border-dashed border-[var(--dark-500)] text-center">
                 <p className="text-[var(--brand-light)]/60 text-sm">
-                  You can skip this step if you don't want to add a guardian now.
+                  {t('step4.skipMessage')}
                 </p>
               </div>
             )}
@@ -789,28 +791,28 @@ export default function YouthRegistrationWizard() {
             <div>
               <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading flex items-center gap-2">
                 <FileCheck className="w-6 h-6 text-[var(--brand-primary)]" />
-                Almost Done!
+                {t('step5.title')}
               </h3>
-              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Review and accept the terms to complete registration</p>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">{t('step5.subtitle')}</p>
             </div>
             
             {/* Summary */}
             <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-[var(--brand-light)]/60">Club</span>
+                <span className="text-[var(--brand-light)]/60">{t('step5.club')}</span>
                 <span className="text-[var(--brand-light)] font-medium">{selectedClub?.name}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-[var(--brand-light)]/60">Email</span>
+                <span className="text-[var(--brand-light)]/60">{t('step5.email')}</span>
                 <span className="text-[var(--brand-light)] font-medium">{formData.email}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-[var(--brand-light)]/60">Name</span>
+                <span className="text-[var(--brand-light)]/60">{t('step5.name')}</span>
                 <span className="text-[var(--brand-light)] font-medium">{formData.first_name} {formData.last_name}</span>
               </div>
               {formData.guardian_email && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--brand-light)]/60">Guardian</span>
+                  <span className="text-[var(--brand-light)]/60">{t('step5.guardian')}</span>
                   <span className="text-[var(--brand-light)] font-medium">{formData.guardian_email}</span>
                 </div>
               )}
@@ -818,11 +820,11 @@ export default function YouthRegistrationWizard() {
             
             {/* Terms */}
             <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] max-h-40 overflow-y-auto text-sm text-[var(--brand-light)]/70">
-              <strong className="text-[var(--brand-light)]">Terms & Conditions:</strong>
-              <p className="mt-2">{selectedMuni?.terms_and_conditions || 'No terms available.'}</p>
+              <strong className="text-[var(--brand-light)]">{t('step5.termsAndConditions')}:</strong>
+              <p className="mt-2">{selectedMuni?.terms_and_conditions || t('step5.noTermsAvailable')}</p>
               {selectedClub?.club_policies && (
                 <>
-                  <strong className="text-[var(--brand-light)] block mt-4">Club Policies:</strong>
+                  <strong className="text-[var(--brand-light)] block mt-4">{t('step5.clubPolicies')}:</strong>
                   <p className="mt-2">{selectedClub.club_policies}</p>
                 </>
               )}
@@ -837,7 +839,7 @@ export default function YouthRegistrationWizard() {
                 className="w-5 h-5 mt-0.5 rounded border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
               />
               <span className="text-[var(--brand-light)] text-sm">
-                I have read and accept the <span className="text-[var(--brand-primary)] font-medium">Terms & Conditions</span> and <span className="text-[var(--brand-primary)] font-medium">Club Policies</span>
+                {t('step5.acceptTermsText')} <span className="text-[var(--brand-primary)] font-medium">{t('step5.termsAndConditions')}</span> {t('step5.and')} <span className="text-[var(--brand-primary)] font-medium">{t('step5.clubPolicies')}</span>
               </span>
             </label>
           </div>
@@ -853,7 +855,7 @@ export default function YouthRegistrationWizard() {
             className="flex items-center gap-2 text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] font-bold transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
-            Back
+            {t('navigation.back')}
           </button>
         ) : <div />}
         
@@ -864,7 +866,7 @@ export default function YouthRegistrationWizard() {
             disabled={(step === 1 && !selectedClub) || (step === 2 && !isStep2Valid())} 
             className="flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95"
           >
-            Next
+            {t('navigation.next')}
             <ChevronRight className="w-5 h-5" />
           </button>
         ) : (
@@ -877,20 +879,19 @@ export default function YouthRegistrationWizard() {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                Creating...
+                {t('navigation.creating')}
               </>
             ) : (
               <>
                 <Check className="w-5 h-5" />
-                Complete Registration
+                {t('navigation.completeRegistration')}
               </>
             )}
           </button>
         )}
       </div>
 
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
-    </div>
+      </div>
   );
 }
 

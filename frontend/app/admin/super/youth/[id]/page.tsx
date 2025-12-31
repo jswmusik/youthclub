@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Users } from 'lucide-react';
 import YouthDetailView from '@/app/components/YouthDetailView';
 
@@ -14,16 +15,21 @@ function DetailPageContent() {
   );
 }
 
+function LoadingFallback() {
+  const t = useTranslations('youthDetail');
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
+      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+        <Users className="w-6 h-6 text-white" />
+      </div>
+      <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading.loading')}</div>
+    </div>
+  );
+}
+
 export default function Page() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-          <Users className="w-6 h-6 text-white" />
-        </div>
-        <div className="text-[var(--brand-light)]/60 animate-pulse">Loading...</div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingFallback />}>
       <DetailPageContent />
     </Suspense>
   );

@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import api from '../../../../lib/api';
 import { format } from 'date-fns';
+import { sv } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 import { X, Check, AlertCircle, Clock, Calendar, User, XCircle, Users, Package, CalendarDays, ArrowLeft } from 'lucide-react';
 import { getMediaUrl, getInitials } from '../../../utils';
-import Toast from '../../Toast';
+import { useToast } from '../../../../hooks/useToast';
 
 interface Props {
   booking: any;
@@ -15,9 +18,12 @@ interface Props {
 }
 
 export default function BookingDetailModal({ booking, onClose, onUpdate, darkMode = false }: Props) {
+  const t = useTranslations('bookingsAdmin.detailModal');
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const [notes, setNotes] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [showCancelOptions, setShowCancelOptions] = useState(false);
 
   // Check if this is a recurring booking
@@ -36,22 +42,16 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
       // Show success toast
       let message = '';
       if (action === 'approve') {
-        message = 'Booking approved successfully!';
+        message = t('toast.bookingApproved');
       } else if (action === 'reject') {
-        message = 'Booking rejected.';
+        message = t('toast.bookingRejected');
       } else if (action === 'cancel') {
         if (cancelSeries && response.data?.message) {
           message = response.data.message;
         } else {
-          message = 'Booking cancelled. The time slot is now available again.';
+          message = t('toast.bookingCancelled');
         }
       }
-      
-      setToast({ 
-        message, 
-        type: 'success', 
-        isVisible: true 
-      });
       
       // Wait a moment to show toast, then update and close
       setTimeout(() => {
@@ -59,12 +59,8 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
         onClose();
       }, 1500);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'Action failed';
-      setToast({ 
-        message: errorMessage, 
-        type: 'error', 
-        isVisible: true 
-      });
+      const errorMessage = err.response?.data?.error || err.response?.data?.detail || t('toast.actionFailed');
+      error(errorMessage);
       setProcessing(false);
     }
   };
@@ -118,8 +114,8 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                 <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">Booking Details</h2>
-                <p className="text-xs sm:text-sm text-[var(--brand-light)]/50">#{booking.id} • {format(new Date(booking.created_at), 'MMM d, yyyy')}</p>
+                <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">{t('title')}</h2>
+                <p className="text-xs sm:text-sm text-[var(--brand-light)]/50">#{booking.id} • {format(new Date(booking.created_at), 'MMM d, yyyy', { locale: dateLocale })}</p>
               </div>
             </div>
             {/* Close Button - visible on all screen sizes */}
@@ -158,7 +154,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                 <div className="text-sm text-[var(--brand-light)]/50 truncate">{booking.user_detail?.email}</div>
               </div>
               <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${getStatusBadge(booking.status)}`}>
-                {booking.status}
+                {t(`status.${booking.status.toLowerCase()}`)}
               </span>
             </div>
           </div>
@@ -171,7 +167,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                 <Package className="h-5 w-5 text-[var(--brand-purple)]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">Resource</div>
+                <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">{t('labels.resource')}</div>
                 <div className="text-sm font-semibold text-[var(--brand-primary)]">{booking.resource_name}</div>
               </div>
             </div>
@@ -183,7 +179,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                   <Users className="h-5 w-5 text-[var(--brand-blue)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">Club</div>
+                  <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">{t('labels.club')}</div>
                   <div className="text-sm font-semibold text-[var(--brand-light)]">{booking.club_name}</div>
                 </div>
               </div>
@@ -195,12 +191,12 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                 <Clock className="h-5 w-5 text-[var(--brand-peach)]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">Date & Time</div>
+                <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-0.5">{t('labels.dateTime')}</div>
                 <div className="text-sm font-semibold text-[var(--brand-light)]">
-                  {format(new Date(booking.start_time), 'EEEE, MMM d, yyyy')}
+                  {format(new Date(booking.start_time), 'EEEE, MMM d, yyyy', { locale: dateLocale })}
                 </div>
                 <div className="text-sm text-[var(--brand-light)]/70">
-                  {format(new Date(booking.start_time), 'HH:mm')} - {format(new Date(booking.end_time), 'HH:mm')}
+                  {format(new Date(booking.start_time), 'HH:mm', { locale: dateLocale })} - {format(new Date(booking.end_time), 'HH:mm', { locale: dateLocale })}
                 </div>
               </div>
             </div>
@@ -213,7 +209,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                     <Users className="h-5 w-5 text-[var(--brand-green)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-2">Participants ({booking.participants.length + 1})</div>
+                    <div className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider mb-2">{t('labels.participants')} ({booking.participants.length + 1})</div>
                     <div className="flex flex-wrap gap-2">
                       {booking.participants.map((p: any) => (
                         <span 
@@ -234,11 +230,11 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
           {booking.status === 'PENDING' && (
             <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] p-4 space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">Message to User (Optional)</label>
+                <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">{t('pendingActions.messageLabel')}</label>
                 <textarea 
                   className="w-full min-h-[80px] px-4 py-3 bg-[var(--dark-600)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
                   rows={3}
-                  placeholder="Reason for rejection or extra info..."
+                  placeholder={t('pendingActions.messagePlaceholder')}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                 />
@@ -249,14 +245,14 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                   disabled={processing}
                   className="flex-1 h-12 bg-[var(--brand-red)]/10 border-2 border-[var(--brand-red)]/30 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <X className="h-4 w-4" /> Reject
+                  <X className="h-4 w-4" /> {t('pendingActions.reject')}
                 </button>
                 <button 
                   onClick={() => handleAction('approve')}
                   disabled={processing}
                   className="flex-1 h-12 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[var(--brand-primary)]/20 disabled:opacity-50"
                 >
-                  <Check className="h-4 w-4" /> Approve
+                  <Check className="h-4 w-4" /> {t('pendingActions.approve')}
                 </button>
               </div>
             </div>
@@ -269,11 +265,11 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
               <div className="p-4 rounded-xl text-center bg-[var(--brand-green)]/10 border border-[var(--brand-green)]/30">
                 <div className="font-bold text-[var(--brand-green)] text-base flex items-center justify-center gap-2">
                   <Check className="w-5 h-5" />
-                  This booking is APPROVED
+                  {t('approvedActions.approvedBanner')}
                 </div>
                 {isRecurringBooking && (
                   <div className="text-xs text-[var(--brand-green)]/80 mt-2 font-medium">
-                    🔄 This is a recurring booking
+                    {t('approvedActions.recurringBooking')}
                   </div>
                 )}
               </div>
@@ -281,11 +277,11 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
               {!showCancelOptions ? (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">Cancellation Note (Optional)</label>
+                    <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">{t('approvedActions.cancellationNoteLabel')}</label>
                     <textarea 
                       className="w-full min-h-[80px] px-4 py-3 bg-[var(--dark-600)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
                       rows={3}
-                      placeholder="Reason for cancellation..."
+                      placeholder={t('approvedActions.cancellationNotePlaceholder')}
                       value={notes}
                       onChange={e => setNotes(e.target.value)}
                     />
@@ -295,7 +291,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                       if (isRecurringBooking) {
                         setShowCancelOptions(true);
                       } else {
-                        if (window.confirm('Are you sure you want to cancel this booking? The time slot will become available again.')) {
+                        if (window.confirm(t('confirmations.cancelBooking'))) {
                           handleAction('cancel', false);
                         }
                       }
@@ -303,7 +299,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                     disabled={processing}
                     className="w-full h-12 bg-[var(--brand-peach)]/10 border-2 border-[var(--brand-peach)]/30 text-[var(--brand-peach)] hover:bg-[var(--brand-peach)]/20 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    <XCircle className="h-4 w-4" /> Cancel Booking
+                    <XCircle className="h-4 w-4" /> {t('approvedActions.cancelBooking')}
                   </button>
                 </>
               ) : (
@@ -311,35 +307,35 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                   {/* Recurring Booking Cancel Options */}
                   <div className="bg-[var(--dark-600)] rounded-xl border border-[var(--dark-500)] p-4 space-y-4">
                     <div>
-                      <h4 className="font-bold text-[var(--brand-light)] mb-2 text-base">Cancel Recurring Booking</h4>
+                      <h4 className="font-bold text-[var(--brand-light)] mb-2 text-base">{t('approvedActions.cancelRecurringTitle')}</h4>
                       <p className="text-sm text-[var(--brand-light)]/60">
-                        This booking is part of a recurring series. What would you like to cancel?
+                        {t('approvedActions.cancelRecurringDescription')}
                       </p>
                     </div>
                     <div className="space-y-2">
                       <button
                         onClick={() => {
-                          if (window.confirm('Cancel only this instance? The rest of the series will remain.')) {
+                          if (window.confirm(t('confirmations.cancelThisInstance'))) {
                             handleAction('cancel', false);
                           }
                         }}
                         disabled={processing}
                         className="w-full p-4 bg-[var(--dark-700)] border-2 border-[var(--brand-primary)]/50 text-[var(--brand-light)] hover:bg-[var(--dark-600)] hover:border-[var(--brand-primary)] font-semibold rounded-xl text-left transition-colors disabled:opacity-50"
                       >
-                        <div className="font-bold text-sm text-[var(--brand-primary)]">Cancel This Instance Only</div>
-                        <div className="text-xs text-[var(--brand-light)]/60 mt-0.5 font-normal">Only this booking will be cancelled</div>
+                        <div className="font-bold text-sm text-[var(--brand-primary)]">{t('approvedActions.cancelThisInstance')}</div>
+                        <div className="text-xs text-[var(--brand-light)]/60 mt-0.5 font-normal">{t('approvedActions.cancelThisInstanceDescription')}</div>
                       </button>
                       <button
                         onClick={() => {
-                          if (window.confirm('Cancel this instance and all future instances? This cannot be undone.')) {
+                          if (window.confirm(t('confirmations.cancelEntireSeries'))) {
                             handleAction('cancel', true);
                           }
                         }}
                         disabled={processing}
                         className="w-full p-4 bg-[var(--brand-peach)]/10 border-2 border-[var(--brand-peach)]/50 text-[var(--brand-light)] hover:bg-[var(--brand-peach)]/20 hover:border-[var(--brand-peach)] font-semibold rounded-xl text-left transition-colors disabled:opacity-50"
                       >
-                        <div className="font-bold text-sm text-[var(--brand-peach)]">Cancel Entire Series</div>
-                        <div className="text-xs text-[var(--brand-light)]/60 mt-0.5 font-normal">This instance and all future instances will be cancelled</div>
+                        <div className="font-bold text-sm text-[var(--brand-peach)]">{t('approvedActions.cancelEntireSeries')}</div>
+                        <div className="text-xs text-[var(--brand-light)]/60 mt-0.5 font-normal">{t('approvedActions.cancelEntireSeriesDescription')}</div>
                       </button>
                     </div>
                   </div>
@@ -348,7 +344,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                     disabled={processing}
                     className="w-full h-10 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] rounded-xl transition-colors flex items-center justify-center gap-2"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Back
+                    <ArrowLeft className="w-4 h-4" /> {t('approvedActions.back')}
                   </button>
                 </>
               )}
@@ -373,7 +369,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
               }`}>
                 {booking.status === 'REJECTED' && <X className="w-5 h-5" />}
                 {booking.status === 'CANCELLED' && <XCircle className="w-5 h-5" />}
-                This booking is {booking.status}
+                {t('statusDisplay.thisBookingIs')} {t(`status.${booking.status.toLowerCase()}`)}
               </div>
             </div>
           )}
@@ -381,14 +377,6 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
       </div>
       
       {/* Toast Notification */}
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode
-      />
-      
       {/* Animation Styles */}
       <style jsx global>{`
         @keyframes fadeIn {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
     Search, CheckCircle, XCircle, Calendar, MapPin, Clock, 
@@ -9,7 +10,7 @@ import {
     AlertCircle, CheckCircle2, Hourglass, ListTodo
 } from 'lucide-react';
 import api from '@/lib/api';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 import { getMediaUrl, getInitials } from '@/app/utils';
 
 // Minimum loading time for skeleton display
@@ -24,6 +25,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onApprove, onReject, onClick }: SwipeableCardProps) {
+    const t = useTranslations('eventsAdmin.applications');
     const [isOpen, setIsOpen] = useState(false);
     const [startX, setStartX] = useState(0);
     const [currentX, setCurrentX] = useState(0);
@@ -111,14 +113,14 @@ function SwipeableCard({ children, onApprove, onReject, onClick }: SwipeableCard
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-green)] text-white transition-all active:bg-[var(--brand-green)]/80"
                 >
                     <CheckCircle className="w-5 h-5" />
-                    <span className="text-xs font-medium">Approve</span>
+                    <span className="text-xs font-medium">{t('actions.approve')}</span>
                 </button>
                 <button
                     onClick={handleRejectClick}
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
                 >
                     <XCircle className="w-5 h-5" />
-                    <span className="text-xs font-medium">Reject</span>
+                    <span className="text-xs font-medium">{t('actions.reject')}</span>
                 </button>
             </div>
 
@@ -204,6 +206,7 @@ function ApplicationTableRowSkeleton() {
 }
 
 function ApplicationPageSkeleton() {
+    const t = useTranslations('eventsAdmin.applications');
     return (
         <>
             {/* Mobile Cards Skeleton */}
@@ -218,11 +221,11 @@ function ApplicationPageSkeleton() {
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-[var(--dark-600)]">
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applicant</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Event</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applied</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                            <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.applicant')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.event')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.applied')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                            <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -244,6 +247,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const t = useTranslations('eventsAdmin.applications');
     
     const [registrations, setRegistrations] = useState<any[]>([]);
     const [allRegistrations, setAllRegistrations] = useState<any[]>([]);
@@ -252,7 +256,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
     const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || 'PENDING');
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
     const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+    const { success, error, info, warning } = useToast();
 
     const fetchRegistrations = useCallback(async () => {
         setLoading(true);
@@ -269,7 +273,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
             setRegistrations(data);
         } catch (error) {
             console.error(error);
-            setToast({ message: "Failed to load applications", type: 'error', isVisible: true });
+            error(t('toast.failedToLoad'));
         } finally {
             const elapsed = Date.now() - startTime;
             const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
@@ -299,14 +303,25 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
     const handleAction = async (id: number, action: 'APPROVED' | 'REJECTED') => {
         try {
             await api.patch(`/registrations/${id}/`, { status: action });
-            setToast({ message: `Application ${action.toLowerCase()}`, type: 'success', isVisible: true });
+            success(action === 'APPROVED' ? t('toast.applicationApproved') : t('toast.applicationRejected'));
             
             // Optimistic Update
             setRegistrations(prev => prev.filter(r => r.id !== id));
             setAllRegistrations(prev => prev.filter(r => r.id !== id));
         } catch (error) {
             console.error(error);
-            setToast({ message: "Action failed", type: 'error', isVisible: true });
+            error(t('toast.actionFailed'));
+        }
+    };
+
+    const getTranslatedStatus = (status: string) => {
+        switch (status) {
+            case 'PENDING_ADMIN': return t('status.pendingAdmin');
+            case 'PENDING_GUARDIAN': return t('status.pendingGuardian');
+            case 'WAITLIST': return t('status.waitlist');
+            case 'APPROVED': return t('status.approved');
+            case 'REJECTED': return t('status.rejected');
+            default: return status.replace('_', ' ');
         }
     };
 
@@ -370,9 +385,9 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                             <ClipboardList className="w-5 h-5 text-white" />
                         </div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Application Queue</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                     </div>
-                    <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Review and manage event registration applications.</p>
+                    <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
                 </div>
             </div>
 
@@ -388,7 +403,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                             <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                             </div>
-                            <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                            <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
                         </div>
                         <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
                     </button>
@@ -403,7 +418,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                         <ListTodo className="h-5 w-5 text-white" />
                                     </div>
-                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                                 </div>
                                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
                             </div>
@@ -414,7 +429,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                                         <AlertCircle className="h-5 w-5 text-white" />
                                     </div>
-                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Pending</span>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('pending')}</span>
                                 </div>
                                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.pending}</div>
                             </div>
@@ -425,7 +440,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                                         <Hourglass className="h-5 w-5 text-white" />
                                     </div>
-                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Waitlist</span>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('waitlist')}</span>
                                 </div>
                                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{analytics.waitlist}</div>
                             </div>
@@ -436,7 +451,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                                         <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                                     </div>
-                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Approved</span>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('approved')}</span>
                                 </div>
                                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.approved}</div>
                             </div>
@@ -453,7 +468,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                         <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
                         <input 
                             type="text"
-                            placeholder="Search by name, email, or event..." 
+                            placeholder={t('searchPlaceholder')} 
                             className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
@@ -481,7 +496,10 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                             : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 hover:text-[var(--brand-light)]'
                                     }`}
                                 >
-                                    {status === 'PENDING' ? 'Needs Action' : status.charAt(0) + status.slice(1).toLowerCase()}
+                                    {status === 'PENDING' ? t('filters.needsAction') : 
+                                     status === 'WAITLIST' ? t('filters.waitlist') :
+                                     status === 'APPROVED' ? t('filters.approved') :
+                                     t('filters.all')}
                                 </button>
                             ))}
                         </div>
@@ -490,7 +508,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                 onClick={clearFilters}
                                 className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
                             >
-                                Clear All
+                                {t('filters.clearAll')}
                             </button>
                         )}
                     </div>
@@ -501,7 +519,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
             {!showSkeleton && filteredList.length > 0 && (
                 <div className="px-4 sm:px-0">
                     <p className="text-sm text-[var(--brand-light)]/50">
-                        Showing <span className="text-[var(--brand-primary)] font-semibold">{filteredList.length}</span> {filteredList.length === 1 ? 'application' : 'applications'}
+                        {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{filteredList.length}</span> {filteredList.length === 1 ? t('statsBar.application') : t('statsBar.applications')}
                     </p>
                 </div>
             )}
@@ -514,9 +532,9 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                     <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                         <ClipboardList className="w-8 h-8 text-[var(--brand-light)]/30" />
                     </div>
-                    <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No applications found</h3>
+                    <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noApplicationsFound')}</h3>
                     <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-                        {hasFilters ? 'Try adjusting your search or filters.' : 'No pending applications at the moment.'}
+                        {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.noPendingApplications')}
                     </p>
                 </div>
             ) : (
@@ -573,7 +591,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                             {/* Status & Date */}
                                             <div className="mt-2 flex flex-wrap items-center gap-2">
                                                 <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(reg.status)}`}>
-                                                    {reg.status.replace('_', ' ')}
+                                                    {getTranslatedStatus(reg.status)}
                                                 </span>
                                                 <span className="text-xs text-[var(--brand-light)]/40 flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
@@ -592,11 +610,11 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-[var(--dark-600)]">
-                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applicant</th>
-                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Event</th>
-                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applied</th>
-                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.applicant')}</th>
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.event')}</th>
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.applied')}</th>
+                                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -648,7 +666,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeClasses(reg.status)}`}>
-                                                {reg.status.replace('_', ' ')}
+                                                {getTranslatedStatus(reg.status)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -659,14 +677,14 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                                 <button 
                                                     onClick={() => handleAction(reg.id, 'APPROVED')}
                                                     className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-green)] hover:bg-[var(--brand-green)]/10 transition-all"
-                                                    title="Approve"
+                                                    title={t('actions.approve')}
                                                 >
                                                     <CheckCircle className="h-4 w-4" />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleAction(reg.id, 'REJECTED')}
                                                     className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
-                                                    title="Reject"
+                                                    title={t('actions.reject')}
                                                 >
                                                     <XCircle className="h-4 w-4" />
                                                 </button>
@@ -680,7 +698,6 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                 </>
             )}
 
-            <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-        </div>
+            </div>
     );
 }

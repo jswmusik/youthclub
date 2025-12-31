@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cmsApi } from '@/lib/cms-api';
 import { MenuItem, Page } from '@/types/cms';
 import { Plus, Pencil, Trash2, Navigation, Link as LinkIcon, ExternalLink, Users, GripVertical } from 'lucide-react';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../../../hooks/useToast';
 import MenuFormDialog from './components/MenuFormDialog';
+import ConfirmationModal from '../../../../components/ConfirmationModal';
 
 // Skeleton Component
 function Skeleton({ className }: { className?: string }) {
@@ -24,6 +26,7 @@ function Skeleton({ className }: { className?: string }) {
 type LocationType = 'header' | 'footer' | 'community_footer';
 
 export default function NavigationManager() {
+  const t = useTranslations('cmsAdmin.navigation');
   const { showToast } = useToast();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [pages, setPages] = useState<Page[]>([]);
@@ -33,6 +36,10 @@ export default function NavigationManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [activeLocation, setActiveLocation] = useState<LocationType>('header');
+  
+  // Delete Modal State
+  const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Drag and drop state
   const [draggedItem, setDraggedItem] = useState<MenuItem | null>(null);
@@ -49,7 +56,7 @@ export default function NavigationManager() {
       setPages(pagesData);
     } catch (error) {
       console.error(error);
-      showToast("Failed to load navigation", "error");
+      showToast(t('toast.loadFailed'), "error");
     } finally {
       setLoading(false);
     }
@@ -63,25 +70,29 @@ export default function NavigationManager() {
     try {
       if (editingItem) {
         await cmsApi.updateMenuItem(editingItem.id, data);
-        showToast("Menu item updated", "success");
+        showToast(t('toast.itemUpdated'), "success");
       } else {
         await cmsApi.createMenuItem(data);
-        showToast("Menu item created", "success");
+        showToast(t('toast.itemCreated'), "success");
       }
       fetchData();
     } catch (error) {
-      showToast("Error saving item", "error");
+      showToast(t('toast.saveFailed'), "error");
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this menu item?")) return;
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
     try {
-      await cmsApi.deleteMenuItem(id);
-      setItems(items.filter(i => i.id !== id));
-      showToast("Item deleted", "success");
+      await cmsApi.deleteMenuItem(itemToDelete.id);
+      setItems(items.filter(i => i.id !== itemToDelete.id));
+      showToast(t('toast.itemDeleted'), "success");
     } catch (error) {
-      showToast("Error deleting item", "error");
+      showToast(t('toast.deleteFailed'), "error");
+    } finally {
+      setIsDeleting(false);
+      setItemToDelete(null);
     }
   };
 
@@ -171,10 +182,10 @@ export default function NavigationManager() {
           cmsApi.updateMenuItem(item.id, { order: index })
         )
       );
-      showToast("Order updated", "success");
+      showToast(t('toast.orderUpdated'), "success");
     } catch (error) {
       console.error('Failed to update order:', error);
-      showToast("Failed to update order", "error");
+      showToast(t('toast.orderFailed'), "error");
       // Refresh to get correct state
       fetchData();
     }
@@ -204,7 +215,7 @@ export default function NavigationManager() {
           className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-4 py-2.5 transition-all text-sm"
         >
           <Plus className="w-4 h-4" />
-          Add
+          {t('add')}
         </button>
       </div>
       
@@ -218,14 +229,14 @@ export default function NavigationManager() {
         ) : locationItems.length === 0 ? (
           <div className="text-center py-8 text-[var(--brand-light)]/40">
             <Navigation className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No items yet</p>
+            <p className="text-sm">{t('emptyState')}</p>
           </div>
         ) : (
           <div className="space-y-2">
             {locationItems.length > 1 && (
               <p className="text-xs text-[var(--brand-light)]/40 mb-3 flex items-center gap-1">
                 <GripVertical className="w-3 h-3" />
-                Drag to reorder
+                {t('dragToReorder')}
               </p>
             )}
             {locationItems.map((item, index) => (
@@ -298,7 +309,7 @@ export default function NavigationManager() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(item.id);
+                      setItemToDelete(item);
                     }}
                     className="p-2 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-lg transition-all"
                   >
@@ -322,7 +333,7 @@ export default function NavigationManager() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <Navigation className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total Items</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalItems')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-primary)]">{items.length}</div>
         </div>
@@ -332,7 +343,7 @@ export default function NavigationManager() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
               <Navigation className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Header</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.header')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{headerItems.length}</div>
         </div>
@@ -342,7 +353,7 @@ export default function NavigationManager() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
               <Navigation className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Public Footer</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.publicFooter')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{footerItems.length}</div>
         </div>
@@ -352,7 +363,7 @@ export default function NavigationManager() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-pink)] flex items-center justify-center">
               <Users className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Community</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.community')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-purple)]">{communityFooterItems.length}</div>
         </div>
@@ -362,7 +373,7 @@ export default function NavigationManager() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
               <LinkIcon className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Pages</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.pages')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{pages.length}</div>
         </div>
@@ -373,8 +384,8 @@ export default function NavigationManager() {
         {/* Header Navigation */}
         {renderMenuList(
           headerItems,
-          'Top Navigation',
-          'Public website header menu',
+          t('sections.topNavigation'),
+          t('sections.topNavigationDesc'),
           'header',
           'brand-blue'
         )}
@@ -382,8 +393,8 @@ export default function NavigationManager() {
         {/* Public Footer Navigation */}
         {renderMenuList(
           footerItems,
-          'Public Footer',
-          'Public website footer links',
+          t('sections.publicFooter'),
+          t('sections.publicFooterDesc'),
           'footer',
           'brand-green'
         )}
@@ -391,8 +402,8 @@ export default function NavigationManager() {
         {/* Community Footer Navigation */}
         {renderMenuList(
           communityFooterItems,
-          'Community Footer',
-          'Footer for logged-in users',
+          t('sections.communityFooter'),
+          t('sections.communityFooterDesc'),
           'community_footer',
           'brand-purple'
         )}
@@ -405,6 +416,23 @@ export default function NavigationManager() {
         initialData={editingItem}
         location={activeLocation}
         pages={pages}
+      />
+
+      <ConfirmationModal
+        isVisible={itemToDelete !== null}
+        onClose={() => {
+          if (!isDeleting) {
+            setItemToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { label: itemToDelete?.label || '' })}
+        confirmButtonText={t('deleteModal.confirm')}
+        cancelButtonText={t('deleteModal.cancel')}
+        variant="danger"
+        darkMode={true}
+        isLoading={isDeleting}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { messengerApi } from '../../../../lib/messenger-api';
 import QuickMessageModal from '../QuickMessageModal';
 import { User } from '../../../../types/user';
@@ -15,6 +16,7 @@ interface UserSearchModalProps {
 }
 
 export default function UserSearchModal({ isOpen, onClose, onMessageSent, onError, darkMode = false }: UserSearchModalProps) {
+    const t = useTranslations('messages.userSearch');
     const [userType, setUserType] = useState<'YOUTH' | 'GUARDIAN' | 'STAFF' | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -133,9 +135,9 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                         <UserIcon className="w-5 h-5 text-white" />
                                     </div>
-                                    <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Send Individual Message</h2>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('title')}</h2>
                                 </div>
-                                <p className="text-sm text-[var(--brand-light)]/50 ml-[52px]">Search for a user to message</p>
+                                <p className="text-sm text-[var(--brand-light)]/50 ml-[52px]">{t('subtitle')}</p>
                             </div>
                             <button
                                 onClick={onClose}
@@ -148,7 +150,7 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                         {/* User Type Selection */}
                         {!userType ? (
                             <div className="space-y-3">
-                                <p className="text-sm font-semibold text-[var(--brand-light)]">Select user type:</p>
+                                <p className="text-sm font-semibold text-[var(--brand-light)]">{t('selectUserType')}</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                                     <button
                                         onClick={() => setUserType('YOUTH')}
@@ -157,7 +159,7 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                                         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--brand-primary)]/20 group-hover:bg-[var(--brand-primary)] flex items-center justify-center transition-colors">
                                             <UserIcon className="w-6 h-6 sm:w-7 sm:w-7 text-[var(--brand-primary)] group-hover:text-white transition-colors" strokeWidth={2} />
                                         </div>
-                                        <div className="font-semibold text-[var(--brand-light)] text-sm sm:text-base">Youth Member</div>
+                                        <div className="font-semibold text-[var(--brand-light)] text-sm sm:text-base">{t('youthMember')}</div>
                                     </button>
                                     <button
                                         onClick={() => setUserType('GUARDIAN')}
@@ -166,7 +168,7 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                                         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--brand-primary)]/20 group-hover:bg-[var(--brand-primary)] flex items-center justify-center transition-colors">
                                             <ShieldCheck className="w-6 h-6 sm:w-7 sm:w-7 text-[var(--brand-primary)] group-hover:text-white transition-colors" strokeWidth={2} />
                                         </div>
-                                        <div className="font-semibold text-[var(--brand-light)] text-sm sm:text-base">Guardian</div>
+                                        <div className="font-semibold text-[var(--brand-light)] text-sm sm:text-base">{t('guardian')}</div>
                                     </button>
                                     <button
                                         onClick={() => setUserType('STAFF')}
@@ -175,7 +177,7 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                                         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--brand-primary)]/20 group-hover:bg-[var(--brand-primary)] flex items-center justify-center transition-colors">
                                             <UserCog className="w-6 h-6 sm:w-7 sm:w-7 text-[var(--brand-primary)] group-hover:text-white transition-colors" strokeWidth={2} />
                                         </div>
-                                        <div className="font-semibold text-[var(--brand-light)] text-sm sm:text-base">Staff Member</div>
+                                        <div className="font-semibold text-[var(--brand-light)] text-sm sm:text-base">{t('staffMember')}</div>
                                     </button>
                                 </div>
                             </div>
@@ -194,7 +196,7 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                                     </svg>
                                 </button>
                                 <span className="text-sm font-semibold text-[var(--brand-light)]">
-                                    Searching: {userType === 'YOUTH' ? 'Youth Members' : userType === 'GUARDIAN' ? 'Guardians' : 'Staff Members'}
+                                    {t('searching')} {userType === 'YOUTH' ? t('youthMembers') : userType === 'GUARDIAN' ? t('guardians') : t('staffMembers')}
                                 </span>
                             </div>
                         )}
@@ -212,7 +214,7 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder={`Search ${userType === 'YOUTH' ? 'youth members' : userType === 'GUARDIAN' ? 'guardians' : 'staff members'}...`}
+                                    placeholder={t('searchPlaceholder', { userType: userType === 'YOUTH' ? t('youthMembers').toLowerCase() : userType === 'GUARDIAN' ? t('guardians').toLowerCase() : t('staffMembers').toLowerCase() })}
                                     className={inputClasses}
                                     onFocus={() => setFocusedField('search')}
                                     onBlur={() => setFocusedField(null)}
@@ -234,11 +236,11 @@ export default function UserSearchModal({ isOpen, onClose, onMessageSent, onErro
                                     <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 rounded-xl bg-[var(--dark-700)] flex items-center justify-center">
                                         <Search className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--brand-light)]/30" />
                                     </div>
-                                    <p className="text-sm sm:text-base">Start typing to search...</p>
+                                    <p className="text-sm sm:text-base">{t('startTyping')}</p>
                                 </div>
                             ) : searchResults.length === 0 && !searching ? (
                                 <div className="text-center text-[var(--brand-light)]/50 py-8 sm:py-12">
-                                    <p className="text-sm sm:text-base">No users found matching "{searchQuery}"</p>
+                                    <p className="text-sm sm:text-base">{t('noUsersFound', { query: searchQuery })}</p>
                                 </div>
                             ) : (
                                 <ul className="space-y-2">

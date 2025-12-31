@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus, X, Settings, ToggleLeft, ListFilter } from 'lucide-react';
 import api from '../../lib/api';
 
@@ -18,6 +19,7 @@ interface CustomRuleBuilderProps {
 }
 
 export default function CustomRuleBuilder({ currentRules, onChange, darkMode = true }: CustomRuleBuilderProps) {
+  const t = useTranslations('groupsAdmin.form.customRuleBuilder');
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,7 +79,7 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
     return (
       <div className={`flex items-center gap-2 py-4 ${textMuted}`}>
         <div className={`w-4 h-4 border-2 ${darkMode ? 'border-[var(--dark-500)] border-t-[var(--brand-primary)]' : 'border-gray-300 border-t-indigo-600'} rounded-full animate-spin`} />
-        <span className="text-sm">Loading fields...</span>
+        <span className="text-sm">{t('loading')}</span>
       </div>
     );
   }
@@ -89,8 +91,8 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
           <Settings className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'}`} />
         </div>
         <div>
-          <p className={`text-sm font-medium ${textColor}`}>No custom fields available</p>
-          <p className={`text-xs ${textMuted}`}>Create custom fields first to add rules</p>
+          <p className={`text-sm font-medium ${textColor}`}>{t('noFieldsAvailable')}</p>
+          <p className={`text-xs ${textMuted}`}>{t('noFieldsAvailableHint')}</p>
         </div>
       </div>
     );
@@ -116,7 +118,7 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
           
           {/* Select Field */}
           <div className="flex-1 min-w-0">
-            <label className={`block text-xs font-semibold ${textMuted} mb-2`}>Field</label>
+            <label className={`block text-xs font-semibold ${textMuted} mb-2`}>{t('field')}</label>
             <select 
               className={`w-full h-10 px-3 rounded-xl border-2 ${inputBg} text-sm outline-none transition-all focus:border-[var(--brand-primary)] appearance-none cursor-pointer`}
               value={selectedFieldId}
@@ -130,7 +132,7 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
                 backgroundSize: '1rem'
               }}
             >
-              <option value="">Select Field...</option>
+              <option value="">{t('selectField')}</option>
               {fields.map(f => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
@@ -139,13 +141,13 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
 
           {/* Input Value */}
           <div className="flex-1 min-w-0">
-            <label className={`block text-xs font-semibold ${textMuted} mb-2`}>Condition (Must Match)</label>
+            <label className={`block text-xs font-semibold ${textMuted} mb-2`}>{t('condition')}</label>
             
             {!selectedField && (
               <input 
                 disabled 
                 className={`w-full h-10 px-3 rounded-xl border-2 ${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)] text-[var(--brand-light)]/30' : 'bg-gray-100 border-gray-200 text-gray-400'} text-sm cursor-not-allowed`}
-                placeholder="Select field first" 
+                placeholder={t('selectFieldFirst')} 
               />
             )}
 
@@ -163,8 +165,8 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
                   backgroundSize: '1rem'
                 }}
               >
-                <option value="true">Yes (Checked)</option>
-                <option value="false">No (Unchecked)</option>
+                <option value="true">{t('booleanYes')}</option>
+                <option value="false">{t('booleanNo')}</option>
               </select>
             )}
 
@@ -182,7 +184,7 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
                   backgroundSize: '1rem'
                 }}
               >
-                <option value="">Select Option...</option>
+                <option value="">{t('selectOption')}</option>
                 {selectedField.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             )}
@@ -201,7 +203,7 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
               } disabled:cursor-not-allowed`}
             >
               <Plus className="w-4 h-4" />
-              Add
+              {t('add')}
             </button>
           </div>
         </div>
@@ -210,13 +212,13 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
       {/* Active Rules List */}
       {Object.keys(currentRules).length > 0 && (
         <div className="space-y-2">
-          <p className={`text-xs font-semibold ${textMuted}`}>Active Rules ({Object.keys(currentRules).length})</p>
+          <p className={`text-xs font-semibold ${textMuted}`}>{t('activeRules')} ({Object.keys(currentRules).length})</p>
           <div className="flex flex-wrap gap-2">
             {Object.entries(currentRules).map(([id, val]) => {
               const field = fields.find(f => f.id.toString() === id);
               const fieldName = field?.name || `Field #${id}`;
               let displayVal = val.toString();
-              if (typeof val === 'boolean') displayVal = val ? 'Yes' : 'No';
+              if (typeof val === 'boolean') displayVal = val ? t('yes') : t('no');
 
               return (
                 <span 
@@ -256,7 +258,7 @@ export default function CustomRuleBuilder({ currentRules, onChange, darkMode = t
       {/* Empty State */}
       {Object.keys(currentRules).length === 0 && (
         <div className={`text-center py-3 ${textMuted}`}>
-          <p className="text-xs">No rules added yet. Add rules to filter members.</p>
+          <p className="text-xs">{t('noRulesAdded')}</p>
         </div>
       )}
     </div>

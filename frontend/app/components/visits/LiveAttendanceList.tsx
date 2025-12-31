@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { RefreshCw, Users, LogOut, QrCode, Hand, Clock, ChevronLeft } from 'lucide-react';
 import { visits } from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../hooks/useToast';
 
 // Define the shape of our session data based on the API serializer
 interface Session {
@@ -30,6 +31,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onCheckOut, hasCheckedOut }: SwipeableCardProps) {
+  const t = useTranslations('clubVisits.liveAttendance');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -116,7 +118,7 @@ function SwipeableCard({ children, onCheckOut, hasCheckedOut }: SwipeableCardPro
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
           >
             <LogOut className="w-5 h-5" />
-            <span className="text-xs font-medium">Check Out</span>
+            <span className="text-xs font-medium">{t('checkOut')}</span>
           </button>
         </div>
       )}
@@ -144,13 +146,10 @@ function SwipeableCard({ children, onCheckOut, hasCheckedOut }: SwipeableCardPro
 }
 
 export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId: string | number, refreshTrigger: number }) {
+  const t = useTranslations('clubVisits.liveAttendance');
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
 
   const fetchSessions = async () => {
     try {
@@ -200,10 +199,10 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
   const handleCheckOut = async (sessionId: number) => {
     try {
       await visits.checkOut(sessionId);
-      setToast({ message: "Checked out successfully", type: 'success', isVisible: true });
+      success(t('toast.checkOutSuccess'));
       fetchSessions(); // Refresh list immediately
     } catch (error) {
-      setToast({ message: "Could not check out", type: 'error', isVisible: true });
+      error(t('toast.checkOutError'));
     }
   };
 
@@ -237,7 +236,7 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center animate-pulse">
               <Users className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
-            <span className="text-[var(--brand-light)]/60 animate-pulse">Loading live data...</span>
+            <span className="text-[var(--brand-light)]/60 animate-pulse">{t('loadingLiveData')}</span>
           </div>
         </div>
       </div>
@@ -258,10 +257,12 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
             </div>
             <div>
               <h3 className="text-lg font-semibold text-[var(--brand-light)]">
-                Currently Inside
+                {t('currentlyInside')}
               </h3>
               <p className="text-sm text-[var(--brand-light)]/50">
-                {sessionsArray.length} {sessionsArray.length === 1 ? 'person' : 'people'} checked in
+                {sessionsArray.length === 1 
+                  ? t('personCheckedIn', { count: sessionsArray.length })
+                  : t('peopleCheckedIn', { count: sessionsArray.length })}
               </p>
             </div>
           </div>
@@ -270,7 +271,7 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
             <RefreshCw className="h-4 w-4" /> 
-            <span className="hidden sm:inline">Refresh</span>
+            <span className="hidden sm:inline">{t('refresh')}</span>
           </button>
         </div>
 
@@ -280,8 +281,8 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
               <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-[var(--brand-light)]/30" />
               </div>
-              <p className="text-[var(--brand-light)]/50 font-medium">No active check-ins</p>
-              <p className="text-sm text-[var(--brand-light)]/30 mt-1">The club is currently empty</p>
+              <p className="text-[var(--brand-light)]/50 font-medium">{t('noActiveCheckIns')}</p>
+              <p className="text-sm text-[var(--brand-light)]/30 mt-1">{t('clubCurrentlyEmpty')}</p>
             </div>
           </div>
         ) : (
@@ -291,10 +292,10 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
-                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Member</th>
-                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Check-in Time</th>
-                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Method</th>
-                    <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Action</th>
+                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.member')}</th>
+                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.checkInTime')}</th>
+                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.method')}</th>
+                    <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.action')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -315,7 +316,7 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
                           </div>
                           <div>
                             <div className="font-semibold text-[var(--brand-light)]">
-                              {session.user_details.first_name || 'User'} {session.user_details.last_name}
+                              {session.user_details.first_name || t('userFallback')} {session.user_details.last_name}
                             </div>
                             <div className="text-xs text-[var(--brand-light)]/50">
                               {session.user_details.email}
@@ -337,23 +338,23 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
                             : 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]'
                         }`}>
                           {session.method === 'QR_KIOSK' ? (
-                            <><QrCode className="w-3 h-3" /> Self Scan</>
+                            <><QrCode className="w-3 h-3" /> {t('selfScan')}</>
                           ) : (
-                            <><Hand className="w-3 h-3" /> Manual</>
+                            <><Hand className="w-3 h-3" /> {t('manual')}</>
                           )}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-right">
                         {session.check_out_at ? (
                           <span className="text-[var(--brand-light)]/40 text-sm">
-                            Checked out: {formatTime(session.check_out_at)}
+                            {t('checkedOutAt', { time: formatTime(session.check_out_at) })}
                           </span>
                         ) : (
                           <button 
                             onClick={() => handleCheckOut(session.id)}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-red)]/20 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/30 transition-all text-sm font-medium"
                           >
-                            <LogOut className="w-4 h-4" /> Check Out
+                            <LogOut className="w-4 h-4" /> {t('checkOut')}
                           </button>
                         )}
                       </td>
@@ -391,7 +392,7 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="font-semibold text-[var(--brand-light)]">
-                              {session.user_details.first_name || 'User'} {session.user_details.last_name}
+                              {session.user_details.first_name || t('userFallback')} {session.user_details.last_name}
                             </div>
                             <div className="text-xs text-[var(--brand-light)]/50 truncate">
                               {session.user_details.email}
@@ -405,7 +406,7 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
                             {session.method === 'QR_KIOSK' ? (
                               <><QrCode className="w-3 h-3" /> QR</>
                             ) : (
-                              <><Hand className="w-3 h-3" /> Manual</>
+                              <><Hand className="w-3 h-3" /> {t('manual')}</>
                             )}
                           </span>
                         </div>
@@ -427,13 +428,6 @@ export default function LiveAttendanceList({ clubId, refreshTrigger }: { clubId:
       </div>
 
       {/* Toast Notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode
-      />
     </>
   );
 }

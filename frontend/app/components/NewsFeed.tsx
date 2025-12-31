@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ArrowRight, Calendar, User, Newspaper, Star, Archive, Sparkles } from 'lucide-react';
 import api from '../../lib/api';
@@ -27,6 +28,7 @@ interface NewsFeedProps {
 }
 
 export default function NewsFeed({ basePath }: NewsFeedProps) {
+  const t = useTranslations('newsFeed');
   const [hero, setHero] = useState<Article | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +126,7 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
               <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-peach)] text-[var(--dark-900)] text-xs font-bold uppercase">
                   <Star className="w-3.5 h-3.5" />
-                  Featured
+                  {t('featured')}
                 </span>
               </div>
 
@@ -155,8 +157,8 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
                 {/* Meta & CTA */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <Link href={`${basePath}/${hero.id}`}>
-                    <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-purple)] transition-all">
-                      Read Article
+                    <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-purple)] transition-all">
+                      {t('readArticle')}
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </Link>
@@ -188,8 +190,8 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
                 <Newspaper className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Recent Stories</h3>
-                <p className="text-sm text-[var(--brand-light)]/50">Latest updates and news</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('recentStories.title')}</h3>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('recentStories.description')}</p>
               </div>
             </div>
             <Link 
@@ -197,7 +199,7 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
             >
               <Archive className="w-4 h-4" />
-              <span className="hidden sm:inline">View Archive</span>
+              <span className="hidden sm:inline">{t('viewArchive')}</span>
             </Link>
           </div>
 
@@ -205,8 +207,8 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
           {articles.length === 0 ? (
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-12 text-center">
               <Newspaper className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-              <p className="text-[var(--brand-light)]/50 mb-2">No recent news available</p>
-              <p className="text-sm text-[var(--brand-light)]/30">Check back later for updates</p>
+              <p className="text-[var(--brand-light)]/50 mb-2">{t('noRecentNews')}</p>
+              <p className="text-sm text-[var(--brand-light)]/30">{t('checkBackLater')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-0">
@@ -229,7 +231,7 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
                         <div className="flex items-center justify-center h-full">
                           <div className="text-center">
                             <Newspaper className="w-10 h-10 text-[var(--brand-light)]/20 mx-auto mb-2" />
-                            <span className="text-xs text-[var(--brand-light)]/30">No Image</span>
+                            <span className="text-xs text-[var(--brand-light)]/30">{t('noImage')}</span>
                           </div>
                         </div>
                       )}
@@ -273,7 +275,7 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
                           <span>{formatDate(article.published_at)}</span>
                         </div>
                         <span className="inline-flex items-center gap-1 text-[var(--brand-primary)] text-sm font-medium group-hover:gap-2 transition-all">
-                          Read
+                          {t('read')}
                           <ArrowRight className="w-3.5 h-3.5" />
                         </span>
                       </div>

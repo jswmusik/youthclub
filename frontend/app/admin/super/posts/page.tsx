@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
     Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, 
-    Globe, Building, Users, UserPlus, TrendingUp, ChevronLeft, Sparkles, Zap 
+    Globe, Building, Users, UserPlus, TrendingUp, ChevronLeft, Sparkles, Zap, Info 
 } from 'lucide-react';
 import api from '../../../../lib/api';
 import { Post } from '../../../../types/post';
 import ConfirmationModal from '../../../components/ConfirmationModal';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../../hooks/useToast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -24,6 +26,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+    const t = useTranslations('postsManager');
     const [isOpen, setIsOpen] = useState(false);
     const [startX, setStartX] = useState(0);
     const [currentX, setCurrentX] = useState(0);
@@ -110,14 +113,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
                 >
                     <Edit className="w-5 h-5" />
-                    <span className="text-xs font-medium">Edit</span>
+                    <span className="text-xs font-medium">{t('actions.edit')}</span>
                 </button>
                 <button
                     onClick={handleDeleteClick}
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
                 >
                     <Trash2 className="w-5 h-5" />
-                    <span className="text-xs font-medium">Delete</span>
+                    <span className="text-xs font-medium">{t('actions.delete')}</span>
                 </button>
             </div>
 
@@ -207,6 +210,7 @@ export default function SuperAdminPostsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const t = useTranslations('postsManager');
     
     const [posts, setPosts] = useState<any[]>([]);
     const [allFilteredPosts, setAllFilteredPosts] = useState<any[]>([]);
@@ -220,12 +224,10 @@ export default function SuperAdminPostsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [postToDelete, setPostToDelete] = useState<{ id: number; title: string } | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [hasTemplates, setHasTemplates] = useState<boolean | null>(null);
+    const [loadingTemplates, setLoadingTemplates] = useState(true);
     
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '',
-        type: 'success',
-        isVisible: false,
-    });
+    const { success, error, info, warning } = useToast();
 
     const updateUrl = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -427,6 +429,24 @@ export default function SuperAdminPostsPage() {
         fetchData();
     }, [fetchData]);
 
+    // Check if templates exist
+    useEffect(() => {
+        const checkTemplates = async () => {
+            try {
+                const res = await api.get('/post-templates/');
+                const data = Array.isArray(res.data) ? res.data : res.data.results || [];
+                const activeTemplates = data.filter((t: any) => t.is_active);
+                setHasTemplates(activeTemplates.length > 0);
+            } catch (err) {
+                console.error("Failed to check templates", err);
+                setHasTemplates(false);
+            } finally {
+                setLoadingTemplates(false);
+            }
+        };
+        checkTemplates();
+    }, []);
+
     useEffect(() => {
         const urlSearch = searchParams.get('search') || '';
         if (urlSearch !== searchInput && document.activeElement !== searchInputRef.current) {
@@ -445,12 +465,12 @@ export default function SuperAdminPostsPage() {
         setIsDeleting(true);
         try {
             await api.delete(`/posts/${postToDelete.id}/`);
-            setToast({ message: 'Post deleted successfully!', type: 'success', isVisible: true });
+            success(t('toast.postDeleted'));
             setShowDeleteModal(false);
             setPostToDelete(null);
             fetchData(); 
         } catch (err) {
-            setToast({ message: 'Failed to delete post.', type: 'error', isVisible: true });
+            error(t('toast.failedToDelete'));
         } finally {
             setIsDeleting(false);
         }
@@ -461,7 +481,7 @@ export default function SuperAdminPostsPage() {
             return (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--dark-600)] text-[var(--brand-light)]/70 text-xs font-medium border border-[var(--dark-500)]">
                     <Globe className="h-3 w-3" />
-                    Global
+                    {t('scope.global')}
                 </span>
             );
         }
@@ -472,7 +492,7 @@ export default function SuperAdminPostsPage() {
             return (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] text-xs font-medium border border-[var(--brand-blue)]/30">
                     <Building className="h-3 w-3" />
-                    {count > 1 ? `${count} Munis` : name}
+                    {count > 1 ? `${count} ${t('scope.munis')}` : name}
                 </span>
             );
         }
@@ -483,7 +503,7 @@ export default function SuperAdminPostsPage() {
             return (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] text-xs font-medium border border-[var(--brand-purple)]/30">
                     <Users className="h-3 w-3" />
-                    {count > 1 ? `${count} Clubs` : name}
+                    {count > 1 ? `${count} ${t('scope.clubs')}` : name}
                 </span>
             );
         }
@@ -491,14 +511,14 @@ export default function SuperAdminPostsPage() {
         if (post.owner_role === 'MUNICIPALITY_ADMIN') {
             return (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--dark-600)] text-[var(--brand-light)]/60 text-xs font-medium border border-[var(--dark-500)]">
-                    Municipality
+                    {t('scope.municipality')}
                 </span>
             );
         }
         if (post.owner_role === 'CLUB_ADMIN') {
             return (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--dark-600)] text-[var(--brand-light)]/60 text-xs font-medium border border-[var(--dark-500)]">
-                    Club
+                    {t('scope.club')}
                 </span>
             );
         }
@@ -506,32 +526,48 @@ export default function SuperAdminPostsPage() {
         return <span className="text-sm text-[var(--brand-light)]/40">-</span>;
     };
 
-    const getTypeBadge = (postType: string) => {
+    // Memoize translations to prevent re-creation on each render
+    const typeTranslations = useMemo(() => ({
+        'TEXT': t('type.TEXT'),
+        'IMAGE': t('type.IMAGE'),
+        'VIDEO': t('type.VIDEO'),
+    }), [t]);
+
+    const statusTranslations = useMemo(() => ({
+        'PUBLISHED': t('status.PUBLISHED'),
+        'DRAFT': t('status.DRAFT'),
+        'SCHEDULED': t('status.SCHEDULED'),
+        'ARCHIVED': t('status.ARCHIVED'),
+    }), [t]);
+
+    const getTypeBadge = useCallback((postType: string) => {
         const styles: Record<string, string> = {
             'TEXT': 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30',
             'IMAGE': 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30',
             'VIDEO': 'bg-[var(--brand-pink)]/20 text-[var(--brand-pink)] border-[var(--brand-pink)]/30',
         };
+        const typeLabel = typeTranslations[postType as keyof typeof typeTranslations] || postType;
         return (
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${styles[postType] || 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]'}`}>
-                {postType}
+                {typeLabel}
             </span>
         );
-    };
+    }, [typeTranslations]);
 
-    const getStatusBadge = (status: string) => {
+    const getStatusBadge = useCallback((status: string) => {
         const styles: Record<string, string> = {
             'PUBLISHED': 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30',
             'DRAFT': 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30',
             'SCHEDULED': 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30',
             'ARCHIVED': 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]',
         };
+        const statusLabel = statusTranslations[status as keyof typeof statusTranslations] || status;
         return (
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${styles[status] || 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]'}`}>
-                {status}
+                {statusLabel}
             </span>
         );
-    };
+    }, [statusTranslations]);
 
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
@@ -550,25 +586,57 @@ export default function SuperAdminPostsPage() {
                             <FileText className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Posts</h1>
-                            <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">Create and manage community posts</p>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+                            <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">{t('description')}</p>
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                         <Link href="/admin/super/posts/templates" className="sm:order-first">
                             <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 font-medium hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm">
-                                <Sparkles className="h-4 w-4" /> Templates
+                                <Sparkles className="h-4 w-4" /> {t('templates')}
                             </button>
                         </Link>
                         <div className="flex items-center gap-3">
-                            <Link href="/admin/super/posts/quick" className="flex-1 sm:flex-none">
-                                <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-semibold hover:opacity-90 transition-all">
-                                    <Zap className="h-4 w-4" /> Quick Post
-                                </button>
-                            </Link>
+                            {hasTemplates === false ? (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="flex-1 sm:flex-none">
+                                            <button 
+                                                disabled
+                                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--dark-600)] text-[var(--brand-light)]/30 font-semibold cursor-not-allowed transition-all opacity-50"
+                                            >
+                                                <Zap className="h-4 w-4" /> {t('quickPostButton')}
+                                            </button>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent 
+                                        side="bottom" 
+                                        className="bg-[var(--dark-700)] text-[var(--brand-light)] border-[var(--dark-600)] max-w-xs p-4"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <Info className="h-5 w-5 text-[var(--brand-primary)] flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="font-semibold mb-1">{t('quickPostDisabledTitle')}</p>
+                                                <p className="text-sm text-[var(--brand-light)]/70 mb-2">{t('quickPostDisabledMessage')}</p>
+                                                <Link href="/admin/super/posts/templates">
+                                                    <button className="text-sm text-[var(--brand-primary)] hover:underline font-medium">
+                                                        {t('createTemplate')} →
+                                                    </button>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                <Link href="/admin/super/posts/quick" className="flex-1 sm:flex-none">
+                                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-[var(--dark-900)] font-semibold hover:opacity-90 transition-all">
+                                        <Zap className="h-4 w-4" /> {t('quickPostButton')}
+                                    </button>
+                                </Link>
+                            )}
                             <Link href="/admin/super/posts/create" className="flex-1 sm:flex-none">
                                 <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-semibold hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all">
-                                    <Plus className="h-4 w-4" /> Advanced
+                                    <Plus className="h-4 w-4" /> {t('advanced')}
                                 </button>
                             </Link>
                         </div>
@@ -585,7 +653,7 @@ export default function SuperAdminPostsPage() {
                             >
                                 <div className="flex items-center gap-2">
                                     <BarChart3 className="h-4 w-4 text-[var(--brand-primary)]" />
-                                    <span className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</span>
+                                    <span className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</span>
                                 </div>
                                 <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/60 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
                             </button>
@@ -599,7 +667,7 @@ export default function SuperAdminPostsPage() {
                                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                                     <FileText className="h-4 w-4 text-white" />
                                                 </div>
-                                                <span className="text-xs text-[var(--brand-light)]/60 font-medium">Total Posts</span>
+                                                <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.totalPosts')}</span>
                                             </div>
                                             <div className="text-2xl font-bold text-[var(--brand-light)]">{stats.total_posts}</div>
                                         </div>
@@ -610,7 +678,7 @@ export default function SuperAdminPostsPage() {
                                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                                                     <UserPlus className="h-4 w-4 text-white" />
                                                 </div>
-                                                <span className="text-xs text-[var(--brand-light)]/60 font-medium">New (7 Days)</span>
+                                                <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.new7Days')}</span>
                                             </div>
                                             <div className="text-2xl font-bold text-[var(--brand-light)]">{stats.created_last_7_days}</div>
                                         </div>
@@ -621,7 +689,7 @@ export default function SuperAdminPostsPage() {
                                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-green)] to-[#34D399] flex items-center justify-center">
                                                     <UserPlus className="h-4 w-4 text-white" />
                                                 </div>
-                                                <span className="text-xs text-[var(--brand-light)]/60 font-medium">New (30 Days)</span>
+                                                <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.new30Days')}</span>
                                             </div>
                                             <div className="text-2xl font-bold text-[var(--brand-light)]">{stats.created_last_30_days}</div>
                                         </div>
@@ -632,7 +700,7 @@ export default function SuperAdminPostsPage() {
                                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-pink)] to-[#FF8FA3] flex items-center justify-center">
                                                     <TrendingUp className="h-4 w-4 text-white" />
                                                 </div>
-                                                <span className="text-xs text-[var(--brand-light)]/60 font-medium">Avg Views</span>
+                                                <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.avgViews')}</span>
                                             </div>
                                             <div className="text-2xl font-bold text-[var(--brand-light)]">{stats.average_views}</div>
                                         </div>
@@ -652,7 +720,7 @@ export default function SuperAdminPostsPage() {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                                 <input 
                                     ref={searchInputRef}
-                                    placeholder="Search by title..." 
+                                    placeholder={t('filters.searchPlaceholder')} 
                                     className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none focus:border-[var(--brand-primary)] transition-colors"
                                     value={searchInput} 
                                     onChange={e => setSearchInput(e.target.value)}
@@ -666,10 +734,10 @@ export default function SuperAdminPostsPage() {
                                     value={searchParams.get('scope') || ''} 
                                     onChange={e => updateUrl('scope', e.target.value)}
                                 >
-                                    <option value="">All Scopes</option>
-                                    <option value="GLOBAL">Global</option>
-                                    <option value="MUNICIPALITY">Municipality</option>
-                                    <option value="CLUB">Club</option>
+                                    <option value="">{t('filters.allScopes')}</option>
+                                    <option value="GLOBAL">{t('filters.global')}</option>
+                                    <option value="MUNICIPALITY">{t('filters.municipality')}</option>
+                                    <option value="CLUB">{t('filters.club')}</option>
                                 </select>
                             </div>
                             
@@ -680,10 +748,10 @@ export default function SuperAdminPostsPage() {
                                     value={searchParams.get('type') || ''} 
                                     onChange={e => updateUrl('type', e.target.value)}
                                 >
-                                    <option value="">All Types</option>
-                                    <option value="TEXT">Text</option>
-                                    <option value="IMAGE">Image</option>
-                                    <option value="VIDEO">Video</option>
+                                    <option value="">{t('filters.allTypes')}</option>
+                                    <option value="TEXT">{t('filters.text')}</option>
+                                    <option value="IMAGE">{t('filters.image')}</option>
+                                    <option value="VIDEO">{t('filters.video')}</option>
                                 </select>
                             </div>
                             
@@ -694,11 +762,11 @@ export default function SuperAdminPostsPage() {
                                     value={searchParams.get('status') || ''} 
                                     onChange={e => updateUrl('status', e.target.value)}
                                 >
-                                    <option value="">All Statuses</option>
-                                    <option value="DRAFT">Draft</option>
-                                    <option value="SCHEDULED">Scheduled</option>
-                                    <option value="PUBLISHED">Published</option>
-                                    <option value="ARCHIVED">Archived</option>
+                                    <option value="">{t('filters.allStatuses')}</option>
+                                    <option value="DRAFT">{t('filters.draft')}</option>
+                                    <option value="SCHEDULED">{t('filters.scheduled')}</option>
+                                    <option value="PUBLISHED">{t('filters.published')}</option>
+                                    <option value="ARCHIVED">{t('filters.archived')}</option>
                                 </select>
                             </div>
                             
@@ -711,7 +779,7 @@ export default function SuperAdminPostsPage() {
                                     }}
                                     className="w-full h-10 px-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:border-[var(--brand-red)]/30 transition-all flex items-center justify-center gap-2"
                                 >
-                                    <X className="h-4 w-4" /> Clear
+                                    <X className="h-4 w-4" /> {t('filters.clear')}
                                 </button>
                             </div>
                         </div>
@@ -721,7 +789,7 @@ export default function SuperAdminPostsPage() {
                 {/* Stats Bar */}
                 <div className="flex items-center justify-between px-4 sm:px-0 mb-4">
                     <p className="text-sm text-[var(--brand-light)]/60">
-                        Showing <span className="text-[var(--brand-primary)] font-semibold">{posts.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> posts
+                        {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{posts.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {t('statsBar.posts')}
                     </p>
                 </div>
 
@@ -739,12 +807,12 @@ export default function SuperAdminPostsPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[var(--dark-600)]">
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Post</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Scope</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Type</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Status</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Views</th>
-                                        <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Actions</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.post')}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.scope')}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.type')}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.status')}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.views')}</th>
+                                        <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -759,15 +827,15 @@ export default function SuperAdminPostsPage() {
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 text-center">
                         <FileText className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
                         <p className="text-[var(--brand-light)]/50 mb-2">
-                            {hasActiveFilters ? 'No posts found matching your filters' : 'No posts found'}
+                            {hasActiveFilters ? t('emptyState.noPostsMatchingFilters') : t('emptyState.noPostsFound')}
                         </p>
                         <p className="text-sm text-[var(--brand-light)]/30 mb-6">
-                            {hasActiveFilters ? 'Try adjusting your search or filters' : 'Create your first post to get started'}
+                            {hasActiveFilters ? t('emptyState.adjustFilters') : t('emptyState.createFirstPost')}
                         </p>
                         {!hasActiveFilters && (
                             <Link href="/admin/super/posts/create">
-                                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-purple)] transition-all">
-                                    <Plus className="h-4 w-4" /> Create Post
+                                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-purple)] transition-all">
+                                    <Plus className="h-4 w-4" /> {t('actions.createPost')}
                                 </button>
                             </Link>
                         )}
@@ -794,13 +862,13 @@ export default function SuperAdminPostsPage() {
                                                     <h3 className="font-semibold text-[var(--brand-light)] truncate">{post.title}</h3>
                                                 </div>
                                                 <p className="text-xs text-[var(--brand-light)]/50 mb-2">
-                                                    By {post.author?.first_name || 'Unknown'} • {new Date(post.created_at).toLocaleDateString()}
+                                                    {t('mobile.by')} {post.author?.first_name || t('mobile.unknown')} • {new Date(post.created_at).toLocaleDateString()}
                                                 </p>
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     {getScopeBadge(post)}
                                                     {getTypeBadge(post.post_type)}
                                                     {getStatusBadge(post.status)}
-                                                    <span className="text-xs text-[var(--brand-light)]/40">{post.view_count} views</span>
+                                                    <span className="text-xs text-[var(--brand-light)]/40">{post.view_count} {t('mobile.views')}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -814,12 +882,12 @@ export default function SuperAdminPostsPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[var(--dark-600)]">
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Post</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Scope</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Type</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Status</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Views</th>
-                                        <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Actions</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.post')}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.scope')}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.type')}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.status')}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.views')}</th>
+                                        <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{t('tableHeaders.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -836,7 +904,7 @@ export default function SuperAdminPostsPage() {
                                                             {post.title}
                                                         </div>
                                                         <div className="text-xs text-[var(--brand-light)]/50">
-                                                            By {post.author?.first_name || 'Unknown'} • {new Date(post.created_at).toLocaleDateString()}
+                                                            {t('mobile.by')} {post.author?.first_name || t('mobile.unknown')} • {new Date(post.created_at).toLocaleDateString()}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -883,17 +951,17 @@ export default function SuperAdminPostsPage() {
                             onClick={() => updateUrl('page', (currentPage - 1).toString())}
                             className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
                         >
-                            Prev
+                            {t('pagination.previous')}
                         </button>
                         <span className="text-sm text-[var(--brand-light)]/60">
-                            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
                         </span>
                         <button 
                             disabled={currentPage >= totalPages} 
                             onClick={() => updateUrl('page', (currentPage + 1).toString())}
                             className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
                         >
-                            Next
+                            {t('pagination.next')}
                         </button>
                     </div>
                 )}
@@ -902,23 +970,15 @@ export default function SuperAdminPostsPage() {
                     isVisible={showDeleteModal}
                     onClose={() => { if (!isDeleting) { setShowDeleteModal(false); setPostToDelete(null); } }}
                     onConfirm={handleDeleteConfirm}
-                    title="Delete Post"
-                    message={`Are you sure you want to delete "${postToDelete?.title}"? This action cannot be undone.`}
-                    confirmButtonText="Delete"
-                    cancelButtonText="Cancel"
+                    title={t('deleteModal.title')}
+                    message={t('deleteModal.message', { title: postToDelete?.title || '' })}
+                    confirmButtonText={t('deleteModal.delete')}
+                    cancelButtonText={t('deleteModal.cancel')}
                     variant="danger"
                     darkMode={true}
                     isLoading={isDeleting}
                 />
-                <Toast 
-                    message={toast.message} 
-                    type={toast.type} 
-                    isVisible={toast.isVisible} 
-                    onClose={() => setToast({ ...toast, isVisible: false })} 
-                    darkMode 
-                    duration={1250}
-                />
-            </div>
+                </div>
         </div>
     );
 }

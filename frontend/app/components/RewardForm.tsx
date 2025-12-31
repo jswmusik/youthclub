@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, Search, CheckCircle2, Lightbulb, Save,
   Gift, Target, Users, Calendar, Zap, Image, Link2, Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { getMediaUrl } from '../utils';
 
 interface Option { id: number; name: string; }
@@ -20,24 +21,26 @@ interface RewardFormProps {
 }
 
 const GRADES = Array.from({ length: 13 }, (_, i) => i + 1);
-const GENDERS = [
-  { value: 'MALE', label: 'Male' },
-  { value: 'FEMALE', label: 'Female' },
-  { value: 'OTHER', label: 'Other' },
-];
-
-const TRIGGERS = [
-  { value: 'BIRTHDAY', label: 'On Birthday', icon: '🎂', desc: 'Given automatically on member\'s birthday' },
-  { value: 'WELCOME', label: 'On Signup', icon: '👋', desc: 'Given immediately after registration' },
-  { value: 'VERIFIED', label: 'On Verification', icon: '✅', desc: 'Given when account is verified' },
-  { value: 'MOST_ACTIVE', label: 'Most Active', icon: '🔥', desc: 'Awarded to users with most logins' },
-];
 
 export default function RewardForm({ initialData, redirectPath }: RewardFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('rewardsAdmin.form');
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
+  
+  const GENDERS = [
+    { value: 'MALE', label: t('sections.targetAudience.male') },
+    { value: 'FEMALE', label: t('sections.targetAudience.female') },
+    { value: 'OTHER', label: t('sections.targetAudience.other') },
+  ];
+
+  const TRIGGERS = [
+    { value: 'BIRTHDAY', label: t('sections.automaticTriggers.onBirthday'), icon: '🎂', desc: t('sections.automaticTriggers.onBirthdayDesc') },
+    { value: 'WELCOME', label: t('sections.automaticTriggers.onSignup'), icon: '👋', desc: t('sections.automaticTriggers.onSignupDesc') },
+    { value: 'VERIFIED', label: t('sections.automaticTriggers.onVerification'), icon: '✅', desc: t('sections.automaticTriggers.onVerificationDesc') },
+    { value: 'MOST_ACTIVE', label: t('sections.automaticTriggers.mostActive'), icon: '🔥', desc: t('sections.automaticTriggers.mostActiveDesc') },
+  ];
   
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -48,7 +51,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
   const [groups, setGroups] = useState<Option[]>([]);
   const [interests, setInterests] = useState<Option[]>([]);
   
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Files
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -283,10 +286,10 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
 
       if (initialData) {
         await api.patch(`/rewards/${initialData.id}/`, data, config);
-        setToast({ message: 'Reward updated!', type: 'success', isVisible: true });
+        success(t('toast.rewardUpdated'));
       } else {
         await api.post('/rewards/', data, config);
-        setToast({ message: 'Reward created!', type: 'success', isVisible: true });
+        success(t('toast.rewardCreated'));
       }
       let finalRedirectPath = redirectPath;
       if (!redirectPath.includes('?')) {
@@ -302,8 +305,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                           err?.response?.data?.message || 
                           (typeof err?.response?.data === 'object' ? JSON.stringify(err.response.data) : null) ||
                           err?.message || 
-                          'Operation failed.';
-      setToast({ message: errorMessage, type: 'error', isVisible: true });
+                          t('toast.operationFailed');
+      error(errorMessage);
       setLoading(false);
     }
   };
@@ -335,10 +338,10 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Reward' : 'Create New Reward'}
+              {initialData ? t('editTitle') : t('createTitle')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              Define rewards that can be targeted or triggered automatically
+              {t('description')}
             </p>
           </div>
         </div>
@@ -355,7 +358,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
             aria-label="Form completion progress"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('formCompletion')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -367,7 +370,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">All required fields completed!</span>
+                <span className="text-sm font-medium">{t('allRequiredFieldsCompleted')}</span>
               </div>
             )}
           </div>
@@ -383,7 +386,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
           >
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('formCompletion')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -395,7 +398,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               {completionPercent === 100 && (
                 <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">All required fields completed!</span>
+                  <span className="text-sm font-medium">{t('allRequiredFieldsCompleted')}</span>
                 </div>
               )}
             </div>
@@ -414,8 +417,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <Gift className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Reward Details</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter the basic information about this reward</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rewardDetails.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.rewardDetails.description')}</p>
                 </div>
               </div>
             </div>
@@ -424,13 +427,13 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="name" className={labelClasses}>
-                    Reward Title <span className="text-[var(--brand-primary)]">*</span>
+                    {t('sections.rewardDetails.rewardTitle')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="name"
                     type="text"
                     required
-                    placeholder="e.g. Free Coffee"
+                    placeholder={t('sections.rewardDetails.rewardTitlePlaceholder')}
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                     onFocus={() => setFocusedField('name')}
@@ -440,12 +443,12 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                 </div>
                 <div>
                   <label htmlFor="sponsor_name" className={labelClasses}>
-                    Sponsor Name
+                    {t('sections.rewardDetails.sponsorName')}
                   </label>
                   <input 
                     id="sponsor_name"
                     type="text"
-                    placeholder="e.g. Local Cafe"
+                    placeholder={t('sections.rewardDetails.sponsorNamePlaceholder')}
                     value={formData.sponsor_name}
                     onChange={e => setFormData({...formData, sponsor_name: e.target.value})}
                     onFocus={() => setFocusedField('sponsor_name')}
@@ -458,12 +461,12 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               <div>
                 <label htmlFor="sponsor_link" className={labelClasses}>
                   <Link2 className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
-                  Sponsor Link (Optional)
+                  {t('sections.rewardDetails.sponsorLink')}
                 </label>
                 <input 
                   id="sponsor_link"
                   type="url"
-                  placeholder="https://..."
+                  placeholder={t('sections.rewardDetails.sponsorLinkPlaceholder')}
                   value={formData.sponsor_link}
                   onChange={e => setFormData({...formData, sponsor_link: e.target.value})}
                   onFocus={() => setFocusedField('sponsor_link')}
@@ -474,13 +477,13 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
 
               <div>
                 <label htmlFor="description" className={labelClasses}>
-                  Description & Redemption Instructions <span className="text-[var(--brand-primary)]">*</span>
+                  {t('sections.rewardDetails.description')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
                 <textarea 
                   id="description"
                   rows={4}
                   required
-                  placeholder="Explain what the reward is and how to use it..."
+                  placeholder={t('sections.rewardDetails.descriptionPlaceholder')}
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   onFocus={() => setFocusedField('description')}
@@ -499,8 +502,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <Image className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Reward Image</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Upload an image for this reward</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rewardImage.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.rewardImage.description')}</p>
                 </div>
               </div>
             </div>
@@ -521,7 +524,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   ) : (
                     <div className="text-center p-2">
                       <Gift className="h-8 w-8 text-[var(--brand-light)]/40 mx-auto mb-1" />
-                      <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                      <span className="text-[10px] text-[var(--brand-light)]/40">{t('sections.rewardImage.upload')}</span>
                     </div>
                   )}
                 </div>
@@ -532,7 +535,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                       onClick={() => imageRef.current?.click()}
                       className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                     >
-                      Choose File
+                      {t('sections.rewardImage.chooseFile')}
                     </button>
                     {imagePreview && (
                       <button 
@@ -540,11 +543,11 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                         onClick={handleRemoveImage}
                         className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                       >
-                        <X className="h-3 w-3" /> Remove
+                        <X className="h-3 w-3" /> {t('sections.rewardImage.remove')}
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-[var(--brand-light)]/40">Recommended: Square image, 400x400px</p>
+                  <p className="text-xs text-[var(--brand-light)]/40">{t('sections.rewardImage.recommended')}</p>
                 </div>
                 <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
@@ -559,8 +562,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <Target className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Who Gets This Reward?</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Define the target audience for this reward</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.targetAudience.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.targetAudience.description')}</p>
                 </div>
               </div>
             </div>
@@ -568,11 +571,11 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
             <div className="p-6 space-y-6">
               {/* Target Audience Type */}
               <div>
-                <label className={labelClasses}>Target Audience</label>
+                <label className={labelClasses}>{t('sections.targetAudience.targetAudience')}</label>
                 <div className="flex gap-3">
                   {[
-                    { value: 'YOUTH_MEMBER', label: 'Youth Members', icon: Users },
-                    { value: 'GUARDIAN', label: 'Guardians', icon: Users },
+                    { value: 'YOUTH_MEMBER', label: t('sections.targetAudience.youthMembers'), icon: Users },
+                    { value: 'GUARDIAN', label: t('sections.targetAudience.guardians'), icon: Users },
                   ].map(type => {
                     const isSelected = formData.target_member_type === type.value;
                     return (
@@ -601,7 +604,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               <div>
                 <label className={labelClasses}>
                   <Users className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
-                  Target Groups (Optional)
+                  {t('sections.targetAudience.targetGroups')}
                 </label>
                 
                 {/* Selected Groups Display */}
@@ -628,7 +631,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                     <input
                       type="text"
-                      placeholder="Search groups by name..."
+                      placeholder={t('sections.targetAudience.searchGroupsPlaceholder')}
                       value={groupSearchTerm}
                       onChange={(e) => {
                         setGroupSearchTerm(e.target.value);
@@ -662,13 +665,13 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                           ))
                         ) : groupSearchTerm ? (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
-                            No groups found matching "{groupSearchTerm}"
+                            {t('sections.targetAudience.noGroupsFound', { term: groupSearchTerm })}
                           </div>
                         ) : (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                             {formData.target_groups.length === 0 
-                              ? 'No groups available'
-                              : 'All groups are already selected'}
+                              ? t('sections.targetAudience.noGroupsAvailable')
+                              : t('sections.targetAudience.allGroupsSelected')}
                           </div>
                         )}
                       </div>
@@ -684,7 +687,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               <div>
                 <label className={labelClasses}>
                   <Sparkles className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-peach)]" />
-                  Target Interests (Optional)
+                  {t('sections.targetAudience.targetInterests')}
                 </label>
                 
                 {/* Selected Interests Display */}
@@ -711,7 +714,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                     <input
                       type="text"
-                      placeholder="Search interests by name..."
+                      placeholder={t('sections.targetAudience.searchInterestsPlaceholder')}
                       value={interestSearchTerm}
                       onChange={(e) => {
                         setInterestSearchTerm(e.target.value);
@@ -745,13 +748,13 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                           ))
                         ) : interestSearchTerm ? (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
-                            No interests found matching "{interestSearchTerm}"
+                            {t('sections.targetAudience.noInterestsFound', { term: interestSearchTerm })}
                           </div>
                         ) : (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                             {formData.target_interests.length === 0 
-                              ? 'No interests available'
-                              : 'All interests are already selected'}
+                              ? t('sections.targetAudience.noInterestsAvailable')
+                              : t('sections.targetAudience.allInterestsSelected')}
                           </div>
                         )}
                       </div>
@@ -770,14 +773,14 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
                       <label htmlFor="min_age" className={labelClasses}>
-                        Min Age
+                        {t('sections.targetAudience.minAge')}
                       </label>
                       <input 
                         id="min_age"
                         type="number" 
                         min="0" 
                         max="100"
-                        placeholder="Any"
+                        placeholder={t('sections.targetAudience.agePlaceholder')}
                         value={formData.min_age}
                         onChange={e => setFormData({...formData, min_age: e.target.value})}
                         onFocus={() => setFocusedField('min_age')}
@@ -787,14 +790,14 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                     </div>
                     <div>
                       <label htmlFor="max_age" className={labelClasses}>
-                        Max Age
+                        {t('sections.targetAudience.maxAge')}
                       </label>
                       <input 
                         id="max_age"
                         type="number" 
                         min="0" 
                         max="100"
-                        placeholder="Any"
+                        placeholder={t('sections.targetAudience.agePlaceholder')}
                         value={formData.max_age}
                         onChange={e => setFormData({...formData, max_age: e.target.value})}
                         onFocus={() => setFocusedField('max_age')}
@@ -809,7 +812,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
 
                   {/* Gender */}
                   <div>
-                    <label className={labelClasses}>Gender</label>
+                    <label className={labelClasses}>{t('sections.targetAudience.gender')}</label>
                     <div className="flex flex-wrap gap-3">
                       {GENDERS.map(g => {
                         const isSelected = formData.target_genders.includes(g.value);
@@ -830,7 +833,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                       })}
                     </div>
                     {formData.target_genders.length === 0 && (
-                      <p className="text-xs text-[var(--brand-light)]/40 mt-2">Leave empty to allow all genders</p>
+                      <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.targetAudience.genderHint')}</p>
                     )}
                   </div>
 
@@ -839,7 +842,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
 
                   {/* Grades */}
                   <div>
-                    <label className={labelClasses}>Grades</label>
+                    <label className={labelClasses}>{t('sections.targetAudience.grades')}</label>
                     <div className="flex flex-wrap gap-2">
                       {GRADES.map(grade => (
                         <button
@@ -857,7 +860,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                       ))}
                     </div>
                     {formData.target_grades.length === 0 && (
-                      <p className="text-xs text-[var(--brand-light)]/40 mt-2">Leave empty to allow all grades</p>
+                      <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.targetAudience.gradesHint')}</p>
                     )}
                   </div>
                 </>
@@ -873,8 +876,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <Calendar className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Limits & Expiration</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Set expiration date and usage limits</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.limitsExpiration.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.limitsExpiration.description')}</p>
                 </div>
               </div>
             </div>
@@ -883,7 +886,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="expiration_date" className={labelClasses}>
-                    Expiration Date
+                    {t('sections.limitsExpiration.expirationDate')}
                   </label>
                   <input 
                     id="expiration_date"
@@ -897,13 +900,13 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                 </div>
                 <div>
                   <label htmlFor="usage_limit" className={labelClasses}>
-                    Total Usage Limit
+                    {t('sections.limitsExpiration.totalUsageLimit')}
                   </label>
                   <input 
                     id="usage_limit"
                     type="number"
                     min="0"
-                    placeholder="Leave empty for unlimited"
+                    placeholder={t('sections.limitsExpiration.usageLimitPlaceholder')}
                     value={formData.usage_limit}
                     onChange={e => setFormData({...formData, usage_limit: e.target.value})}
                     onFocus={() => setFocusedField('usage_limit')}
@@ -923,8 +926,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <Zap className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Automatic Triggers</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Select when this reward should be automatically given</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.automaticTriggers.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.automaticTriggers.description')}</p>
                 </div>
               </div>
             </div>
@@ -986,8 +989,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <CheckCircle2 className={`w-5 h-5 ${formData.is_active ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/40'}`} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Status</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Set whether this reward is active or inactive</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.status.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.status.description')}</p>
                 </div>
               </div>
             </div>
@@ -995,8 +998,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
             <div className="p-6">
               <div className="flex gap-3">
                 {[
-                  { value: true, label: 'Active', desc: 'Reward is available' },
-                  { value: false, label: 'Inactive', desc: 'Reward is hidden' },
+                  { value: true, label: t('sections.status.active'), desc: t('sections.status.activeDesc') },
+                  { value: false, label: t('sections.status.inactive'), desc: t('sections.status.inactiveDesc') },
                 ].map(status => {
                   const isSelected = formData.is_active === status.value;
                   return (
@@ -1028,13 +1031,13 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-2">Quick Tips</h3>
+                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-2">{t('sections.quickTips.title')}</h3>
                   <ul className="text-sm text-[var(--brand-light)]/60 space-y-1.5">
-                    <li>• Fill in all required fields marked with <span className="text-[var(--brand-primary)]">*</span></li>
-                    <li>• Rewards can be targeted to specific groups or demographics</li>
-                    <li>• Use triggers to automatically award rewards on special occasions</li>
-                    <li>• Leave targeting fields empty to make reward available to everyone</li>
-                    <li>• Set usage limits to control how many times a reward can be claimed</li>
+                    <li>• {t('sections.quickTips.tip1')} <span className="text-[var(--brand-primary)]">*</span></li>
+                    <li>• {t('sections.quickTips.tip2')}</li>
+                    <li>• {t('sections.quickTips.tip3')}</li>
+                    <li>• {t('sections.quickTips.tip4')}</li>
+                    <li>• {t('sections.quickTips.tip5')}</li>
                   </ul>
                 </div>
               </div>
@@ -1048,7 +1051,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               onClick={() => router.push(buildUrlWithParams(redirectPath))}
               className="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)] transition-all"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button 
               type="submit" 
@@ -1058,20 +1061,19 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving...
+                  {t('actions.saving')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  {initialData ? 'Update Reward' : 'Create Reward'}
+                  {initialData ? t('actions.updateReward') : t('actions.createReward')}
                 </>
               )}
             </button>
           </div>
         </form>
 
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-      </div>
+        </div>
     </div>
   );
 }

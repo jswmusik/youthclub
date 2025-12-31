@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, MessageSquare, Clock, Calendar, FileText, Edit, 
@@ -20,6 +21,9 @@ interface YouthDetailProps {
 }
 
 export default function YouthDetailView({ userId, basePath }: YouthDetailProps) {
+  const t = useTranslations('youthDetail');
+  const tGenders = useTranslations('youthForm.genders');
+  const tStatuses = useTranslations('youthManager.statuses');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -94,12 +98,26 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
     }
   };
 
+  const getGenderDisplay = (gender: string) => {
+    if (gender === 'MALE') return tGenders('MALE');
+    if (gender === 'FEMALE') return tGenders('FEMALE');
+    if (gender === 'OTHER') return tGenders('OTHER');
+    return gender || '-';
+  };
+
+  const getStatusDisplay = (status: string) => {
+    if (status === 'VERIFIED') return tStatuses('VERIFIED');
+    if (status === 'PENDING') return tStatuses('PENDING');
+    if (status === 'UNVERIFIED') return tStatuses('UNVERIFIED');
+    return status;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--brand-light)]/60">Loading youth details...</p>
+          <p className="text-[var(--brand-light)]/60">{t('loading.loadingYouthDetails')}</p>
         </div>
       </div>
     );
@@ -110,9 +128,9 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <User className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
-          <p className="text-[var(--brand-light)] font-semibold">User not found</p>
+          <p className="text-[var(--brand-light)] font-semibold">{t('error.userNotFound')}</p>
           <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
-            Return to list
+            {t('error.returnToList')}
           </Link>
         </div>
       </div>
@@ -144,7 +162,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           href={buildUrlWithParams(basePath)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to List
+          <ArrowLeft className="h-4 w-4" /> {t('navigation.backToList')}
         </Link>
         <div className="flex flex-wrap gap-2">
           <button 
@@ -152,27 +170,27 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
             <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">Message</span>
+            <span className="hidden sm:inline">{t('navigation.message')}</span>
           </button>
           <Link 
             href={`${basePath}/${userId}/visits`}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
             <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">Visits</span>
+            <span className="hidden sm:inline">{t('navigation.visits')}</span>
           </Link>
           <Link 
             href={`${basePath}/${userId}/questionnaires`}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
             <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Questionnaires</span>
+            <span className="hidden sm:inline">{t('navigation.questionnaires')}</span>
           </Link>
           <Link 
             href={buildUrlWithParams(`${basePath}/edit/${user.id}`)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
           >
-            <Edit className="h-4 w-4" /> Edit
+            <Edit className="h-4 w-4" /> {t('navigation.edit')}
           </Link>
         </div>
       </div>
@@ -202,7 +220,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           {/* Verification Status Badge - Top Right */}
           <div className={`absolute top-4 right-4 px-4 py-2 rounded-xl backdrop-blur-sm border flex items-center gap-2 ${getStatusBadgeClasses(user.verification_status)}`}>
             {user.verification_status === 'VERIFIED' && <ShieldCheck className="w-4 h-4" />}
-            <span className="text-sm font-semibold">{user.verification_status}</span>
+            <span className="text-sm font-semibold">{getStatusDisplay(user.verification_status)}</span>
           </div>
 
           {/* Mood Status - Top Left */}
@@ -250,12 +268,12 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
                 </div>
                 {age && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]">
-                    <Calendar className="w-3 h-3" /> {age} years old
+                    <Calendar className="w-3 h-3" /> {age} {t('hero.yearsOld')}
                   </span>
                 )}
                 {user.grade && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
-                    <User className="w-3 h-3" /> Grade {user.grade}
+                    <User className="w-3 h-3" /> {t('hero.grade')} {user.grade}
                   </span>
                 )}
                 {clubName && (
@@ -278,7 +296,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           {/* Quick Stats */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Stats</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('quickStats.title')}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-3 gap-4">
@@ -287,21 +305,21 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
                     <Calendar className="w-5 h-5 text-[var(--brand-purple)]" />
                   </div>
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{age || '-'}</div>
-                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">Age</div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">{t('quickStats.age')}</div>
                 </div>
                 <div className="text-center p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
                   <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center mx-auto mb-2">
                     <User className="w-5 h-5 text-[var(--brand-blue)]" />
                   </div>
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{user.grade || '-'}</div>
-                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">Grade</div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">{t('quickStats.grade')}</div>
                 </div>
                 <div className="text-center p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
                   <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center mx-auto mb-2">
                     <User className="w-5 h-5 text-[var(--brand-primary)]" />
                   </div>
-                  <div className="text-lg font-bold text-[var(--brand-light)]">{user.legal_gender || '-'}</div>
-                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">Gender</div>
+                  <div className="text-lg font-bold text-[var(--brand-light)]">{getGenderDisplay(user.legal_gender)}</div>
+                  <div className="text-xs text-[var(--brand-light)]/50 font-medium">{t('quickStats.gender')}</div>
                 </div>
               </div>
             </div>
@@ -310,7 +328,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           {/* Contact Information Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Contact Information</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('contactInformation.title')}</h2>
             </div>
             <div className="p-6 space-y-3">
               {/* Email */}
@@ -322,7 +340,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
                   <Mail className="w-4 h-4 text-[var(--brand-blue)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Email</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('contactInformation.email')}</div>
                   <div className="text-sm text-[var(--brand-light)] truncate">{user.email}</div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] transition-colors" />
@@ -338,7 +356,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
                     <Phone className="w-4 h-4 text-[var(--brand-third)]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Phone</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('contactInformation.phone')}</div>
                     <div className="text-sm text-[var(--brand-light)]">{user.phone_number}</div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] transition-colors" />
@@ -349,8 +367,8 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
                     <Phone className="w-4 h-4 text-[var(--brand-light)]/30" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">Phone</div>
-                    <div className="text-sm text-[var(--brand-light)]/40 italic">Not provided</div>
+                    <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-0.5">{t('contactInformation.phone')}</div>
+                    <div className="text-sm text-[var(--brand-light)]/40 italic">{t('contactInformation.notProvided')}</div>
                   </div>
                 </div>
               )}
@@ -360,41 +378,41 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           {/* Personal Details Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Personal Details</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('personalDetails.title')}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Date of Birth */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Date of Birth</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('personalDetails.dateOfBirth')}</div>
                   <div className="text-sm text-[var(--brand-light)] font-medium">
-                    {user.date_of_birth || <span className="text-[var(--brand-light)]/40 italic">Not provided</span>}
+                    {user.date_of_birth || <span className="text-[var(--brand-light)]/40 italic">{t('personalDetails.notProvided')}</span>}
                   </div>
                 </div>
 
                 {/* Legal Gender */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Legal Gender</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('personalDetails.legalGender')}</div>
                   <div className="text-sm text-[var(--brand-light)] font-medium">
-                    {user.legal_gender === 'MALE' ? 'Male' : user.legal_gender === 'FEMALE' ? 'Female' : user.legal_gender || '-'}
+                    {getGenderDisplay(user.legal_gender)}
                   </div>
                 </div>
 
                 {/* Preferred Gender */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">Preferred Gender</div>
+                  <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1">{t('personalDetails.preferredGender')}</div>
                   <div className="text-sm text-[var(--brand-light)] font-medium">
-                    {user.preferred_gender || <span className="text-[var(--brand-light)]/40 italic">Not set</span>}
+                    {user.preferred_gender || <span className="text-[var(--brand-light)]/40 italic">{t('personalDetails.notSet')}</span>}
                   </div>
                 </div>
 
                 {/* Preferred Club */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
                   <div className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 flex items-center gap-1">
-                    <Building2 className="w-3 h-3" /> Preferred Club
+                    <Building2 className="w-3 h-3" /> {t('personalDetails.preferredClub')}
                   </div>
                   <div className="text-sm text-[var(--brand-light)] font-medium">
-                    {clubName || <span className="text-[var(--brand-light)]/40 italic">None</span>}
+                    {clubName || <span className="text-[var(--brand-light)]/40 italic">{t('personalDetails.none')}</span>}
                   </div>
                 </div>
               </div>
@@ -404,7 +422,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           {/* Custom Fields */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Custom Fields</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('customFields.title')}</h2>
             </div>
             <div className="p-6">
               <CustomFieldsDisplay userId={user.id} targetRole="YOUTH_MEMBER" context="USER_PROFILE" />
@@ -416,7 +434,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[var(--brand-purple)]" />
-                Questionnaires
+                {t('questionnaires.title')}
               </h2>
             </div>
             <div className="p-6">
@@ -433,7 +451,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
                 <Heart className="h-5 w-5 text-[var(--brand-peach)]" />
-                Interests
+                {t('interests.title')}
               </h2>
             </div>
             <div className="p-6">
@@ -452,7 +470,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
               ) : (
                 <div className="text-center py-6 text-[var(--brand-light)]/40">
                   <Heart className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm italic">No interests selected yet</p>
+                  <p className="text-sm italic">{t('interests.noInterestsSelected')}</p>
                 </div>
               )}
             </div>
@@ -463,7 +481,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-[var(--brand-primary)]" />
-                Guardians
+                {t('guardians.title')}
               </h2>
             </div>
             <div className="p-6 space-y-3">
@@ -498,7 +516,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
               ) : (
                 <div className="text-center py-6 text-[var(--brand-light)]/40">
                   <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm italic">No guardians assigned</p>
+                  <p className="text-sm italic">{t('guardians.noGuardiansAssigned')}</p>
                 </div>
               )}
             </div>
@@ -507,17 +525,17 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
           {/* Verification Status Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Verification Status</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('verification.title')}</h2>
             </div>
             <div className="p-6">
               <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${getStatusBadgeClasses(user.verification_status)}`}>
                 {user.verification_status === 'VERIFIED' && <ShieldCheck className="w-4 h-4" />}
-                {user.verification_status}
+                {getStatusDisplay(user.verification_status)}
               </div>
               <p className="text-xs text-[var(--brand-light)]/50 mt-3">
-                {user.verification_status === 'VERIFIED' && 'This youth member has been verified.'}
-                {user.verification_status === 'PENDING' && 'Verification is pending review.'}
-                {user.verification_status === 'UNVERIFIED' && 'This youth member has not been verified yet.'}
+                {user.verification_status === 'VERIFIED' && t('verification.verified')}
+                {user.verification_status === 'PENDING' && t('verification.pending')}
+                {user.verification_status === 'UNVERIFIED' && t('verification.unverified')}
               </p>
             </div>
           </div>

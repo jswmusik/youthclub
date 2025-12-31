@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, FileText, Calendar, User, CheckCircle2, Tag, ChevronLeft } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -21,6 +22,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const t = useTranslations('newsManager');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -107,14 +109,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -199,6 +201,7 @@ function ArticleTableRowSkeleton() {
 }
 
 function ArticlePageSkeleton() {
+  const t = useTranslations('newsManager');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -213,11 +216,11 @@ function ArticlePageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Article</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Author</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Created</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.article')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.author')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.created')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -239,6 +242,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('newsManager');
   
   const [articles, setArticles] = useState<any[]>([]);
   const [allArticlesForAnalytics, setAllArticlesForAnalytics] = useState<any[]>([]);
@@ -254,7 +258,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
   
   // Delete
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   useEffect(() => {
     fetchAllArticlesForAnalytics();
@@ -465,11 +469,11 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
     if (!itemToDelete) return;
     try {
       await api.delete(`/news/${itemToDelete.id}/`);
-      setToast({ message: 'Article deleted.', type: 'success', isVisible: true });
+      success(t('toast.articleDeleted'));
       fetchArticles();
       fetchAllArticlesForAnalytics();
     } catch (err) {
-      setToast({ message: 'Failed to delete.', type: 'error', isVisible: true });
+      error(t('toast.failedToDelete'));
     } finally {
       setItemToDelete(null);
     }
@@ -509,19 +513,19 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <FileText className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage News</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Create and manage news articles for the platform.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <div className="flex gap-2">
           <Link href={`${basePath}/tags`}>
             <button className="flex items-center justify-center gap-2 bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)] border border-[var(--dark-500)] font-medium rounded-xl px-4 py-2.5 transition-all text-sm">
-              <Tag className="h-4 w-4" /> Tags
+              <Tag className="h-4 w-4" /> {t('tags')}
             </button>
           </Link>
           <Link href={`${basePath}/create`}>
             <button className="flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all text-sm">
-              <Plus className="h-4 w-4" /> Create Article
+              <Plus className="h-4 w-4" /> {t('createArticle')}
             </button>
           </Link>
         </div>
@@ -538,7 +542,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -552,7 +556,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <FileText className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
               </div>
@@ -563,7 +567,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Published</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.published')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.published}</div>
               </div>
@@ -574,7 +578,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Edit className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Draft</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.draft')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.unpublished}</div>
               </div>
@@ -591,7 +595,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search by title..." 
+              placeholder={t('filters.searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -615,9 +619,9 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                 onChange={e => setStatusFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">All Statuses</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
+                <option value="">{t('filters.allStatuses')}</option>
+                <option value="published">{t('filters.published')}</option>
+                <option value="draft">{t('filters.draft')}</option>
               </select>
             </div>
             <div className="w-full sm:w-[200px]">
@@ -627,7 +631,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                 onChange={e => setAuthorFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">All Authors</option>
+                <option value="">{t('filters.allAuthors')}</option>
                 {uniqueAuthors.map((author: string) => (
                   <option key={author} value={author}>{author}</option>
                 ))}
@@ -638,7 +642,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                Clear All
+                {t('filters.clearAll')}
               </button>
             )}
           </div>
@@ -649,7 +653,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
       {!showSkeleton && articles.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{articles.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'article' : 'articles'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{articles.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.article') : t('statsBar.articles')}
           </p>
         </div>
       )}
@@ -662,14 +666,14 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No articles found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noArticlesFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by creating your first article.'}
+            {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Create Article
+                <Plus className="h-4 w-4" /> {t('createArticle')}
               </button>
             </Link>
           )}
@@ -708,11 +712,11 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                             ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30'
                             : 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30'
                         }`}>
-                          {item.is_published ? 'Published' : 'Draft'}
+                          {item.is_published ? t('status.published') : t('status.draft')}
                         </span>
                         {item.is_hero && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
-                            HERO
+                            {t('status.hero')}
                           </span>
                         )}
                         <span className="flex items-center gap-1 text-xs text-[var(--brand-light)]/40">
@@ -732,11 +736,11 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Article</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Author</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Created</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.article')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.author')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.created')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -755,7 +759,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                           <div className="font-semibold text-[var(--brand-light)]">{item.title}</div>
                           {item.is_hero && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1 bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
-                              HERO
+                              {t('status.hero')}
                             </span>
                           )}
                         </div>
@@ -767,7 +771,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
                           ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)] border-[var(--brand-green)]/30'
                           : 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border-[var(--brand-blue)]/30'
                       }`}>
-                        {item.is_published ? 'Published' : 'Draft'}
+                        {item.is_published ? t('status.published') : t('status.draft')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -818,17 +822,17 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
             onClick={() => handlePageChange(currentPage - 1)}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            Prev
+            {t('pagination.previous')}
           </button>
           <span className="text-sm text-[var(--brand-light)]/50 px-2">
-            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
           </span>
           <button
             disabled={currentPage >= totalPages}
             onClick={() => handlePageChange(currentPage + 1)}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            Next
+            {t('pagination.next')}
           </button>
         </div>
       )}
@@ -837,14 +841,13 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
-        title="Delete Article"
-        message={`Are you sure you want to delete "${itemToDelete?.title}"? This action cannot be undone.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { title: itemToDelete?.title || '' })}
+        confirmButtonText={t('deleteModal.delete')}
+        cancelButtonText={t('deleteModal.cancel')}
         variant="danger"
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode duration={1250} />
-    </div>
+      </div>
   );
 }

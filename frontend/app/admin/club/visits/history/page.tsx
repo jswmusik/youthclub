@@ -1,22 +1,25 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { visits } from '@/lib/api';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../../hooks/useToast';
 import Link from 'next/link';
-import { ArrowLeft, Search, X, Clock, LogIn, LogOut, Eye, History, ChevronLeft } from 'lucide-react';
+import { Search, X, Clock, LogIn, LogOut, Eye, History, ChevronLeft } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
 import VisitsTabs from '@/app/components/visits/VisitsTabs';
+import BackButton from '@/app/components/BackButton';
 
 // Swipeable Card Component
 interface SwipeableCardProps {
   children: React.ReactNode;
   onClick: () => void;
+  viewLabel: string;
 }
 
-function SwipeableCard({ children, onClick }: SwipeableCardProps) {
+function SwipeableCard({ children, onClick, viewLabel }: SwipeableCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -96,7 +99,7 @@ function SwipeableCard({ children, onClick }: SwipeableCardProps) {
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Eye className="w-5 h-5" />
-          <span className="text-xs font-medium">View</span>
+          <span className="text-xs font-medium">{viewLabel}</span>
         </button>
       </div>
 
@@ -123,6 +126,7 @@ function SwipeableCard({ children, onClick }: SwipeableCardProps) {
 }
 
 export default function VisitHistoryPage() {
+  const t = useTranslations('clubVisits.history');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -139,11 +143,7 @@ export default function VisitHistoryPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'error',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const updateUrl = (key: string, value: string) => {
@@ -184,13 +184,8 @@ export default function VisitHistoryPage() {
       
       setData(visitsData);
       setTotalCount(count);
-      setToast({ message: '', type: 'error', isVisible: false });
-    } catch (error: any) {
-      setToast({ 
-        message: error.response?.data?.error || "Failed to load history", 
-        type: 'error', 
-        isVisible: true 
-      });
+      } catch (error: any) {
+      error(error.response?.data?.error || t('toast.failedToLoadHistory'));
       setData([]);
     } finally {
       setLoading(false);
@@ -208,11 +203,11 @@ export default function VisitHistoryPage() {
   const getMethodName = (method: string) => {
     switch (method) {
       case 'QR_KIOSK':
-        return 'QR Kiosk Scan';
+        return t('methods.qrKioskScan');
       case 'MANUAL_ADMIN':
-        return 'Manual Admin Entry';
+        return t('methods.manualAdminEntry');
       case 'MANUAL_SELF':
-        return 'Manual Self Check-in';
+        return t('methods.manualSelfCheckIn');
       default:
         return method || '-';
     }
@@ -256,12 +251,7 @@ export default function VisitHistoryPage() {
         <div className="max-w-7xl mx-auto space-y-6 px-0 sm:px-6 lg:px-8">
           {/* Back Link */}
           <div>
-            <Link href="/admin/club/details">
-              <button className="flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-colors">
-                <ArrowLeft className="h-4 w-4" /> 
-                <span className="text-sm font-medium">Back to Club</span>
-              </button>
-            </Link>
+            <BackButton href="/admin/club/details" translationKey="backToClub" />
           </div>
 
           {/* Header Section */}
@@ -271,9 +261,9 @@ export default function VisitHistoryPage() {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                   <History className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Visits & Attendance</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
               </div>
-              <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Archive of all check-ins and check-outs for your club.</p>
+              <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
             </div>
           </div>
 
@@ -295,11 +285,11 @@ export default function VisitHistoryPage() {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                 {/* Search */}
                 <div className="relative md:col-span-4 lg:col-span-3">
-                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5">Search</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5">{t('filters.search')}</label>
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" style={{ marginTop: '0.75rem' }} />
                   <input 
                     type="text"
-                    placeholder="Search by name or email..." 
+                    placeholder={t('filters.searchPlaceholder')} 
                     className={`${inputClasses('search')} pl-10`}
                     value={searchParams.get('search') || ''}
                     onChange={e => updateUrl('search', e.target.value)}
@@ -310,7 +300,7 @@ export default function VisitHistoryPage() {
                 
                 {/* Start Date */}
                 <div className="md:col-span-2 lg:col-span-2">
-                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5">Start Date</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5">{t('filters.startDate')}</label>
                   <input
                     type="date"
                     className={inputClasses('start_date')}
@@ -323,7 +313,7 @@ export default function VisitHistoryPage() {
                 
                 {/* End Date */}
                 <div className="md:col-span-2 lg:col-span-2">
-                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5">End Date</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5">{t('filters.endDate')}</label>
                   <input
                     type="date"
                     className={inputClasses('end_date')}
@@ -336,7 +326,7 @@ export default function VisitHistoryPage() {
                 
                 {/* Member Type */}
                 <div className="md:col-span-2 lg:col-span-2">
-                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5">Member Type</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5">{t('filters.memberType')}</label>
                   <select 
                     className={`${inputClasses('guest_filter')} appearance-none cursor-pointer`}
                     style={selectArrowStyle}
@@ -345,20 +335,20 @@ export default function VisitHistoryPage() {
                     onFocus={() => setFocusedField('guest_filter')}
                     onBlur={() => setFocusedField(null)}
                   >
-                    <option value="">All Members</option>
-                    <option value="members">Preferred Members</option>
-                    <option value="guests">Guests</option>
+                    <option value="">{t('filters.allMembers')}</option>
+                    <option value="members">{t('filters.preferredMembers')}</option>
+                    <option value="guests">{t('filters.guests')}</option>
                   </select>
                 </div>
                 
                 {/* Clear Button */}
                 <div className="md:col-span-2 lg:col-span-1">
-                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5 invisible">Clear</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-[var(--brand-light)]/70 mb-1.5 invisible">{t('filters.clear')}</label>
                   <button
                     onClick={() => router.push(pathname)}
                     className="w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-red)] hover:border-[var(--brand-red)]/30 transition-all text-sm font-medium flex items-center justify-center gap-2"
                   >
-                    <X className="h-4 w-4" /> Clear
+                    <X className="h-4 w-4" /> {t('filters.clear')}
                   </button>
                 </div>
               </div>
@@ -369,7 +359,7 @@ export default function VisitHistoryPage() {
           {!loading && data.length > 0 && (
             <div>
               <p className="text-sm text-[var(--brand-light)]/50">
-                Showing <span className="text-[var(--brand-primary)] font-semibold">{data.length}</span> {data.length === 1 ? 'record' : 'records'}
+                {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{data.length}</span> {data.length === 1 ? t('statsBar.record') : t('statsBar.records')}
               </p>
             </div>
           )}
@@ -380,7 +370,7 @@ export default function VisitHistoryPage() {
               <div className="py-20 flex justify-center">
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-8 h-8 border-2 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
-                  <p className="text-[var(--brand-light)]/50 text-sm">Loading records...</p>
+                  <p className="text-[var(--brand-light)]/50 text-sm">{t('loadingRecords')}</p>
                 </div>
               </div>
             </div>
@@ -390,11 +380,11 @@ export default function VisitHistoryPage() {
                 <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                   <History className="w-8 h-8 text-[var(--brand-light)]/30" />
                 </div>
-                <p className="text-[var(--brand-light)]/50 font-medium">No records found</p>
+                <p className="text-[var(--brand-light)]/50 font-medium">{t('emptyState.noRecordsFound')}</p>
                 <p className="text-sm text-[var(--brand-light)]/30 mt-1">
                   {searchParams.get('search') || searchParams.get('start_date') || searchParams.get('end_date') || searchParams.get('guest_filter')
-                    ? 'Try adjusting your filters.'
-                    : 'No visit history available yet.'}
+                    ? t('emptyState.tryAdjustingFilters')
+                    : t('emptyState.noVisitHistoryYet')}
                 </p>
               </div>
             </div>
@@ -433,6 +423,7 @@ export default function VisitHistoryPage() {
                           router.push(`/admin/club/youth/${userId}`);
                         }
                       }}
+                      viewLabel={t('view')}
                     >
                       <div className="border-y border-[var(--dark-600)] p-4">
                         <div className="flex items-start gap-3">
@@ -460,17 +451,17 @@ export default function VisitHistoryPage() {
                               </span>
                               {isGuest && (
                                 <span className="px-2 py-0.5 bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] rounded-lg text-[10px] font-medium">
-                                  Guest
+                                  {t('guest')}
                                 </span>
                               )}
                             </div>
-                            <div className="space-y-1.5 text-sm">
+                              <div className="space-y-1.5 text-sm">
                               <div className="flex items-center justify-between">
-                                <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">Date</span>
+                                <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">{t('mobileLabels.date')}</span>
                                 <span className="text-[var(--brand-light)]/70">{start.toLocaleDateString()}</span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">Check-in</span>
+                                <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">{t('mobileLabels.checkIn')}</span>
                                 <div className="flex items-center gap-1 text-[var(--brand-third)]">
                                   <LogIn className="h-3 w-3" />
                                   <span className="text-sm font-medium">{start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
@@ -478,7 +469,7 @@ export default function VisitHistoryPage() {
                               </div>
                               {end && !isNaN(end.getTime()) && (
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">Check-out</span>
+                                  <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">{t('mobileLabels.checkOut')}</span>
                                   <div className="flex items-center gap-1 text-[var(--brand-light)]/50">
                                     <LogOut className="h-3 w-3" />
                                     <span className="text-sm">{end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
@@ -486,7 +477,7 @@ export default function VisitHistoryPage() {
                                 </div>
                               )}
                               <div className="flex items-center justify-between">
-                                <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">Duration</span>
+                                <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">{t('mobileLabels.duration')}</span>
                                 {duration !== null ? (
                                   <div className="flex items-center gap-1 text-[var(--brand-light)]/70">
                                     <Clock className="h-3 w-3" />
@@ -494,12 +485,12 @@ export default function VisitHistoryPage() {
                                   </div>
                                 ) : (
                                   <span className="px-2 py-0.5 bg-[var(--brand-third)]/20 text-[var(--brand-third)] rounded-lg text-xs font-medium">
-                                    Active
+                                    {t('active')}
                                   </span>
                                 )}
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">Method</span>
+                                <span className="text-xs text-[var(--brand-light)]/50 uppercase font-semibold">{t('tableHeaders.method')}</span>
                                 <span className="text-sm text-[var(--brand-light)]/70">{getMethodName(visit.method)}</span>
                               </div>
                             </div>
@@ -516,11 +507,11 @@ export default function VisitHistoryPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
-                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Member</th>
-                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Date</th>
-                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">In / Out</th>
-                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Duration</th>
-                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Method</th>
+                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.member')}</th>
+                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.date')}</th>
+                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.inOut')}</th>
+                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.duration')}</th>
+                      <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('tableHeaders.method')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -584,7 +575,7 @@ export default function VisitHistoryPage() {
                                 )}
                                 {isGuest && (
                                   <span className="px-2 py-0.5 bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] rounded-lg text-[10px] font-medium">
-                                    Guest
+                                    {t('guest')}
                                   </span>
                                 )}
                               </div>
@@ -615,7 +606,7 @@ export default function VisitHistoryPage() {
                               </div>
                             ) : (
                               <span className="px-2 py-0.5 bg-[var(--brand-third)]/20 text-[var(--brand-third)] rounded-lg text-xs font-medium">
-                                Active
+                                {t('active')}
                               </span>
                             )}
                           </td>
@@ -637,15 +628,15 @@ export default function VisitHistoryPage() {
                     onClick={() => updateUrl('page', (currentPage - 1).toString())}
                     className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                   >
-                    Prev
+                    {t('pagination.previous')}
                   </button>
-                  <div className="text-sm text-[var(--brand-light)]/50">Page {currentPage} of {totalPages}</div>
+                  <div className="text-sm text-[var(--brand-light)]/50">{t('pagination.page')} {currentPage} {t('pagination.of')} {totalPages}</div>
                   <button 
                     disabled={currentPage >= totalPages} 
                     onClick={() => updateUrl('page', (currentPage + 1).toString())}
                     className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                   >
-                    Next
+                    {t('pagination.next')}
                   </button>
                 </div>
               )}
@@ -655,13 +646,6 @@ export default function VisitHistoryPage() {
       </div>
 
       {/* Toast Notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode
-      />
     </>
   );
 }

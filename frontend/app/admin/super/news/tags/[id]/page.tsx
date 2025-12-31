@@ -17,7 +17,9 @@ export default function Page() {
 
   return (
     <div className="p-8">
-      <Link href="/admin/super/news/tags" className="text-gray-500 mb-4 block">← Back</Link>
+      <div className="mb-4">
+        <BackButton href="/admin/super/news/tags" label="Back" />
+      </div>
       <h1 className="text-3xl font-bold">{tag.name}</h1>
       <p className="text-gray-600 font-mono mt-2">{tag.slug}</p>
     </div>

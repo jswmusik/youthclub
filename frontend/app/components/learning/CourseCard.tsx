@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Course } from '@/types/learning';
 import { Clock, PlayCircle, CheckCircle, ArrowRight } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function CourseCard({ course, href }: Props) {
+    const t = useTranslations('knowledgeAdmin.courses.card');
     const progress = course.user_progress?.percent_completed || 0;
     const isStarted = course.user_progress?.status && course.user_progress.status !== 'NOT_STARTED';
     const isCompleted = course.user_progress?.status === 'COMPLETED';
@@ -37,7 +39,7 @@ export default function CourseCard({ course, href }: Props) {
                     {/* Status Badge overlay */}
                     {isCompleted && (
                         <div className="absolute top-2 right-2 bg-[var(--brand-green)] text-[var(--dark-900)] text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg animate-pulse">
-                            <CheckCircle className="w-3 h-3" /> Completed
+                            <CheckCircle className="w-3 h-3" /> {t('completed')}
                         </div>
                     )}
                     
@@ -64,8 +66,8 @@ export default function CourseCard({ course, href }: Props) {
                     {isStarted ? (
                         <div className="w-full space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-[var(--brand-light)]">{progress}% complete</span>
-                                <span className="text-[var(--brand-light)]/40">Continue</span>
+                                <span className="font-semibold text-[var(--brand-light)]">{progress}% {t('complete')}</span>
+                                <span className="text-[var(--brand-light)]/40">{t('continue')}</span>
                             </div>
                             {/* Animated Progress Bar */}
                             <div className="w-full bg-[var(--dark-600)] rounded-full h-2 overflow-hidden">
@@ -79,7 +81,7 @@ export default function CourseCard({ course, href }: Props) {
                         <div className="flex items-center justify-between w-full">
                             <div className="flex items-center text-xs text-[var(--brand-light)]/50 gap-1.5">
                                 <Clock className="w-3.5 h-3.5" />
-                                <span className="font-medium">Start learning</span>
+                                <span className="font-medium">{t('startLearning')}</span>
                             </div>
                             <div className="p-1.5 bg-[var(--brand-primary)]/20 rounded-full group-hover:bg-[var(--brand-primary)] transition-colors duration-300">
                                 <ArrowRight className="w-3.5 h-3.5 text-[var(--brand-primary)] group-hover:text-white transition-colors duration-300" />

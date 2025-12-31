@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Edit, Calendar, User, FileText, Users, Tag, 
   Star, Eye, EyeOff, Globe, Clock, Sparkles
 } from 'lucide-react';
 import api from '../../lib/api';
+import { sanitizeHtml } from '../../lib/sanitize';
 import { getMediaUrl } from '../../app/utils';
 
 interface ArticleDetailProps {
@@ -17,8 +19,18 @@ interface ArticleDetailProps {
 
 export default function ArticleDetailView({ articleId, basePath }: ArticleDetailProps) {
   const searchParams = useSearchParams();
+  const t = useTranslations('articleDetail');
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const getRoleDisplay = (role: string) => {
+    try {
+      return t(`roles.${role}` as any);
+    } catch (e) {
+      // Fallback if translation not available
+      return role.replace(/_/g, ' ');
+    }
+  };
 
   useEffect(() => {
     api.get(`/news/${articleId}/`).then(res => {
@@ -70,7 +82,7 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--brand-light)]/60">Loading article...</p>
+          <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
         </div>
       </div>
     );
@@ -81,9 +93,9 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <FileText className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
-          <p className="text-[var(--brand-light)] font-semibold">Article not found</p>
+          <p className="text-[var(--brand-light)] font-semibold">{t('articleNotFound')}</p>
           <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
-            Return to list
+            {t('returnToList')}
           </Link>
         </div>
       </div>
@@ -100,13 +112,13 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
             href={buildUrlWithParams(basePath)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to List
+            <ArrowLeft className="h-4 w-4" /> {t('backToList')}
           </Link>
           <Link 
             href={buildUrlWithParams(`${basePath}/edit/${article.id}`)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-purple)] transition-all text-sm font-medium"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-purple)] transition-all text-sm font-medium"
           >
-            <Edit className="h-4 w-4" /> Edit Article
+            <Edit className="h-4 w-4 text-[var(--dark-900)]" /> {t('editArticle')}
           </Link>
         </div>
 
@@ -125,7 +137,7 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
               <div className="absolute top-4 right-4">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-peach)] text-[var(--dark-900)] text-xs font-bold uppercase">
                   <Star className="w-3.5 h-3.5" />
-                  Hero Article
+                  {t('heroArticle')}
                 </span>
               </div>
             )}
@@ -149,7 +161,7 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                 {article.is_hero && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-peach)] text-[var(--dark-900)] text-xs font-bold uppercase flex-shrink-0">
                     <Star className="w-3.5 h-3.5" />
-                    Hero
+                    {t('hero')}
                   </span>
                 )}
               </div>
@@ -169,7 +181,7 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                 </div>
                 <div>
                   <p className="font-medium text-[var(--brand-light)] text-sm">{article.author_name}</p>
-                  <p className="text-xs text-[var(--brand-light)]/50">Author</p>
+                  <p className="text-xs text-[var(--brand-light)]/50">{t('author')}</p>
                 </div>
               </div>
 
@@ -190,7 +202,7 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                   : 'bg-[var(--brand-light)]/10 text-[var(--brand-light)]/60 border border-[var(--dark-500)]'
               }`}>
                 {article.is_published ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                {article.is_published ? 'Published' : 'Draft'}
+                {article.is_published ? t('status.published') : t('status.draft')}
               </span>
             </div>
 
@@ -247,7 +259,7 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                 [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm
                 [&_th]:!bg-[var(--dark-700)] [&_th]:!text-[var(--brand-light)] [&_th]:font-semibold [&_th]:p-3 [&_th]:border [&_th]:border-[var(--dark-600)] [&_th]:text-left
                 [&_td]:p-3 [&_td]:border [&_td]:border-[var(--dark-600)] [&_td]:!text-[var(--brand-light)]/80"
-              dangerouslySetInnerHTML={{ __html: article.content }} 
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }} 
             />
           </div>
         </div>
@@ -260,8 +272,8 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
-                <p className="text-sm text-[var(--brand-light)]/50">Who can see this article</p>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('targetAudience.title')}</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('targetAudience.description')}</p>
               </div>
             </div>
           </div>
@@ -272,13 +284,13 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                   <Globe className="w-5 h-5 text-[var(--brand-green)]" />
                 </div>
                 <div>
-                  <p className="font-medium text-[var(--brand-light)]">Visible to Everyone</p>
-                  <p className="text-sm text-[var(--brand-light)]/50">All users can view this article</p>
+                  <p className="font-medium text-[var(--brand-light)]">{t('targetAudience.visibleToEveryone')}</p>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('targetAudience.allUsersCanView')}</p>
                 </div>
               </div>
             ) : (
               <div>
-                <p className="text-sm text-[var(--brand-light)]/60 mb-3">Targeted Roles:</p>
+                <p className="text-sm text-[var(--brand-light)]/60 mb-3">{t('targetAudience.targetedRoles')}</p>
                 <div className="flex flex-wrap gap-2">
                   {(article.target_roles || []).map((role: string) => (
                     <span 
@@ -286,7 +298,7 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--dark-700)] text-[var(--brand-light)]/80 text-sm border border-[var(--dark-500)]"
                     >
                       <User className="w-3.5 h-3.5" />
-                      {role.replace(/_/g, ' ')}
+                      {getRoleDisplay(role)}
                     </span>
                   ))}
                 </div>
@@ -303,8 +315,8 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Article Details</h2>
-                <p className="text-sm text-[var(--brand-light)]/50">Additional information</p>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('articleDetails.title')}</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('articleDetails.description')}</p>
               </div>
             </div>
           </div>
@@ -313,14 +325,14 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50">
                 <Clock className="w-5 h-5 text-[var(--brand-light)]/40" />
                 <div>
-                  <p className="text-xs text-[var(--brand-light)]/50 uppercase">Created</p>
+                  <p className="text-xs text-[var(--brand-light)]/50 uppercase">{t('articleDetails.created')}</p>
                   <p className="text-sm text-[var(--brand-light)]">{formatDate(article.created_at)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50">
                 <Edit className="w-5 h-5 text-[var(--brand-light)]/40" />
                 <div>
-                  <p className="text-xs text-[var(--brand-light)]/50 uppercase">Last Updated</p>
+                  <p className="text-xs text-[var(--brand-light)]/50 uppercase">{t('articleDetails.lastUpdated')}</p>
                   <p className="text-sm text-[var(--brand-light)]">{formatDate(article.updated_at || article.created_at)}</p>
                 </div>
               </div>

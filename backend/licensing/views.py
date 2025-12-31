@@ -2,10 +2,10 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import Feature, Plan, License, LicenseRequest, GlobalPricing
+from .models import Feature, Plan, License, LicenseRequest, GlobalPricing, GlobalDataRetentionSettings
 from .serializers import (
     FeatureSerializer, PlanSerializer, LicenseSerializer, 
-    LicenseRequestSerializer, GlobalPricingSerializer
+    LicenseRequestSerializer, GlobalPricingSerializer, GlobalDataRetentionSettingsSerializer
 )
 
 
@@ -48,14 +48,14 @@ class PlanViewSet(viewsets.ModelViewSet):
     serializer_class = PlanSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
+        if self.action in ['list', 'retrieve', 'public']:
+            return [permissions.AllowAny()]
         return [IsSuperUser()]
 
     def get_queryset(self):
         user = self.request.user
         # Super Admin sees all plans (including inactive)
-        if user.is_superuser or getattr(user, 'role', None) == 'SUPER_ADMIN':
+        if user.is_authenticated and (user.is_superuser or getattr(user, 'role', None) == 'SUPER_ADMIN'):
             return Plan.objects.all()
         # Others see only public, active plans
         return Plan.objects.filter(is_active=True, is_public=True)
@@ -77,6 +77,16 @@ class PlanViewSet(viewsets.ModelViewSet):
             )
         
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def public(self, request):
+        """
+        Public endpoint to get all active, public plans.
+        No authentication required. Used on the public pricing page.
+        """
+        plans = Plan.objects.filter(is_active=True, is_public=True).prefetch_related('features')
+        serializer = self.get_serializer(plans, many=True)
+        return Response(serializer.data)
 
 
 class LicenseViewSet(viewsets.ModelViewSet):
@@ -231,3 +241,80 @@ class GlobalPricingViewSet(viewsets.ViewSet):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GlobalDataRetentionSettingsViewSet(viewsets.ViewSet):
+    """
+    Singleton ViewSet for managing global data retention settings (GDPR compliance).
+    Read: Authenticated users (to show retention info)
+    Write: Super Admin only
+    """
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return [permissions.IsAuthenticated()]
+        return [IsSuperUser()]
+
+    def list(self, request):
+        """Get the current data retention settings."""
+        settings = GlobalDataRetentionSettings.get_settings()
+        serializer = GlobalDataRetentionSettingsSerializer(settings)
+        return Response(serializer.data)
+
+    def create(self, request):
+        """Update the data retention settings."""
+        settings = GlobalDataRetentionSettings.get_settings()
+        serializer = GlobalDataRetentionSettingsSerializer(settings, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsSuperUser])
+    def statistics(self, request):
+        """
+        Get retention statistics for the admin dashboard.
+        Shows how many users are active, inactive, pending deletion, etc.
+        """
+        from users.services import InactiveUserService
+        stats = InactiveUserService.get_retention_statistics()
+        return Response(stats)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsSuperUser])
+    def pending_deletions(self, request):
+        """
+        Get list of users pending deletion.
+        Super Admin only.
+        """
+        from users.services import InactiveUserService
+        pending = InactiveUserService.get_users_pending_deletion()
+        
+        result = []
+        for item in pending:
+            user = item['user']
+            result.append({
+                'id': user.id,
+                'email': user.email,
+                'role': user.role,
+                'role_display': user.get_role_display(),
+                'last_activity': item['last_activity'].isoformat(),
+                'days_inactive': item['days_inactive'],
+                'retention_months': item['retention_months'],
+                'cutoff_date': item['cutoff_date'].isoformat(),
+                'municipality': self._get_user_municipality_name(user)
+            })
+        
+        return Response({
+            'count': len(result),
+            'users': result
+        })
+    
+    def _get_user_municipality_name(self, user):
+        """Helper to get municipality name for a user."""
+        if user.preferred_club and user.preferred_club.municipality:
+            return user.preferred_club.municipality.name
+        if user.assigned_municipality:
+            return user.assigned_municipality.name
+        if user.assigned_club and user.assigned_club.municipality:
+            return user.assigned_club.municipality.name
+        return None

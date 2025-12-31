@@ -5,6 +5,7 @@ from organization.models import Club
 class CheckInSession(models.Model):
     METHOD_CHOICES = [
         ('QR_KIOSK', 'QR Kiosk Scan'),
+        ('PIN_CODE', 'PIN Code Entry'),
         ('MANUAL_ADMIN', 'Manual Admin Entry'),
         ('MANUAL_SELF', 'Manual Self Check-in'), # For geofencing fallback
     ]

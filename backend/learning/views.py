@@ -258,6 +258,9 @@ def upload_image(request):
     """
     Upload an image for use in rich text content.
     Returns the URL of the uploaded image.
+    
+    Images are automatically optimized and converted to WebP format
+    for reduced file sizes and faster loading.
     """
     if 'image' not in request.FILES:
         return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
@@ -276,12 +279,19 @@ def upload_image(request):
     # Save the file using Django's FileField pattern
     from django.core.files.storage import default_storage
     from django.utils import timezone
+    from django.conf import settings
+    from core.image_utils import optimize_image
     import os
     import uuid
     from django.utils.text import slugify
     
+    # Optimize the image (converts to WebP, resizes, compresses)
+    # Max 1600x1200 for rich text content images
+    optimized_file = optimize_image(image_file, max_width=1600, max_height=1200, quality=85)
+    
     # Sanitize filename to avoid encoding issues
-    original_name = image_file.name
+    # Use the optimized file's name (will be .webp if optimized, or original if SVG)
+    original_name = optimized_file.name
     name, ext = os.path.splitext(original_name)
     # Remove special characters and normalize
     safe_name = slugify(name) or 'image'
@@ -291,17 +301,16 @@ def upload_image(request):
     filename = f"courses/images/{timestamp}_{unique_id}_{safe_name}{ext}"
     
     # Save file - default_storage.save() returns the relative path from MEDIA_ROOT
-    file_path = default_storage.save(filename, image_file)
+    file_path = default_storage.save(filename, optimized_file)
     
     # Return the URL - use MEDIA_URL which is '/media/'
-    from django.conf import settings
     # file_path is relative to MEDIA_ROOT, so we prepend MEDIA_URL
-    # Example: file_path = "courses/images/file.png", MEDIA_URL = "/media/"
-    # Result: "/media/courses/images/file.png"
+    # Example: file_path = "courses/images/file.webp", MEDIA_URL = "/media/"
+    # Result: "/media/courses/images/file.webp"
     relative_path = file_path  # Already relative to MEDIA_ROOT
     media_url = f"{settings.MEDIA_URL.rstrip('/')}/{relative_path}".replace('//', '/')
     
     return Response({
-        'url': media_url,  # Full URL path like "/media/courses/images/file.png"
-        'image': relative_path  # Relative path like "courses/images/file.png"
+        'url': media_url,  # Full URL path like "/media/courses/images/file.webp"
+        'image': relative_path  # Relative path like "courses/images/file.webp"
     }, status=status.HTTP_201_CREATED)

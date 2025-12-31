@@ -3,8 +3,9 @@
 import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import ScheduleEditor from '../../../../../../components/bookings/ScheduleEditor';
+import BackButton from '@/app/components/BackButton';
 
 function SchedulePageContent() {
   const { id } = useParams();
@@ -14,12 +15,7 @@ function SchedulePageContent() {
       {/* Header */}
       <div className="space-y-4 px-4 sm:px-6 mb-6">
         {/* Back button */}
-        <Link href="/admin/municipality/bookings/resources">
-          <button className="flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-colors text-sm font-medium">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Resources
-          </button>
-        </Link>
+        <BackButton href="/admin/municipality/bookings/resources" label="Back to Resources" />
         
         {/* Title */}
         <div className="flex items-center gap-3">

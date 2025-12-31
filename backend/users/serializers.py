@@ -1,10 +1,10 @@
 from rest_framework import serializers
-from .models import User, GuardianYouthLink
+from .models import User, GuardianYouthLink, IdDocumentUpload
 from django.http import QueryDict
 from django.db import transaction
 from django.utils.crypto import get_random_string
 from organization.models import Club, Interest
-from organization.serializers import InterestSerializer, ClubSerializer
+from organization.serializers import InterestSerializer, ClubSerializer, MunicipalitySerializer
 from custom_fields.models import CustomFieldDefinition, CustomFieldValue
 from groups.models import GroupMembership
 from rewards.models import RewardUsage
@@ -21,20 +21,23 @@ class GuardianYouthLinkSerializer(serializers.ModelSerializer):
     guardian_last_name = serializers.CharField(source='guardian.last_name', read_only=True)
     guardian_avatar = serializers.SerializerMethodField()
     guardian_phone = serializers.CharField(source='guardian.phone_number', read_only=True)
-    # Youth details (for admin views)
+    # Youth details (for admin views and guardian children tab)
     youth = serializers.IntegerField(source='youth.id', read_only=True)
     youth_id = serializers.IntegerField(source='youth.id', read_only=True)
     youth_email = serializers.EmailField(source='youth.email', read_only=True)
     youth_first_name = serializers.CharField(source='youth.first_name', read_only=True)
     youth_last_name = serializers.CharField(source='youth.last_name', read_only=True)
     youth_grade = serializers.IntegerField(source='youth.grade', read_only=True, allow_null=True)
+    youth_avatar = serializers.SerializerMethodField()
+    youth_background_image = serializers.SerializerMethodField()
     
     class Meta:
         model = GuardianYouthLink
         fields = [
             'id', 'guardian', 'guardian_email', 'guardian_first_name', 
             'guardian_last_name', 'guardian_avatar', 'guardian_phone',
-            'youth', 'youth_id', 'youth_email', 'youth_first_name', 'youth_last_name', 'youth_grade',
+            'youth', 'youth_id', 'youth_email', 'youth_first_name', 'youth_last_name', 
+            'youth_grade', 'youth_avatar', 'youth_background_image',
             'relationship_type', 'is_primary_guardian', 'status',
             'created_at', 'verified_at'
         ]
@@ -43,6 +46,16 @@ class GuardianYouthLinkSerializer(serializers.ModelSerializer):
     def get_guardian_avatar(self, obj):
         if obj.guardian.avatar:
             return obj.guardian.avatar.url
+        return None
+    
+    def get_youth_avatar(self, obj):
+        if obj.youth.avatar:
+            return obj.youth.avatar.url
+        return None
+    
+    def get_youth_background_image(self, obj):
+        if obj.youth.background_image:
+            return obj.youth.background_image.url
         return None
 
 
@@ -106,6 +119,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
     # This sends the full club objects, not just IDs, so we can show them in the profile
     followed_clubs = ClubSerializer(many=True, read_only=True)
     followed_clubs_ids = serializers.SerializerMethodField()
+    # Serialize assigned_municipality as full object for Guardian profile
+    assigned_municipality = MunicipalitySerializer(read_only=True)
     
     # --- LICENSING FIELD ---
     allowed_features = serializers.SerializerMethodField()
@@ -130,7 +145,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'followed_clubs',
             'followed_clubs_ids',
             # --- LICENSING ---
-            'allowed_features'
+            'allowed_features',
+            # --- ID DOCUMENT VERIFICATION ---
+            'id_document',
+            'id_document_type',
+            'id_document_uploaded_at',
+            'id_document_review_status',
+            'id_document_reviewed_at',
+            'id_document_rejection_reason',
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
 
@@ -184,22 +206,66 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
     def get_youth_members(self, obj):
         # If obj is a Guardian, return their youth with relationship details
-        youth_links = obj.youth_links.select_related('youth').all()
-        return [
-            {
-                'id': link.youth.id,
-                'first_name': link.youth.first_name,
-                'last_name': link.youth.last_name,
-                'email': link.youth.email,
+        # Include preferred_club and followed_clubs for the Guardian dashboard
+        youth_links = obj.youth_links.select_related(
+            'youth', 
+            'youth__preferred_club',
+            'youth__preferred_club__municipality'
+        ).prefetch_related(
+            'youth__followed_clubs',
+            'youth__followed_clubs__municipality'
+        ).all()
+        
+        result = []
+        for link in youth_links:
+            youth = link.youth
+            
+            # Serialize preferred_club if exists
+            preferred_club_data = None
+            if youth.preferred_club:
+                preferred_club_data = {
+                    'id': youth.preferred_club.id,
+                    'name': youth.preferred_club.name,
+                    'slug': youth.preferred_club.slug,
+                    'avatar': youth.preferred_club.avatar.url if youth.preferred_club.avatar else None,
+                    'municipality': {
+                        'id': youth.preferred_club.municipality.id,
+                        'name': youth.preferred_club.municipality.name,
+                    } if youth.preferred_club.municipality else None,
+                }
+            
+            # Serialize followed_clubs
+            followed_clubs_data = [
+                {
+                    'id': club.id,
+                    'name': club.name,
+                    'slug': club.slug,
+                    'avatar': club.avatar.url if club.avatar else None,
+                    'municipality': {
+                        'id': club.municipality.id,
+                        'name': club.municipality.name,
+                    } if club.municipality else None,
+                }
+                for club in youth.followed_clubs.all()
+            ]
+            
+            result.append({
+                'id': youth.id,
+                'first_name': youth.first_name,
+                'last_name': youth.last_name,
+                'email': youth.email,
+                'avatar': youth.avatar.url if youth.avatar else None,
+                'preferred_club': preferred_club_data,
+                'followed_clubs': followed_clubs_data,
                 'relationship_id': link.id,  # ID of the GuardianYouthLink
                 'relationship_type': link.relationship_type,
                 'status': link.status,
                 'is_primary_guardian': link.is_primary_guardian,
                 'verified_at': link.verified_at.isoformat() if link.verified_at else None,
                 'created_at': link.created_at.isoformat() if link.created_at else None,
-            }
-            for link in youth_links
-        ]
+            })
+        
+        return result
 
     def get_custom_field_values(self, obj):
         # Return custom field values as a list of {field: field_id, value: value}
@@ -358,7 +424,8 @@ class UserManagementSerializer(serializers.ModelSerializer):
                 attrs['assigned_municipality'] = None
         
         # Clean up empty strings - convert to None for optional fields
-        for field in ['nickname', 'preferred_gender', 'phone_number', 'profession', 'background_image', 'mood_status']:
+        # Note: nickname is excluded because the model has blank=True but not null=True
+        for field in ['preferred_gender', 'phone_number', 'profession', 'background_image', 'mood_status']:
             if field in attrs and attrs[field] == '':
                 attrs[field] = None
         
@@ -487,6 +554,101 @@ class UserManagementSerializer(serializers.ModelSerializer):
         return instance
 
 
+class IdDocumentUploadSerializer(serializers.Serializer):
+    """
+    Serializer for guardians to upload their ID document for verification.
+    """
+    id_document = serializers.FileField(required=True)
+    id_document_type = serializers.ChoiceField(
+        choices=User.IdDocumentType.choices,
+        required=True
+    )
+
+
+class IdDocumentReviewSerializer(serializers.Serializer):
+    """
+    Serializer for admins to review (approve/reject/delete) ID documents.
+    """
+    action = serializers.ChoiceField(choices=['approve', 'reject', 'delete'], required=True)
+    rejection_reason = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if attrs.get('action') == 'reject' and not attrs.get('rejection_reason'):
+            raise serializers.ValidationError({
+                'rejection_reason': 'Rejection reason is required when rejecting a document.'
+            })
+        return attrs
+
+
+class IdDocumentUploadHistorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for viewing ID document upload history.
+    """
+    reviewed_by_name = serializers.SerializerMethodField()
+    document_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = IdDocumentUpload
+        fields = [
+            'id', 'document', 'document_url', 'document_type', 'status',
+            'uploaded_at', 'reviewed_at', 'reviewed_by', 'reviewed_by_name',
+            'rejection_reason', 'admin_notes'
+        ]
+        read_only_fields = ['id', 'uploaded_at', 'reviewed_at', 'reviewed_by', 'status']
+
+    def get_reviewed_by_name(self, obj):
+        if obj.reviewed_by:
+            return f"{obj.reviewed_by.first_name} {obj.reviewed_by.last_name}"
+        return None
+
+    def get_document_url(self, obj):
+        if obj.document:
+            return obj.document.url
+        return None
+
+
+class IdDocumentUploadCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for guardians to upload new ID documents.
+    Validates max 3 pending uploads.
+    """
+    class Meta:
+        model = IdDocumentUpload
+        fields = ['document', 'document_type']
+
+    def validate(self, attrs):
+        guardian = self.context.get('guardian')
+        if guardian:
+            pending_count = IdDocumentUpload.get_pending_count(guardian)
+            if pending_count >= 3:
+                raise serializers.ValidationError(
+                    "You already have 3 pending verification requests. "
+                    "Please wait for them to be reviewed before uploading more."
+                )
+        return attrs
+
+    def create(self, validated_data):
+        guardian = self.context.get('guardian')
+        validated_data['guardian'] = guardian
+        return super().create(validated_data)
+
+
+class IdDocumentReviewHistorySerializer(serializers.Serializer):
+    """
+    Serializer for admins to review documents from the upload history.
+    """
+    action = serializers.ChoiceField(choices=['approve', 'reject', 'delete'], required=True)
+    rejection_reason = serializers.CharField(required=False, allow_blank=True)
+    admin_notes = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if attrs.get('action') == 'reject' and not attrs.get('rejection_reason'):
+            raise serializers.ValidationError({
+                'rejection_reason': 'Rejection reason is required when rejecting a document.'
+            })
+        return attrs
+
+
 class YouthRegistrationSerializer(serializers.ModelSerializer):
     """
     Handles public registration for Youth Members.
@@ -546,7 +708,8 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Password must contain at least one special character."})
         
         # Clean up empty strings - convert to None for optional fields
-        for field in ['nickname', 'preferred_gender', 'date_of_birth', 'grade']:
+        # Note: nickname is excluded because the model has blank=True but not null=True
+        for field in ['preferred_gender', 'date_of_birth', 'grade']:
             if field in attrs and attrs[field] == '':
                 attrs[field] = None
         

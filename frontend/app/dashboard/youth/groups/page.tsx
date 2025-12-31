@@ -9,10 +9,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 import { Users as UsersIcon, Search, X, AlertCircle, Globe, MapPin, Building2, Heart } from 'lucide-react';
-import YouthFooter from '@/app/components/youth/YouthFooter';
-
+import Footer from '@/app/components/Footer';
 
 interface Eligibility {
     is_eligible: boolean;
@@ -93,7 +92,7 @@ export default function GroupSearchPage() {
     const [isJoining, setIsJoining] = useState(false);
 
     // Toast state
-    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
+    const { success, error, info, warning } = useToast();
 
     // Fetch groups with pagination
     const fetchGroups = useCallback(async (pageNum: number = 1, append: boolean = false) => {
@@ -217,21 +216,13 @@ export default function GroupSearchPage() {
         setIsJoining(true);
         try {
             const res = await api.post(`/groups/${selectedGroupToJoin.id}/join/`);
-            setToast({
-                message: res.data.message || t('groups.successfullyJoined'),
-                type: 'success',
-                isVisible: true
-            });
+            success(res.data.message || t('groups.successfullyJoined'));
             // Refresh current page
             fetchGroups(page, false);
             setConfirmModalVisible(false);
             setSelectedGroupToJoin(null);
         } catch (err: any) {
-            setToast({
-                message: err.response?.data?.message || t('groups.failedToJoin'),
-                type: 'error',
-                isVisible: true
-            });
+            error(err.response?.data?.message || t('groups.failedToJoin'));
             setConfirmModalVisible(false);
             setSelectedGroupToJoin(null);
         } finally {
@@ -287,7 +278,8 @@ export default function GroupSearchPage() {
     );
 
     return (
-        <div className="min-h-screen bg-[var(--dark-900)]">
+        <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+            <div className="flex-1">
             <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
             
             {/* Mobile Sidebar Overlay */}
@@ -322,7 +314,7 @@ export default function GroupSearchPage() {
             <div className="pt-14 sm:pt-16">
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
-                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+                    <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
                         <YouthSidebar activePath={pathname} darkMode={true} />
                     </aside>
                     
@@ -594,16 +586,10 @@ export default function GroupSearchPage() {
             />
 
             {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast({ ...toast, isVisible: false })}
-                darkMode={true}
-            />
+            </div>
             
             {/* Footer */}
-            <YouthFooter />
+            <Footer />
         </div>
     );
 }

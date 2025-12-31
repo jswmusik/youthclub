@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getMediaUrl } from '../../utils';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.208:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface HeroSettings {
   hero_title: string;

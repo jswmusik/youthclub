@@ -8,6 +8,7 @@ import { enUS, sv, da, nb, fi, type Locale } from 'date-fns/locale';
 
 import { fetchUserActivityFeed, visits, rewards } from '@/lib/api';
 import api from '@/lib/api';
+import { sanitizeHtml } from '@/lib/sanitize';
 import PostCard from '@/app/components/posts/PostCard';
 import { Post } from '@/types/post';
 import { getMediaUrl } from '@/app/utils';
@@ -69,7 +70,7 @@ interface Booking {
 type TimelineItem = {
   type: 'post' | 'visit' | 'reward_redemption' | 'group_join' | 'inventory_borrow' | 'inventory_return' | 'inventory_complete' | 'questionnaire_complete' | 'booking_confirmed';
   date: Date;
-  data: Post | Visit | RewardRedemption | Booking | Post; // group_join, inventory activities, and questionnaire completions use Post type
+  data: Post | Visit | RewardRedemption | Booking | Post; // group_join, inventory activities and questionnaire completions use Post type
 };
 
 export default function ActivityFeed({ showTimeFilter = true, darkMode = false }: ActivityFeedProps) {
@@ -218,6 +219,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
       // Ensure date is valid
       if (!isNaN(postDate.getTime())) {
         // Check if this is a group join post (title starts with "Joined")
+        // Backend now only returns the user's own "Joined" posts
         if (post.title && post.title.startsWith('Joined ')) {
           items.push({ type: 'group_join', date: postDate, data: post });
         } else if (post.title && post.title.startsWith('Borrowed ')) {
@@ -655,7 +657,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                                   ? 'text-[var(--brand-light)]/70 [&_a]:text-[var(--brand-purple)] [&_strong]:text-[var(--brand-light)] [&_p]:text-[var(--brand-light)]/70'
                                   : 'text-gray-700 [&_a]:text-[#6D6DD4] [&_strong]:text-gray-800'
                               }`}
-                              dangerouslySetInnerHTML={{ __html: questionnairePost.content }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(questionnairePost.content) }}
                             />
                           )}
                         </div>

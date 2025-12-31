@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { X, Filter } from 'lucide-react';
 
 interface Props {
@@ -21,6 +22,7 @@ export default function UserVisitsFilter({
   initialEndDate,
   initialClubId
 }: Props) {
+  const t = useTranslations('youthDetail.visits.filter');
   const router = useRouter();
   const pathname = usePathname();
   const [startDate, setStartDate] = useState(initialStartDate || '');
@@ -75,14 +77,14 @@ export default function UserVisitsFilter({
       {/* Header */}
       <div className="flex items-center gap-2 text-[var(--brand-light)]/50">
         <Filter className="w-4 h-4" />
-        <span className="text-sm font-medium">Filter Visits</span>
+        <span className="text-sm font-medium">{t('title')}</span>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Start Date */}
         <div className="flex-1 sm:max-w-[180px]">
-          <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">From Date</label>
+          <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">{t('fromDate')}</label>
           <input 
             type="date" 
             className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors"
@@ -93,7 +95,7 @@ export default function UserVisitsFilter({
         
         {/* End Date */}
         <div className="flex-1 sm:max-w-[180px]">
-          <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">To Date</label>
+          <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">{t('toDate')}</label>
           <input 
             type="date" 
             className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors"
@@ -105,14 +107,14 @@ export default function UserVisitsFilter({
         {/* Club Filter */}
         {showClubFilter && (
           <div className="flex-1 sm:max-w-[220px]">
-            <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">Club</label>
+            <label className="block text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1.5">{t('club')}</label>
             <select
               className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
               value={clubId}
               onChange={(e) => setClubId(e.target.value)}
               style={selectArrowStyle}
             >
-              <option value="">All Clubs</option>
+              <option value="">{t('allClubs')}</option>
               {clubs.map(club => (
                 <option key={club.id} value={club.id.toString()}>{club.name}</option>
               ))}
@@ -127,7 +129,7 @@ export default function UserVisitsFilter({
               onClick={handleClear}
               className="h-10 px-4 flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
             >
-              <X className="h-4 w-4" /> Clear
+              <X className="h-4 w-4" /> {t('clear')}
             </button>
           </div>
         )}

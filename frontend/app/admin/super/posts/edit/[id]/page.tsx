@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '../../../../../../lib/api';
 import PostForm from '../../../../../components/posts/PostForm';
 import { Post } from '../../../../../../types/post';
@@ -11,6 +12,7 @@ function EditPostPageContent() {
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams();
+    const t = useTranslations('postsManager.form');
     const postId = params?.id as string;
     
     const buildUrlWithParams = (path: string) => {
@@ -57,7 +59,7 @@ function EditPostPageContent() {
                 <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
                     <Sparkles className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-[var(--brand-light)]/60">Loading post data...</p>
+                <p className="text-[var(--brand-light)]/60">{t('loading', { defaultValue: 'Loading post data...' })}</p>
             </div>
         </div>
     );
@@ -76,6 +78,7 @@ function EditPostPageContent() {
 }
 
 export default function EditPostPage() {
+    const t = useTranslations('postsManager.form');
     return (
         <Suspense fallback={
             <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
@@ -83,7 +86,7 @@ export default function EditPostPage() {
                     <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
                         <Sparkles className="w-6 h-6 text-white" />
                     </div>
-                    <p className="text-[var(--brand-light)]/60">Loading post form...</p>
+                    <p className="text-[var(--brand-light)]/60">{t('loading', { defaultValue: 'Loading post form...' })}</p>
                 </div>
             </div>
         }>

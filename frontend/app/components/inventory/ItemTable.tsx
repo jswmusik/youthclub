@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Item, inventoryApi } from '@/lib/inventory-api';
 import Link from 'next/link';
 import { Eye, Edit, Trash2, Package, ChevronLeft, Tag, Users } from 'lucide-react';
@@ -18,6 +19,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onView, onEdit, onDelete, onClick }: SwipeableCardProps) {
+  const t = useTranslations('inventoryAdmin');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -105,14 +107,14 @@ function SwipeableCard({ children, onView, onEdit, onDelete, onClick }: Swipeabl
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -150,6 +152,7 @@ interface ItemTableProps {
 
 export default function ItemTable({ items, basePath, onDelete, onDeleteError, buildUrlWithParams }: ItemTableProps) {
   const router = useRouter();
+  const t = useTranslations('inventoryAdmin');
   const [itemToDelete, setItemToDelete] = useState<{ id: number; title: string } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   
@@ -169,7 +172,7 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
       setItemToDelete(null);
     } catch (error: any) {
       console.error('Delete error:', error);
-      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to delete item.';
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || t('toast.failedToDelete');
       if (onDeleteError) {
         onDeleteError(errorMessage);
       }
@@ -184,19 +187,19 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
       case 'AVAILABLE':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
-            Available
+            {t('status.available')}
           </span>
         );
       case 'BORROWED':
         return (
           <div className="flex flex-col items-start gap-1">
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
-              Borrowed
+              {t('status.borrowed')}
             </span>
             {activeLoan && (
               <span className="text-xs text-[var(--brand-light)]/50">
-                by {activeLoan.user_name} 
-                {activeLoan.is_guest && <span className="text-[var(--brand-peach)] font-bold ml-1">(Guest)</span>}
+                {t('status.by')} {activeLoan.user_name} 
+                {activeLoan.is_guest && <span className="text-[var(--brand-peach)] font-bold ml-1">{t('status.guest')}</span>}
               </span>
             )}
           </div>
@@ -204,19 +207,19 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
       case 'MAINTENANCE':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
-            Broken
+            {t('status.broken')}
           </span>
         );
       case 'MISSING':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
-            Missing
+            {t('status.missing')}
           </span>
         );
       case 'HIDDEN':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
-            Hidden
+            {t('status.hidden')}
           </span>
         );
       default:
@@ -234,8 +237,8 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
         <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
           <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
         </div>
-        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No items found</h3>
-        <p className="text-[var(--brand-light)]/50 text-sm">Click "Add Item" to add some!</p>
+        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noItemsFound')}</h3>
+        <p className="text-[var(--brand-light)]/50 text-sm">{t('emptyState.addItemMessage')}</p>
       </div>
     );
   }
@@ -270,7 +273,7 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
                   
                   {/* Description */}
                   <p className="text-xs text-[var(--brand-light)]/50 truncate">
-                    {item.internal_note || 'No description'}
+                    {item.internal_note || t('noDescription')}
                   </p>
                   
                   {/* Badges */}
@@ -285,7 +288,7 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
                     {item.queue_count > 0 && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
                         <Users className="w-3 h-3" />
-                        {item.queue_count} waiting
+                        {item.queue_count} {t('waiting')}
                       </span>
                     )}
                   </div>
@@ -298,16 +301,16 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
 
       {/* DESKTOP: Table */}
       <div className="hidden md:block bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Category</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Queue</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
-            </tr>
-          </thead>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--dark-600)]">
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.item')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.category')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.queue')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
+                </tr>
+              </thead>
           <tbody>
             {itemsArray.map((item, index) => (
               <tr 
@@ -325,7 +328,7 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
                     </div>
                     <div>
                       <div className="font-semibold text-[var(--brand-light)]">{item.title}</div>
-                      <div className="text-xs text-[var(--brand-light)]/50 truncate max-w-[200px]">{item.internal_note || 'No description'}</div>
+                      <div className="text-xs text-[var(--brand-light)]/50 truncate max-w-[200px]">{item.internal_note || t('noDescription')}</div>
                     </div>
                   </div>
                 </td>
@@ -345,10 +348,10 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
                   {item.queue_count > 0 ? (
                     <span className="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-peach)]">
                       <Users className="w-3.5 h-3.5" />
-                      {item.queue_count} waiting
+                      {item.queue_count} {t('waiting')}
                     </span>
                   ) : (
-                    <span className="text-sm text-[var(--brand-light)]/40">Empty</span>
+                    <span className="text-sm text-[var(--brand-light)]/40">{t('empty')}</span>
                   )}
                 </td>
                 <td className="px-6 py-4">
@@ -387,10 +390,10 @@ export default function ItemTable({ items, basePath, onDelete, onDeleteError, bu
           }
         }}
         onConfirm={handleDelete}
-        title="Confirm Deletion"
-        message={itemToDelete ? `Are you sure you want to delete "${itemToDelete.title}"? This action cannot be undone.` : ''}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('modals.deleteItem.title')}
+        message={itemToDelete ? t('modals.deleteItem.message', { name: itemToDelete.title }) : ''}
+        confirmButtonText={t('modals.deleteItem.confirm')}
+        cancelButtonText={t('modals.deleteItem.cancel')}
         isLoading={!!deletingId}
         variant="danger"
         darkMode={true}

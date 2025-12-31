@@ -2,21 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { inviteGuardian } from '@/lib/api';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../../hooks/useToast';
 import SuccessModal from '@/app/components/SuccessModal';
 import { ArrowLeft, Mail, User, Phone, Users, Shield, CheckCircle, X } from 'lucide-react';
-
 
 export default function AddGuardianPage() {
     const router = useRouter();
     const pathname = usePathname();
+    const t = useTranslations('guardians.addGuardianPage');
+    const tNav = useTranslations('nav');
     const [loading, setLoading] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [toast, setToast] = useState({ message: '', type: 'success' as const, isVisible: false });
+    const { success, error, info, warning } = useToast();
     const [successModal, setSuccessModal] = useState({ isVisible: false, message: '', title: '' });
 
     const [formData, setFormData] = useState({
@@ -55,19 +57,19 @@ export default function AddGuardianPage() {
             
             // Determine success message based on whether existing guardian was found
             let successMessage = '';
-            let successTitle = 'Guardian Added!';
+            let successTitle = t('guardianLinked');
             
             if (data.guardian_existed) {
                 if (data.guardian_is_active) {
-                    successTitle = 'Guardian Linked!';
-                    successMessage = `Successfully linked to existing guardian account! ${data.guardian_first_name} ${data.guardian_last_name} has been added to your guardians list.`;
+                    successTitle = t('guardianLinked');
+                    successMessage = t('guardianLinkedMessage', { name: `${data.guardian_first_name} ${data.guardian_last_name}` });
                 } else {
-                    successTitle = 'Guardian Found!';
-                    successMessage = `We found an existing guardian account for ${data.guardian_email}. An invitation has been sent to them to accept your request.`;
+                    successTitle = t('guardianFound');
+                    successMessage = t('guardianFoundMessage', { email: data.guardian_email });
                 }
             } else {
-                successTitle = 'Invitation Sent!';
-                successMessage = `An invitation has been sent to ${formData.email}. A new guardian account will be created when they accept the invitation.`;
+                successTitle = t('invitationSent');
+                successMessage = t('invitationSentMessage', { email: formData.email });
             }
             
             // Show success modal
@@ -79,8 +81,8 @@ export default function AddGuardianPage() {
             setLoading(false);
         } catch (err: any) {
             console.error(err);
-            const errorMsg = err.response?.data?.detail || err.response?.data?.error || 'Failed to invite guardian.';
-            setToast({ message: errorMsg, type: 'error', isVisible: true });
+            const errorMsg = err.response?.data?.detail || err.response?.data?.error || t('failedToInvite');
+            error(errorMsg);
             setLoading(false);
         }
     };
@@ -109,7 +111,7 @@ export default function AddGuardianPage() {
                 }`}
             >
                 <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">Menu</h1>
+                    <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tNav('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
@@ -129,10 +131,9 @@ export default function AddGuardianPage() {
                     <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-primary)] rounded-xl sm:rounded-2xl mb-4">
                         <Users className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                     </div>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--brand-light)] mb-2 sm:mb-3 font-heading">Add Guardian</h1>
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--brand-light)] mb-2 sm:mb-3 font-heading">{t('title')}</h1>
                     <p className="text-[var(--brand-light)]/60 text-sm sm:text-base max-w-xl mx-auto">
-                        Enter their details below. If they already have an account, we will link them. 
-                        Otherwise, we will send them an invite.
+                        {t('description')}
                     </p>
                 </div>
 
@@ -144,7 +145,7 @@ export default function AddGuardianPage() {
                         <div>
                             <label className="block text-sm font-bold text-[var(--brand-light)] mb-2 flex items-center gap-2">
                                 <Mail className="w-4 h-4 text-[var(--brand-primary)]" />
-                                Email Address
+                                {t('emailAddress')}
                             </label>
                             <input 
                                 type="email" 
@@ -152,7 +153,7 @@ export default function AddGuardianPage() {
                                 value={formData.email}
                                 onChange={e => setFormData({...formData, email: e.target.value})}
                                 className="w-full px-4 py-3 rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all"
-                                placeholder="guardian@example.com"
+                                placeholder={t('emailPlaceholder')}
                             />
                         </div>
 
@@ -161,7 +162,7 @@ export default function AddGuardianPage() {
                             <div>
                                 <label className="block text-sm font-bold text-[var(--brand-light)] mb-2 flex items-center gap-2">
                                     <User className="w-4 h-4 text-[var(--brand-primary)]" />
-                                    First Name
+                                    {t('firstName')}
                                 </label>
                                 <input 
                                     type="text" 
@@ -169,7 +170,7 @@ export default function AddGuardianPage() {
                                     value={formData.first_name}
                                     onChange={e => setFormData({...formData, first_name: e.target.value})}
                                     className="w-full px-4 py-3 rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all"
-                                    placeholder="Jane"
+                                    placeholder={t('firstNamePlaceholder')}
                                 />
                             </div>
                             
@@ -177,7 +178,7 @@ export default function AddGuardianPage() {
                             <div>
                                 <label className="block text-sm font-bold text-[var(--brand-light)] mb-2 flex items-center gap-2">
                                     <User className="w-4 h-4 text-[var(--brand-primary)]" />
-                                    Last Name
+                                    {t('lastName')}
                                 </label>
                                 <input 
                                     type="text" 
@@ -185,7 +186,7 @@ export default function AddGuardianPage() {
                                     value={formData.last_name}
                                     onChange={e => setFormData({...formData, last_name: e.target.value})}
                                     className="w-full px-4 py-3 rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all"
-                                    placeholder="Doe"
+                                    placeholder={t('lastNamePlaceholder')}
                                 />
                             </div>
                         </div>
@@ -195,28 +196,28 @@ export default function AddGuardianPage() {
                             <div>
                                 <label className="block text-sm font-bold text-[var(--brand-light)] mb-2 flex items-center gap-2">
                                     <Phone className="w-4 h-4 text-[var(--brand-primary)]" />
-                                    Phone Number
+                                    {t('phoneNumber')}
                                 </label>
                                 <input 
                                     type="tel" 
                                     value={formData.phone_number}
                                     onChange={e => setFormData({...formData, phone_number: e.target.value})}
                                     className="w-full px-4 py-3 rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all"
-                                    placeholder="+46 70 123 45 67"
+                                    placeholder={t('phonePlaceholder')}
                                 />
                             </div>
                             
                             {/* Gender */}
                             <div>
-                                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">Gender</label>
+                                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('gender')}</label>
                                 <select
                                     value={formData.legal_gender}
                                     onChange={e => setFormData({...formData, legal_gender: e.target.value as 'MALE' | 'FEMALE' | 'OTHER'})}
                                     className="w-full px-4 py-3 h-[50px] rounded-xl border border-[var(--dark-400)] bg-[var(--dark-700)] text-[var(--brand-light)] focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] transition-all appearance-none"
                                 >
-                                    <option value="MALE">Male</option>
-                                    <option value="FEMALE">Female</option>
-                                    <option value="OTHER">Other</option>
+                                    <option value="MALE">{t('male')}</option>
+                                    <option value="FEMALE">{t('female')}</option>
+                                    <option value="OTHER">{t('other')}</option>
                                 </select>
                             </div>
                         </div>
@@ -225,21 +226,21 @@ export default function AddGuardianPage() {
                         <div>
                             <label className="block text-sm font-bold text-[var(--brand-light)] mb-3 flex items-center gap-2">
                                 <Shield className="w-4 h-4 text-[var(--brand-primary)]" />
-                                Relationship
+                                {t('relationship')}
                             </label>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-                                {['MOTHER', 'FATHER', 'GUARDIAN', 'OTHER'].map(type => (
+                                {(['MOTHER', 'FATHER', 'GUARDIAN', 'OTHER'] as const).map(type => (
                                     <button
                                         key={type}
                                         type="button"
-                                        onClick={() => setFormData({...formData, relationship_type: type as typeof formData.relationship_type})}
+                                        onClick={() => setFormData({...formData, relationship_type: type})}
                                         className={`py-3 px-2 rounded-xl text-sm font-bold transition-all ${
                                             formData.relationship_type === type
                                                 ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                                                 : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] border border-[var(--dark-400)]'
                                         }`}
                                     >
-                                        {type.charAt(0) + type.slice(1).toLowerCase()}
+                                        {t(type.toLowerCase())}
                                     </button>
                                 ))}
                             </div>
@@ -256,7 +257,7 @@ export default function AddGuardianPage() {
                             />
                             <label htmlFor="is_primary" className="text-sm font-bold text-[var(--brand-light)] cursor-pointer select-none flex items-center gap-2">
                                 <CheckCircle className="w-5 h-5 text-[var(--brand-primary)]" />
-                                This is my primary guardian
+                                {t('primaryGuardianCheckbox')}
                             </label>
                         </div>
 
@@ -269,12 +270,12 @@ export default function AddGuardianPage() {
                             {loading ? (
                                 <>
                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--dark-900)]"></div>
-                                    Processing...
+                                    {t('processing')}
                                 </>
                             ) : (
                                 <>
                                     <Mail className="w-5 h-5" />
-                                    Send Invite / Link Guardian
+                                    {t('submitButton')}
                                 </>
                             )}
                         </button>
@@ -283,14 +284,12 @@ export default function AddGuardianPage() {
                 </div>
             </div>
             
-            <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
-            
             <SuccessModal
                 isVisible={successModal.isVisible}
                 onClose={handleSuccessModalClose}
                 title={successModal.title}
                 message={successModal.message}
-                buttonText="View Guardians"
+                buttonText={t('viewGuardians')}
                 darkMode={true}
             />
         </div>

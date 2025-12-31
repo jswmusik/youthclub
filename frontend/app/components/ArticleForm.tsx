@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Upload, X, FileText, Image, Tag, Users, Eye, 
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import DarkRichTextEditor from './DarkRichTextEditor';
 
 interface TagOption { id: number; name: string; }
@@ -20,24 +21,24 @@ interface ArticleFormProps {
   redirectPath: string;
 }
 
-const ROLES = [
-  { id: 'SUPER_ADMIN', label: 'Super Admin', icon: '👑' },
-  { id: 'MUNICIPALITY_ADMIN', label: 'Municipality Admin', icon: '🏛️' },
-  { id: 'CLUB_ADMIN', label: 'Club Admin', icon: '🏢' },
-  { id: 'YOUTH_MEMBER', label: 'Youth Member', icon: '🧑' },
-  { id: 'GUARDIAN', label: 'Guardian', icon: '👨‍👩‍👧' },
-];
-
-
 export default function ArticleForm({ initialData, redirectPath }: ArticleFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('articleForm');
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLInputElement>(null);
 
+  const ROLES = [
+    { id: 'SUPER_ADMIN', label: t('targetAudience.roles.SUPER_ADMIN'), icon: '👑' },
+    { id: 'MUNICIPALITY_ADMIN', label: t('targetAudience.roles.MUNICIPALITY_ADMIN'), icon: '🏛️' },
+    { id: 'CLUB_ADMIN', label: t('targetAudience.roles.CLUB_ADMIN'), icon: '🏢' },
+    { id: 'YOUTH_MEMBER', label: t('targetAudience.roles.YOUTH_MEMBER'), icon: '🧑' },
+    { id: 'GUARDIAN', label: t('targetAudience.roles.GUARDIAN'), icon: '👨‍👩‍👧' },
+  ];
+
   const [loading, setLoading] = useState(false);
   const [tagsList, setTagsList] = useState<TagOption[]>([]);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -164,16 +165,16 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
 
       if (initialData) {
         await api.patch(`/news/${initialData.id}/`, data, config);
-        setToast({ message: 'Article updated successfully!', type: 'success', isVisible: true });
+        success(t('toast.articleUpdated'));
       } else {
         await api.post('/news/', data, config);
-        setToast({ message: 'Article created successfully!', type: 'success', isVisible: true });
+        success(t('toast.articleCreated'));
       }
 
       setTimeout(() => router.push(buildUrlWithParams(redirectPath)), 1000);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Operation failed. Please try again.', type: 'error', isVisible: true });
+      error(t('toast.operationFailed'));
       setLoading(false);
     }
   };
@@ -216,10 +217,10 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Article' : 'Create New Article'}
+              {initialData ? t('editTitle') : t('createTitle')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              {initialData ? 'Update article content and settings' : 'Write engaging content for your audience'}
+              {initialData ? t('editDescription') : t('createDescription')}
             </p>
           </div>
         </div>
@@ -228,7 +229,7 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
         <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
           <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -237,7 +238,7 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Ready to publish!</span>
+                <span className="text-sm font-medium">{t('progress.readyToPublish')}</span>
               </div>
             )}
           </div>
@@ -248,7 +249,7 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
           <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
             <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -269,8 +270,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Article Content</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Write your article title, summary, and body</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('articleContent.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('articleContent.description')}</p>
                 </div>
               </div>
             </div>
@@ -278,48 +279,48 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
             <div className="p-6 space-y-6">
               {/* Title */}
               <div>
-                <label className={labelClasses}>Title <span className="text-[var(--brand-red)]">*</span></label>
+                <label className={labelClasses}>{t('articleContent.titleLabel')} <span className="text-[var(--brand-red)]">*</span></label>
                 <input 
                   type="text"
                   required
-                  placeholder="Enter a compelling title..."
+                  placeholder={t('articleContent.titlePlaceholder')}
                   className={inputClasses('title')}
                   value={formData.title}
                   onChange={e => setFormData({...formData, title: e.target.value})}
                   onFocus={() => setFocusedField('title')}
                   onBlur={() => setFocusedField(null)}
                 />
-                <p className="text-xs text-[var(--brand-light)]/40 mt-2">A clear, engaging title helps readers find your article</p>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('articleContent.titleHint')}</p>
               </div>
 
               {/* Excerpt */}
               <div>
-                <label className={labelClasses}>Excerpt (Summary) <span className="text-[var(--brand-red)]">*</span></label>
+                <label className={labelClasses}>{t('articleContent.excerptLabel')} <span className="text-[var(--brand-red)]">*</span></label>
                 <textarea 
                   required
                   rows={3}
-                  placeholder="Write a brief summary that appears in article previews..."
+                  placeholder={t('articleContent.excerptPlaceholder')}
                   className={textareaClasses('excerpt')}
                   value={formData.excerpt}
                   onChange={e => setFormData({...formData, excerpt: e.target.value})}
                   onFocus={() => setFocusedField('excerpt')}
                   onBlur={() => setFocusedField(null)}
                 />
-                <p className="text-xs text-[var(--brand-light)]/40 mt-2">This appears in article cards and search results (2-3 sentences recommended)</p>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('articleContent.excerptHint')}</p>
               </div>
 
               {/* Body Content */}
               <div>
-                <label className={labelClasses}>Body Content</label>
+                <label className={labelClasses}>{t('articleContent.bodyLabel')}</label>
                 <DarkRichTextEditor 
                   value={formData.content} 
                   onChange={(val) => setFormData({...formData, content: val})}
-                  placeholder="Write your article content here..."
+                  placeholder={t('articleContent.bodyPlaceholder')}
                   minHeight="250px"
                 />
                 <div className="flex items-center justify-between mt-2 px-1">
-                  <p className="text-xs text-[var(--brand-light)]/40">Use the toolbar to format text, add links, and insert images</p>
-                  <span className="text-xs text-[var(--brand-light)]/40">{contentWordCount} words</span>
+                  <p className="text-xs text-[var(--brand-light)]/40">{t('articleContent.bodyHint')}</p>
+                  <span className="text-xs text-[var(--brand-light)]/40">{contentWordCount} {t('articleContent.words')}</span>
                 </div>
               </div>
             </div>
@@ -333,8 +334,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                   <Image className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Hero Image</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Featured image displayed at the top</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('heroImage.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('heroImage.description')}</p>
                 </div>
               </div>
             </div>
@@ -355,26 +356,26 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                   ) : (
                     <div className="text-center p-4">
                       <Image className="h-8 w-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
-                      <span className="text-sm text-[var(--brand-light)]/40">Click to upload</span>
-                      <p className="text-xs text-[var(--brand-light)]/30 mt-1">1200 × 400px</p>
+                      <span className="text-sm text-[var(--brand-light)]/40">{t('heroImage.clickToUpload')}</span>
+                      <p className="text-xs text-[var(--brand-light)]/30 mt-1">{t('heroImage.recommendedSize')}</p>
                     </div>
                   )}
                 </div>
                 <div className="flex-1 space-y-3">
                   <div className="flex gap-2">
                     <button type="button" onClick={() => heroRef.current?.click()} className="px-4 py-2.5 bg-[var(--dark-600)] text-[var(--brand-light)] text-sm font-medium rounded-xl hover:bg-[var(--dark-500)] transition-all">
-                      Choose File
+                      {t('heroImage.chooseFile')}
                     </button>
                     {heroPreview && (
                       <button type="button" onClick={handleRemoveImage} className="px-4 py-2.5 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-sm font-medium rounded-xl hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-2">
-                        <X className="h-4 w-4" /> Remove
+                        <X className="h-4 w-4" /> {t('heroImage.remove')}
                       </button>
                     )}
                   </div>
                   <div className="bg-[var(--dark-700)] rounded-xl p-3 border border-[var(--dark-500)]">
                     <div className="flex items-start gap-2">
                       <Lightbulb className="w-4 h-4 text-[var(--brand-peach)] flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-[var(--brand-light)]/50">High-quality landscape images (3:1 ratio) work best for hero images.</p>
+                      <p className="text-xs text-[var(--brand-light)]/50">{t('heroImage.hint')}</p>
                     </div>
                   </div>
                 </div>
@@ -391,8 +392,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                   <Eye className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Publication Settings</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Control visibility and featured status</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('publicationSettings.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('publicationSettings.description')}</p>
                 </div>
               </div>
             </div>
@@ -408,8 +409,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                     <Globe className={`w-5 h-5 ${formData.is_published ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/40'}`} />
                   </div>
                   <div>
-                    <h3 className="font-medium text-[var(--brand-light)]">Publish Article</h3>
-                    <p className="text-xs text-[var(--brand-light)]/50">{formData.is_published ? 'Visible to audience' : 'Saved as draft'}</p>
+                    <h3 className="font-medium text-[var(--brand-light)]">{t('publicationSettings.publishArticle')}</h3>
+                    <p className="text-xs text-[var(--brand-light)]/50">{formData.is_published ? t('publicationSettings.visibleToAudience') : t('publicationSettings.savedAsDraft')}</p>
                   </div>
                 </div>
                 <div className={`w-12 h-7 rounded-full p-1 transition-all ${formData.is_published ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}>
@@ -427,8 +428,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                     <Star className={`w-5 h-5 ${formData.is_hero ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/40'}`} />
                   </div>
                   <div>
-                    <h3 className="font-medium text-[var(--brand-light)]">Feature as Hero</h3>
-                    <p className="text-xs text-[var(--brand-light)]/50">{formData.is_hero ? 'Featured prominently' : 'Display as main featured'}</p>
+                    <h3 className="font-medium text-[var(--brand-light)]">{t('publicationSettings.featureAsHero')}</h3>
+                    <p className="text-xs text-[var(--brand-light)]/50">{formData.is_hero ? t('publicationSettings.featuredProminently') : t('publicationSettings.displayAsMainFeatured')}</p>
                   </div>
                 </div>
                 <div className={`w-12 h-7 rounded-full p-1 transition-all ${formData.is_hero ? 'bg-[var(--brand-peach)]' : 'bg-[var(--dark-500)]'}`}>
@@ -440,7 +441,7 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                 <div className="bg-[var(--brand-peach)]/10 rounded-xl p-3 border border-[var(--brand-peach)]/20">
                   <div className="flex items-start gap-2">
                     <Sparkles className="w-4 h-4 text-[var(--brand-peach)] flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-[var(--brand-peach)]">Setting this as hero will remove hero status from any other article.</p>
+                    <p className="text-xs text-[var(--brand-peach)]">{t('publicationSettings.heroWarning')}</p>
                   </div>
                 </div>
               )}
@@ -455,8 +456,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                   <Tag className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Tags</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Categorize for better discoverability</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tags.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('tags.description')}</p>
                 </div>
               </div>
             </div>
@@ -479,8 +480,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
               ) : (
                 <div className="text-center py-6">
                   <Tag className="w-8 h-8 text-[var(--brand-light)]/20 mx-auto mb-2" />
-                  <p className="text-sm text-[var(--brand-light)]/50 mb-1">No tags available.</p>
-                  <Link href="/admin/super/news/tags/create" className="text-sm text-[var(--brand-primary)] hover:underline">Create your first tag →</Link>
+                  <p className="text-sm text-[var(--brand-light)]/50 mb-1">{t('tags.noTagsAvailable')}</p>
+                  <Link href="/admin/super/news/tags/create" className="text-sm text-[var(--brand-primary)] hover:underline">{t('tags.createFirstTag')}</Link>
                 </div>
               )}
             </div>
@@ -494,8 +495,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                   <Users className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Choose who can see this article</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('targetAudience.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('targetAudience.description')}</p>
                 </div>
               </div>
             </div>
@@ -508,8 +509,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">🌍</span>
                   <div>
-                    <h3 className="font-medium text-[var(--brand-light)]">Everyone</h3>
-                    <p className="text-xs text-[var(--brand-light)]/50">Visible to all user types</p>
+                    <h3 className="font-medium text-[var(--brand-light)]">{t('targetAudience.everyone')}</h3>
+                    <p className="text-xs text-[var(--brand-light)]/50">{t('targetAudience.visibleToAllUserTypes')}</p>
                   </div>
                 </div>
                 <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.target_roles.includes('ALL') ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' : 'border-[var(--dark-400)]'}`}>
@@ -519,7 +520,7 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
 
               {!formData.target_roles.includes('ALL') && (
                 <div className="space-y-2 pt-2">
-                  <p className="text-xs text-[var(--brand-light)]/40 mb-3">Or select specific user types:</p>
+                  <p className="text-xs text-[var(--brand-light)]/40 mb-3">{t('targetAudience.orSelectSpecific')}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {ROLES.map(role => (
                       <div 
@@ -548,11 +549,11 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                   <Lightbulb className="w-4 h-4 text-[var(--brand-peach)]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-1">Writing Tips</h3>
+                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-1">{t('tips.title')}</h3>
                   <ul className="text-xs text-[var(--brand-light)]/50 space-y-1">
-                    <li>• Keep titles under 60 characters</li>
-                    <li>• Write excerpts that create curiosity</li>
-                    <li>• Use headings and short paragraphs</li>
+                    <li>• {t('tips.tip1')}</li>
+                    <li>• {t('tips.tip2')}</li>
+                    <li>• {t('tips.tip3')}</li>
                   </ul>
                 </div>
               </div>
@@ -563,18 +564,18 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
           <div className="px-4 sm:px-0 pb-8">
             <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
               <button type="button" onClick={() => router.push(buildUrlWithParams(redirectPath))} className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all">
-                Cancel
+                {t('actions.cancel')}
               </button>
               <button type="submit" disabled={loading || completionPercent < 100} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                    Saving...
+                    {t('actions.saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    {initialData ? 'Update Article' : 'Create Article'}
+                    {initialData ? t('actions.updateArticle') : t('actions.createArticle')}
                   </>
                 )}
               </button>
@@ -583,8 +584,7 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
 
         </form>
 
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-      </div>
+        </div>
     </div>
   );
 }

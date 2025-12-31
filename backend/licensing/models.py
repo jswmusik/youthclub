@@ -98,6 +98,56 @@ class License(models.Model):
     def __str__(self):
         return f"License for {self.municipality.name} ({self.plan.name})"
 
+class GlobalDataRetentionSettings(models.Model):
+    """
+    Singleton: Global defaults for data retention (GDPR compliance).
+    Managed by Super Admin. Municipalities can override with their own values.
+    """
+    default_retention_months = models.PositiveIntegerField(
+        default=12,
+        help_text="Default months of inactivity before user data is deleted"
+    )
+    min_allowed_retention_months = models.PositiveIntegerField(
+        default=6,
+        help_text="Minimum retention period municipalities can set"
+    )
+    max_allowed_retention_months = models.PositiveIntegerField(
+        default=36,
+        help_text="Maximum retention period municipalities can set"
+    )
+    warning_notification_days = models.PositiveIntegerField(
+        default=30,
+        help_text="Days before deletion to send warning notification to user"
+    )
+    second_warning_notification_days = models.PositiveIntegerField(
+        default=7,
+        help_text="Days before deletion to send final warning notification"
+    )
+    is_auto_deletion_enabled = models.BooleanField(
+        default=False,
+        help_text="If False, system only logs who would be deleted (dry run mode)"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk and GlobalDataRetentionSettings.objects.exists():
+            raise ValidationError('There can be only one GlobalDataRetentionSettings instance')
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Data Retention Settings (Default: {self.default_retention_months} months)"
+
+    class Meta:
+        verbose_name = "Global Data Retention Settings"
+        verbose_name_plural = "Global Data Retention Settings"
+
+    @classmethod
+    def get_settings(cls):
+        """Returns the singleton instance, creating with defaults if needed."""
+        instance, _ = cls.objects.get_or_create(pk=1)
+        return instance
+
+
 class LicenseRequest(models.Model):
     """
     Requests from Municipality Admins to upgrade/change their deal.

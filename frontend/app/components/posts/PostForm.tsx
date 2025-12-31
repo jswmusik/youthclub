@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
     ArrowLeft, Upload, X, Globe, Building, Users, FileText, Image, Video,
@@ -13,7 +14,7 @@ import api from '../../../lib/api';
 import { Post, PostImage } from '../../../types/post';
 import PostRichTextEditor from './PostRichTextEditor';
 import { getMediaUrl } from '../../utils';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
 
 interface PostFormProps {
@@ -25,13 +26,12 @@ interface PostFormProps {
 export default function PostForm({ initialData, role, onSuccess }: PostFormProps) {
     const router = useRouter();
     const { user: currentUser } = useAuth();
+    const t = useTranslations('postsManager.form');
     const progressPlaceholderRef = useRef<HTMLDivElement>(null);
     
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '', type: 'success', isVisible: false,
-    });
+    const { success, error: showError, info, warning } = useToast();
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const [isProgressFixed, setIsProgressFixed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -203,7 +203,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         else if (role === 'municipality') {
             isGlobal = false;
             if (distributionMode === 'GLOBAL') {
-                setError('Municipality admins cannot create global posts.');
+                setError(t('toast.municipalityCannotCreateGlobal'));
                 setLoading(false);
                 return;
             }
@@ -269,22 +269,22 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         try {
             if (initialData) {
                 await api.patch(`/posts/${initialData.id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-                setToast({ message: 'Post updated successfully!', type: 'success', isVisible: true });
+                success(t('toast.postUpdated'));
             } else {
                 await api.post('/posts/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-                setToast({ message: 'Post created successfully!', type: 'success', isVisible: true });
+                success(t('toast.postCreated'));
             }
             setTimeout(() => onSuccess(), 1000);
         } catch (err: any) {
             console.error(err);
-            let msg = 'Failed to save post.';
+            let msg = t('toast.failedToSave');
             if (err.response?.data) {
                if (typeof err.response.data === 'string') msg = err.response.data;
                else if (err.response.data.detail) msg = err.response.data.detail;
                else msg = JSON.stringify(err.response.data);
             }
             setError(msg);
-            setToast({ message: msg, type: 'error', isVisible: true });
+            showError(msg);
         } finally {
             setLoading(false);
         }
@@ -299,15 +299,15 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                         <div className="w-16 h-16 rounded-full bg-[var(--brand-red)]/20 flex items-center justify-center mx-auto mb-4">
                             <EyeOff className="w-8 h-8 text-[var(--brand-red)]" />
                         </div>
-                        <h2 className="text-xl font-bold text-[var(--brand-light)] mb-2">Access Denied</h2>
+                        <h2 className="text-xl font-bold text-[var(--brand-light)] mb-2">{t('accessDenied.title')}</h2>
                         <p className="text-[var(--brand-light)]/60 mb-6">
-                            You do not have permission to edit global posts. Only super admins can create and edit global posts.
+                            {t('accessDenied.message')}
                         </p>
                         <button 
                             onClick={() => router.back()}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-purple)] transition-all"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-purple)] transition-all"
                         >
-                            <ArrowLeft className="w-4 h-4" /> Go Back
+                            <ArrowLeft className="w-4 h-4" /> {t('accessDenied.goBack')}
                         </button>
                     </div>
                 </div>
@@ -347,10 +347,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                     </Link>
                     <div className="flex-1">
                         <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-                            {initialData ? 'Edit Post' : 'Create New Post'}
+                            {initialData ? t('editTitle') : t('createTitle')}
                         </h1>
                         <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-                            {initialData ? 'Update your post content and settings' : 'Share updates, news, or media with your members'}
+                            {initialData ? t('editDescription') : t('createDescription')}
                         </p>
                     </div>
                 </div>
@@ -359,7 +359,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                 <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
                     <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                            <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                             <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                         </div>
                         <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -368,7 +368,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                         {completionPercent === 100 && (
                             <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                                 <CheckCircle2 className="w-4 h-4" />
-                                <span className="text-sm font-medium">Ready to publish!</span>
+                                <span className="text-sm font-medium">{t('progress.readyToPublish')}</span>
                             </div>
                         )}
                     </div>
@@ -379,7 +379,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                     <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
                         <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                             </div>
                             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -407,8 +407,8 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     <FileText className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Post Content</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Enter the title and content for your post</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('postContent.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('postContent.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -416,11 +416,11 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                         <div className="p-4 sm:p-6 space-y-6">
                             {/* Title */}
                             <div>
-                                <label className={labelClasses}>Title <span className="text-[var(--brand-red)]">*</span></label>
+                                <label className={labelClasses}>{t('postContent.titleLabel')} <span className="text-[var(--brand-red)]">*</span></label>
                                 <input 
                                     type="text" 
                                     required 
-                                    placeholder="Enter a catchy title..."
+                                    placeholder={t('postContent.titlePlaceholder')}
                                     className={inputClasses('title')}
                                     value={title} 
                                     onChange={e => setTitle(e.target.value)} 
@@ -431,10 +431,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
 
                             {/* Content */}
                             <div>
-                                <label className={labelClasses}>Content</label>
+                                <label className={labelClasses}>{t('postContent.contentLabel')}</label>
                                 <PostRichTextEditor value={content} onChange={setContent} />
                                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                                    Use bold, italic, underline, strikethrough, or add links to format your text
+                                    {t('postContent.contentHint')}
                                 </p>
                             </div>
                         </div>
@@ -448,8 +448,8 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     <Image className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Media Type</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Choose the type of media for this post</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('mediaType.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('mediaType.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -457,9 +457,9 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                         <div className="p-4 sm:p-6 space-y-4">
                             <div className="flex flex-wrap gap-3">
                                 {[
-                                    { type: 'TEXT', icon: FileText, label: 'Text Only' },
-                                    { type: 'IMAGE', icon: Image, label: 'With Images' },
-                                    { type: 'VIDEO', icon: Video, label: 'With Video' }
+                                    { type: 'TEXT', icon: FileText, label: t('mediaType.textOnly') },
+                                    { type: 'IMAGE', icon: Image, label: t('mediaType.withImages') },
+                                    { type: 'VIDEO', icon: Video, label: t('mediaType.withVideo') }
                                 ].map(({ type, icon: Icon, label }) => (
                                     <button 
                                         key={type} 
@@ -502,7 +502,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                         </div>
                                     )}
                                     <div>
-                                        <label className={labelClasses}>Upload Images</label>
+                                        <label className={labelClasses}>{t('mediaType.uploadImages')}</label>
                                         <div className="relative">
                                             <input 
                                                 type="file" 
@@ -514,7 +514,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                             <div className="flex items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed border-[var(--dark-500)] bg-[var(--dark-700)]/50 hover:border-[var(--brand-primary)]/50 transition-colors">
                                                 <Upload className="w-5 h-5 text-[var(--brand-light)]/40" />
                                                 <span className="text-[var(--brand-light)]/60">
-                                                    {newImages.length > 0 ? `${newImages.length} file(s) selected` : 'Click or drag to upload images'}
+                                                    {newImages.length > 0 ? t('mediaType.filesSelected', { count: newImages.length }) : t('mediaType.clickOrDrag')}
                                                 </span>
                                             </div>
                                         </div>
@@ -524,10 +524,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                             
                             {postType === 'VIDEO' && (
                                 <div className="pt-4 border-t border-[var(--dark-600)]">
-                                    <label className={labelClasses}>YouTube URL</label>
+                                    <label className={labelClasses}>{t('mediaType.youtubeUrl')}</label>
                                     <input 
                                         type="url" 
-                                        placeholder="https://www.youtube.com/watch?v=..." 
+                                        placeholder={t('mediaType.youtubePlaceholder')}
                                         className={inputClasses('videoUrl')}
                                         value={videoUrl} 
                                         onChange={e => setVideoUrl(e.target.value)}
@@ -547,8 +547,8 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     <Globe className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Distribution Scope</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Choose where this post will be visible</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('distributionScope.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('distributionScope.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -559,9 +559,9 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                 <>
                                     <div className="flex flex-wrap gap-3">
                                         {[
-                                            { mode: 'GLOBAL', icon: Globe, label: 'Global (All Users)' },
-                                            { mode: 'MUNICIPALITY', icon: Building, label: 'Specific Municipalities' },
-                                            { mode: 'CLUB', icon: Users, label: 'Specific Clubs' }
+                                            { mode: 'GLOBAL', icon: Globe, label: t('distributionScope.global') },
+                                            { mode: 'MUNICIPALITY', icon: Building, label: t('distributionScope.specificMunicipalities') },
+                                            { mode: 'CLUB', icon: Users, label: t('distributionScope.specificClubs') }
                                         ].map(({ mode, icon: Icon, label }) => (
                                             <button
                                                 key={mode}
@@ -630,7 +630,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                             }`}
                                         >
                                             <Building className="w-4 h-4" />
-                                            Entire Municipality
+                                            {t('distributionScope.entireMunicipality')}
                                         </button>
                                         <button
                                             type="button"
@@ -642,7 +642,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                             }`}
                                         >
                                             <Users className="w-4 h-4" />
-                                            Specific Clubs
+                                            {t('distributionScope.specificClubsLabel')}
                                         </button>
                                     </div>
 
@@ -660,7 +660,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                                         <span className="text-sm text-[var(--brand-light)]/80">{c.name}</span>
                                                     </label>
                                                 ))}
-                                                {clubs.length === 0 && <p className="text-sm text-[var(--brand-light)]/50 col-span-2">No clubs found.</p>}
+                                                {clubs.length === 0 && <p className="text-sm text-[var(--brand-light)]/50 col-span-2">{t('distributionScope.noClubsFound')}</p>}
                                             </div>
                                         </div>
                                     )}
@@ -672,7 +672,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                 <div className="bg-[var(--brand-green)]/10 p-4 rounded-xl border border-[var(--brand-green)]/30">
                                     <p className="text-sm text-[var(--brand-light)]/80 flex items-center gap-2">
                                         <Globe className="w-4 h-4 text-[var(--brand-green)]" />
-                                        This post will be visible to members of your assigned club.
+                                        {t('distributionScope.clubMembers')}
                                     </p>
                                 </div>
                             )}
@@ -687,8 +687,8 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     <Target className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Define who can see this post</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('targetAudience.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('targetAudience.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -704,7 +704,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                             : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/30'
                                     }`}
                                 >
-                                    Attributes (Age, Interests)
+                                    {t('targetAudience.attributes')}
                                 </button>
                                 <button
                                     type="button"
@@ -715,7 +715,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                             : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/30'
                                     }`}
                                 >
-                                    Specific Groups
+                                    {t('targetAudience.specificGroups')}
                                 </button>
                             </div>
 
@@ -732,26 +732,30 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                             <span className="text-sm text-[var(--brand-light)]/80">{g.name}</span>
                                         </label>
                                     ))}
-                                    {availableGroups.length === 0 && <p className="text-sm text-[var(--brand-light)]/50">No groups available.</p>}
+                                    {availableGroups.length === 0 && <p className="text-sm text-[var(--brand-light)]/50">{t('targetAudience.noGroupsAvailable')}</p>}
                                 </div>
                             ) : (
                                 <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] space-y-4">
                                     {/* Member Type */}
                                     <div>
-                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">Member Type</label>
+                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">{t('targetAudience.memberType')}</label>
                                         <div className="flex flex-wrap gap-2">
-                                            {['BOTH', 'YOUTH', 'GUARDIAN'].map(t => (
+                                            {[
+                                                { value: 'BOTH', label: t('targetAudience.both') },
+                                                { value: 'YOUTH', label: t('targetAudience.youth') },
+                                                { value: 'GUARDIAN', label: t('targetAudience.guardian') }
+                                            ].map(({ value, label }) => (
                                                 <button
-                                                    key={t}
+                                                    key={value}
                                                     type="button"
-                                                    onClick={() => setMemberType(t as any)}
+                                                    onClick={() => setMemberType(value as any)}
                                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                                        memberType === t 
-                                                            ? 'bg-[var(--brand-primary)] text-white' 
+                                                        memberType === value 
+                                                            ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                                                             : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
                                                     }`}
                                                 >
-                                                    {t}
+                                                    {label}
                                                 </button>
                                             ))}
                                         </div>
@@ -760,10 +764,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     {/* Age Range */}
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className={labelClasses}>Min Age</label>
+                                            <label className={labelClasses}>{t('targetAudience.minAge')}</label>
                                             <input 
                                                 type="number" 
-                                                placeholder="Min" 
+                                                placeholder={t('targetAudience.minPlaceholder')}
                                                 className={inputClasses('minAge')}
                                                 value={minAge} 
                                                 onChange={e => setMinAge(e.target.value)}
@@ -772,10 +776,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                             />
                                         </div>
                                         <div>
-                                            <label className={labelClasses}>Max Age</label>
+                                            <label className={labelClasses}>{t('targetAudience.maxAge')}</label>
                                             <input 
                                                 type="number" 
-                                                placeholder="Max" 
+                                                placeholder={t('targetAudience.maxPlaceholder')}
                                                 className={inputClasses('maxAge')}
                                                 value={maxAge} 
                                                 onChange={e => setMaxAge(e.target.value)}
@@ -787,7 +791,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
 
                                     {/* Grades */}
                                     <div>
-                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">Grades</label>
+                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">{t('targetAudience.grades')}</label>
                                         <div className="flex flex-wrap gap-2">
                                             {[1,2,3,4,5,6,7,8,9,10,11,12].map(g => (
                                                 <button 
@@ -808,21 +812,25 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
 
                                     {/* Gender */}
                                     <div>
-                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">Gender</label>
+                                        <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">{t('targetAudience.gender')}</label>
                                         <div className="flex flex-wrap gap-2">
-                                            {['MALE', 'FEMALE', 'OTHER'].map(g => (
-                                                <label key={g} className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-all ${
-                                                    selectedGenders.includes(g) 
-                                                        ? 'bg-[var(--brand-primary)] text-white' 
+                                            {[
+                                                { value: 'MALE', label: t('targetAudience.male', { defaultValue: 'Male' }) },
+                                                { value: 'FEMALE', label: t('targetAudience.female', { defaultValue: 'Female' }) },
+                                                { value: 'OTHER', label: t('targetAudience.other', { defaultValue: 'Other' }) }
+                                            ].map(({ value, label }) => (
+                                                <label key={value} className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-all ${
+                                                    selectedGenders.includes(value) 
+                                                        ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                                                         : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
                                                 }`}>
                                                     <input 
                                                         type="checkbox" 
-                                                        checked={selectedGenders.includes(g)}
-                                                        onChange={() => toggleSelection(g, selectedGenders, setSelectedGenders)}
+                                                        checked={selectedGenders.includes(value)}
+                                                        onChange={() => toggleSelection(value, selectedGenders, setSelectedGenders)}
                                                         className="hidden"
                                                     />
-                                                    <span className="text-sm capitalize">{g.toLowerCase()}</span>
+                                                    <span className="text-sm">{label}</span>
                                                 </label>
                                             ))}
                                         </div>
@@ -831,7 +839,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     {/* Interests */}
                                     {availableInterests.length > 0 && (
                                         <div>
-                                            <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">Interests</label>
+                                            <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-2 block">{t('targetAudience.interests')}</label>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto">
                                                 {availableInterests.map(interest => (
                                                     <label key={interest.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--dark-600)] cursor-pointer transition-colors">
@@ -851,7 +859,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     {/* Custom Fields */}
                                     {availableCustomFields.length > 0 && (
                                         <div className="border-t border-[var(--dark-500)] pt-4">
-                                            <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-3 block">Custom Fields</label>
+                                            <label className="text-xs font-bold uppercase text-[var(--brand-light)]/60 mb-3 block">{t('targetAudience.customFields')}</label>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {availableCustomFields.map(f => (
                                                     <div key={f.id}>
@@ -861,11 +869,11 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                                             value={customFieldRules[f.id] || ''} 
                                                             onChange={e => handleCustomFieldChange(f.id, e.target.value)}
                                                         >
-                                                            <option value="">Any</option>
+                                                            <option value="">{t('targetAudience.any')}</option>
                                                             {f.field_type === 'BOOLEAN' ? (
                                                                 <>
-                                                                    <option value="true">Yes</option>
-                                                                    <option value="false">No</option>
+                                                                    <option value="true">{t('targetAudience.yes')}</option>
+                                                                    <option value="false">{t('targetAudience.no')}</option>
                                                                 </>
                                                             ) : (
                                                                 f.options?.map((o:string) => <option key={o} value={o}>{o}</option>)
@@ -889,8 +897,8 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     <Settings className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Publication Settings</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Configure when and how this post will be published</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('publicationSettings.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('publicationSettings.description')}</p>
                                 </div>
                             </div>
                         </div>
@@ -901,21 +909,21 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                 <div className="space-y-4">
                                     {/* Status */}
                                     <div>
-                                        <label className={labelClasses}>Status</label>
+                                        <label className={labelClasses}>{t('publicationSettings.status')}</label>
                                         <select 
                                             value={status} 
                                             onChange={e => setStatus(e.target.value as any)} 
                                             className={inputClasses('status')}
                                         >
-                                            <option value="DRAFT">Draft</option>
-                                            <option value="PUBLISHED">Publish Now</option>
-                                            <option value="SCHEDULED">Schedule</option>
+                                            <option value="DRAFT">{t('publicationSettings.draft')}</option>
+                                            <option value="PUBLISHED">{t('publicationSettings.publishNow')}</option>
+                                            <option value="SCHEDULED">{t('publicationSettings.schedule')}</option>
                                         </select>
                                     </div>
 
                                     {status === 'SCHEDULED' && (
                                         <div>
-                                            <label className={labelClasses}>Schedule Date & Time</label>
+                                            <label className={labelClasses}>{t('publicationSettings.scheduleDateTime')}</label>
                                             <input 
                                                 type="datetime-local" 
                                                 className={inputClasses('publishedAt')}
@@ -928,7 +936,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     )}
 
                                     <div>
-                                        <label className={labelClasses}>Visibility End Date (Optional)</label>
+                                        <label className={labelClasses}>{t('publicationSettings.visibilityEndDate')}</label>
                                         <input 
                                             type="datetime-local" 
                                             className={inputClasses('visibilityEndDate')}
@@ -951,7 +959,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     >
                                         <div className="flex items-center gap-3">
                                             <Pin className={`w-5 h-5 ${isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/50'}`} />
-                                            <span className={`font-medium ${isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/70'}`}>Pin to top</span>
+                                            <span className={`font-medium ${isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/70'}`}>{t('publicationSettings.pinToTop')}</span>
                                         </div>
                                         <div className={`w-10 h-6 rounded-full transition-colors ${isPinned ? 'bg-[var(--brand-peach)]' : 'bg-[var(--dark-500)]'}`}>
                                             <div className={`w-4 h-4 rounded-full bg-white mt-1 transition-transform ${isPinned ? 'translate-x-5' : 'translate-x-1'}`} />
@@ -973,7 +981,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     >
                                         <div className="flex items-center gap-3">
                                             <MessageSquare className={`w-5 h-5 ${allowComments ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`} />
-                                            <span className={`font-medium ${allowComments ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/70'}`}>Allow Comments</span>
+                                            <span className={`font-medium ${allowComments ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/70'}`}>{t('publicationSettings.allowComments')}</span>
                                         </div>
                                         <div className={`w-10 h-6 rounded-full transition-colors ${allowComments ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'}`}>
                                             <div className={`w-4 h-4 rounded-full bg-white mt-1 transition-transform ${allowComments ? 'translate-x-5' : 'translate-x-1'}`} />
@@ -989,7 +997,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                                     onChange={e => setRequireModeration(e.target.checked)}
                                                     className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                                                 />
-                                                <span className="text-sm text-[var(--brand-light)]/70">Require Moderation</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('publicationSettings.requireModeration')}</span>
                                             </label>
                                             <label className="flex items-center gap-2 cursor-pointer">
                                                 <input 
@@ -998,10 +1006,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                                     onChange={e => setAllowReplies(e.target.checked)}
                                                     className="w-4 h-4 rounded border-[var(--dark-400)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                                                 />
-                                                <span className="text-sm text-[var(--brand-light)]/70">Allow Replies</span>
+                                                <span className="text-sm text-[var(--brand-light)]/70">{t('publicationSettings.allowReplies')}</span>
                                             </label>
                                             <div>
-                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Comment Limit Per User (0 = unlimited)</label>
+                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">{t('publicationSettings.commentLimit')}</label>
                                                 <input 
                                                     type="number" 
                                                     min="0"
@@ -1027,7 +1035,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     >
                                         <div className="flex items-center gap-3">
                                             <Bell className={`w-5 h-5 ${sendPush ? 'text-[var(--brand-blue)]' : 'text-[var(--brand-light)]/50'}`} />
-                                            <span className={`font-medium ${sendPush ? 'text-[var(--brand-blue)]' : 'text-[var(--brand-light)]/70'}`}>Send Push Notification</span>
+                                            <span className={`font-medium ${sendPush ? 'text-[var(--brand-blue)]' : 'text-[var(--brand-light)]/70'}`}>{t('publicationSettings.sendPushNotification')}</span>
                                         </div>
                                         <div className={`w-10 h-6 rounded-full transition-colors ${sendPush ? 'bg-[var(--brand-blue)]' : 'bg-[var(--dark-500)]'}`}>
                                             <div className={`w-4 h-4 rounded-full bg-white mt-1 transition-transform ${sendPush ? 'translate-x-5' : 'translate-x-1'}`} />
@@ -1037,10 +1045,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     {sendPush && (
                                         <div className="pl-4 space-y-3 border-l-2 border-[var(--brand-blue)]/30">
                                             <div>
-                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Notification Title</label>
+                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">{t('publicationSettings.notificationTitle')}</label>
                                                 <input 
                                                     type="text" 
-                                                    placeholder="Notification title" 
+                                                    placeholder={t('publicationSettings.notificationTitlePlaceholder')}
                                                     className={`${inputClasses('pushTitle')} h-9`}
                                                     value={pushTitle} 
                                                     onChange={e => setPushTitle(e.target.value)}
@@ -1049,10 +1057,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">Notification Message</label>
+                                                <label className="text-xs text-[var(--brand-light)]/50 mb-1 block">{t('publicationSettings.notificationMessage')}</label>
                                                 <input 
                                                     type="text" 
-                                                    placeholder="Notification message" 
+                                                    placeholder={t('publicationSettings.notificationMessagePlaceholder')}
                                                     className={`${inputClasses('pushMessage')} h-9`}
                                                     value={pushMessage} 
                                                     onChange={e => setPushMessage(e.target.value)}
@@ -1075,17 +1083,17 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     <Lightbulb className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
-                                    <p className="text-sm text-[var(--brand-light)]/50">Best practices for engaging posts</p>
+                                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('quickTips.title')}</h2>
+                                    <p className="text-sm text-[var(--brand-light)]/50">{t('quickTips.description')}</p>
                                 </div>
                             </div>
                         </div>
                         <div className="p-4 sm:p-6 text-sm text-[var(--brand-light)]/70 space-y-3">
                             <ul className="list-disc list-inside space-y-2 pl-2">
-                                <li>Keep your title short and attention-grabbing</li>
-                                <li>Use images to increase engagement</li>
-                                <li>Pin important announcements to keep them visible</li>
-                                <li>Schedule posts for optimal timing</li>
+                                <li>{t('quickTips.tip1')}</li>
+                                <li>{t('quickTips.tip2')}</li>
+                                <li>{t('quickTips.tip3')}</li>
+                                <li>{t('quickTips.tip4')}</li>
                             </ul>
                         </div>
                     </div>
@@ -1099,30 +1107,22 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                        bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]
                                        hover:bg-[var(--dark-600)] hover:border-[var(--dark-400)] transition-all"
                         >
-                            Cancel
+                            {t('actions.cancel')}
                         </button>
                         <button 
                             type="submit" 
                             disabled={loading} 
                             className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold 
-                                       bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-purple)] transition-all
+                                       bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-purple)] transition-all
                                        disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[150px]"
                         >
                             {loading && <Sparkles className="w-4 h-4 animate-pulse" />}
-                            {loading ? 'Saving...' : (initialData ? 'Update Post' : 'Create Post')}
+                            {loading ? t('actions.saving') : (initialData ? t('actions.updatePost') : t('actions.createPost'))}
                         </button>
                     </div>
                 </form>
 
-                <Toast 
-                    message={toast.message} 
-                    type={toast.type} 
-                    isVisible={toast.isVisible} 
-                    onClose={() => setToast({...toast, isVisible: false})} 
-                    darkMode 
-                    duration={1250}
-                />
-            </div>
+                </div>
         </div>
     );
 }

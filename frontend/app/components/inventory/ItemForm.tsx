@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Upload, X, Tag as TagIcon, Package, Settings, Image, 
@@ -11,7 +12,7 @@ import {
 import { inventoryApi, ItemCategory, InventoryTag, ClubOption } from '@/lib/inventory-api';
 import { useAuth } from '@/context/AuthContext';
 import { getMediaUrl } from '@/app/utils';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface ItemFormProps {
   initialData?: any;
@@ -21,6 +22,8 @@ interface ItemFormProps {
 export default function ItemForm({ initialData, clubId }: ItemFormProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const t = useTranslations('inventoryAdmin.form');
+  const tFilters = useTranslations('inventoryAdmin.filters');
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   
@@ -28,7 +31,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [tags, setTags] = useState<InventoryTag[]>([]);
   const [clubs, setClubs] = useState<ClubOption[]>([]);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -126,18 +129,10 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
 
       if (initialData) {
         await inventoryApi.updateItem(initialData.id, payload);
-        setToast({ 
-          message: 'Item updated successfully!', 
-          type: 'success', 
-          isVisible: true 
-        });
+        success(t('toast.itemUpdated'));
       } else {
         await inventoryApi.createItems(payload);
-        setToast({ 
-          message: `Item${formData.quantity > 1 ? 's' : ''} created successfully!`, 
-          type: 'success', 
-          isVisible: true 
-        });
+        success(formData.quantity > 1 ? t('toast.itemsCreated') : t('toast.itemCreated'));
       }
       
       setTimeout(() => {
@@ -146,12 +141,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
       }, 1000);
     } catch (error: any) {
       console.error('Error details:', error);
-      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to save item.';
-      setToast({ 
-        message: errorMessage, 
-        type: 'error', 
-        isVisible: true 
-      });
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || t('toast.failedToSave');
+      error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -239,10 +230,10 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Item' : 'Create New Item'}
+              {initialData ? t('pageTitle.edit') : t('pageTitle.create')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              {initialData ? 'Update item details and settings' : 'Add a new item to the inventory'}
+              {initialData ? t('pageDescription.edit') : t('pageDescription.create')}
             </p>
           </div>
         </div>
@@ -251,7 +242,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
         <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
           <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -260,7 +251,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Ready to save!</span>
+                <span className="text-sm font-medium">{t('progress.readyToSave')}</span>
               </div>
             )}
           </div>
@@ -271,7 +262,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
           <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
             <div className="w-full md:max-w-4xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -292,8 +283,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   <Package className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter the basic details for this item</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInformation.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('basicInformation.description')}</p>
                 </div>
               </div>
             </div>
@@ -301,11 +292,11 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
             <div className="p-4 sm:p-6 space-y-6">
               {/* Title */}
               <div>
-                <label className={labelClasses}>Item Title <span className="text-[var(--brand-red)]">*</span></label>
+                <label className={labelClasses}>{t('basicInformation.itemTitle')} <span className="text-[var(--brand-red)]">*</span></label>
                 <input 
                   type="text"
                   required
-                  placeholder="e.g. PlayStation 5 Controller"
+                  placeholder={t('basicInformation.titlePlaceholder')}
                   className={inputClasses('title')}
                   value={formData.title}
                   onChange={e => setFormData({...formData, title: e.target.value})}
@@ -322,8 +313,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                       <Layers className="w-4 h-4 text-[var(--brand-purple)]" />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-[var(--brand-light)] mb-1">Batch Create</label>
-                      <p className="text-xs text-[var(--brand-light)]/50 mb-3">Create multiple copies at once (e.g. 10 Rackets)</p>
+                      <label className="block text-sm font-medium text-[var(--brand-light)] mb-1">{t('basicInformation.batchCreate')}</label>
+                      <p className="text-xs text-[var(--brand-light)]/50 mb-3">{t('basicInformation.batchCreateDescription')}</p>
                       <input
                         type="number"
                         min="1"
@@ -340,7 +331,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
               {/* Category & Club Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClasses}>Category</label>
+                  <label className={labelClasses}>{t('basicInformation.category')}</label>
                   <select
                     className={selectClasses('category')}
                     style={selectArrowStyle}
@@ -349,7 +340,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                     onFocus={() => setFocusedField('category')}
                     onBlur={() => setFocusedField(null)}
                   >
-                    <option value="">Select Category...</option>
+                    <option value="">{t('basicInformation.selectCategory')}</option>
                     {(Array.isArray(categories) ? categories : []).map(c => (
                       <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                     ))}
@@ -358,7 +349,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
 
                 {((user?.role === 'SUPER_ADMIN' || user?.role === 'MUNICIPALITY_ADMIN') && !clubId) && (
                   <div>
-                    <label className={labelClasses}>Assign to Club <span className="text-[var(--brand-red)]">*</span></label>
+                    <label className={labelClasses}>{t('basicInformation.assignToClub')} <span className="text-[var(--brand-red)]">*</span></label>
                     <select
                       required
                       className={selectClasses('club')}
@@ -368,7 +359,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                       onFocus={() => setFocusedField('club')}
                       onBlur={() => setFocusedField(null)}
                     >
-                      <option value="">Select a Club...</option>
+                      <option value="">{t('basicInformation.selectClub')}</option>
                       {(Array.isArray(clubs) ? clubs : []).map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
@@ -379,17 +370,17 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
 
               {/* Description */}
               <div>
-                <label className={labelClasses}>Description</label>
+                <label className={labelClasses}>{t('basicInformation.itemDescription')}</label>
                 <textarea
                   rows={3}
-                  placeholder="Enter item description..."
+                  placeholder={t('basicInformation.descriptionPlaceholder')}
                   className={textareaClasses('description')}
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   onFocus={() => setFocusedField('description')}
                   onBlur={() => setFocusedField(null)}
                 />
-                <p className="text-xs text-[var(--brand-light)]/40 mt-2">A brief description helps users understand what this item is</p>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('basicInformation.descriptionHint')}</p>
               </div>
             </div>
           </div>
@@ -402,8 +393,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   <Image className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Item Image</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Upload an image for this item</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('itemImage.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('itemImage.description')}</p>
                 </div>
               </div>
             </div>
@@ -424,26 +415,26 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   ) : (
                     <div className="text-center p-4">
                       <Image className="h-8 w-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
-                      <span className="text-sm text-[var(--brand-light)]/40">Click to upload</span>
-                      <p className="text-xs text-[var(--brand-light)]/30 mt-1">800 × 800px</p>
+                      <span className="text-sm text-[var(--brand-light)]/40">{t('itemImage.clickToUpload')}</span>
+                      <p className="text-xs text-[var(--brand-light)]/30 mt-1">{t('itemImage.imageSize')}</p>
                     </div>
                   )}
                 </div>
                 <div className="flex-1 space-y-3">
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => imageRef.current?.click()} className="px-4 py-2.5 bg-[var(--dark-600)] text-[var(--brand-light)] text-sm font-medium rounded-xl hover:bg-[var(--dark-500)] transition-all">
-                      Choose File
+                      {t('itemImage.chooseFile')}
                     </button>
                     {imagePreview && (
                       <button type="button" onClick={handleRemoveImage} className="px-4 py-2.5 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-sm font-medium rounded-xl hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-2">
-                        <X className="h-4 w-4" /> Remove
+                        <X className="h-4 w-4" /> {t('itemImage.remove')}
                       </button>
                     )}
                   </div>
                   <div className="bg-[var(--dark-700)] rounded-xl p-3 border border-[var(--dark-500)]">
                     <div className="flex items-start gap-2">
                       <Lightbulb className="w-4 h-4 text-[var(--brand-peach)] flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-[var(--brand-light)]/50">Square images (1:1 ratio) work best for item thumbnails.</p>
+                      <p className="text-xs text-[var(--brand-light)]/50">{t('itemImage.imageHint')}</p>
                     </div>
                   </div>
                 </div>
@@ -460,8 +451,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   <Settings className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Settings</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Configure borrowing settings and internal notes</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('settings.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('settings.description')}</p>
                 </div>
               </div>
             </div>
@@ -473,7 +464,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   <label className={labelClasses}>
                     <span className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-[var(--brand-light)]/50" />
-                      Max Borrow Time (Minutes)
+                      {t('settings.maxBorrowTime')}
                     </span>
                   </label>
                   <input
@@ -484,12 +475,12 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                     onFocus={() => setFocusedField('max_borrow_duration')}
                     onBlur={() => setFocusedField(null)}
                   />
-                  <p className="text-xs text-[var(--brand-light)]/40 mt-2">Default is 60 minutes</p>
+                  <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('settings.maxBorrowTimeHint')}</p>
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className={labelClasses}>Status</label>
+                  <label className={labelClasses}>{t('settings.status')}</label>
                   <select
                     className={selectClasses('status')}
                     style={selectArrowStyle}
@@ -498,28 +489,28 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                     onFocus={() => setFocusedField('status')}
                     onBlur={() => setFocusedField(null)}
                   >
-                    <option value="AVAILABLE">Available</option>
-                    <option value="BORROWED">Borrowed</option>
-                    <option value="MAINTENANCE">Maintenance</option>
-                    <option value="MISSING">Missing</option>
-                    <option value="HIDDEN">Hidden</option>
+                    <option value="AVAILABLE">{tFilters('available')}</option>
+                    <option value="BORROWED">{tFilters('borrowed')}</option>
+                    <option value="MAINTENANCE">{tFilters('maintenance')}</option>
+                    <option value="MISSING">{tFilters('missing')}</option>
+                    <option value="HIDDEN">{tFilters('hidden')}</option>
                   </select>
                 </div>
               </div>
 
               {/* Internal Note */}
               <div>
-                <label className={labelClasses}>Internal Note</label>
+                <label className={labelClasses}>{t('settings.internalNote')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Purchased 2024, Serial #12345"
+                  placeholder={t('settings.internalNotePlaceholder')}
                   className={inputClasses('internal_note')}
                   value={formData.internal_note}
                   onChange={e => setFormData({...formData, internal_note: e.target.value})}
                   onFocus={() => setFocusedField('internal_note')}
                   onBlur={() => setFocusedField(null)}
                 />
-                <p className="text-xs text-[var(--brand-light)]/40 mt-2">Only visible to admins</p>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('settings.internalNoteHint')}</p>
               </div>
             </div>
           </div>
@@ -532,8 +523,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   <TagIcon className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Tags</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Assign tags to help categorize and find this item</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tags.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('tags.description')}</p>
                 </div>
               </div>
             </div>
@@ -563,7 +554,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   
                   {formData.tags.length > 0 && (
                     <div className="flex items-center gap-2 pt-2 border-t border-[var(--dark-600)]">
-                      <span className="text-sm text-[var(--brand-light)]/50">Selected:</span>
+                      <span className="text-sm text-[var(--brand-light)]/50">{t('tags.selected')}</span>
                       <div className="flex flex-wrap gap-2">
                         {(formData.tags as number[]).map(tagId => {
                           const tag = tags.find(t => t.id === tagId);
@@ -582,8 +573,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   <div className="w-12 h-12 rounded-xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-3">
                     <TagIcon className="w-6 h-6 text-[var(--brand-light)]/30" />
                   </div>
-                  <p className="text-sm text-[var(--brand-light)]/50">No tags available</p>
-                  <p className="text-xs text-[var(--brand-light)]/30 mt-1">Create tags in the Tags management page</p>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('tags.noTagsAvailable')}</p>
+                  <p className="text-xs text-[var(--brand-light)]/30 mt-1">{t('tags.createTagsMessage')}</p>
                 </div>
               )}
             </div>
@@ -597,8 +588,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   <Lightbulb className="w-5 h-5 text-[var(--brand-primary)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Best practices for inventory items</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('quickTips.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('quickTips.description')}</p>
                 </div>
               </div>
             </div>
@@ -607,19 +598,19 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-[var(--brand-light)]/70">Use clear, descriptive titles that members can easily search for</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('quickTips.tip1')}</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-[var(--brand-light)]/70">Add relevant tags to help with filtering and organization</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('quickTips.tip2')}</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-[var(--brand-light)]/70">Set appropriate borrow durations based on item type</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('quickTips.tip3')}</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-[var(--brand-light)]/70">Use internal notes to track purchase dates, serial numbers, etc.</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('quickTips.tip4')}</span>
                 </li>
               </ul>
             </div>
@@ -632,29 +623,21 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
               onClick={() => router.back()}
               className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : (initialData ? 'Update Item' : 'Create Item')}
+              {loading ? t('actions.saving') : (initialData ? t('actions.updateItem') : t('actions.createItem'))}
             </button>
           </div>
 
           {/* Toast Notification */}
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            isVisible={toast.isVisible}
-            onClose={() => setToast({ ...toast, isVisible: false })}
-            darkMode
-          />
         </form>
       </div>
     </div>
   );
 }
-
 

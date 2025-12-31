@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import PermissionDenied
 from django.utils import timezone
 from users.permissions import IsSuperAdmin
@@ -13,6 +13,9 @@ class SystemMessageViewSet(viewsets.ModelViewSet):
     serializer_class = SystemMessageSerializer
 
     def get_permissions(self):
+        # Public endpoint - no authentication required
+        if self.action == 'public_latest':
+            return [AllowAny()]
         # Logged in users can view/dismiss their applicable messages
         if self.action in ['my_latest', 'active_list', 'dismiss', 'destroy']:
             return [IsAuthenticated()]
@@ -21,6 +24,27 @@ class SystemMessageViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated()]
         # Only Super Admins can manage everything else (create/update)
         return [IsSuperAdmin()]
+
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def public_latest(self, request):
+        """
+        Returns the SINGLE latest active message targeted to ALL or PUBLIC users.
+        This endpoint is accessible without authentication.
+        """
+        now = timezone.now()
+        
+        # Get all active messages (not expired) that target ALL or PUBLIC
+        active_messages = SystemMessage.objects.filter(
+            expires_at__gt=now
+        ).order_by('-created_at')
+        
+        # Filter for messages that target "ALL" or "PUBLIC"
+        for msg in active_messages:
+            target_roles = msg.target_roles if isinstance(msg.target_roles, list) else []
+            if "ALL" in target_roles or "PUBLIC" in target_roles:
+                return Response(SystemMessageSerializer(msg).data)
+        
+        return Response(None)
 
     @action(detail=False, methods=['get'])
     def my_latest(self, request):

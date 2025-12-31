@@ -17,7 +17,7 @@ import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { useAuth } from '@/context/AuthContext';
 import { X } from 'lucide-react';
-import YouthFooter from '@/app/components/youth/YouthFooter';
+import Footer from '@/app/components/Footer';
 
 export default function ClubDetailsPage() {
   const params = useParams();
@@ -171,7 +171,8 @@ export default function ClubDetailsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--dark-900)] pb-24 md:pb-12">
+    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+      <div className="flex-1 pb-24 md:pb-12">
       {/* Fixed NavBar with hamburger menu */}
       <NavBar 
         darkMode={true} 
@@ -256,9 +257,10 @@ export default function ClubDetailsPage() {
           )}
         </div>
       </div>
+      </div>
       
       {/* Footer */}
-      <YouthFooter />
+      <Footer />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -10,7 +11,7 @@ import {
 import { questionnaireApi } from '../../../lib/questionnaire-api';
 import api from '../../../lib/api';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -21,9 +22,11 @@ interface SwipeableCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onClick: () => void;
+  editText: string;
+  deleteText: string;
 }
 
-function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+function SwipeableCard({ children, onEdit, onDelete, onClick, editText, deleteText }: SwipeableCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -110,14 +113,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{editText}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{deleteText}</span>
         </button>
       </div>
 
@@ -204,6 +207,7 @@ interface QuestionnaireManagerProps {
 }
 
 export default function QuestionnaireManager({ basePath, scope }: QuestionnaireManagerProps) {
+  const t = useTranslations('questionnairesAdmin');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -222,7 +226,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
   const [clubs, setClubs] = useState<any[]>([]);
   
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   
   const updateUrl = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -313,7 +317,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
       setTotalCount(res.data.count || 0);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Error fetching questionnaires', type: 'error', isVisible: true });
+      error(t('toasts.fetchError'));
     } finally {
       const elapsed = Date.now() - startTime;
       const remaining = MIN_LOADING_TIME - elapsed;
@@ -338,11 +342,11 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     if (!itemToDelete) return;
     try {
       await questionnaireApi.delete(itemToDelete.id);
-      setToast({ message: 'Questionnaire deleted', type: 'success', isVisible: true });
+      success('Questionnaire deleted');
       fetchData();
       fetchAnalytics();
     } catch (err) {
-      setToast({ message: 'Failed to delete', type: 'error', isVisible: true });
+      error('Failed to delete');
     } finally {
       setItemToDelete(null);
     }
@@ -352,15 +356,11 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     const newStatus = item.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
     try {
       await questionnaireApi.update(item.id, { status: newStatus });
-      setToast({ 
-        message: newStatus === 'PUBLISHED' ? 'Questionnaire published' : 'Questionnaire unpublished', 
-        type: 'success', 
-        isVisible: true 
-      });
+      success(newStatus === 'PUBLISHED' ? t('toasts.published') : t('toasts.unpublished'));
       fetchData();
       fetchAnalytics();
     } catch (err) {
-      setToast({ message: 'Failed to update status', type: 'error', isVisible: true });
+      error(t('toasts.statusUpdateFailed'));
     }
   };
 
@@ -388,14 +388,20 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
     if (expirationDate) {
       const expDate = new Date(expirationDate);
       if (expDate < new Date()) {
-        return 'ARCHIVED';
+        return t('statuses.archived');
       }
     }
     
     if (status === 'DRAFT' && scheduledPublishDate) {
-      return 'SCHEDULED';
+      return t('statuses.scheduled');
     }
-    return status;
+    
+    switch (status) {
+      case 'DRAFT': return t('statuses.draft');
+      case 'PUBLISHED': return t('statuses.published');
+      case 'ARCHIVED': return t('statuses.archived');
+      default: return status;
+    }
   };
 
   return (
@@ -409,14 +415,14 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
               <ClipboardList className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Questionnaires</h1>
-              <p className="text-[var(--brand-light)]/60 text-sm mt-1">Manage questionnaires for your organization</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+              <p className="text-[var(--brand-light)]/60 text-sm mt-1">{t('subtitle')}</p>
             </div>
           </div>
           <Link href={`${basePath}/create`}>
             <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
-              Create New
+              {t('createNew')}
             </button>
           </Link>
         </div>
@@ -429,7 +435,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
           >
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[var(--brand-primary)]" />
-              <span className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</span>
+              <span className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</span>
             </div>
             <ChevronUp className={`w-4 h-4 text-[var(--brand-light)]/60 transition-transform ${analyticsExpanded ? '' : 'rotate-180'}`} />
           </button>
@@ -443,7 +449,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                       <FileText className="w-5 h-5 text-[var(--brand-primary)]" />
                     </div>
                     <div>
-                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">Total Created</p>
+                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">{t('analytics.totalCreated')}</p>
                       <p className="text-2xl font-bold text-[var(--brand-light)]">{analytics.total_created}</p>
                     </div>
                   </div>
@@ -455,7 +461,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                       <CheckCircle2 className="w-5 h-5 text-green-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">Completed</p>
+                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">{t('analytics.completed')}</p>
                       <p className="text-2xl font-bold text-[var(--brand-light)]">{analytics.total_completed}</p>
                     </div>
                   </div>
@@ -467,7 +473,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                       <PlayCircle className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">Started</p>
+                      <p className="text-xs text-[var(--brand-light)]/50 font-medium">{t('analytics.started')}</p>
                       <p className="text-2xl font-bold text-[var(--brand-light)]">{analytics.total_started}</p>
                     </div>
                   </div>
@@ -485,7 +491,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
               <input
                 type="text"
-                placeholder="Search questionnaires..."
+                placeholder={t('filters.search')}
                 value={searchParams.get('search') || ''}
                 onChange={e => updateUrl('search', e.target.value)}
                 className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] placeholder:text-[var(--brand-light)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition-all"
@@ -498,10 +504,10 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
               onChange={e => updateUrl('status', e.target.value)}
               className="h-10 px-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition-all"
             >
-              <option value="">All Statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="ARCHIVED">Archived</option>
+              <option value="">{t('filters.allStatuses')}</option>
+              <option value="DRAFT">{t('statuses.draft')}</option>
+              <option value="PUBLISHED">{t('statuses.published')}</option>
+              <option value="ARCHIVED">{t('statuses.archived')}</option>
             </select>
             
             {/* Municipality Filter - Only for SUPER scope */}
@@ -521,7 +527,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                 }}
                 className="h-10 px-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition-all"
               >
-                <option value="">All Municipalities</option>
+                <option value="">{t('filters.allMunicipalities')}</option>
                 {municipalities.map(m => (
                   <option key={m.id} value={m.id.toString()}>{m.name}</option>
                 ))}
@@ -534,7 +540,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
               className="h-10 px-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all flex items-center justify-center gap-2"
             >
               <X className="w-4 h-4" />
-              Clear
+              {t('filters.clear')}
             </button>
           </div>
         </div>
@@ -542,8 +548,8 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
         {/* Stats Bar */}
         <div className="flex items-center justify-between text-sm px-4 sm:px-0">
           <span className="text-[var(--brand-light)]/60">
-            Showing <span className="font-semibold text-[var(--brand-light)]">{items.length}</span> of{' '}
-            <span className="font-semibold text-[var(--brand-light)]">{totalCount}</span> questionnaires
+            {t('stats.showing')} <span className="font-semibold text-[var(--brand-light)]">{items.length}</span> {t('stats.of')}{' '}
+            <span className="font-semibold text-[var(--brand-light)]">{totalCount}</span> {t('stats.questionnaires')}
           </span>
         </div>
 
@@ -562,11 +568,11 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Responses</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.title')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.status')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.expires')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.responses')}</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -582,7 +588,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
             <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
               <ClipboardList className="w-8 h-8 text-[var(--brand-light)]/40" />
             </div>
-            <p className="text-[var(--brand-light)]/60 text-lg">No questionnaires found</p>
+            <p className="text-[var(--brand-light)]/60 text-lg">{t('empty')}</p>
             <p className="text-[var(--brand-light)]/40 text-sm mt-1">Try adjusting your filters or create a new questionnaire</p>
           </div>
         ) : (
@@ -595,6 +601,8 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                   onClick={() => router.push(buildUrlWithParams(`${basePath}/${q.id}/analytics`))}
                   onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${q.id}`))}
                   onDelete={() => setItemToDelete(q)}
+                  editText={t('swipeActions.edit')}
+                  deleteText={t('swipeActions.delete')}
                 >
                   <div className="p-4 border-y border-[var(--dark-600)]">
                     <div className="flex items-start gap-3">
@@ -614,7 +622,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                             {q.expiration_date ? new Date(q.expiration_date).toLocaleDateString() : 'No expiry'}
                           </span>
                           <span className="text-xs text-[var(--brand-light)]/50">
-                            {q.response_count || 0} responses
+                            {t('responses.count', { count: q.response_count || 0 })}
                           </span>
                         </div>
                       </div>
@@ -629,11 +637,11 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Responses</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.title')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.status')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.expires')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.responses')}</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -668,7 +676,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                       <td className="px-6 py-4">
                         <span className="text-sm text-[var(--brand-light)]">
                           <span className="font-semibold">{q.response_count || 0}</span>{' '}
-                          <span className="text-[var(--brand-light)]/50">completed</span>
+                          <span className="text-[var(--brand-light)]/50">{t('responses.completed')}</span>
                         </span>
                       </td>
                       <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
@@ -682,7 +690,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                             <button 
                               className="w-8 h-8 rounded-lg flex items-center justify-center text-green-400 hover:bg-green-500/20 transition-all"
                               onClick={() => handleTogglePublish(q)}
-                              title="Published - Click to unpublish"
+                              title={t('actions.published')}
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </button>
@@ -690,7 +698,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
                             <button 
                               className="w-8 h-8 rounded-lg flex items-center justify-center text-yellow-400 hover:bg-yellow-500/20 transition-all"
                               onClick={() => handleTogglePublish(q)}
-                              title="Not published - Click to publish"
+                              title={t('actions.notPublished')}
                             >
                               <Clock className="w-4 h-4" />
                             </button>
@@ -748,7 +756,6 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
         itemName={itemToDelete?.title}
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
-    </div>
+      </div>
   );
 }

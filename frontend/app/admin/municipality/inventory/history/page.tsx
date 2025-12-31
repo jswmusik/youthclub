@@ -2,15 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { inventoryApi, Item } from '@/lib/inventory-api';
 import LendingHistoryTable from '@/app/components/inventory/LendingHistoryTable';
-import { BarChart3, ChevronUp, Package, CheckCircle, Clock, Search, X, Calendar, ChevronLeft, UsersRound } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { BarChart3, ChevronUp, ChevronDown, Package, CheckCircle, Clock, Search, X, Calendar, ChevronLeft, UsersRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HistoryAnalytics {
@@ -26,6 +23,7 @@ export default function MunicipalityInventoryHistoryPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const t = useTranslations('inventoryAdmin.globalHistory');
     
     const [sessions, setSessions] = useState([]);
     const [items, setItems] = useState<Item[]>([]);
@@ -152,243 +150,238 @@ export default function MunicipalityInventoryHistoryPage() {
     };
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-6 md:py-8 px-0 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="px-4 sm:px-6 md:px-8">
                 <Link href="/admin/municipality/inventory">
-                    <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
+                    <button className="flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-colors mb-4">
                         <ChevronLeft className="h-4 w-4" />
-                        Back to Inventory
-                    </Button>
+                        {t('backToInventory')}
+                    </button>
                 </Link>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 md:px-8">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Lending History</h1>
-                    <p className="text-gray-500 mt-1">See who borrowed items and when across all clubs in your municipality.</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+                    <p className="text-[var(--brand-light)]/50 text-sm mt-1">{t('description')}</p>
                 </div>
             </div>
 
-            {/* Analytics */}
-            <Collapsible open={analyticsExpanded} onOpenChange={setAnalyticsExpanded} className="space-y-2">
-                <Card className="border-0 shadow-sm bg-gray-900">
-                    <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-                        <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-gray-400" />
-                            <h3 className="text-sm font-semibold text-white drop-shadow-[0_0_8px_rgba(77,77,164,0.6)]" style={{ textShadow: '0 0 8px rgba(255, 84, 133, 0.4), 0 0 12px rgba(77, 77, 164, 0.3)' }}>
-                                Analytics Dashboard
-                            </h3>
+            {/* Analytics Dashboard */}
+            {!analyticsLoading && analytics && (
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                    <button 
+                        onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+                        className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
                         </div>
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="w-9 p-0 h-8 text-gray-400 hover:text-white hover:bg-gray-800">
-                                <ChevronUp className={cn(
-                                    "h-3.5 w-3.5 transition-transform duration-300 ease-in-out",
-                                    analyticsExpanded ? "rotate-0" : "rotate-180"
-                                )} />
-                                <span className="sr-only">Toggle Analytics</span>
-                            </Button>
-                        </CollapsibleTrigger>
+                        {analyticsExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
+                        ) : (
+                            <ChevronDown className="h-4 w-4 text-[var(--brand-light)]/50" />
+                        )}
+                    </button>
+                    
+                    <div className={`overflow-hidden transition-all duration-300 ${analyticsExpanded ? 'max-h-96' : 'max-h-0'}`}>
+                        <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                            {/* Total Borrowed */}
+                            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                                        <Package className="h-5 w-5 text-white" />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.totalBorrowed')}</span>
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_borrowed}</div>
+                            </div>
+
+                            {/* Demographics */}
+                            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-red)]/50 transition-all">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-red)] to-[var(--brand-peach)] flex items-center justify-center">
+                                        <UsersRound className="h-5 w-5 text-white" />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.demographics')}</span>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between text-xs sm:text-sm">
+                                        <span className="text-[var(--brand-light)]/60">{t('analytics.male')}:</span>
+                                        <span className="font-bold text-[var(--brand-light)]">{analytics.borrowed_male}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs sm:text-sm">
+                                        <span className="text-[var(--brand-light)]/60">{t('analytics.female')}:</span>
+                                        <span className="font-bold text-[var(--brand-light)]">{analytics.borrowed_female}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs sm:text-sm">
+                                        <span className="text-[var(--brand-light)]/60">{t('analytics.other')}:</span>
+                                        <span className="font-bold text-[var(--brand-light)]">{analytics.borrowed_other}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Returned */}
+                            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                                        <CheckCircle className="h-5 w-5 text-[var(--dark-900)]" />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.returned')}</span>
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.returned}</div>
+                            </div>
+
+                            {/* Active */}
+                            <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
+                                        <Clock className="h-5 w-5 text-white" />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.active')}</span>
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.active}</div>
+                            </div>
+                        </div>
                     </div>
-                    <CollapsibleContent className="transition-all duration-500 ease-in-out">
-                        <CardContent className="p-4 sm:p-6 pt-3 transition-opacity duration-500 ease-in-out">
-                            {analyticsLoading ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                                    {[1, 2, 3, 4].map((i) => (
-                                        <Card key={i} className="bg-white/5 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-lg animate-pulse">
-                                            <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                                <div className="flex items-center gap-2 justify-center">
-                                                    <div className="w-10 h-10 rounded-xl bg-gray-700"></div>
-                                                    <div className="h-4 bg-gray-700 rounded w-24"></div>
-                                                </div>
-                                                <div className="h-8 bg-gray-700 rounded w-16"></div>
-                                            </div>
-                                        </Card>
-                                    ))}
+                </div>
+            )}
+
+            {/* Analytics Loading Skeleton */}
+            {analyticsLoading && (
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                    <div className="px-4 sm:px-6 py-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] animate-pulse">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)]" />
+                                        <div className="h-4 w-20 bg-[var(--dark-600)] rounded" />
+                                    </div>
+                                    <div className="h-8 w-16 bg-[var(--dark-600)] rounded" />
                                 </div>
-                            ) : analytics ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                                    {/* Total Borrowed */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#4D4DA4]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(77, 77, 164, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4D4DA4] to-[#FF5485] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(77, 77, 164, 0.5), 0 0 20px rgba(255, 84, 133, 0.3)',
-                                                    }}>
-                                                    <Package className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Total Borrowed</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_borrowed}</div>
-                                        </div>
-                                    </Card>
-
-                                    {/* Demographics */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#FF5485]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(255, 84, 133, 0.3), 0 0 20px rgba(255, 84, 133, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF5485] to-[#FF8FA3] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(255, 84, 133, 0.5), 0 0 20px rgba(255, 143, 163, 0.3)',
-                                                    }}>
-                                                    <UsersRound className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Demographics</CardTitle>
-                                            </div>
-                                            <div className="w-full space-y-1.5 mt-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/70">Male:</span>
-                                                    <span className="font-bold text-white">{analytics.borrowed_male}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/70">Female:</span>
-                                                    <span className="font-bold text-white">{analytics.borrowed_female}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/70">Other:</span>
-                                                    <span className="font-bold text-white">{analytics.borrowed_other}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Card>
-
-                                    {/* Returned */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#10B981]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3), 0 0 20px rgba(52, 211, 153, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#34D399] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.5), 0 0 20px rgba(52, 211, 153, 0.3)',
-                                                    }}>
-                                                    <CheckCircle className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Returned</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.returned}</div>
-                                        </div>
-                                    </Card>
-
-                                    {/* Active */}
-                                    <Card className="bg-white/5 backdrop-blur-sm border border-[#0EA5E9]/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative overflow-hidden"
-                                        style={{
-                                            boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)',
-                                        }}>
-                                        <div className="p-3 sm:p-4 flex flex-col items-center space-y-2">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0EA5E9] to-[#38BDF8] flex items-center justify-center shadow-lg"
-                                                    style={{
-                                                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.5), 0 0 20px rgba(56, 189, 248, 0.3)',
-                                                    }}>
-                                                    <Clock className="h-5 w-5 text-white" />
-                                                </div>
-                                                <CardTitle className="text-sm font-medium text-white/90">Active</CardTitle>
-                                            </div>
-                                            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.active}</div>
-                                        </div>
-                                    </Card>
-                                </div>
-                            ) : null}
-                        </CardContent>
-                    </CollapsibleContent>
-                </Card>
-            </Collapsible>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Filters */}
-            <Card className="border border-gray-100 shadow-sm bg-white">
-                <div className="px-6 py-4 flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                        <Input 
-                            placeholder="Search by item or borrower..." 
-                            className="pl-9 bg-gray-50 border-0"
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 py-3">
+                <div className="flex flex-col gap-3">
+                    {/* Search Row */}
+                    <div className="flex items-center gap-3">
+                        <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
+                        <input 
+                            type="text"
+                            placeholder={t('searchPlaceholder')}
+                            className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                             value={search}
                             onChange={e => updateUrl('search', e.target.value)}
                         />
+                        {search && (
+                            <button 
+                                onClick={() => updateUrl('search', '')}
+                                className="text-[var(--brand-light)]/40 hover:text-[var(--brand-light)] transition-colors text-xl"
+                            >
+                                ×
+                            </button>
+                        )}
                     </div>
-                    <div className="w-full sm:w-[200px]">
-                        <select 
-                            className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                            value={selectedClubId}
-                            onChange={e => updateUrl('club', e.target.value)}
-                        >
-                            <option value="">All Clubs</option>
-                            {clubs.map((club) => (
-                                <option key={club.id} value={club.id}>
-                                    {club.name}
-                                </option>
-                            ))}
-                        </select>
+                    
+                    {/* Filters Row */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="w-full sm:w-[160px]">
+                            <select 
+                                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23EDEBF4' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right 0.75rem center',
+                                    backgroundSize: '12px'
+                                }}
+                                value={selectedClubId}
+                                onChange={e => updateUrl('club', e.target.value)}
+                            >
+                                <option value="">{t('filters.allClubs')}</option>
+                                {clubs.map((club) => (
+                                    <option key={club.id} value={club.id}>
+                                        {club.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        <div className="w-full sm:w-[180px]">
+                            <select 
+                                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23EDEBF4' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right 0.75rem center',
+                                    backgroundSize: '12px'
+                                }}
+                                value={selectedItemId || ''}
+                                onChange={e => updateUrl('item', e.target.value)}
+                            >
+                                <option value="">{t('filters.allItems')}</option>
+                                {items.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        <div className="w-full sm:w-[160px]">
+                            <input
+                                type="date"
+                                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors"
+                                value={startDate}
+                                onChange={e => updateUrl('start_date', e.target.value)}
+                            />
+                        </div>
+                        
+                        <div className="w-full sm:w-[160px]">
+                            <input
+                                type="date"
+                                className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors"
+                                value={endDate}
+                                onChange={e => updateUrl('end_date', e.target.value)}
+                                min={startDate || undefined}
+                            />
+                        </div>
+                        
+                        {(search || selectedClubId || selectedItemId || startDate || endDate) && (
+                            <button
+                                onClick={clearFilters}
+                                className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all flex items-center gap-2"
+                            >
+                                <X className="h-4 w-4" /> {t('filters.clear')}
+                            </button>
+                        )}
                     </div>
-                    <div className="w-full sm:w-[200px]">
-                        <select 
-                            className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
-                            value={selectedItemId || ''}
-                            onChange={e => updateUrl('item', e.target.value)}
-                        >
-                            <option value="">All Items</option>
-                            {items.map((item) => (
-                                <option key={item.id} value={item.id}>
-                                    {item.title}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="relative w-full sm:w-[180px]">
-                        <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                        <Input
-                            type="date"
-                            className="pl-9 bg-gray-50 border-0"
-                            value={startDate}
-                            onChange={e => updateUrl('start_date', e.target.value)}
-                        />
-                    </div>
-                    <div className="relative w-full sm:w-[180px]">
-                        <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                        <Input
-                            type="date"
-                            className="pl-9 bg-gray-50 border-0"
-                            value={endDate}
-                            onChange={e => updateUrl('end_date', e.target.value)}
-                            min={startDate || undefined}
-                        />
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearFilters}
-                        className="w-full sm:w-auto h-9 text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
-                    >
-                        <X className="h-4 w-4" /> Clear
-                    </Button>
                 </div>
-            </Card>
+            </div>
 
             {/* History Table */}
-            {loading ? (
-                <Card className="border border-gray-100 shadow-sm bg-white">
-                    <CardContent className="p-12 text-center text-gray-500">
-                        Loading history...
-                    </CardContent>
-                </Card>
-            ) : sessions.length === 0 ? (
-                <Card className="border border-gray-100 shadow-sm bg-white">
-                    <CardContent className="p-12 text-center text-gray-500">
-                        No history found.
-                    </CardContent>
-                </Card>
-            ) : (
-                <LendingHistoryTable sessions={sessions} />
-            )}
+            <div className="px-4 sm:px-6 md:px-8">
+                {loading ? (
+                    <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] p-12 text-center text-[var(--brand-light)]/50">
+                        {t('loading')}
+                    </div>
+                ) : sessions.length === 0 ? (
+                    <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] p-12 text-center text-[var(--brand-light)]/50">
+                        {t('emptyState')}
+                    </div>
+                ) : (
+                    <LendingHistoryTable sessions={sessions} />
+                )}
+            </div>
 
             {/* Pagination */}
             {(() => {
@@ -396,26 +389,24 @@ export default function MunicipalityInventoryHistoryPage() {
                 if (totalPages <= 1) return null;
                 
                 return (
-                    <div className="flex items-center justify-center gap-2 py-4">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                    <div className="flex items-center justify-center gap-3 py-4 px-4 sm:px-6 md:px-8">
+                        <button 
                             disabled={currentPage === 1} 
                             onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Prev
-                        </Button>
-                        <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                            {t('pagination.previous')}
+                        </button>
+                        <div className="text-sm text-[var(--brand-light)]/50">
+                            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                        </div>
+                        <button 
                             disabled={currentPage >= totalPages} 
                             onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                            className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            Next
-                        </Button>
+                            {t('pagination.next')}
+                        </button>
                     </div>
                 );
             })()}

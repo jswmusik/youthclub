@@ -3,33 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Clock, Plus, Trash2, ArrowLeft, Save, Calendar, Users, GraduationCap, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Clock, Plus, Trash2, Save, Calendar, Users, GraduationCap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import api from '../../../../lib/api';
-import Toast from '../../../components/Toast';
-
-const WEEKDAYS = [
-  { id: 1, name: 'Monday' },
-  { id: 2, name: 'Tuesday' },
-  { id: 3, name: 'Wednesday' },
-  { id: 4, name: 'Thursday' },
-  { id: 5, name: 'Friday' },
-  { id: 6, name: 'Saturday' },
-  { id: 7, name: 'Sunday' },
-];
-
-const CYCLES = [
-  { id: 'ALL', name: 'Every Week' },
-  { id: 'ODD', name: 'Odd Weeks' },
-  { id: 'EVEN', name: 'Even Weeks' },
-];
-
-const GENDER_RESTRICTIONS = [
-  { id: 'ALL', name: 'All Genders' },
-  { id: 'BOYS', name: 'Boys Only' },
-  { id: 'GIRLS', name: 'Girls Only' },
-  { id: 'OTHER', name: 'Other' },
-];
+import { useToast } from '../../../../hooks/useToast';
+import BackButton from '@/app/components/BackButton';
 
 interface OpeningHour {
   weekday: number;
@@ -55,6 +34,7 @@ const selectArrowStyle = {
 };
 
 export default function OpeningHoursPage() {
+  const t = useTranslations('openingHours');
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -62,11 +42,7 @@ export default function OpeningHoursPage() {
   const [clubId, setClubId] = useState<number | null>(null);
   const [openingHours, setOpeningHours] = useState<OpeningHour[]>([]);
   const [hourError, setHourError] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
 
   const [newHour, setNewHour] = useState<OpeningHour>({
     weekday: 1,
@@ -79,6 +55,36 @@ export default function OpeningHoursPage() {
     min_value: '',
     max_value: '',
   });
+
+  // Translation-based constants
+  const WEEKDAYS = [
+    { id: 1, name: t('weekdays.monday') },
+    { id: 2, name: t('weekdays.tuesday') },
+    { id: 3, name: t('weekdays.wednesday') },
+    { id: 4, name: t('weekdays.thursday') },
+    { id: 5, name: t('weekdays.friday') },
+    { id: 6, name: t('weekdays.saturday') },
+    { id: 7, name: t('weekdays.sunday') },
+  ];
+
+  const CYCLES = [
+    { id: 'ALL', name: t('cycles.all') },
+    { id: 'ODD', name: t('cycles.odd') },
+    { id: 'EVEN', name: t('cycles.even') },
+  ];
+
+  const GENDER_RESTRICTIONS = [
+    { id: 'ALL', name: t('genderRestrictions.all') },
+    { id: 'BOYS', name: t('genderRestrictions.boys') },
+    { id: 'GIRLS', name: t('genderRestrictions.girls') },
+    { id: 'OTHER', name: t('genderRestrictions.other') },
+  ];
+
+  const RESTRICTION_MODES = [
+    { id: 'NONE', name: t('restrictionModes.none') },
+    { id: 'AGE', name: t('restrictionModes.age') },
+    { id: 'GRADE', name: t('restrictionModes.grade') },
+  ];
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -119,7 +125,7 @@ export default function OpeningHoursPage() {
       );
     } catch (err) {
       console.error('Failed to load opening hours', err);
-      setToast({ message: 'Failed to load opening hours', type: 'error', isVisible: true });
+      error(t('toast.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +147,8 @@ export default function OpeningHoursPage() {
       const e2 = toMins(h.close_time);
 
       if (start < e2 && end > s2) {
-        return `Overlap detected with existing hour: ${h.open_time}-${h.close_time} (${h.week_cycle === 'ALL' ? 'Every Week' : h.week_cycle})`;
+        const cycleName = CYCLES.find(c => c.id === h.week_cycle)?.name || t('cycles.all');
+        return t('overlapError', { openTime: h.open_time, closeTime: h.close_time, cycle: cycleName });
       }
     }
     return null;
@@ -216,14 +223,14 @@ export default function OpeningHoursPage() {
       data.append('regular_hours_data', JSON.stringify(cleanedHours));
 
       await api.patch(`/clubs/${clubId}/`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setToast({ message: 'Opening hours updated successfully!', type: 'success', isVisible: true });
+      success(t('toast.updateSuccess'));
       setTimeout(() => {
         router.push('/admin/club/details');
       }, 1500);
     } catch (err: any) {
       console.error(err);
-      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || 'Failed to update opening hours.';
-      setToast({ message: errorMessage, type: 'error', isVisible: true });
+      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || t('toast.updateFailed');
+      error(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -236,7 +243,7 @@ export default function OpeningHoursPage() {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Clock className="w-8 h-8 text-white" />
           </div>
-          <p className="text-[var(--brand-light)]/60 animate-pulse">Loading opening hours...</p>
+          <p className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</p>
         </div>
       </div>
     );
@@ -249,7 +256,7 @@ export default function OpeningHoursPage() {
           <div className="w-16 h-16 rounded-2xl bg-[var(--brand-red)]/20 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-[var(--brand-red)]" />
           </div>
-          <p className="text-[var(--brand-light)]">No club assigned. Please contact your administrator.</p>
+          <p className="text-[var(--brand-light)]">{t('noClubAssigned')}</p>
         </div>
       </div>
     );
@@ -263,12 +270,7 @@ export default function OpeningHoursPage() {
     <div className="space-y-0 sm:space-y-6">
       {/* Navigation Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
-        <Link 
-          href="/admin/club/details"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Club Details
-        </Link>
+        <BackButton href="/admin/club/details" translationKey="backToDetails" />
       </div>
 
       {/* Hero Card */}
@@ -288,8 +290,8 @@ export default function OpeningHoursPage() {
               <Clock className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
             </div>
             <div className="flex-1 space-y-1 pb-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Opening Hours</h1>
-              <p className="text-sm text-[var(--brand-light)]/50">Manage your club's weekly schedule and session restrictions</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+              <p className="text-sm text-[var(--brand-light)]/50">{t('description')}</p>
             </div>
           </div>
         </div>
@@ -300,14 +302,14 @@ export default function OpeningHoursPage() {
         <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
           <div className="flex items-center gap-2">
             <Plus className="w-5 h-5 text-[var(--brand-third)]" />
-            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Add New Opening Hour</h2>
+            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('addNewHour.title')}</h2>
           </div>
         </div>
         <div className="p-4 sm:p-6 space-y-4">
           {/* Row 1: Day, Cycle, Times */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Day</label>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">{t('addNewHour.day')}</label>
               <select
                 className={selectClasses}
                 style={selectArrowStyle}
@@ -320,7 +322,7 @@ export default function OpeningHoursPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Week Cycle</label>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">{t('addNewHour.weekCycle')}</label>
               <select
                 className={selectClasses}
                 style={selectArrowStyle}
@@ -333,7 +335,7 @@ export default function OpeningHoursPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Open Time</label>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">{t('addNewHour.openTime')}</label>
               <input
                 type="time"
                 className={inputClasses}
@@ -342,7 +344,7 @@ export default function OpeningHoursPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Close Time</label>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">{t('addNewHour.closeTime')}</label>
               <input
                 type="time"
                 className={inputClasses}
@@ -355,35 +357,39 @@ export default function OpeningHoursPage() {
           {/* Row 2: Restrictions */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Restriction</label>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">{t('addNewHour.restriction')}</label>
               <select
                 className={selectClasses}
                 style={selectArrowStyle}
                 value={newHour.restriction_mode}
                 onChange={(e) => setNewHour({ ...newHour, restriction_mode: e.target.value })}
               >
-                <option value="NONE">No Restriction</option>
-                <option value="AGE">Age Range</option>
-                <option value="GRADE">Grade Range</option>
+                {RESTRICTION_MODES.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
               </select>
             </div>
             {newHour.restriction_mode !== 'NONE' && (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Min {newHour.restriction_mode === 'AGE' ? 'Age' : 'Grade'}</label>
+                  <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">
+                    {newHour.restriction_mode === 'AGE' ? t('addNewHour.minAge') : t('addNewHour.minGrade')}
+                  </label>
                   <input
                     type="number"
-                    placeholder="From"
+                    placeholder={t('addNewHour.from')}
                     className={inputClasses}
                     value={newHour.min_value}
                     onChange={(e) => setNewHour({ ...newHour, min_value: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Max {newHour.restriction_mode === 'AGE' ? 'Age' : 'Grade'}</label>
+                  <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">
+                    {newHour.restriction_mode === 'AGE' ? t('addNewHour.maxAge') : t('addNewHour.maxGrade')}
+                  </label>
                   <input
                     type="number"
-                    placeholder="To"
+                    placeholder={t('addNewHour.to')}
                     className={inputClasses}
                     value={newHour.max_value}
                     onChange={(e) => setNewHour({ ...newHour, max_value: e.target.value })}
@@ -392,7 +398,7 @@ export default function OpeningHoursPage() {
               </>
             )}
             <div className={newHour.restriction_mode === 'NONE' ? 'col-span-2 sm:col-span-1' : ''}>
-              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Gender</label>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">{t('addNewHour.gender')}</label>
               <select
                 className={selectClasses}
                 style={selectArrowStyle}
@@ -409,10 +415,10 @@ export default function OpeningHoursPage() {
           {/* Row 3: Title and Add Button */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">Title (Optional)</label>
+              <label className="block text-xs font-medium text-[var(--brand-light)]/50 mb-1.5">{t('addNewHour.titleLabel')}</label>
               <input
                 type="text"
-                placeholder="e.g., 'Teen Night', 'Open Session'"
+                placeholder={t('addNewHour.titlePlaceholder')}
                 className={inputClasses}
                 value={newHour.title}
                 onChange={(e) => setNewHour({ ...newHour, title: e.target.value })}
@@ -425,7 +431,7 @@ export default function OpeningHoursPage() {
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[var(--brand-third)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-third)]/90 transition-all shadow-lg shadow-[var(--brand-third)]/20"
               >
                 <Plus className="w-5 h-5" />
-                Add Hour
+                {t('addNewHour.addHour')}
               </button>
             </div>
           </div>
@@ -446,9 +452,11 @@ export default function OpeningHoursPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[var(--brand-purple)]" />
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Current Schedule</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('currentSchedule.title')}</h2>
             </div>
-            <span className="text-sm text-[var(--brand-light)]/50">{openingHours.length} hour{openingHours.length !== 1 ? 's' : ''}</span>
+            <span className="text-sm text-[var(--brand-light)]/50">
+              {openingHours.length === 1 ? t('currentSchedule.hours', { count: openingHours.length }) : t('currentSchedule.hoursPlural', { count: openingHours.length })}
+            </span>
           </div>
         </div>
         <div className="p-4 sm:p-6">
@@ -457,15 +465,15 @@ export default function OpeningHoursPage() {
               <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                 <Clock className="w-8 h-8 text-[var(--brand-light)]/30" />
               </div>
-              <p className="text-[var(--brand-light)]/50 mb-2">No opening hours added yet</p>
-              <p className="text-sm text-[var(--brand-light)]/30">Add your first opening hour using the form above</p>
+              <p className="text-[var(--brand-light)]/50 mb-2">{t('currentSchedule.noHours')}</p>
+              <p className="text-sm text-[var(--brand-light)]/30">{t('currentSchedule.noHoursDescription')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {openingHours.map((hour, idx) => {
                 const dayName = WEEKDAYS.find((d) => d.id === hour.weekday)?.name;
                 const cycleName = CYCLES.find((c) => c.id === hour.week_cycle)?.name;
-                const genderName = GENDER_RESTRICTIONS.find((g) => g.id === hour.gender_restriction)?.name || 'All Genders';
+                const genderName = GENDER_RESTRICTIONS.find((g) => g.id === hour.gender_restriction)?.name || t('genderRestrictions.all');
                 const isToday = hour.weekday === todayWeekday;
                 
                 return (
@@ -485,7 +493,7 @@ export default function OpeningHoursPage() {
                           </span>
                           {isToday && (
                             <span className="bg-[var(--brand-primary)] text-[var(--dark-900)] text-[10px] px-2 py-0.5 rounded-full font-bold">
-                              Today
+                              {t('currentSchedule.today')}
                             </span>
                           )}
                           {hour.week_cycle !== 'ALL' && (
@@ -512,7 +520,7 @@ export default function OpeningHoursPage() {
                               ) : (
                                 <GraduationCap className="w-3 h-3" />
                               )}
-                              {hour.restriction_mode === 'AGE' ? 'Age' : 'Grade'} {hour.min_value}-{hour.max_value}
+                              {hour.restriction_mode === 'AGE' ? t('restrictionLabels.age') : t('restrictionLabels.grade')} {hour.min_value}-{hour.max_value}
                             </span>
                           )}
                           {hour.gender_restriction !== 'ALL' && (
@@ -526,7 +534,7 @@ export default function OpeningHoursPage() {
                         type="button"
                         onClick={() => removeHour(idx)}
                         className="w-10 h-10 rounded-xl bg-[var(--brand-red)]/10 hover:bg-[var(--brand-red)]/20 flex items-center justify-center text-[var(--brand-red)] transition-all self-start sm:self-center"
-                        title="Remove"
+                        title={t('currentSchedule.remove')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -547,7 +555,7 @@ export default function OpeningHoursPage() {
             onClick={() => router.push('/admin/club/details')}
             className="px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--dark-400)] transition-all font-medium"
           >
-            Cancel
+            {t('buttons.cancel')}
           </button>
           <button
             onClick={handleSubmit}
@@ -555,18 +563,11 @@ export default function OpeningHoursPage() {
             className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all shadow-lg shadow-[var(--brand-primary)]/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-5 h-5" />
-            {isSaving ? 'Saving...' : 'Save Opening Hours'}
+            {isSaving ? t('buttons.saving') : t('buttons.saveOpeningHours')}
           </button>
         </div>
       </div>
 
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode={true}
-      />
     </div>
   );
 }

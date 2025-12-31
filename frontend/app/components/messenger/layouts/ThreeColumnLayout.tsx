@@ -5,8 +5,9 @@ import ConversationList from '../conversation/ConversationList';
 import ConversationDetail from '../conversation/ConversationDetail';
 import BroadcastComposerModal from '../broadcast/BroadcastComposerModal';
 import UserSearchModal from '../search/UserSearchModal';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Mail, User, Users, UsersRound, Settings, Megaphone, Plus, Search, X, ArrowLeft, Inbox, RefreshCw } from 'lucide-react';
 
 interface ThreeColumnLayoutProps {
@@ -36,23 +37,20 @@ export default function ThreeColumnLayout({
     scope = 'CLUB',
     darkMode = false
 }: ThreeColumnLayoutProps) {
+    const t = useTranslations('inboxAdmin');
     const [showBroadcastModal, setShowBroadcastModal] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
     
     // Toast state
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '',
-        type: 'success',
-        isVisible: false,
-    });
+    const { success, error, info, warning } = useToast();
 
     // Filter options with Lucide icons
     const filters = [
-        { id: 'ALL', label: 'All Messages', icon: Mail },
-        { id: 'YOUTH', label: 'Youth', icon: User },
-        { id: 'GUARDIAN', label: 'Guardians', icon: UsersRound },
-        { id: 'GROUP', label: 'Groups', icon: Users },
-        { id: 'SYSTEM', label: 'System / HQ', icon: Settings },
+        { id: 'ALL', label: t('filters.allMessages'), icon: Mail },
+        { id: 'YOUTH', label: t('filters.youth'), icon: User },
+        { id: 'GUARDIAN', label: t('filters.guardians'), icon: UsersRound },
+        { id: 'GROUP', label: t('filters.groups'), icon: Users },
+        { id: 'SYSTEM', label: t('filters.systemHQ'), icon: Settings },
     ];
 
     const filteredConversations = conversations;
@@ -88,10 +86,10 @@ export default function ThreeColumnLayout({
                                 ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)]' 
                                 : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                         }`}
-                        aria-label="Back to inbox"
+                        aria-label={t('actions.backToInbox')}
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        <span>Back</span>
+                        <span>{t('actions.back')}</span>
                     </button>
                 )}
                 
@@ -104,10 +102,10 @@ export default function ThreeColumnLayout({
                                 ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/80' 
                                 : 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white'
                         }`}
-                        title="Send Individual Message"
+                        title={t('actions.newMessageTitle')}
                     >
                         <Plus className="w-4 h-4 flex-shrink-0" />
-                        <span className="hidden sm:inline md:hidden lg:inline">New Message</span>
+                        <span className="hidden sm:inline md:hidden lg:inline">{t('actions.newMessage')}</span>
                     </button>
                     <button 
                         onClick={() => setShowBroadcastModal(true)}
@@ -116,10 +114,10 @@ export default function ThreeColumnLayout({
                                 ? 'bg-[var(--brand-purple)] text-white hover:bg-[var(--brand-purple)]/80' 
                                 : 'bg-[#4D4DA4] hover:bg-[#FF5485] text-white'
                         }`}
-                        title="New Broadcast"
+                        title={t('actions.broadcastTitle')}
                     >
                         <Megaphone className="w-4 h-4 flex-shrink-0" />
-                        <span className="hidden sm:inline md:hidden lg:inline">Broadcast</span>
+                        <span className="hidden sm:inline md:hidden lg:inline">{t('actions.broadcast')}</span>
                     </button>
                 </div>
 
@@ -160,7 +158,7 @@ export default function ThreeColumnLayout({
             `}>
                 <div className={`p-3 sm:p-4 border-b flex-shrink-0 ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'}`}>
                     <div className="flex justify-between items-center mb-2 sm:mb-3">
-                        <h3 className={`font-bold text-base sm:text-lg ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#121213]'}`}>Inbox</h3>
+                        <h3 className={`font-bold text-base sm:text-lg ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#121213]'}`}>{t('inbox')}</h3>
                         <div className="flex items-center gap-2">
                             {totalUnreadCount > 0 && (
                                 <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-[var(--brand-red)] rounded-full">
@@ -174,7 +172,7 @@ export default function ThreeColumnLayout({
                                         ? 'text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-600)]' 
                                         : 'text-gray-400 hover:text-[#4D4DA4] hover:bg-gray-100'
                                 }`}
-                                title="Refresh"
+                                title={t('actions.refresh')}
                             >
                                 <RefreshCw className="w-4 h-4" />
                             </button>
@@ -189,7 +187,7 @@ export default function ThreeColumnLayout({
                             type="text"
                             value={searchQuery}
                             onChange={(e) => onSetSearchQuery(e.target.value)}
-                            placeholder="Search..."
+                            placeholder={t('searchPlaceholder')}
                             className={`block w-full pl-9 pr-9 py-2 text-sm rounded-xl transition-all ${
                                 darkMode 
                                     ? 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-0 outline-none' 
@@ -214,7 +212,7 @@ export default function ThreeColumnLayout({
                             <div className={`w-8 h-8 border-2 rounded-full animate-spin mx-auto mb-3 ${
                                 darkMode ? 'border-[var(--dark-500)] border-t-[var(--brand-primary)]' : 'border-gray-200 border-t-[#4D4DA4]'
                             }`} />
-                            Loading conversations...
+                            {t('loadingConversations')}
                         </div>
                     ) : (
                         <ConversationList 
@@ -248,7 +246,7 @@ export default function ThreeColumnLayout({
                         }`}>
                             <Inbox className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-300'}`} />
                         </div>
-                        <p className="text-sm">Select a conversation to start</p>
+                        <p className="text-sm">{t('skeleton.selectConversation')}</p>
                     </div>
                 )}
             </div>
@@ -259,18 +257,10 @@ export default function ThreeColumnLayout({
                     onClose={() => setShowBroadcastModal(false)}
                     onSuccess={() => {
                         onRefresh();
-                        setToast({ 
-                            message: "Broadcast sent successfully!", 
-                            type: 'success', 
-                            isVisible: true 
-                        });
+                        success(t('toast.broadcastSuccess'));
                     }}
                     onError={(errorMsg: string) => {
-                        setToast({ 
-                            message: errorMsg || "Failed to send broadcast.", 
-                            type: 'error', 
-                            isVisible: true 
-                        });
+                        error(errorMsg || t('toast.broadcastFailed'));
                     }}
                     initialScope={scope}
                     darkMode={darkMode}
@@ -285,11 +275,7 @@ export default function ThreeColumnLayout({
                         setShowSearchModal(false);
                     }}
                     onMessageSent={(conversationId) => {
-                        setToast({ 
-                            message: "Message sent successfully!", 
-                            type: 'success', 
-                            isVisible: true 
-                        });
+                        success(t('toast.messageSuccess'));
                         onRefresh();
                         if (conversationId) {
                             setTimeout(() => {
@@ -298,24 +284,13 @@ export default function ThreeColumnLayout({
                         }
                     }}
                     onError={(errorMsg: string) => {
-                        setToast({ 
-                            message: errorMsg || "Failed to send message.", 
-                            type: 'error', 
-                            isVisible: true 
-                        });
+                        error(errorMsg || t('toast.messageFailed'));
                     }}
                     darkMode={darkMode}
                 />
             )}
             
             {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast({ ...toast, isVisible: false })}
-                darkMode={darkMode}
-            />
         </div>
     );
 }

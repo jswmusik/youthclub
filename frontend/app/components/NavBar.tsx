@@ -114,12 +114,15 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
 
     return (
         <>
-            {/* Top Navigation Bar */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 ${
-                darkMode 
-                    ? 'bg-[var(--dark-800)]' 
-                    : 'bg-white border-b border-gray-200'
-            }`}>
+            {/* Top Navigation Bar - positioned below system alert if present */}
+            <nav 
+                className={`fixed left-0 right-0 z-50 ${
+                    darkMode 
+                        ? 'bg-[var(--dark-800)]' 
+                        : 'bg-white border-b border-gray-200'
+                }`}
+                style={{ top: 'var(--system-alert-height, 0px)' }}
+            >
                 <div className={`max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 ${!activeVisit?.is_checked_in && darkMode ? 'border-b border-[var(--dark-600)]' : !activeVisit?.is_checked_in ? '' : ''}`}>
                     <div className="flex items-center justify-between h-14 sm:h-16">
                         {/* Left Section: Back, Menu, Logo */}

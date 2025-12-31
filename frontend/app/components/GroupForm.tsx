@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, Search, CheckCircle2, Lightbulb, Save,
   Users, Layers, Image, Target, UserPlus, Heart, Settings, Globe, Lock, FileQuestion
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import MemberSelector from './MemberSelector';
 import CustomRuleBuilder from './CustomRuleBuilder';
 import { getMediaUrl } from '../utils';
@@ -25,22 +26,24 @@ interface GroupFormProps {
 }
 
 const GRADES = Array.from({ length: 13 }, (_, i) => i + 1);
-const GENDERS = [
-  { value: 'MALE', label: 'Male' },
-  { value: 'FEMALE', label: 'Female' },
-  { value: 'OTHER', label: 'Other' },
-];
 
 export default function GroupForm({ initialData, redirectPath }: GroupFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('groupsAdmin.form');
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
   const bgRef = useRef<HTMLInputElement>(null);
   
+  const GENDERS = [
+    { value: 'MALE', label: t('membershipRules.genders.male') },
+    { value: 'FEMALE', label: t('membershipRules.genders.female') },
+    { value: 'OTHER', label: t('membershipRules.genders.other') },
+  ];
+  
   const [loading, setLoading] = useState(false);
   const [interestsList, setInterestsList] = useState<Interest[]>([]);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -273,10 +276,10 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
 
       if (initialData) {
         await api.patch(`/groups/${initialData.id}/`, data, config);
-        setToast({ message: 'Group updated successfully!', type: 'success', isVisible: true });
+        success(t('toast.groupUpdated'));
       } else {
         await api.post('/groups/', data, config);
-        setToast({ message: 'Group created successfully!', type: 'success', isVisible: true });
+        success(t('toast.groupCreated'));
       }
       
       let finalRedirectPath = redirectPath;
@@ -292,7 +295,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
 
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Operation failed. Please check your inputs.', type: 'error', isVisible: true });
+      error(t('toast.operationFailed'));
       setLoading(false);
     }
   };
@@ -350,10 +353,10 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Group' : 'Create New Group'}
+              {initialData ? t('editTitle') : t('createTitle')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              Define the rules for who belongs in this group
+              {t('description')}
             </p>
           </div>
         </div>
@@ -370,7 +373,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
             aria-label="Form completion progress"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('progress.formCompletion')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -382,7 +385,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">All required fields completed!</span>
+                <span className="text-sm font-medium">{t('progress.allRequiredCompleted')}</span>
               </div>
             )}
           </div>
@@ -398,7 +401,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
           >
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.formCompletion')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -410,7 +413,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               {completionPercent === 100 && (
                 <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">All required fields completed!</span>
+                  <span className="text-sm font-medium">{t('progress.allRequiredCompleted')}</span>
                 </div>
               )}
             </div>
@@ -429,8 +432,8 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                   <Layers className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter group name, type, and description</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('basicInfo.description')}</p>
                 </div>
               </div>
             </div>
@@ -439,13 +442,13 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="name" className={labelClasses}>
-                    Group Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('basicInfo.groupName')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="name"
                     type="text"
                     required
-                    placeholder="e.g. Summer Football Camp"
+                    placeholder={t('basicInfo.namePlaceholder')}
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                     onFocus={() => setFocusedField('name')}
@@ -455,7 +458,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                 </div>
                 <div>
                   <label htmlFor="group_type" className={labelClasses}>
-                    Group Type <span className="text-[var(--brand-primary)]">*</span>
+                    {t('basicInfo.groupType')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <select 
                     id="group_type"
@@ -466,21 +469,21 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                     className={selectClasses('group_type')}
                     style={selectArrowStyle}
                   >
-                    <option value="OPEN">Open (Join Freely)</option>
-                    <option value="APPLICATION">Application Required</option>
-                    <option value="CLOSED">Closed (Invite Only)</option>
+                    <option value="OPEN">{t('basicInfo.types.open')}</option>
+                    <option value="APPLICATION">{t('basicInfo.types.application')}</option>
+                    <option value="CLOSED">{t('basicInfo.types.closed')}</option>
                   </select>
                 </div>
               </div>
 
               {/* Group Type Visual Selector */}
               <div>
-                <label className={labelClasses}>Access Type</label>
+                <label className={labelClasses}>{t('basicInfo.accessType')}</label>
                 <div className="flex flex-wrap gap-3">
                   {[
-                    { value: 'OPEN', label: 'Open', desc: 'Anyone can join', icon: Globe, color: 'green' },
-                    { value: 'APPLICATION', label: 'Application', desc: 'Requires approval', icon: FileQuestion, color: 'blue' },
-                    { value: 'CLOSED', label: 'Closed', desc: 'Invite only', icon: Lock, color: 'gray' },
+                    { value: 'OPEN', label: t('basicInfo.accessTypes.open.label'), desc: t('basicInfo.accessTypes.open.desc'), icon: Globe, color: 'green' },
+                    { value: 'APPLICATION', label: t('basicInfo.accessTypes.application.label'), desc: t('basicInfo.accessTypes.application.desc'), icon: FileQuestion, color: 'blue' },
+                    { value: 'CLOSED', label: t('basicInfo.accessTypes.closed.label'), desc: t('basicInfo.accessTypes.closed.desc'), icon: Lock, color: 'gray' },
                   ].map(type => {
                     const isSelected = formData.group_type === type.value;
                     const Icon = type.icon;
@@ -511,12 +514,12 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
 
               <div>
                 <label htmlFor="description" className={labelClasses}>
-                  Description
+                  {t('basicInfo.descriptionLabel')}
                 </label>
                 <textarea 
                   id="description"
                   rows={3}
-                  placeholder="Describe what this group is about..."
+                  placeholder={t('basicInfo.descriptionPlaceholder')}
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   onFocus={() => setFocusedField('description')}
@@ -535,8 +538,8 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                   <Image className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Profile Visuals</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Upload profile images for this group</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('profileVisuals.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('profileVisuals.description')}</p>
                 </div>
               </div>
             </div>
@@ -545,7 +548,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Cover Image */}
                 <div>
-                  <label className={labelClasses}>Cover Image</label>
+                  <label className={labelClasses}>{t('profileVisuals.coverImage')}</label>
                   <div className="flex items-start gap-4">
                     <div 
                       className="relative group w-24 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -561,7 +564,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                       ) : (
                         <div className="text-center p-2">
                           <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
-                          <span className="text-[10px] text-[var(--brand-light)]/40">Upload</span>
+                          <span className="text-[10px] text-[var(--brand-light)]/40">{t('profileVisuals.upload')}</span>
                         </div>
                       )}
                     </div>
@@ -572,7 +575,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                           onClick={() => bgRef.current?.click()}
                           className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                         >
-                          Choose File
+                          {t('profileVisuals.chooseFile')}
                         </button>
                         {backgroundPreview && (
                           <button 
@@ -580,11 +583,11 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                             onClick={() => handleRemoveImage('bg')}
                             className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" /> Remove
+                            <X className="h-3 w-3" /> {t('profileVisuals.remove')}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--brand-light)]/40">1200x400px (JPG, PNG)</p>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('profileVisuals.coverImageHint')}</p>
                     </div>
                     <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={handleBackgroundChange} />
                   </div>
@@ -592,7 +595,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
 
                 {/* Avatar */}
                 <div>
-                  <label className={labelClasses}>Avatar</label>
+                  <label className={labelClasses}>{t('profileVisuals.avatar')}</label>
                   <div className="flex items-start gap-4">
                     <div 
                       className="relative group w-16 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -608,7 +611,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                       ) : (
                         <div className="text-center p-2">
                           <Upload className="h-4 w-4 text-[var(--brand-light)]/40 mx-auto mb-0.5" />
-                          <span className="text-[9px] text-[var(--brand-light)]/40">Upload</span>
+                          <span className="text-[9px] text-[var(--brand-light)]/40">{t('profileVisuals.upload')}</span>
                         </div>
                       )}
                     </div>
@@ -619,7 +622,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                           onClick={() => avatarRef.current?.click()}
                           className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                         >
-                          Choose File
+                          {t('profileVisuals.chooseFile')}
                         </button>
                         {avatarPreview && (
                           <button 
@@ -627,11 +630,11 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                             onClick={() => handleRemoveImage('avatar')}
                             className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" /> Remove
+                            <X className="h-3 w-3" /> {t('profileVisuals.remove')}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--brand-light)]/40">Square image, 400x400px</p>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('profileVisuals.avatarHint')}</p>
                     </div>
                     <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                   </div>
@@ -648,8 +651,8 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                   <Target className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Membership Rules</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Define who can join this group based on criteria</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('membershipRules.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('membershipRules.description')}</p>
                 </div>
               </div>
             </div>
@@ -657,11 +660,11 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
             <div className="p-6 space-y-6">
               {/* Target Audience */}
               <div>
-                <label className={labelClasses}>Target Audience</label>
+                <label className={labelClasses}>{t('membershipRules.targetAudience')}</label>
                 <div className="flex gap-3">
                   {[
-                    { value: 'YOUTH', label: 'Youth Members', icon: Users },
-                    { value: 'GUARDIAN', label: 'Guardians', icon: Users },
+                    { value: 'YOUTH', label: t('membershipRules.targetTypes.youth'), icon: Users },
+                    { value: 'GUARDIAN', label: t('membershipRules.targetTypes.guardian'), icon: Users },
                   ].map(type => {
                     const isSelected = formData.target_member_type === type.value;
                     return (
@@ -690,14 +693,14 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="min_age" className={labelClasses}>
-                    Min Age
+                    {t('membershipRules.minAge')}
                   </label>
                   <input 
                     id="min_age"
                     type="number" 
                     min="0" 
                     max="100"
-                    placeholder="Any"
+                    placeholder={t('membershipRules.agePlaceholder')}
                     value={formData.min_age}
                     onChange={e => setFormData({...formData, min_age: e.target.value})}
                     onFocus={() => setFocusedField('min_age')}
@@ -707,14 +710,14 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                 </div>
                 <div>
                   <label htmlFor="max_age" className={labelClasses}>
-                    Max Age
+                    {t('membershipRules.maxAge')}
                   </label>
                   <input 
                     id="max_age"
                     type="number" 
                     min="0" 
                     max="100"
-                    placeholder="Any"
+                    placeholder={t('membershipRules.agePlaceholder')}
                     value={formData.max_age}
                     onChange={e => setFormData({...formData, max_age: e.target.value})}
                     onFocus={() => setFocusedField('max_age')}
@@ -729,7 +732,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                 <>
                   <div className="h-px bg-[var(--dark-600)]" />
                   <div>
-                    <label className={labelClasses}>Allowed Grades</label>
+                    <label className={labelClasses}>{t('membershipRules.allowedGrades')}</label>
                     <div className="flex flex-wrap gap-2">
                       {GRADES.map(grade => (
                         <button
@@ -747,7 +750,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                       ))}
                     </div>
                     {formData.grades.length === 0 && (
-                      <p className="text-xs text-[var(--brand-light)]/40 mt-2">Leave empty to allow all grades</p>
+                      <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('membershipRules.gradesHint')}</p>
                     )}
                   </div>
                 </>
@@ -758,7 +761,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
 
               {/* Gender */}
               <div>
-                <label className={labelClasses}>Allowed Genders</label>
+                <label className={labelClasses}>{t('membershipRules.allowedGenders')}</label>
                 <div className="flex flex-wrap gap-3">
                   {GENDERS.map(g => {
                     const isSelected = formData.genders.includes(g.value);
@@ -779,7 +782,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                   })}
                 </div>
                 {formData.genders.length === 0 && (
-                  <p className="text-xs text-[var(--brand-light)]/40 mt-2">Leave empty to allow all genders</p>
+                  <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('membershipRules.gendersHint')}</p>
                 )}
               </div>
 
@@ -790,7 +793,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               <div>
                 <label className={labelClasses}>
                   <Heart className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-peach)]" />
-                  Required Interests
+                  {t('membershipRules.requiredInterests')}
                 </label>
                 
                 {/* Selected Interests Display */}
@@ -817,7 +820,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                     <input
                       type="text"
-                      placeholder="Search interests by name..."
+                      placeholder={t('membershipRules.searchInterests')}
                       value={interestSearchTerm}
                       onChange={(e) => {
                         setInterestSearchTerm(e.target.value);
@@ -848,20 +851,20 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                           ))
                         ) : interestSearchTerm ? (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
-                            No interests found matching "{interestSearchTerm}"
+                            {t('membershipRules.noInterestsFound', { term: interestSearchTerm })}
                           </div>
                         ) : (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                             {formData.interests.length === 0 
-                              ? 'No interests available'
-                              : 'All interests are already selected'}
+                              ? t('membershipRules.noInterestsAvailable')
+                              : t('membershipRules.allInterestsSelected')}
                           </div>
                         )}
                       </div>
                     </>
                   )}
                 </div>
-                <p className="text-xs text-[var(--brand-light)]/40 mt-2">Users matching ANY of selected interests will be eligible</p>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('membershipRules.interestsHint')}</p>
               </div>
 
               {/* Divider */}
@@ -871,9 +874,9 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               <div>
                 <label className={labelClasses}>
                   <Settings className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                  Custom Field Rules
+                  {t('membershipRules.customFieldRules')}
                 </label>
-                <p className="text-xs text-[var(--brand-light)]/40 mb-3">Members must match ALL these additional conditions</p>
+                <p className="text-xs text-[var(--brand-light)]/40 mb-3">{t('membershipRules.customFieldRulesHint')}</p>
                 <CustomRuleBuilder 
                   currentRules={formData.custom_field_rules}
                   onChange={(newRules) => setFormData(prev => ({...prev, custom_field_rules: newRules}))}
@@ -891,8 +894,8 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                   <UserPlus className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Add Members</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Select users to immediately add to this group</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('addMembers.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('addMembers.description')}</p>
                 </div>
               </div>
             </div>
@@ -924,13 +927,13 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                   <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-2">Quick Tips</h3>
+                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-2">{t('quickTips.title')}</h3>
                   <ul className="text-sm text-[var(--brand-light)]/60 space-y-1.5">
-                    <li>• Fill in all required fields marked with <span className="text-[var(--brand-primary)]">*</span></li>
-                    <li>• Open groups allow anyone to join freely</li>
-                    <li>• Application groups require admin approval</li>
-                    <li>• Closed groups are invite-only</li>
-                    <li>• Leave criteria empty to allow all members</li>
+                    <li>• {t('quickTips.tip1')} <span className="text-[var(--brand-primary)]">*</span></li>
+                    <li>• {t('quickTips.tip2')}</li>
+                    <li>• {t('quickTips.tip3')}</li>
+                    <li>• {t('quickTips.tip4')}</li>
+                    <li>• {t('quickTips.tip5')}</li>
                   </ul>
                 </div>
               </div>
@@ -944,7 +947,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               onClick={() => router.push(redirectPath)}
               className="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)] transition-all"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button 
               type="submit" 
@@ -954,20 +957,19 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving...
+                  {t('actions.save')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  {initialData ? 'Update Group' : 'Create Group'}
+                  {initialData ? t('actions.update') : t('actions.create')}
                 </>
               )}
             </button>
           </div>
         </form>
 
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-      </div>
+        </div>
     </div>
   );
 }

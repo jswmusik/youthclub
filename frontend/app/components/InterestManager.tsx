@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Search, Eye, Edit, Trash2, Heart, ChevronLeft, ChevronUp, BarChart3 } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -18,9 +19,11 @@ interface SwipeableCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onClick: () => void;
+  editText: string;
+  deleteText: string;
 }
 
-function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardProps) {
+function SwipeableCard({ children, onEdit, onDelete, onClick, editText, deleteText }: SwipeableCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -107,14 +110,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick }: SwipeableCardPro
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{editText}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{deleteText}</span>
         </button>
       </div>
 
@@ -196,6 +199,7 @@ interface InterestManagerProps {
 }
 
 export default function InterestManager({ basePath }: InterestManagerProps) {
+  const t = useTranslations('interests');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -208,7 +212,7 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
   
   // Delete
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Sync search input with URL params
   useEffect(() => {
@@ -296,10 +300,10 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
     if (!itemToDelete) return;
     try {
       await api.delete(`/interests/${itemToDelete.id}/`);
-      setToast({ message: 'Interest deleted successfully.', type: 'success', isVisible: true });
+      success(t('toasts.deleteSuccess'));
       fetchInterests();
     } catch (err) {
-      setToast({ message: 'Failed to delete. It might be in use.', type: 'error', isVisible: true });
+      error('Failed to delete. It might be in use.');
     } finally {
       setItemToDelete(null);
     }
@@ -320,14 +324,14 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
               <Heart className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Interests</h1>
-              <p className="text-sm text-[var(--brand-light)]/50">Manage interests for your organization</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+              <p className="text-sm text-[var(--brand-light)]/50">{t('subtitle')}</p>
             </div>
           </div>
           <Link href={`${basePath}/create`} className="w-full sm:w-auto">
             <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all">
               <Plus className="w-5 h-5" />
-              Add Interest
+              {t('addInterest')}
             </button>
           </Link>
         </div>
@@ -340,7 +344,7 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
           >
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[var(--brand-light)]/50" />
-              <span className="text-sm font-medium text-[var(--brand-light)]">Analytics Overview</span>
+              <span className="text-sm font-medium text-[var(--brand-light)]">{t('analytics.title')}</span>
             </div>
             <ChevronUp className={`w-4 h-4 text-[var(--brand-light)]/50 transition-transform ${analyticsExpanded ? '' : 'rotate-180'}`} />
           </button>
@@ -350,11 +354,11 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4">
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-primary)]">
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{totalCount}</div>
-                  <div className="text-xs text-[var(--brand-light)]/50">Total Interests</div>
+                  <div className="text-xs text-[var(--brand-light)]/50">{t('analytics.totalInterests')}</div>
                 </div>
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-green)]">
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{interests.filter(i => i.icon).length}</div>
-                  <div className="text-xs text-[var(--brand-light)]/50">With Icons</div>
+                  <div className="text-xs text-[var(--brand-light)]/50">{t('analytics.withIcons')}</div>
                 </div>
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-blue)] col-span-2 sm:col-span-1">
                   <div className="text-2xl font-bold text-[var(--brand-light)]">{interests.filter(i => i.avatar).length}</div>
@@ -371,7 +375,7 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--brand-light)]/40" />
             <input
               type="text"
-              placeholder="Search interests..."
+              placeholder={t('search')}
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               className="w-full h-12 pl-12 pr-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none focus:border-[var(--brand-primary)] transition-colors"
@@ -382,7 +386,7 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
         {/* Stats Bar */}
         <div className="px-4 sm:px-0 mb-4">
           <span className="text-sm text-[var(--brand-light)]/50">
-            {loading ? 'Loading...' : `${totalCount} interest${totalCount !== 1 ? 's' : ''}`}
+            {loading ? t('loadingShort') : totalCount === 1 ? t('count', { count: totalCount }) : t('countPlural', { count: totalCount })}
           </span>
         </div>
 
@@ -400,9 +404,9 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Interest</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Icon</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('table.interest')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('table.icon')}</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -420,10 +424,10 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
               {interests.length === 0 ? (
                 <div className="bg-[var(--dark-800)] rounded-none border-y border-[var(--dark-600)] p-12 text-center">
                   <Heart className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                  <p className="text-[var(--brand-light)]/50">No interests found.</p>
+                  <p className="text-[var(--brand-light)]/50">{t('empty')}</p>
                   <Link href={`${basePath}/create`}>
                     <button className="mt-4 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-medium text-sm">
-                      Add First Interest
+                      {t('addFirstInterest')}
                     </button>
                   </Link>
                 </div>
@@ -434,6 +438,8 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
                     onClick={() => router.push(buildUrlWithParams(`${basePath}/${item.id}`))}
                     onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${item.id}`))}
                     onDelete={() => setItemToDelete(item)}
+                    editText={t('swipeActions.edit')}
+                    deleteText={t('swipeActions.delete')}
                   >
                     <div className="border-y border-[var(--dark-600)] p-4">
                       <div className="flex items-center gap-3">
@@ -468,9 +474,9 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Interest</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Icon</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('table.interest')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('table.icon')}</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -478,7 +484,7 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
                     <tr>
                       <td colSpan={3} className="px-6 py-12 text-center">
                         <Heart className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                        <p className="text-[var(--brand-light)]/50">No interests found.</p>
+                        <p className="text-[var(--brand-light)]/50">{t('empty')}</p>
                       </td>
                     </tr>
                   ) : (
@@ -545,17 +551,17 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
               onClick={() => updateUrl('page', (currentPage - 1).toString())}
               className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all"
             >
-              Previous
+              {t('pagination.previous')}
             </button>
             <span className="text-sm text-[var(--brand-light)]/50">
-              Page {currentPage} of {totalPages}
+              {t('pagination.pageOf', { current: currentPage, total: totalPages })}
             </span>
             <button 
               disabled={currentPage >= totalPages} 
               onClick={() => updateUrl('page', (currentPage + 1).toString())}
               className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all"
             >
-              Next
+              {t('pagination.next')}
             </button>
           </div>
         )}
@@ -569,7 +575,6 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
         message={`Are you sure you want to delete "${itemToDelete?.name}"? It will be removed from all users and groups using it.`}
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
-    </div>
+      </div>
   );
 }

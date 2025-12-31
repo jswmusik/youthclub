@@ -3,9 +3,8 @@
 import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import ClubFollowersList from '@/app/components/ClubFollowersList';
-import { Button } from '@/components/ui/button';
+import BackButton from '@/app/components/BackButton';
 
 function MunicipalityClubFollowersPageContent() {
   const params = useParams();
@@ -23,11 +22,7 @@ function MunicipalityClubFollowersPageContent() {
     <div className="p-8 space-y-6">
       {/* Back Link */}
       <div>
-        <Link href={`/admin/municipality/clubs/${clubId}`}>
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="h-4 w-4" /> Back to Club
-          </Button>
-        </Link>
+        <BackButton href={`/admin/municipality/clubs/${clubId}`} label="Back to Club" />
       </div>
 
       {/* Header */}

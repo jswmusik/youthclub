@@ -1,7 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import HealthCheckView
-from users.views import UserViewSet, PublicRegistrationView, CheckEmailView, CheckGuardianView, YouthGuardiansViewSet, GuardianRelationshipViewSet
+from users.views import (
+    UserViewSet, PublicRegistrationView, CheckEmailView, CheckGuardianView, 
+    YouthGuardiansViewSet, GuardianChildrenViewSet, GuardianRelationshipViewSet, IdDocumentUploadView, IdDocumentReviewView,
+    IdDocumentHistoryView, IdDocumentUploadHistoryView, AdminIdDocumentHistoryView, 
+    AdminIdDocumentReviewView, GuardianPendingVerificationsView
+)
 from system_messages.views import SystemMessageViewSet
 from news.views import NewsArticleViewSet, NewsTagViewSet
 from custom_fields.views import CustomFieldDefinitionViewSet, PublicCustomFieldListView
@@ -32,6 +37,8 @@ router.register(r'learning/chapters', ChapterViewSet, basename='learning-chapter
 router.register(r'learning/items', ContentItemViewSet, basename='learning-items')
 # Youth Guardians endpoint
 router.register(r'youth/guardians', YouthGuardiansViewSet, basename='youth-guardians')
+# Guardian Children endpoint (for guardians to manage their connected youth)
+router.register(r'guardian/children', GuardianChildrenViewSet, basename='guardian-children')
 # Admin Guardian Relationships endpoint
 router.register(r'admin/guardian-relationships', GuardianRelationshipViewSet, basename='guardian-relationships')
 
@@ -56,6 +63,17 @@ urlpatterns = [
     # --- LEARNING IMAGE UPLOAD ---
     path('learning/upload-image/', upload_image, name='learning-upload-image'),
     
+    # --- ID DOCUMENT VERIFICATION (Guardians) ---
+    path('users/upload_id_document/', IdDocumentUploadView.as_view(), name='upload-id-document'),
+    path('users/<int:user_id>/review_id_document/', IdDocumentReviewView.as_view(), name='review-id-document'),
+    
+    # --- ID DOCUMENT HISTORY (New endpoints) ---
+    path('users/id_document_history/', IdDocumentHistoryView.as_view(), name='id-document-history'),
+    path('users/upload_id_document_v2/', IdDocumentUploadHistoryView.as_view(), name='upload-id-document-v2'),
+    path('users/<int:user_id>/id_document_history/', AdminIdDocumentHistoryView.as_view(), name='admin-id-document-history'),
+    path('users/id_documents/<int:upload_id>/review/', AdminIdDocumentReviewView.as_view(), name='admin-id-document-review'),
+    path('users/pending_verifications/', GuardianPendingVerificationsView.as_view(), name='pending-verifications'),
+    
     # --- MARKETING / PUBLIC CONTENT ---
     path('marketing/', include('marketing.urls')),
     
@@ -72,4 +90,7 @@ urlpatterns = [
     
     # --- LICENSING (Super Admin) ---
     path('licensing/', include('licensing.urls')),
+    
+    # --- 2FA (Two-Factor Authentication) ---
+    path('', include('users.urls')),
 ]

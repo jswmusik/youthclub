@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { visits as visitsApi } from '@/lib/api';
 import api from '@/lib/api';
 import { VisitSession, VisitAnalytics } from '@/types/visit';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function UserVisitsManager({ userId, basePath, canFilterClubs = false }: Props) {
+  const t = useTranslations('youthDetail.visits');
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -145,7 +147,7 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
           className="inline-flex items-center gap-2 text-sm text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] transition-colors w-fit"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Profile
+          {t('header.backToProfile')}
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -154,17 +156,17 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-                Visit History
+                {t('header.visitHistory')}
               </h1>
               <p className="text-sm text-[var(--brand-light)]/50">
-                {user ? `${user.first_name} ${user.last_name}` : 'Loading...'}
+                {user ? `${user.first_name} ${user.last_name}` : t('loading.loading')}
               </p>
             </div>
           </div>
           {preferredClubName && preferredClubName !== 'None' && (
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
               <Building className="w-4 h-4 text-[var(--brand-light)]/50" />
-              <span className="text-sm text-[var(--brand-light)]/70">Preferred Club:</span>
+              <span className="text-sm text-[var(--brand-light)]/70">{t('header.preferredClub')}:</span>
               <span className="text-sm font-semibold text-[var(--brand-light)]">{preferredClubName}</span>
             </div>
           )}
@@ -182,7 +184,7 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -211,7 +213,7 @@ export default function UserVisitsManager({ userId, basePath, canFilterClubs = f
       {!loading && history.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{history.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'visit' : 'visits'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{history.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.visit') : t('statsBar.visits')}
           </p>
         </div>
       )}

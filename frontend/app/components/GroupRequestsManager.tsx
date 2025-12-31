@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   Search, BarChart3, ChevronUp, ChevronLeft, X, CheckCircle2, XCircle, 
   Users, Building, FileText, UserPlus, Calendar, Layers, Mail
 } from 'lucide-react';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { getMediaUrl } from '../../app/utils';
 
 // Minimum loading time for skeleton display
@@ -22,6 +23,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onApprove, onReject, onClick }: SwipeableCardProps) {
+  const t = useTranslations('groupsAdmin.requests');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -109,14 +111,14 @@ function SwipeableCard({ children, onApprove, onReject, onClick }: SwipeableCard
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-green)] text-white transition-all active:bg-[var(--brand-green)]/80"
         >
           <CheckCircle2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Approve</span>
+          <span className="text-xs font-medium">{t('actions.approve')}</span>
         </button>
         <button
           onClick={handleRejectClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <XCircle className="w-5 h-5" />
-          <span className="text-xs font-medium">Reject</span>
+          <span className="text-xs font-medium">{t('actions.reject')}</span>
         </button>
       </div>
 
@@ -201,6 +203,7 @@ function RequestTableRowSkeleton() {
 }
 
 function RequestPageSkeleton() {
+  const t = useTranslations('groupsAdmin.requests');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -215,10 +218,10 @@ function RequestPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applicant</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applying To</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Requested</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.applicant')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.applyingTo')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.requested')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -236,6 +239,7 @@ export default function GroupRequestsManager() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('groupsAdmin.requests');
   
   const isSuperAdmin = pathname.includes('/super');
   const isMuniAdmin = pathname.includes('/municipality');
@@ -251,7 +255,7 @@ export default function GroupRequestsManager() {
   const [municipalities, setMunicipalities] = useState<any[]>([]);
   const [clubs, setClubs] = useState<any[]>([]);
   
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Filter state
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -340,7 +344,7 @@ export default function GroupRequestsManager() {
       applyFilter();
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Failed to load applications.', type: 'error', isVisible: true });
+      error(t('toast.failedToLoad'));
     } finally {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
@@ -423,14 +427,10 @@ export default function GroupRequestsManager() {
   const handleAction = async (id: number, action: 'approve' | 'reject') => {
     try {
       await api.post(`/group-requests/${id}/${action}/`);
-      setToast({ 
-        message: action === 'approve' ? 'Member approved!' : 'Request rejected.', 
-        type: 'success', 
-        isVisible: true 
-      });
+      success(action === 'approve' ? t('toast.memberApproved') : t('toast.requestRejected'));
       fetchAllRequests();
     } catch (err) {
-      setToast({ message: 'Action failed.', type: 'error', isVisible: true });
+      error(t('toast.actionFailed'));
     }
   };
 
@@ -470,9 +470,9 @@ export default function GroupRequestsManager() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <UserPlus className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Group Applications</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage group membership requests and applications.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
       </div>
 
@@ -487,7 +487,7 @@ export default function GroupRequestsManager() {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -501,7 +501,7 @@ export default function GroupRequestsManager() {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <FileText className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.totalApplications}</div>
               </div>
@@ -512,7 +512,7 @@ export default function GroupRequestsManager() {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                     <UserPlus className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last Week</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('lastWeek')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.applicationsLastWeek}</div>
               </div>
@@ -523,7 +523,7 @@ export default function GroupRequestsManager() {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                     <Calendar className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Last 30 Days</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('last30Days')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.applicationsLast30Days}</div>
               </div>
@@ -540,7 +540,7 @@ export default function GroupRequestsManager() {
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search by user name, email, or group name..." 
+              placeholder={t('searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -565,7 +565,7 @@ export default function GroupRequestsManager() {
                   onChange={e => setMunicipalityFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Municipalities</option>
+                  <option value="">{t('filters.allMunicipalities')}</option>
                   {municipalities.map(m => (
                     <option key={m.id} value={m.id.toString()}>{m.name}</option>
                   ))}
@@ -580,7 +580,7 @@ export default function GroupRequestsManager() {
                   onChange={e => setClubFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Clubs</option>
+                  <option value="">{t('filters.allClubs')}</option>
                   {clubs.map(c => (
                     <option key={c.id} value={c.id.toString()}>{c.name}</option>
                   ))}
@@ -592,7 +592,7 @@ export default function GroupRequestsManager() {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                Clear All
+                {t('filters.clearAll')}
               </button>
             )}
           </div>
@@ -603,7 +603,7 @@ export default function GroupRequestsManager() {
       {!showSkeleton && requests.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{requests.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{allFilteredRequests.length}</span> {allFilteredRequests.length === 1 ? 'application' : 'applications'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{requests.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{allFilteredRequests.length}</span> {allFilteredRequests.length === 1 ? t('statsBar.application') : t('statsBar.applications')}
           </p>
         </div>
       )}
@@ -616,9 +616,9 @@ export default function GroupRequestsManager() {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <UserPlus className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No applications found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noApplicationsFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm">
-            {hasFilters ? 'Try adjusting your search or filters.' : 'No pending applications at the moment.'}
+            {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.noPendingApplications')}
           </p>
         </div>
       ) : (
@@ -649,7 +649,7 @@ export default function GroupRequestsManager() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
-                        {req.user_name || 'Unknown'}
+                        {req.user_name || t('unknown')}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <Mail className="w-3 h-3 text-[var(--brand-light)]/40" />
@@ -662,7 +662,7 @@ export default function GroupRequestsManager() {
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
                           <Layers className="w-3 h-3" />
-                          {req.group_name || 'Unknown Group'}
+                          {req.group_name || t('unknownGroup')}
                         </span>
                         <span className="text-[10px] text-[var(--brand-light)]/40">
                           {req.joined_at ? new Date(req.joined_at).toLocaleDateString() : '-'}
@@ -680,10 +680,10 @@ export default function GroupRequestsManager() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applicant</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Applying To</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Requested</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.applicant')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.applyingTo')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.requested')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -706,7 +706,7 @@ export default function GroupRequestsManager() {
                           )}
                         </div>
                         <div>
-                          <div className="font-semibold text-[var(--brand-light)]">{req.user_name || 'Unknown'}</div>
+                          <div className="font-semibold text-[var(--brand-light)]">{req.user_name || t('unknown')}</div>
                           <div className="text-xs text-[var(--brand-light)]/50">{req.user_email || ''}</div>
                         </div>
                       </div>
@@ -714,7 +714,7 @@ export default function GroupRequestsManager() {
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] border border-[var(--brand-blue)]/30">
                         <Layers className="w-3 h-3" />
-                        {req.group_name || 'Unknown Group'}
+                        {req.group_name || t('unknownGroup')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -729,14 +729,14 @@ export default function GroupRequestsManager() {
                           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] hover:bg-[var(--brand-green)]/30 transition-all"
                         >
                           <CheckCircle2 className="w-4 h-4" />
-                          Approve
+                          {t('actions.approve')}
                         </button>
                         <button 
                           onClick={() => handleAction(req.id, 'reject')}
                           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/30 transition-all"
                         >
                           <XCircle className="w-4 h-4" />
-                          Reject
+                          {t('actions.reject')}
                         </button>
                       </div>
                     </td>
@@ -754,24 +754,23 @@ export default function GroupRequestsManager() {
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/50">
-                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}
         </>
       )}
 
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-    </div>
+      </div>
   );
 }

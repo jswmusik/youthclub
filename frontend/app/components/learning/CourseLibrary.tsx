@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { learningApi } from '@/lib/learning-api';
 import { Course, LearningCategory, CourseChapter } from '@/types/learning';
 import CourseCard from './CourseCard';
@@ -40,6 +41,7 @@ const getPrimaryContentType = (course: Course & { chapters?: CourseChapter[] }):
 };
 
 export default function CourseLibrary({ basePath }: Props) {
+    const t = useTranslations('knowledgeAdmin.courses');
     const [courses, setCourses] = useState<Course[]>([]);
     const [coursesWithDetails, setCoursesWithDetails] = useState<any[]>([]);
     const [categories, setCategories] = useState<LearningCategory[]>([]);
@@ -122,8 +124,8 @@ export default function CourseLibrary({ basePath }: Props) {
                         <BookOpen className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">All Courses</h1>
-                        <p className="text-[var(--brand-light)]/50 text-sm mt-1">Browse and discover all available learning resources</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+                        <p className="text-[var(--brand-light)]/50 text-sm mt-1">{t('description')}</p>
                     </div>
                 </div>
             </div>
@@ -137,8 +139,8 @@ export default function CourseLibrary({ basePath }: Props) {
                                 <Filter className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-[var(--brand-light)]">Find Your Perfect Course</h2>
-                                <p className="text-sm text-[var(--brand-light)]/50">Filter by name, category, or content type</p>
+                                <h2 className="text-lg font-bold text-[var(--brand-light)]">{t('search.filterTitle')}</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">{t('search.filterSubtitle')}</p>
                             </div>
                         </div>
                         {hasActiveFilters && (
@@ -147,7 +149,7 @@ export default function CourseLibrary({ basePath }: Props) {
                                 className="ml-auto px-4 py-2 rounded-xl text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all flex items-center gap-2"
                             >
                                 <X className="h-4 w-4" />
-                                Clear filters
+                                {t('search.clearAll')}
                             </button>
                         )}
                     </div>
@@ -158,7 +160,7 @@ export default function CourseLibrary({ basePath }: Props) {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5 z-10" />
                             <input 
                                 type="text"
-                                placeholder="Search courses by name..." 
+                                placeholder={t('search.placeholder')}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="w-full h-12 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
@@ -173,7 +175,7 @@ export default function CourseLibrary({ basePath }: Props) {
                                 className="w-full h-12 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
                                 style={selectArrowStyle}
                             >
-                                <option value="ALL">All Categories</option>
+                                <option value="ALL">{t('search.allCategories')}</option>
                                 {categories.map(cat => (
                                     <option key={cat.id} value={cat.id.toString()}>
                                         {cat.name}
@@ -190,17 +192,17 @@ export default function CourseLibrary({ basePath }: Props) {
                                 className="w-full h-12 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
                                 style={selectArrowStyle}
                             >
-                                <option value="ALL">All Types</option>
-                                <option value="VIDEO">Video Courses</option>
-                                <option value="TEXT">Text Courses</option>
-                                <option value="FILE">File Resources</option>
+                                <option value="ALL">{t('search.allTypes')}</option>
+                                <option value="VIDEO">{t('types.video')}</option>
+                                <option value="TEXT">{t('types.text')}</option>
+                                <option value="FILE">{t('types.files')}</option>
                             </select>
                         </div>
 
                         {/* Results Count */}
                         <div className="flex items-center justify-start md:justify-end md:flex-shrink-0">
                             <span className="px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
-                                {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'}
+                                {filteredCourses.length} {filteredCourses.length === 1 ? t('course') : t('courses')}
                             </span>
                         </div>
                     </div>
@@ -213,7 +215,7 @@ export default function CourseLibrary({ basePath }: Props) {
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
                         <BookOpen className="w-6 h-6 text-white" />
                     </div>
-                    <p className="text-[var(--brand-light)]/60">Loading courses...</p>
+                    <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
                 </div>
             ) : filteredCourses.length === 0 ? (
                 <div className="px-4 sm:px-6 md:px-8">
@@ -221,14 +223,14 @@ export default function CourseLibrary({ basePath }: Props) {
                         <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                             <Search className="w-8 h-8 text-[var(--brand-light)]/30" />
                         </div>
-                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No courses found</h3>
-                        <p className="text-[var(--brand-light)]/50 mb-4">Try adjusting your search or filters.</p>
+                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.title')}</h3>
+                        <p className="text-[var(--brand-light)]/50 mb-4">{t('emptyState.description')}</p>
                         {hasActiveFilters && (
                             <button
                                 onClick={clearFilters}
                                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all"
                             >
-                                Clear all filters
+                                {t('emptyState.clearFilters')}
                             </button>
                         )}
                     </div>

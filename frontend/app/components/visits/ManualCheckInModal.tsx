@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { visits, users } from '@/lib/api';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../hooks/useToast';
 import { Search, UserPlus, X, CheckCircle2, Loader2 } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props) {
+  const t = useTranslations('clubVisits.manualCheckInModal');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -20,11 +22,7 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
   const [searching, setSearching] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { success, error: showError, info, warning } = useToast();
 
   // Helper function to get user initials
   const getInitials = (first?: string | null, last?: string | null) => {
@@ -80,16 +78,12 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
       
       // Check if user is already checked in (backend returns 200 with message instead of error)
       if (response.data?.message && (response.data.message.toLowerCase().includes('already here') || response.data.message.toLowerCase().includes('already checked'))) {
-        setToast({ 
-          message: `${selectedUser.first_name} is already checked in to this club.`, 
-          type: 'warning', 
-          isVisible: true 
-        });
+        warning(t('alreadyCheckedIn'));
         setLoading(false);
         return;
       }
       
-      setToast({ message: `Checked in ${selectedUser.first_name}`, type: 'success', isVisible: true });
+      success(t('checkInSuccess'));
       setQuery('');
       setSelectedUser(null);
       setResults([]);
@@ -99,19 +93,11 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
       }, 1000);
     } catch (error: any) {
       // Also check error response for the message
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to check in";
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || t('failedToCheckIn');
       if (errorMessage.includes('already here') || errorMessage.includes('already checked in')) {
-        setToast({ 
-          message: `${selectedUser.first_name} is already checked in to this club.`, 
-          type: 'warning', 
-          isVisible: true 
-        });
+        warning(t('alreadyCheckedIn'));
       } else {
-        setToast({ 
-          message: errorMessage, 
-          type: 'error', 
-          isVisible: true 
-        });
+        showError(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -152,9 +138,9 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <UserPlus className="w-5 h-5 text-white" />
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Manual Check-in</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('title')}</h2>
             </div>
-            <p className="text-sm text-[var(--brand-light)]/50 ml-[52px]">Search for a member by name or email to check them in.</p>
+            <p className="text-sm text-[var(--brand-light)]/50 ml-[52px]">{t('description')}</p>
           </div>
 
           {/* Content */}
@@ -168,7 +154,7 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
                     ref={searchInputRef}
                     type="text" 
                     className={inputClasses}
-                    placeholder="Type name or email (e.g. 'Alice')"
+                    placeholder={t('searchPlaceholder')}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => setFocusedField('search')}
@@ -212,7 +198,7 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
                   )}
                   {query.length > 2 && results.length === 0 && !searching && (
                     <div className="absolute w-full bg-[var(--dark-800)] border-2 border-[var(--dark-600)] rounded-xl mt-2 p-3 text-sm text-[var(--brand-light)]/50 text-center shadow-2xl z-[1000]">
-                      No members found.
+                      {t('noMembersFound')}
                     </div>
                   )}
                 </div>
@@ -237,7 +223,7 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
                         <div className="text-xs text-[var(--brand-light)]/50 truncate">{selectedUser.email}</div>
                         <div className="flex items-center gap-1 mt-1 text-xs text-[var(--brand-third)] font-medium">
                           <CheckCircle2 className="h-3 w-3" />
-                          Ready to check in
+                          {t('readyToCheckIn')}
                         </div>
                       </div>
                     </div>
@@ -260,7 +246,7 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
               disabled={loading}
               className="h-11 sm:h-12 px-4 sm:px-6 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium disabled:opacity-50"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button 
               onClick={handleSubmit}
@@ -270,12 +256,12 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Checking in...</span>
+                  <span>{t('checkingIn')}</span>
                 </>
               ) : (
                 <>
                   <UserPlus className="h-4 w-4" />
-                  <span>Confirm Check-in</span>
+                  <span>{t('confirmCheckIn')}</span>
                 </>
               )}
             </button>
@@ -284,13 +270,6 @@ export default function ManualCheckInModal({ isOpen, onClose, onSuccess }: Props
       </div>
 
       {/* Toast Notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode
-      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { inventoryApi, ItemCategory } from '@/lib/inventory-api';
 import { 
@@ -8,7 +9,7 @@ import {
   Package, Sparkles
 } from 'lucide-react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../../hooks/useToast';
 
 // Swipeable Card Component
 interface SwipeableCardProps {
@@ -121,6 +122,7 @@ function CategoryTableRowSkeleton() {
 }
 
 export default function CategoryManagerPage() {
+  const t = useTranslations('inventoryAdmin.categories');
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('');
@@ -128,7 +130,7 @@ export default function CategoryManagerPage() {
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   useEffect(() => {
     loadCats();
@@ -145,7 +147,7 @@ export default function CategoryManagerPage() {
     } catch (err) {
       console.error("Failed to load categories", err);
       setCategories([]);
-      setToast({ message: 'Failed to load categories', type: 'error', isVisible: true });
+      error(t('toast.failedToLoad'));
     } finally {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
@@ -163,11 +165,11 @@ export default function CategoryManagerPage() {
       await inventoryApi.createCategory({ name: newName, icon: newIcon });
       setNewName('');
       setNewIcon('');
-      setToast({ message: 'Category created successfully', type: 'success', isVisible: true });
+      success(t('toast.categoryCreated'));
       loadCats();
     } catch (err: any) {
-      const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || 'Failed to create category';
-      setToast({ message: errorMsg, type: 'error', isVisible: true });
+      const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || t('toast.failedToCreate');
+      error(errorMsg);
     }
   };
 
@@ -176,12 +178,12 @@ export default function CategoryManagerPage() {
     
     try {
       await inventoryApi.deleteCategory(categoryToDelete);
-      setToast({ message: 'Category deleted successfully', type: 'success', isVisible: true });
+      success(t('toast.categoryDeleted'));
       setCategoryToDelete(null);
       loadCats();
     } catch (err: any) {
-      const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || 'Failed to delete category';
-      setToast({ message: errorMsg, type: 'error', isVisible: true });
+      const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || t('toast.failedToDelete');
+      error(errorMsg);
       setCategoryToDelete(null);
     }
   };
@@ -202,9 +204,9 @@ export default function CategoryManagerPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
                 <Layers className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Item Categories</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
-            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Define broad categories like 'Gaming', 'Sports'.</p>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
           </div>
         </div>
 
@@ -219,7 +221,7 @@ export default function CategoryManagerPage() {
                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                   <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
                 </div>
-                <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+                <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
               </div>
               {analyticsExpanded ? (
                 <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
@@ -237,7 +239,7 @@ export default function CategoryManagerPage() {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                       <Layers className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{categories.length}</div>
                 </div>
@@ -248,7 +250,7 @@ export default function CategoryManagerPage() {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-peach)] flex items-center justify-center">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">With Icons</span>
+                    <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.withIcons')}</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-purple)]">
                     {categories.filter(c => c.icon).length}
@@ -266,33 +268,33 @@ export default function CategoryManagerPage() {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
                 <Plus className="h-4 w-4 text-[var(--brand-primary)]" />
               </div>
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Create New Category</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('createForm.title')}</h2>
             </div>
           </div>
           <div className="p-4 sm:p-6">
             <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-4 items-end">
               <div className="flex-1 min-w-0 w-full">
                 <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2 block">
-                  Category Name <span className="text-[var(--brand-red)]">*</span>
+                  {t('createForm.categoryName')} <span className="text-[var(--brand-red)]">*</span>
                 </label>
                 <input
                   type="text"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  placeholder="e.g. Board Games"
+                  placeholder={t('createForm.categoryNamePlaceholder')}
                   className="w-full h-12 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
                   required
                 />
               </div>
               <div className="w-full sm:w-24">
                 <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-2 block">
-                  Icon (Emoji)
+                  {t('createForm.iconEmoji')}
                 </label>
                 <input
                   type="text"
                   value={newIcon}
                   onChange={e => setNewIcon(e.target.value)}
-                  placeholder="🎲"
+                  placeholder={t('createForm.iconPlaceholder')}
                   className="w-full h-12 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors text-center text-xl"
                   maxLength={2}
                 />
@@ -302,7 +304,7 @@ export default function CategoryManagerPage() {
                 className="w-full sm:w-auto h-12 px-6 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[var(--brand-primary)]/20"
               >
                 <Plus className="h-4 w-4" />
-                Add Category
+                {t('createForm.addCategory')}
               </button>
             </form>
           </div>
@@ -312,7 +314,7 @@ export default function CategoryManagerPage() {
         {!showSkeleton && categories.length > 0 && (
           <div className="px-4 sm:px-0">
             <p className="text-sm text-[var(--brand-light)]/50">
-              Showing <span className="text-[var(--brand-primary)] font-semibold">{categories.length}</span> {categories.length === 1 ? 'category' : 'categories'}
+              {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{categories.length}</span> {categories.length === 1 ? t('statsBar.category') : t('statsBar.categories')}
             </p>
           </div>
         )}
@@ -332,9 +334,9 @@ export default function CategoryManagerPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70 w-20">Icon</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Name</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70 w-20">{t('tableHeaders.icon')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.name')}</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -350,8 +352,8 @@ export default function CategoryManagerPage() {
             <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
               <Layers className="w-8 h-8 text-[var(--brand-light)]/30" />
             </div>
-            <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No categories yet</h3>
-            <p className="text-[var(--brand-light)]/50 text-sm">Create your first category above.</p>
+            <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noCategoriesYet')}</h3>
+            <p className="text-[var(--brand-light)]/50 text-sm">{t('emptyState.createFirstCategory')}</p>
           </div>
         ) : (
           <>
@@ -381,9 +383,9 @@ export default function CategoryManagerPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70 w-20">Icon</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Name</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70 w-20">{t('tableHeaders.icon')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.name')}</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -418,22 +420,15 @@ export default function CategoryManagerPage() {
           isVisible={categoryToDelete !== null}
           onClose={() => setCategoryToDelete(null)}
           onConfirm={handleDeleteConfirm}
-          title="Delete Category"
-          message={`Are you sure you want to delete "${categories.find(c => c.id === categoryToDelete)?.name}"? This action cannot be undone.`}
-          confirmButtonText="Delete"
-          cancelButtonText="Cancel"
+          title={t('modals.deleteCategory.title')}
+          message={t('modals.deleteCategory.message', { name: categories.find(c => c.id === categoryToDelete)?.name || '' })}
+          confirmButtonText={t('modals.deleteCategory.confirm')}
+          cancelButtonText={t('modals.deleteCategory.cancel')}
           variant="danger"
           darkMode={true}
         />
 
         {/* Toast Notification */}
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          isVisible={toast.isVisible}
-          onClose={() => setToast({ ...toast, isVisible: false })}
-          darkMode
-        />
       </div>
     </div>
   );

@@ -131,7 +131,7 @@ export default function BrowseResourcesPage() {
       <div className="pt-14 sm:pt-16">
         <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
           {/* Desktop Sidebar - Fixed position aligned with container */}
-          <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+          <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
             <YouthSidebar activePath={pathname} darkMode={true} />
           </aside>
           

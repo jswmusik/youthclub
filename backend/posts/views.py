@@ -17,6 +17,7 @@ from .engine import PostEngine
 # Import Reward models
 from rewards.models import RewardUsage
 from core.permissions import HasLicenseFeature
+from users.models import User
 
 
 class PublicPostsView(APIView):
@@ -229,32 +230,109 @@ class PostViewSet(viewsets.ModelViewSet):
     def feed(self, request):
         """
         Personalized feed for Youth Members/Guardians.
-        Now includes NEW (Unredeemed) REWARDS mixed with Posts.
+        Youth: Sees all posts based on standard engine rules.
+        Guardian: Sees posts from clubs their children belong to/follow + their own followed clubs.
+                  Filters out Rewards and New Group notifications.
         """
         user = request.user
         
         if user.role not in ['YOUTH_MEMBER', 'GUARDIAN']:
             raise PermissionDenied("Feed is only available for Youth Members and Guardians.")
         
-        # 1. Get Posts (Standard Logic)
-        # Exclude posts authored by the user (activity posts should only appear in activity feed)
-        # Also exclude inventory activity posts (Borrowed/Returned items)
-        queryset = PostEngine.get_posts_for_user(user)
-        queryset = queryset.exclude(author=user)
-        # Exclude inventory activity posts by title pattern
-        queryset = queryset.exclude(title__startswith='Borrowed ')
-        queryset = queryset.exclude(title__startswith='Returned ')
-        # Exclude questionnaire completion activity posts
-        queryset = queryset.exclude(title__startswith='Completed Questionnaire: ')
+        # --- 1. Get Posts ---
+        if user.role == 'YOUTH_MEMBER':
+            # Standard logic for youth
+            queryset = PostEngine.get_posts_for_user(user)
+            # Exclude posts authored by the user
+            queryset = queryset.exclude(author=user)
+            # Exclude inventory/activity posts and auto-generated posts
+            queryset = queryset.exclude(title__startswith='Borrowed ')
+            queryset = queryset.exclude(title__startswith='Returned ')
+            queryset = queryset.exclude(title__startswith='Completed Questionnaire: ')
+            queryset = queryset.exclude(title__startswith='Joined ')
+            queryset = queryset.exclude(title__istartswith='Ny Grupp')
+            queryset = queryset.exclude(title__istartswith='New Group')
+            
+        elif user.role == 'GUARDIAN':
+            # Guardian Logic: Aggregate from children
+            # 1a. Get children IDs
+            child_ids = user.youth_links.filter(status='ACTIVE').values_list('youth_id', flat=True)
+            children = User.objects.filter(id__in=child_ids).prefetch_related('preferred_club', 'followed_clubs')
+            
+            # 1b. Collect Club IDs (Children's clubs + Guardian's followed clubs)
+            club_ids = set()
+            municipality_ids = set()
+            
+            # Add guardian's own followed clubs
+            for fc in user.followed_clubs.all(): 
+                club_ids.add(fc.id)
+                if fc.municipality_id:
+                    municipality_ids.add(fc.municipality_id)
+            
+            # Add children's clubs
+            for child in children:
+                if child.preferred_club: 
+                    club_ids.add(child.preferred_club.id)
+                    if child.preferred_club.municipality_id:
+                        municipality_ids.add(child.preferred_club.municipality_id)
+                for fc in child.followed_clubs.all(): 
+                    club_ids.add(fc.id)
+                    if fc.municipality_id:
+                        municipality_ids.add(fc.municipality_id)
+            
+            # Also add guardian's assigned municipality
+            if user.assigned_municipality_id:
+                municipality_ids.add(user.assigned_municipality_id)
+            
+            # 1c. Filter Posts
+            now = timezone.now()
+            
+            # Build the query to include:
+            # - Posts from specific clubs (club_id in club_ids)
+            # - Global posts (no club, no municipality - from super admin)
+            # - Municipality posts (municipality in municipality_ids, no club)
+            queryset = Post.objects.filter(
+                status=Post.Status.PUBLISHED,
+            ).filter(
+                # Visibility window
+                Q(published_at__isnull=True) | Q(published_at__lte=now),
+                Q(visibility_start_date__isnull=True) | Q(visibility_start_date__lte=now),
+                Q(visibility_end_date__isnull=True) | Q(visibility_end_date__gte=now),
+            ).filter(
+                # Only show posts targeting guardians or both
+                target_member_type__in=[Post.TargetMemberType.GUARDIAN, Post.TargetMemberType.BOTH]
+            ).filter(
+                # Posts from: specific clubs OR global (super admin) OR municipality level
+                Q(club_id__in=club_ids) |  # Club posts
+                Q(club__isnull=True, municipality__isnull=True) |  # Global posts (super admin)
+                Q(club__isnull=True, municipality_id__in=municipality_ids)  # Municipality posts
+            ).exclude(
+                # Explicitly exclude specific auto-generated types for Guardians
+                # "New group", "rewards" etc.
+                Q(title__istartswith='Ny Grupp') | 
+                Q(title__istartswith='New Group') |
+                Q(title__istartswith='Reward') |
+                Q(title__istartswith='Belöning') |
+                Q(title__startswith='Borrowed ') |
+                Q(title__startswith='Returned ') |
+                Q(title__startswith='Joined ')
+            ).distinct().order_by('-is_pinned', '-published_at', '-created_at')
+            
+            # Annotate
+            queryset = queryset.annotate(
+                comment_count=Count('comments', filter=Q(comments__is_approved=True)),
+                reaction_count=Count('reactions'),
+                user_has_reacted=Exists(
+                    PostReaction.objects.filter(post=OuterRef('pk'), user=user)
+                )
+            )
         
         # 2. Pagination
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, context={'request': request})
             feed_items = serializer.data
-            
-            # Tag these as 'POST' type
-            for item in feed_items:
+            for item in feed_items: 
                 item['feed_type'] = 'POST'
         else:
             serializer = self.get_serializer(queryset, many=True, context={'request': request})
@@ -263,50 +341,41 @@ class PostViewSet(viewsets.ModelViewSet):
                 item['feed_type'] = 'POST'
 
         # 3. Inject Rewards and Questionnaires (Only on Page 1)
-        # Fetch rewards and questionnaires only on the first page of results
         current_page = request.query_params.get('page', '1')
-        # Convert to string for comparison (handles both '1' and 1)
         is_first_page = str(current_page) == '1'
         
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"[FEED DEBUG] Current page param: {current_page} (type: {type(current_page)}), is_first_page: {is_first_page}")
         
-        # Initialize empty lists (will be populated only on first page)
+        # Initialize empty lists
         rewards_data = []
         questionnaires_data = []
         events_data = []
         
         if is_first_page:
             from questionnaires.models import Questionnaire, QuestionnaireResponse
-            from django.utils import timezone
-            from users.models import User
             
-            logger.info(f"[FEED DEBUG] ===== STARTING QUESTIONNAIRE FETCH =====")
-            
-            # Fetch unredeemed rewards
-            rewards = RewardUsage.objects.filter(
-                user=user, 
-                is_redeemed=False
-            ).select_related('reward').order_by('-created_at')
+            # --- Rewards (YOUTH ONLY) ---
+            # Guardians don't earn rewards in this system (usually)
+            if user.role == 'YOUTH_MEMBER':
+                rewards = RewardUsage.objects.filter(
+                    user=user, 
+                    is_redeemed=False
+                ).select_related('reward').order_by('-created_at')
 
-            rewards_data = []
-            for usage in rewards:
-                # Construct simple reward object for the feed
-                rewards_data.append({
-                    'id': f"reward_{usage.id}",
-                    'feed_type': 'REWARD',
-                    'title': usage.reward.name,
-                    'description': usage.reward.description,
-                    'image': usage.reward.image.url if usage.reward.image else None,
-                    'created_at': usage.created_at.isoformat() if usage.created_at else None,
-                    'usage_id': usage.id,
-                    'sponsor': usage.reward.sponsor_name,
-                    # Add any other fields your frontend RewardCard needs
-                })
+                for usage in rewards:
+                    rewards_data.append({
+                        'id': f"reward_{usage.id}",
+                        'feed_type': 'REWARD',
+                        'title': usage.reward.name,
+                        'description': usage.reward.description,
+                        'image': usage.reward.image.url if usage.reward.image else None,
+                        'created_at': usage.created_at.isoformat() if usage.created_at else None,
+                        'usage_id': usage.id,
+                        'sponsor': usage.reward.sponsor_name,
+                    })
             
-            # Fetch available questionnaires (published, within date range, not completed)
-            # Use the same filtering logic as UserQuestionnaireViewSet
+            # --- Questionnaires (YOUTH & GUARDIAN) ---
             now = timezone.now()
             
             # Base: Published, Started, Not Expired
@@ -316,97 +385,70 @@ class PostViewSet(viewsets.ModelViewSet):
                 expiration_date__gte=now
             ).select_related('municipality', 'club', 'visibility_group')
             
-            # DEBUG: Log all published questionnaires
-            all_published = Questionnaire.objects.filter(status=Questionnaire.Status.PUBLISHED)
-            logger.info(f"[FEED DEBUG] Total published questionnaires: {all_published.count()}")
-            for q in all_published[:5]:
-                logger.info(f"[FEED DEBUG] Questionnaire '{q.title}': status={q.status}, start={q.start_date}, end={q.expiration_date}, muni={q.municipality_id}, club={q.club_id}, group={q.visibility_group_id}, audience={q.target_audience}")
-            
-            logger.info(f"[FEED DEBUG] User {user.id} (role={user.role}): preferred_club={user.preferred_club_id if hasattr(user, 'preferred_club') else None}")
-            logger.info(f"[FEED DEBUG] Base queryset count (published + date range): {qs.count()}")
-            
-            # Targeting Logic - Simplified and more inclusive for feed
-            # A. Group Targeting (Overrides everything else)
+            # Targeting Logic
+            # A. Group Targeting (Youth only usually, or Guardian if in specific parent groups)
             group_ids = user.group_memberships.values_list('group', flat=True)
             group_q = Q(visibility_group__in=group_ids) if group_ids.exists() else Q(pk__in=[])
             
-            # B. Scope Targeting
-            # Global surveys (no muni, no club) - show to everyone with matching role
+            # B. Scope Targeting (Global / Muni / Club)
             global_q = Q(municipality__isnull=True, club__isnull=True)
             
-            # Municipality Scope - only check if user has preferred_club
-            muni_q = Q()
-            if user.role == User.Role.YOUTH_MEMBER and user.preferred_club and user.preferred_club.municipality:
-                muni_id = user.preferred_club.municipality.id
-                muni_q = Q(municipality_id=muni_id, club__isnull=True, visibility_group__isnull=True)
+            scope_q = Q()
+            # For Youth: Use preferred_club
+            if user.role == 'YOUTH_MEMBER' and user.preferred_club:
+                if user.preferred_club.municipality:
+                    scope_q |= Q(municipality=user.preferred_club.municipality, club__isnull=True, visibility_group__isnull=True)
+                scope_q |= Q(club=user.preferred_club, visibility_group__isnull=True)
+                
+            # For Guardian: Aggregated scope from children + own assigned (if any)
+            if user.role == 'GUARDIAN':
+                # Get club_ids from the guardian logic above (if defined)
+                # We need to recalculate here since we're in a new scope
+                guardian_club_ids = set()
+                for fc in user.followed_clubs.all(): 
+                    guardian_club_ids.add(fc.id)
+                child_ids = user.youth_links.filter(status='ACTIVE').values_list('youth_id', flat=True)
+                children = User.objects.filter(id__in=child_ids).prefetch_related('preferred_club', 'followed_clubs')
+                for child in children:
+                    if child.preferred_club: 
+                        guardian_club_ids.add(child.preferred_club.id)
+                    for fc in child.followed_clubs.all(): 
+                        guardian_club_ids.add(fc.id)
+                
+                if guardian_club_ids:
+                    # Get municipalities for these clubs
+                    from organization.models import Club
+                    muni_ids = Club.objects.filter(id__in=guardian_club_ids).values_list('municipality_id', flat=True).distinct()
+                    
+                    scope_q |= Q(club_id__in=guardian_club_ids, visibility_group__isnull=True)
+                    scope_q |= Q(municipality_id__in=muni_ids, club__isnull=True, visibility_group__isnull=True)
 
-            # Club Scope - only check if user has preferred_club
-            club_q = Q()
-            if user.role == User.Role.YOUTH_MEMBER and user.preferred_club:
-                club_id = user.preferred_club.id
-                club_q = Q(club_id=club_id, visibility_group__isnull=True)
-                
-            # C. Role Targeting (Youth vs Guardian)
+            # C. Role Targeting
             role_target_q = Q()
-            if user.role == User.Role.YOUTH_MEMBER:
+            if user.role == 'YOUTH_MEMBER':
                 role_target_q = Q(target_audience__in=['YOUTH', 'BOTH'])
-            elif user.role == User.Role.GUARDIAN:
+            elif user.role == 'GUARDIAN':
                 role_target_q = Q(target_audience__in=['GUARDIAN', 'BOTH'])
-            else:
-                # For other roles, don't filter by target_audience
-                role_target_q = Q()
-                
-            # Combine: 
-            # 1. Group-targeted questionnaires (if user is in group)
-            # 2. Global questionnaires (no muni/club) with matching role
-            # 3. Municipality/Club questionnaires with matching scope AND role
-            global_with_role = global_q & role_target_q
-            scope_and_role = (muni_q | club_q) & role_target_q
             
-            # DEBUG: Log the Q objects being used
-            logger.info(f"[FEED DEBUG] Filter conditions - group_q exists: {group_ids.exists()}, global_with_role: {global_with_role}, scope_and_role: {scope_and_role}")
-            logger.info(f"[FEED DEBUG] role_target_q: {role_target_q}")
-            
-            # Final: Group OR Global (with role) OR Scope (with role)
-            # This ensures global questionnaires show even if user has no preferred_club
-            # If role_target_q is empty (for non-youth/guardian), show all global questionnaires
+            # Combine: (Group OR (Scope AND Role) OR (Global AND Role))
             if role_target_q:
-                available_questionnaires = qs.filter(group_q | global_with_role | scope_and_role).distinct()
+                available_questionnaires = qs.filter(
+                    group_q | 
+                    (global_q & role_target_q) | 
+                    (scope_q & role_target_q)
+                ).distinct()
             else:
-                # For other roles, show global questionnaires without role restriction
-                available_questionnaires = qs.filter(group_q | global_q | scope_and_role).distinct()
+                available_questionnaires = Questionnaire.objects.none()
             
-            # DEBUG: Log filtering results
-            logger.info(f"[FEED DEBUG] After targeting filter: {available_questionnaires.count()} questionnaires")
-            for q in available_questionnaires[:5]:
-                logger.info(f"[FEED DEBUG] Matched questionnaire '{q.title}': muni={q.municipality_id}, club={q.club_id}, group={q.visibility_group_id}")
-            
-            # Exclude already completed questionnaires
+            # Exclude completed
             completed_ids = QuestionnaireResponse.objects.filter(
                 user=user,
                 status=QuestionnaireResponse.Status.COMPLETED
             ).values_list('questionnaire_id', flat=True)
-            logger.info(f"[FEED DEBUG] Completed questionnaire IDs: {list(completed_ids)}")
             available_questionnaires = available_questionnaires.exclude(id__in=completed_ids)
-            logger.info(f"[FEED DEBUG] Final count after excluding completed: {available_questionnaires.count()}")
             
-            # Get user's responses for progress calculation
-            from questionnaires.models import QuestionnaireResponse, Answer
-            user_responses = QuestionnaireResponse.objects.filter(
-                user=user,
-                questionnaire__in=available_questionnaires
-            ).select_related('questionnaire').prefetch_related('answers')
-            response_map = {r.questionnaire_id: r for r in user_responses}
-            
-            questionnaires_data = []
-            for q in available_questionnaires.order_by('-created_at')[:5]:  # Limit to 5 most recent
-                # Calculate progress if user has started
-                response = response_map.get(q.id)
-                is_started = response and response.status == QuestionnaireResponse.Status.STARTED
-                total_questions = q.questions.count()
-                answered_questions = response.answers.count() if response else 0
-                progress = round((answered_questions / total_questions * 100)) if total_questions > 0 else 0
-                
+            # Serialize Questionnaires
+            for q in available_questionnaires.order_by('-created_at')[:5]:
                 questionnaires_data.append({
                     'id': f"questionnaire_{q.id}",
                     'feed_type': 'QUESTIONNAIRE',
@@ -414,72 +456,66 @@ class PostViewSet(viewsets.ModelViewSet):
                     'title': q.title,
                     'description': q.description,
                     'created_at': q.created_at.isoformat() if q.created_at else None,
-                    'start_date': q.start_date.isoformat() if q.start_date else None,
-                    'expiration_date': q.expiration_date.isoformat() if q.expiration_date else None,
                     'has_rewards': q.rewards.exists(),
-                    'benefit_limit': q.benefit_limit,
-                    'is_started': is_started,
-                    'progress': progress,
-                    'answered_questions': answered_questions,
-                    'total_questions': total_questions,
+                    'is_started': False,
+                    'progress': 0,
                 })
-                logger.info(f"[FEED DEBUG] Added questionnaire to feed: '{q.title}' (ID: {q.id})")
             
-            logger.info(f"[FEED DEBUG] Total questionnaires_data count: {len(questionnaires_data)}")
-            
-            # Fetch events for the user (only future events that match targeting criteria)
-            from events.services import get_events_for_user
+            # --- Events (YOUTH & GUARDIAN) ---
+            from events.services import get_events_for_user, filter_events_by_targeting
             from events.serializers import EventSerializer
+            from events.models import Event
             
             try:
-                user_events = get_events_for_user(user)
-                # Limit to recent events (e.g., next 10 events)
-                user_events = user_events[:10]
+                if user.role == 'YOUTH_MEMBER':
+                    user_events = get_events_for_user(user)
+                elif user.role == 'GUARDIAN':
+                    # Guardian sees events for ALL children
+                    # Get base events (published)
+                    base_events = Event.objects.filter(status='PUBLISHED', start_date__gte=now)
+                    
+                    # 1. Global events (visible to all)
+                    visible_event_ids = set(base_events.filter(is_global=True).values_list('id', flat=True))
+                    
+                    # 2. Iterate children
+                    child_ids = user.youth_links.filter(status='ACTIVE').values_list('youth_id', flat=True)
+                    children = User.objects.filter(id__in=child_ids)
+                    
+                    for child in children:
+                        # Use service to get IDs visible to this child
+                        child_visible_ids = filter_events_by_targeting(base_events, child)
+                        visible_event_ids.update(child_visible_ids)
+                        
+                    user_events = Event.objects.filter(id__in=visible_event_ids).order_by('start_date')
+
+                # Limit to next 5
+                user_events = user_events[:5]
                 
-                # Serialize events
+                # Serialize
                 event_serializer = EventSerializer(user_events, many=True, context={'request': request})
                 events_data = event_serializer.data
-                
-                # Tag events with feed_type
                 for event_item in events_data:
                     event_item['feed_type'] = 'EVENT'
-                
-                logger.info(f"[FEED DEBUG] Added {len(events_data)} events to feed")
+                    
             except Exception as e:
-                logger.error(f"[FEED DEBUG] Error fetching events: {e}")
+                # Log error but don't crash feed
+                logger.error(f"Error fetching events for feed: {e}")
                 events_data = []
             
-            # Combine rewards, questionnaires, events, and posts, then sort chronologically (newest first)
+            # Combine and Sort
             all_items = rewards_data + questionnaires_data + events_data + feed_items
             
-            # Sort by created_at in descending order (newest first)
-            # Posts use 'created_at' or 'published_at', rewards/questionnaires use 'created_at'
             def get_sort_key(item):
-                # Prefer published_at for posts, fallback to created_at
                 date_str = item.get('published_at') or item.get('created_at') or ''
-                # Ensure it's a string for comparison
-                if isinstance(date_str, str):
-                    return date_str
-                # If it's a datetime object, convert to ISO format
-                if hasattr(date_str, 'isoformat'):
-                    return date_str.isoformat()
+                if isinstance(date_str, str): return date_str
+                if hasattr(date_str, 'isoformat'): return date_str.isoformat()
                 return ''
             
             all_items.sort(key=get_sort_key, reverse=True)
-            
             feed_items = all_items
-            
-            # DEBUG: Log final feed composition
-            questionnaire_count = sum(1 for item in feed_items if item.get('feed_type') == 'QUESTIONNAIRE')
-            logger.info(f"[FEED DEBUG] Final feed_items count: {len(feed_items)}, questionnaires: {questionnaire_count}")
 
         if page is not None:
-            response = self.get_paginated_response(feed_items)
-            # DEBUG: Log paginated response
-            logger.info(f"[FEED DEBUG] Paginated response - results count: {len(response.data.get('results', []))}")
-            questionnaire_count_paginated = sum(1 for item in response.data.get('results', []) if item.get('feed_type') == 'QUESTIONNAIRE')
-            logger.info(f"[FEED DEBUG] Paginated response - questionnaires: {questionnaire_count_paginated}")
-            return response
+            return self.get_paginated_response(feed_items)
         
         return Response(feed_items)
     
@@ -488,25 +524,40 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         Returns the timeline for a SPECIFIC club (pk).
         It filters posts to only those CREATED BY this club (not just targeted to it),
-        THEN applies the standard security engine (PostEngine) 
-        to ensure the user is allowed to see them (Age/Gender/Group).
+        THEN applies security filters (member type, age, gender, etc.)
+        but BYPASSES club targeting check since user is explicitly viewing this club's page.
         Only shows actual posts (excludes activity posts like borrowed/returned items, 
         completed questionnaires, joined groups, etc.)
         """
         user = request.user
+        now = timezone.now()
         
         # 1. Initial Source Filter: Only posts CREATED BY this club
         # We only show posts where the club field matches AND owner_role is CLUB_ADMIN
         # This excludes posts from super admin or municipality admin that are just targeted to the club
-        club_posts = Post.objects.filter(
+        queryset = Post.objects.filter(
             club_id=pk,
-            owner_role=Post.OwnerRole.CLUB_ADMIN
+            owner_role=Post.OwnerRole.CLUB_ADMIN,
+            status=Post.Status.PUBLISHED
+        ).filter(
+            Q(published_at__isnull=True) | Q(published_at__lte=now)
+        ).filter(
+            Q(visibility_start_date__isnull=True) | Q(visibility_start_date__lte=now)
+        ).filter(
+            Q(visibility_end_date__isnull=True) | Q(visibility_end_date__gte=now)
         )
         
-        # 2. Apply Security Engine
-        # This removes posts the user shouldn't see (e.g., wrong gender, too young)
-        # even if they are on the club's wall.
-        queryset = PostEngine.get_posts_for_user(user, queryset=club_posts)
+        # 2. Apply member type filter based on user role
+        # Guardians see posts targeting GUARDIAN or BOTH
+        # Youth see posts targeting YOUTH or BOTH
+        if user.role == 'GUARDIAN':
+            queryset = queryset.filter(
+                target_member_type__in=[Post.TargetMemberType.GUARDIAN, Post.TargetMemberType.BOTH]
+            )
+        elif user.role == 'YOUTH_MEMBER':
+            queryset = queryset.filter(
+                target_member_type__in=[Post.TargetMemberType.YOUTH, Post.TargetMemberType.BOTH]
+            )
         
         # 3. Exclude activity posts (only show actual posts)
         # These are auto-generated activity posts that should only appear in user's activity feed
@@ -514,6 +565,8 @@ class PostViewSet(viewsets.ModelViewSet):
         queryset = queryset.exclude(title__startswith='Returned ')
         queryset = queryset.exclude(title__startswith='Completed Questionnaire: ')
         queryset = queryset.exclude(title__startswith='Joined ')
+        queryset = queryset.exclude(title__istartswith='Ny Grupp')
+        queryset = queryset.exclude(title__istartswith='New Group')
         
         # 4. Add annotations (same as feed)
         queryset = queryset.annotate(
@@ -786,6 +839,15 @@ class PostViewSet(viewsets.ModelViewSet):
             Q(id__in=interacted_posts.values_list('id', flat=True))
         ).distinct()
         
+        # Exclude "Joined" posts that are NOT authored by the current user
+        # (User should only see their own group join activity, not others')
+        queryset = queryset.exclude(
+            Q(title__startswith='Joined ') & ~Q(author=user)
+        )
+        # Exclude "New Group" announcement posts entirely (these are system posts)
+        queryset = queryset.exclude(title__istartswith='Ny Grupp')
+        queryset = queryset.exclude(title__istartswith='New Group')
+        
         # Apply time filter if specified
         if threshold_date:
             queryset = queryset.filter(
@@ -799,6 +861,13 @@ class PostViewSet(viewsets.ModelViewSet):
         if not queryset.exists():
             # Use the engine to get relevant posts (same as /feed/)
             queryset = PostEngine.get_posts_for_user(user)
+            # Exclude "Joined" posts that are NOT authored by the current user
+            queryset = queryset.exclude(
+                Q(title__startswith='Joined ') & ~Q(author=user)
+            )
+            # Exclude "New Group" announcement posts entirely
+            queryset = queryset.exclude(title__istartswith='Ny Grupp')
+            queryset = queryset.exclude(title__istartswith='New Group')
             # Apply time filter to fallback feed as well
             if threshold_date:
                 queryset = queryset.filter(

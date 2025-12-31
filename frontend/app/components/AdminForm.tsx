@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, User, ShieldCheck, Building, Building2, 
   Mail, Phone, CheckCircle2, Lightbulb, Save, Briefcase
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { queueToastForNavigation } from './ToastProvider';
 import { getMediaUrl } from '../../app/utils';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,8 @@ interface AdminFormProps {
 }
 
 export default function AdminForm({ initialData, redirectPath, scope }: AdminFormProps) {
+  const t = useTranslations('adminForm');
+  const tRoles = useTranslations('adminManager.roles');
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: currentUser } = useAuth();
@@ -30,7 +33,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
   const avatarRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error'|'info'|'warning', isVisible: false, title: '' });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -175,17 +178,17 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
       if (initialData) {
         await api.patch(`/users/${initialData.id}/`, data, config);
         queueToastForNavigation(
-          `${formData.first_name} ${formData.last_name} has been updated.`,
+          t('toast.adminUpdated', { firstName: formData.first_name, lastName: formData.last_name }),
           'success',
-          'Admin Updated!',
+          t('toast.adminUpdatedTitle'),
           2500
         );
       } else {
         await api.post('/users/', data, config);
         queueToastForNavigation(
-          `${formData.first_name} ${formData.last_name} has been added as an admin.`,
+          t('toast.adminCreated', { firstName: formData.first_name, lastName: formData.last_name }),
           'success',
-          'Admin Created!',
+          t('toast.adminCreatedTitle'),
           2500
         );
       }
@@ -193,8 +196,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
       router.push(buildUrlWithParams(redirectPath));
     } catch (err: any) {
       console.error(err);
-      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || JSON.stringify(err?.response?.data) || 'Operation failed. Check your inputs.';
-      setToast({ message: errorMessage, type: 'error', isVisible: true, title: 'Operation Failed' });
+      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || JSON.stringify(err?.response?.data) || t('toast.operationFailedMessage');
+      error(errorMessage, t('toast.operationFailed') );
       setLoading(false);
     }
   };
@@ -282,10 +285,19 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
     if (!isActive) return 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]';
     switch (role) {
       case 'SUPER_ADMIN': return 'bg-[var(--brand-red)] text-white border-[var(--brand-red)]';
-      case 'MUNICIPALITY_ADMIN': return 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]';
+      case 'MUNICIPALITY_ADMIN': return 'bg-[var(--brand-primary)] text-black border-[var(--brand-primary)]';
       case 'CLUB_ADMIN': return 'bg-[var(--brand-third)] text-[var(--dark-900)] border-[var(--brand-third)]';
       default: return 'bg-[var(--dark-600)] text-[var(--brand-light)] border-[var(--dark-500)]';
     }
+  };
+
+  const getRoleDisplay = (role: string) => {
+    const roleMap: Record<string, string> = {
+      'SUPER_ADMIN': tRoles('SUPER_ADMIN'),
+      'MUNICIPALITY_ADMIN': tRoles('MUNICIPALITY_ADMIN'),
+      'CLUB_ADMIN': tRoles('CLUB_ADMIN'),
+    };
+    return roleMap[role] || role.replace(/_/g, ' ');
   };
 
   return (
@@ -302,10 +314,10 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Admin' : 'Create New Admin'}
+              {initialData ? t('title.edit') : t('title.create')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              {initialData ? 'Update admin details and permissions' : 'Configure admin details and role assignment'}
+              {initialData ? t('description.edit') : t('description.create')}
             </p>
           </div>
         </div>
@@ -322,7 +334,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
             aria-label="Form completion progress"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('progress.formCompletion')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -334,7 +346,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">All required fields completed!</span>
+                <span className="text-sm font-medium">{t('progress.allRequiredFieldsCompleted')}</span>
               </div>
             )}
           </div>
@@ -350,7 +362,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
           >
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.formCompletion')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -362,7 +374,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
               {completionPercent === 100 && (
                 <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">All required fields completed!</span>
+                  <span className="text-sm font-medium">{t('progress.allRequiredFieldsCompleted')}</span>
                 </div>
               )}
             </div>
@@ -382,8 +394,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     <ShieldCheck className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">Admin Role</h2>
-                    <p className="text-sm text-[var(--brand-light)]/50">Select the permission level for this admin</p>
+                    <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('roleSelection.title')}</h2>
+                    <p className="text-sm text-[var(--brand-light)]/50">{t('roleSelection.description')}</p>
                   </div>
                 </div>
               </div>
@@ -412,7 +424,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                       }`}>
                         {getRoleIcon(role)}
                       </div>
-                      <span className="font-semibold text-sm">{role.replace(/_/g, ' ')}</span>
+                      <span className="font-semibold text-sm">{getRoleDisplay(role)}</span>
                     </button>
                   ))}
                 </div>
@@ -428,8 +440,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Personal details and account credentials</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInformation.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('basicInformation.description')}</p>
                 </div>
               </div>
             </div>
@@ -439,13 +451,13 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="first_name" className={labelClasses}>
-                    First Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('basicInformation.firstName')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="first_name"
                     type="text"
                     required 
-                    placeholder="Enter first name"
+                    placeholder={t('basicInformation.placeholders.firstName')}
                     value={formData.first_name}
                     onChange={e => setFormData({ ...formData, first_name: e.target.value })}
                     onFocus={() => setFocusedField('first_name')}
@@ -455,13 +467,13 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                 </div>
                 <div>
                   <label htmlFor="last_name" className={labelClasses}>
-                    Last Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('basicInformation.lastName')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="last_name"
                     type="text"
                     required 
-                    placeholder="Enter last name"
+                    placeholder={t('basicInformation.placeholders.lastName')}
                     value={formData.last_name}
                     onChange={e => setFormData({ ...formData, last_name: e.target.value })}
                     onFocus={() => setFocusedField('last_name')}
@@ -475,12 +487,12 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
               {(formData.role === 'CLUB_ADMIN' || scope === 'CLUB') && (
                 <div>
                   <label htmlFor="nickname" className={labelClasses}>
-                    Nickname
+                    {t('basicInformation.nickname')}
                   </label>
                   <input 
                     id="nickname"
                     type="text"
-                    placeholder="Display name (optional)"
+                    placeholder={t('basicInformation.placeholders.nickname')}
                     value={formData.nickname}
                     onChange={e => setFormData({ ...formData, nickname: e.target.value })}
                     onFocus={() => setFocusedField('nickname')}
@@ -498,13 +510,13 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                 <div>
                   <label htmlFor="email" className={labelClasses}>
                     <Mail className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
-                    Email <span className="text-[var(--brand-primary)]">*</span>
+                    {t('basicInformation.email')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="email"
                     type="email"
                     required
-                    placeholder="admin@example.com"
+                    placeholder={t('basicInformation.placeholders.email')}
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                     onFocus={() => setFocusedField('email')}
@@ -514,13 +526,13 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                 </div>
                 <div>
                   <label htmlFor="password" className={labelClasses}>
-                    Password {!initialData && <span className="text-[var(--brand-primary)]">*</span>}
+                    {t('basicInformation.password')} {!initialData && <span className="text-[var(--brand-primary)]">*</span>}
                   </label>
                   <input 
                     id="password"
                     type="password"
                     required={!initialData}
-                    placeholder={initialData ? "Leave blank to keep current" : "Enter password"}
+                    placeholder={initialData ? t('basicInformation.placeholders.passwordEdit') : t('basicInformation.placeholders.password')}
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                     onFocus={() => setFocusedField('password')}
@@ -535,12 +547,12 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                 <div>
                   <label htmlFor="phone_number" className={labelClasses}>
                     <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                    Phone Number
+                    {t('basicInformation.phoneNumber')}
                   </label>
                   <input 
                     id="phone_number"
                     type="tel"
-                    placeholder="+46..."
+                    placeholder={t('basicInformation.placeholders.phoneNumber')}
                     value={formData.phone_number}
                     onChange={e => setFormData({ ...formData, phone_number: e.target.value })}
                     onFocus={() => setFocusedField('phone_number')}
@@ -550,7 +562,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                 </div>
                 <div>
                   <label htmlFor="legal_gender" className={labelClasses}>
-                    Gender
+                    {t('basicInformation.gender')}
                   </label>
                   <select 
                     id="legal_gender"
@@ -561,9 +573,9 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     className={selectClasses('legal_gender')}
                     style={selectArrowStyle}
                   >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
+                    <option value="MALE">{t('basicInformation.genders.MALE')}</option>
+                    <option value="FEMALE">{t('basicInformation.genders.FEMALE')}</option>
+                    <option value="OTHER">{t('basicInformation.genders.OTHER')}</option>
                   </select>
                 </div>
               </div>
@@ -578,8 +590,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <Building className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Assignments</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Assign to municipality or club based on role</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('assignments.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('assignments.description')}</p>
                 </div>
               </div>
             </div>
@@ -590,7 +602,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                 <div>
                   <label htmlFor="assigned_municipality" className={labelClasses}>
                     <Building className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
-                    Assign Municipality
+                    {t('assignments.assignMunicipality')}
                   </label>
                   <select 
                     id="assigned_municipality"
@@ -601,7 +613,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     className={selectClasses('assigned_municipality')}
                     style={selectArrowStyle}
                   >
-                    <option value="">Select Municipality</option>
+                    <option value="">{t('assignments.selectMunicipality')}</option>
                     {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                 </div>
@@ -613,7 +625,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <div>
                     <label htmlFor="assigned_club" className={labelClasses}>
                       <Building2 className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                      Assign Club
+                      {t('assignments.assignClub')}
                     </label>
                     <select 
                       id="assigned_club"
@@ -624,7 +636,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                       className={selectClasses('assigned_club')}
                       style={selectArrowStyle}
                     >
-                      <option value="">Select Club</option>
+                      <option value="">{t('assignments.selectClub')}</option>
                       {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
@@ -632,12 +644,12 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <div>
                     <label htmlFor="profession" className={labelClasses}>
                       <Briefcase className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-peach)]" />
-                      Profession / Title
+                      {t('assignments.profession')}
                     </label>
                     <input 
                       id="profession"
                       type="text"
-                      placeholder="e.g. Youth Coordinator, Program Director"
+                      placeholder={t('assignments.professionPlaceholder')}
                       value={formData.profession}
                       onChange={e => setFormData({ ...formData, profession: e.target.value })}
                       onFocus={() => setFocusedField('profession')}
@@ -652,8 +664,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
               {formData.role === 'SUPER_ADMIN' && (
                 <div className="text-center py-6 text-[var(--brand-light)]/50">
                   <ShieldCheck className="w-10 h-10 mx-auto mb-3 text-[var(--brand-red)]/50" />
-                  <p className="text-sm">Super Admins have global access</p>
-                  <p className="text-xs mt-1">No specific assignment required</p>
+                  <p className="text-sm">{t('assignments.superAdminMessage')}</p>
+                  <p className="text-xs mt-1">{t('assignments.superAdminSubMessage')}</p>
                 </div>
               )}
             </div>
@@ -667,8 +679,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <User className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Profile Picture</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Upload an avatar for the admin profile</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('profilePicture.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('profilePicture.description')}</p>
                 </div>
               </div>
             </div>
@@ -700,7 +712,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                       onClick={() => avatarRef.current?.click()}
                       className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                     >
-                      Choose File
+                      {t('profilePicture.chooseFile')}
                     </button>
                     {avatarPreview && (
                       <button 
@@ -708,11 +720,11 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                         onClick={handleRemoveImage}
                         className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                       >
-                        <X className="h-3 w-3" /> Remove
+                        <X className="h-3 w-3" /> {t('profilePicture.remove')}
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-[var(--brand-light)]/40">Square image, 400x400px (JPG, PNG)</p>
+                  <p className="text-xs text-[var(--brand-light)]/40">{t('profilePicture.uploadHint')}</p>
                 </div>
                 <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
@@ -727,7 +739,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                 onClick={() => router.push(buildUrlWithParams(redirectPath))} 
                 className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
               >
-                Cancel
+                {t('actions.cancel')}
               </button>
               <button 
                 type="submit" 
@@ -737,12 +749,12 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-[var(--dark-900)]/20 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                    Saving...
+                    {t('actions.saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    {initialData ? 'Save Changes' : 'Create Admin'}
+                    {initialData ? t('actions.saveChanges') : t('actions.createAdmin')}
                   </>
                 )}
               </button>
@@ -754,25 +766,17 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
         <div className="mt-6 p-4 bg-[var(--dark-800)]/50 rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
           <h3 className="text-sm font-semibold text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
-            Quick Tips
+            {t('quickTips.title')}
           </h3>
           <ul className="text-sm text-[var(--brand-light)]/50 space-y-1.5">
-            <li>• <strong>Super Admins</strong> have full access to all platform features</li>
-            <li>• <strong>Municipality Admins</strong> manage clubs and users within their municipality</li>
-            <li>• <strong>Club Admins</strong> manage activities and members for their assigned club</li>
-            <li>• Strong passwords should include letters, numbers, and special characters</li>
+            <li>• <strong>{tRoles('SUPER_ADMIN')}</strong> {t('quickTips.superAdmins')}</li>
+            <li>• <strong>{tRoles('MUNICIPALITY_ADMIN')}</strong> {t('quickTips.municipalityAdmins')}</li>
+            <li>• <strong>{tRoles('CLUB_ADMIN')}</strong> {t('quickTips.clubAdmins')}</li>
+            <li>• {t('quickTips.passwordStrength')}</li>
           </ul>
         </div>
       </div>
       
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        title={toast.title}
-        onClose={() => setToast({...toast, isVisible: false})} 
-        darkMode 
-      />
-    </div>
+      </div>
   );
 }

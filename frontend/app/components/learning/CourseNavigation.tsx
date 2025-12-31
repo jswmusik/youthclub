@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Course, ContentItem } from '@/types/learning';
 import { CheckCircle, Circle, PlayCircle, FileText, Download, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function CourseNavigation({ course, activeItemId, onSelectItem, completedItemIds }: Props) {
+    const t = useTranslations('knowledgeAdmin.coursePlayer.navigation');
     // @ts-ignore - Assuming chapters exist on the course object from the detail API
     const chapters = course.chapters || [];
     
@@ -47,7 +49,7 @@ export default function CourseNavigation({ course, activeItemId, onSelectItem, c
                 {course.user_progress?.status === 'COMPLETED' && (
                     <div className="mt-3 flex items-center gap-2 text-[var(--brand-green)] text-sm">
                         <CheckCircle className="w-4 h-4" />
-                        <span className="font-medium">Course Completed!</span>
+                        <span className="font-medium">{t('courseCompleted')}</span>
                     </div>
                 )}
             </div>
@@ -78,7 +80,7 @@ export default function CourseNavigation({ course, activeItemId, onSelectItem, c
                                 <div className="flex-1 text-left">
                                     <h3 className="font-semibold text-sm text-[var(--brand-light)]">{chapter.title}</h3>
                                     <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">
-                                        {completedCount}/{totalCount} completed
+                                        {completedCount}/{totalCount} {t('completed')}
                                     </p>
                                 </div>
                                 {completedCount === totalCount && totalCount > 0 && (

@@ -8,7 +8,7 @@ import TestimonialsSection from './components/TestimonialsSection';
 import CustomersSection from './components/CustomersSection';
 import CTASection from './components/CTASection';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.208:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 // Fetch SEO settings from backend
 async function getSeoSettings() {

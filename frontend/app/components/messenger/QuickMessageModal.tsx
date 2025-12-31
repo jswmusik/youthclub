@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { X, Paperclip, Send, Loader2, MessageSquare } from 'lucide-react';
 import { messengerApi } from '../../../lib/messenger-api';
-import Toast from '../../components/Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface QuickMessageModalProps {
     isOpen: boolean;
@@ -22,6 +23,7 @@ export default function QuickMessageModal({
     onSuccess,
     onError,
 }: QuickMessageModalProps) {
+    const t = useTranslations('messages');
     const [subject, setSubject] = useState('');
     const [content, setContent] = useState('');
     const [attachment, setAttachment] = useState<File | null>(null);
@@ -33,11 +35,7 @@ export default function QuickMessageModal({
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     // Toast state
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '',
-        type: 'success',
-        isVisible: false,
-    });
+    const { success, error, info, warning } = useToast();
 
     // Check if conversation exists when modal opens
     useEffect(() => {
@@ -52,23 +50,15 @@ export default function QuickMessageModal({
                     }
                     if (result.error) {
                         setPermissionError(result.error);
-                        setToast({
-                            message: result.error,
-                            type: 'error',
-                            isVisible: true
-                        });
+                        error(result.error);
                     }
                 })
                 .catch((err) => {
                     console.error('Failed to check conversation:', err);
                     setIsExistingConversation(false);
-                    const errorMsg = err?.response?.data?.error || 'Failed to check conversation';
+                    const errorMsg = err?.response?.data?.error || t('quickMessage.failedToCheckConversation');
                     setPermissionError(errorMsg);
-                    setToast({
-                        message: errorMsg,
-                        type: 'error',
-                        isVisible: true
-                    });
+                    error(errorMsg);
                 })
                 .finally(() => {
                     setCheckingConversation(false);
@@ -87,20 +77,12 @@ export default function QuickMessageModal({
 
     const handleSend = async () => {
         if (!isExistingConversation && !subject.trim()) {
-            setToast({ 
-                message: "Subject is required for new conversations.", 
-                type: 'warning', 
-                isVisible: true 
-            });
+            warning(t('quickMessage.subjectRequired'));
             return;
         }
 
         if (!content.trim() && !attachment) {
-            setToast({ 
-                message: "Please enter a message or attach an image.", 
-                type: 'warning', 
-                isVisible: true 
-            });
+            warning(t('quickMessage.messageOrAttachmentRequired'));
             return;
         }
 
@@ -126,11 +108,7 @@ export default function QuickMessageModal({
             setContent('');
             setAttachment(null);
             
-            setToast({ 
-                message: "Message sent successfully!", 
-                type: 'success', 
-                isVisible: true 
-            });
+            success(t('quickMessage.messageSentSuccess'));
             
             if (onSuccess && finalConversationId) {
                 onSuccess(finalConversationId);
@@ -141,12 +119,8 @@ export default function QuickMessageModal({
             }, 2000);
         } catch (err: any) {
             console.error("Failed to send message", err);
-            const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || "Could not send message.";
-            setToast({ 
-                message: errorMsg, 
-                type: 'error', 
-                isVisible: true 
-            });
+            const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || t('quickMessage.couldNotSendMessage');
+            error(errorMsg);
             if (onError) {
                 onError(errorMsg);
             }
@@ -178,9 +152,9 @@ export default function QuickMessageModal({
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                     <MessageSquare className="w-5 h-5 text-white" />
                                 </div>
-                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Send Message</h2>
+                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('quickMessage.title')}</h2>
                             </div>
-                            <p className="text-sm text-[var(--brand-light)]/50 ml-[52px] truncate">To: {recipientName}</p>
+                            <p className="text-sm text-[var(--brand-light)]/50 ml-[52px] truncate">{t('quickMessage.to')} {recipientName}</p>
                         </div>
                         <button 
                             onClick={onClose}
@@ -198,7 +172,7 @@ export default function QuickMessageModal({
                     {permissionError && (
                         <div className="rounded-xl p-4 bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30">
                             <p className="text-sm font-medium text-[var(--brand-red)]">{permissionError}</p>
-                            <p className="text-xs mt-1 text-[var(--brand-red)]/80">You may not have permission to start a conversation with this user.</p>
+                            <p className="text-xs mt-1 text-[var(--brand-red)]/80">{t('quickMessage.permissionError')}</p>
                         </div>
                     )}
                     
@@ -206,15 +180,15 @@ export default function QuickMessageModal({
                     {checkingConversation ? (
                         <div className="flex items-center justify-center py-8">
                             <div className="w-8 h-8 border-2 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin" />
-                            <span className="ml-3 text-sm text-[var(--brand-light)]/60">Checking conversation...</span>
+                            <span className="ml-3 text-sm text-[var(--brand-light)]/60">{t('quickMessage.checkingConversation')}</span>
                         </div>
                     ) : (
                         <>
                             {/* Subject Field */}
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-[var(--brand-light)]">
-                                    Subject {isExistingConversation 
-                                        ? <span className="font-normal text-xs text-[var(--brand-light)]/50">(Optional - leave empty to keep current)</span> 
+                                    {t('quickMessage.subject')} {isExistingConversation 
+                                        ? <span className="font-normal text-xs text-[var(--brand-light)]/50">{t('quickMessage.subjectOptional')}</span> 
                                         : <span className="text-[var(--brand-primary)]">*</span>
                                     }
                                 </label>
@@ -223,8 +197,8 @@ export default function QuickMessageModal({
                                     value={subject}
                                     onChange={(e) => setSubject(e.target.value)}
                                     placeholder={isExistingConversation 
-                                        ? "Enter new subject to update, or leave empty"
-                                        : "e.g., Question about event registration"}
+                                        ? t('quickMessage.subjectPlaceholderUpdate')
+                                        : t('quickMessage.subjectPlaceholderNew')}
                                     className={`w-full h-11 sm:h-12 px-4 rounded-xl bg-[var(--dark-700)] border-2 text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 ${
                                         !isExistingConversation && !subject.trim() 
                                             ? 'border-[var(--brand-red)]/50' 
@@ -233,17 +207,17 @@ export default function QuickMessageModal({
                                     disabled={sending}
                                 />
                                 {!isExistingConversation && !subject.trim() && (
-                                    <p className="text-xs text-[var(--brand-red)]">Subject is required for new conversations</p>
+                                    <p className="text-xs text-[var(--brand-red)]">{t('quickMessage.subjectRequiredNew')}</p>
                                 )}
                             </div>
 
                             {/* Message Field */}
                             <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-[var(--brand-light)]">Message</label>
+                                <label className="block text-sm font-semibold text-[var(--brand-light)]">{t('quickMessage.message')}</label>
                                 <textarea
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
-                                    placeholder="Type your message here..."
+                                    placeholder={t('typeMessageHere')}
                                     rows={5}
                                     className="w-full px-4 py-3 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 resize-none min-h-[120px]"
                                     disabled={sending}
@@ -254,7 +228,7 @@ export default function QuickMessageModal({
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
                                     <Paperclip className="h-4 w-4 text-[var(--brand-light)]/60" />
-                                    Attachment <span className="font-normal text-xs text-[var(--brand-light)]/50">(Optional)</span>
+                                    {t('quickMessage.attachment')} <span className="font-normal text-xs text-[var(--brand-light)]/50">{t('quickMessage.optional')}</span>
                                 </label>
                                 
                                 {!attachment ? (
@@ -277,10 +251,10 @@ export default function QuickMessageModal({
                                                     <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--brand-light)]/60 group-hover:text-[var(--brand-primary)] transition-colors" />
                                                 </div>
                                                 <p className="mb-0.5 text-xs sm:text-sm font-semibold text-[var(--brand-light)]/80 group-hover:text-[var(--brand-primary)] transition-colors text-center">
-                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                    <span className="font-semibold">{t('quickMessage.clickToUpload')}</span> {t('quickMessage.orDragAndDrop')}
                                                 </p>
                                                 <p className="text-xs text-[var(--brand-light)]/50 text-center">
-                                                    PNG, JPG, GIF up to 10MB
+                                                    {t('quickMessage.fileTypes')}
                                                 </p>
                                             </div>
                                         </label>
@@ -319,7 +293,7 @@ export default function QuickMessageModal({
                         disabled={sending}
                         className="flex-1 order-2 sm:order-1 h-11 sm:h-12 px-6 rounded-xl border-2 border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)] transition-all"
                     >
-                        Cancel
+                        {t('quickMessage.cancel')}
                     </button>
                     <button
                         type="button"
@@ -330,12 +304,12 @@ export default function QuickMessageModal({
                         {sending ? (
                             <>
                                 <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                <span>Sending...</span>
+                                <span>{t('quickMessage.sending')}</span>
                             </>
                         ) : (
                             <>
                                 <Send className="h-4 w-4 sm:h-5 sm:w-5" />
-                                <span>Send Message</span>
+                                <span>{t('quickMessage.sendMessage')}</span>
                             </>
                         )}
                     </button>
@@ -343,14 +317,6 @@ export default function QuickMessageModal({
             </div>
             
             {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast({ ...toast, isVisible: false })}
-                darkMode
-                duration={1250}
-            />
         </div>
     );
 }

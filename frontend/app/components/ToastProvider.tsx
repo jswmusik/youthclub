@@ -18,53 +18,44 @@ interface ToastContextType {
   hideToast: (id: string) => void;
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
+const ToastContext = createContext<ToastContextType | null>(null);
 
-// Storage key for persisting toasts across navigation
 const TOAST_STORAGE_KEY = 'pending_toast';
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const pathname = usePathname();
-  const showToastRef = useRef<((message: string, type?: ToastData['type'], title?: string, duration?: number) => void) | null>(null);
+  const hasCheckedStorage = useRef(false);
 
-  const showToast = useCallback((
-    message: string, 
-    type: ToastData['type'] = 'success', 
-    title?: string,
-    duration: number = 2500
-  ) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    setToasts(prev => [...prev, { id, message, type, title, duration }]);
-  }, []);
-
-  // Keep ref updated with latest showToast
+  // Check for pending toast on mount and route changes
   useEffect(() => {
-    showToastRef.current = showToast;
-  }, [showToast]);
-
-  // Check for pending toast whenever pathname changes (client-side navigation)
-  useEffect(() => {
-    const checkPendingToast = () => {
-      const pendingToast = sessionStorage.getItem(TOAST_STORAGE_KEY);
-      if (pendingToast) {
+    // Small delay to ensure page has rendered
+    const timer = setTimeout(() => {
+      const stored = sessionStorage.getItem(TOAST_STORAGE_KEY);
+      if (stored) {
         try {
-          const toastData = JSON.parse(pendingToast) as Omit<ToastData, 'id'>;
+          const { message, type, title, duration } = JSON.parse(stored);
           sessionStorage.removeItem(TOAST_STORAGE_KEY);
-          // Small delay to ensure the new page has rendered
-          setTimeout(() => {
-            if (showToastRef.current) {
-              showToastRef.current(toastData.message, toastData.type, toastData.title, toastData.duration);
-            }
-          }, 100);
+          showToast(message, type, title, duration);
         } catch (e) {
           sessionStorage.removeItem(TOAST_STORAGE_KEY);
         }
       }
-    };
+      hasCheckedStorage.current = true;
+    }, 100);
 
-    checkPendingToast();
-  }, [pathname]); // Re-run when pathname changes
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
+  const showToast = useCallback((
+    message: string, 
+    type: ToastData['type'] = 'success', 
+    title?: string, 
+    duration: number = 4000
+  ) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setToasts(prev => [...prev, { id, message, type, title, duration }]);
+  }, []);
 
   const hideToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -79,10 +70,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 // Hook to use toast
-export function useToast() {
+export function useToastContext() {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error('useToastContext must be used within a ToastProvider');
   }
   return context;
 }
@@ -246,4 +237,3 @@ function ToastItem({ toast, onClose }: { toast: ToastData, onClose: () => void }
     </div>
   );
 }
-

@@ -2,11 +2,13 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import GuardianForm from '@/app/components/GuardianForm';
 import { Users } from 'lucide-react';
 
 function EditPageContent() {
+  const t = useTranslations('guardianManager');
   const { id } = useParams() as { id: string };
   const searchParams = useSearchParams();
   const [data, setData] = useState(null);
@@ -41,7 +43,7 @@ function EditPageContent() {
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
           <Users className="w-6 h-6 text-white" />
         </div>
-        <p className="text-[var(--brand-light)]/60">Loading guardian...</p>
+        <p className="text-[var(--brand-light)]/60">{t('loadingGuardian')}</p>
       </div>
     </div>
   );
@@ -53,18 +55,23 @@ function EditPageContent() {
   );
 }
 
+function LoadingFallback() {
+  const t = useTranslations('guardianManager');
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <Users className="w-6 h-6 text-white" />
+        </div>
+        <p className="text-[var(--brand-light)]/60">{t('loadingGuardian')}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function Page() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Users className="w-6 h-6 text-white" />
-          </div>
-          <p className="text-[var(--brand-light)]/60">Loading guardian...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingFallback />}>
       <EditPageContent />
     </Suspense>
   );

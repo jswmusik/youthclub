@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cmsApi } from '@/lib/cms-api';
 import { MenuItem } from '@/types/cms';
+import NewsletterModal from './NewsletterModal';
 
 // TikTok icon (not available in lucide-react)
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -24,10 +25,25 @@ const TikTokIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export default function YouthFooter() {
+interface FooterProps {
+  homeLink?: string; // Default dashboard link for the logo
+}
+
+export default function Footer({ homeLink = '/dashboard/youth' }: FooterProps) {
   const t = useTranslations('footer');
   const currentYear = new Date().getFullYear();
   const [communityFooterItems, setCommunityFooterItems] = useState<MenuItem[]>([]);
+  
+  // Newsletter state
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [showNewsletterModal, setShowNewsletterModal] = useState(false);
+  
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newsletterEmail && newsletterEmail.includes('@')) {
+      setShowNewsletterModal(true);
+    }
+  };
 
   // Fetch CMS community footer items
   useEffect(() => {
@@ -84,7 +100,7 @@ export default function YouthFooter() {
           
           {/* Brand Section */}
           <div className="lg:col-span-2">
-            <Link href="/dashboard/youth" className="inline-block mb-4">
+            <Link href={homeLink} className="inline-block mb-4">
               <Image
                 src="/ua-logo-2026.svg"
                 alt="Youth App"
@@ -184,9 +200,9 @@ export default function YouthFooter() {
           )}
         </div>
 
-        {/* Newsletter Section (Optional - for future use) */}
+        {/* Newsletter Section */}
         <div className="mt-12 pt-8 border-t border-[var(--dark-600)]">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <h3 className="text-[var(--brand-light)] font-bold mb-1">{t('stayUpdated')}</h3>
               <p className="text-[var(--brand-light)]/60 text-sm">
@@ -196,16 +212,32 @@ export default function YouthFooter() {
             <div className="flex gap-2 max-w-md w-full md:w-auto">
               <input
                 type="email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder={t('enterEmail')}
                 className="flex-1 md:w-64 px-4 py-2.5 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] outline-none transition-all"
+                required
               />
-              <button className="px-5 py-2.5 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold text-sm rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all whitespace-nowrap">
+              <button 
+                type="submit"
+                className="px-5 py-2.5 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold text-sm rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all whitespace-nowrap"
+              >
                 {t('subscribe')}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
+      
+      {/* Newsletter Modal */}
+      <NewsletterModal
+        isOpen={showNewsletterModal}
+        onClose={() => {
+          setShowNewsletterModal(false);
+          setNewsletterEmail('');
+        }}
+        email={newsletterEmail}
+      />
 
       {/* Bottom Bar */}
       <div className="border-t border-[var(--dark-600)] bg-[var(--dark-900)]">

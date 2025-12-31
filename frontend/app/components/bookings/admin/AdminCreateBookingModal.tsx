@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import api from '../../../../lib/api';
 import { X, Search, User, Calendar, Clock, Loader2, Plus, CalendarDays, Users, Check, AlertTriangle, RefreshCw } from 'lucide-react';
 import { format, addDays, startOfWeek } from 'date-fns';
-import Toast from '../../Toast';
+import { sv } from 'date-fns/locale';
+import { useToast } from '../../../../hooks/useToast';
 import { getMediaUrl, getInitials } from '../../../utils';
 
 interface Props {
@@ -16,6 +18,10 @@ interface Props {
 }
 
 export default function AdminCreateBookingModal({ onClose, onSuccess, preSelectedTime, preSelectedSlot, scope }: Props) {
+  const t = useTranslations('bookingsAdmin.createBookingModal');
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? sv : undefined;
+  
   // Start at step 2 if slot is pre-selected (skip resource/date/slot selection)
   const [step, setStep] = useState(preSelectedSlot ? 2 : 1);
   const [loading, setLoading] = useState(false);
@@ -47,7 +53,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
   const [userSearch, setUserSearch] = useState('');
   
   // Toast State
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // 1. Fetch Resources and set pre-selected resource if provided
   useEffect(() => {
@@ -114,11 +120,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
     
     // Validate recurring fields
     if (isRecurring && recurringType === 'WEEKS' && (!recurringWeeks || recurringWeeks < 1)) {
-      setToast({ 
-        message: 'Please specify the number of weeks for recurring booking.', 
-        type: 'error', 
-        isVisible: true 
-      });
+      error(t('toast.specifyWeeks'));
       return;
     }
     
@@ -146,13 +148,9 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
         // Success - booking was created
         console.log('Booking created successfully:', response.data);
         const recurringMessage = isRecurring 
-          ? ` (${recurringType === 'FOREVER' ? 'recurring forever' : `recurring for ${recurringWeeks} weeks`})`
+          ? (recurringType === 'FOREVER' ? t('toast.recurringForever') : t('toast.recurringWeeks', { weeks: recurringWeeks }))
           : '';
-        setToast({ 
-          message: `Booking${recurringMessage} created successfully for ${selectedUser.first_name} ${selectedUser.last_name}!`, 
-          type: 'success', 
-          isVisible: true 
-        });
+        success(t('toast.success') + (recurringMessage ? ' ' + recurringMessage : ''));
         // Wait a moment to show toast, then close and refresh
         setTimeout(() => {
           onSuccess();
@@ -162,7 +160,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
         console.error('Error creating booking:', err);
         
         // Extract error message from response
-        let errorMessage = 'Failed to create booking.';
+        let errorMessage = t('toast.failedToCreate');
         
         if (err.response?.data) {
             // Handle DRF validation errors
@@ -189,11 +187,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
             errorMessage = err.message;
         }
         
-        setToast({ 
-          message: errorMessage, 
-          type: 'error', 
-          isVisible: true 
-        });
+        error(errorMessage);
         setLoading(false);
     }
   };
@@ -225,8 +219,8 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
               <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">Create Booking</h2>
-              <p className="text-xs sm:text-sm text-[var(--brand-light)]/50">Book a resource for a youth member</p>
+              <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">{t('title')}</h2>
+              <p className="text-xs sm:text-sm text-[var(--brand-light)]/50">{t('description')}</p>
             </div>
           </div>
           <button
@@ -246,7 +240,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                   <User className="w-4 h-4 text-[var(--brand-purple)]" />
                 </div>
-                <span className="text-sm font-semibold text-[var(--brand-light)]">1. Select Youth Member</span>
+                <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.selectYouthMember')}</span>
               </div>
             </div>
             <div className="p-4">
@@ -274,7 +268,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                       onClick={() => setSelectedUser(null)} 
                       className="px-3 py-1.5 text-xs font-medium text-[var(--brand-red)] hover:text-white hover:bg-[var(--brand-red)] rounded-lg transition-colors"
                     >
-                      Change
+                      {t('change')}
                     </button>
                   </div>
                 </div>
@@ -283,7 +277,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <Search className="absolute left-3 top-3 h-4 w-4 text-[var(--brand-light)]/40 z-0" />
                   <input 
                     type="text" 
-                    placeholder="Search by name or email..." 
+                    placeholder={t('searchPlaceholder')}
                     className="w-full h-10 pl-10 pr-4 bg-[var(--dark-600)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors relative z-0"
                     value={userSearch}
                     onChange={(e) => handleUserSearch(e.target.value)}
@@ -329,7 +323,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
                     <CalendarDays className="w-4 h-4 text-[var(--brand-blue)]" />
                   </div>
-                  <span className="text-sm font-semibold text-[var(--brand-light)]">2. Select Resource</span>
+                  <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.selectResource')}</span>
                 </div>
               </div>
               <div className="p-4">
@@ -344,7 +338,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                       setSelectedSlot(null);
                     }}
                   >
-                    <option value="">-- Choose Room or Equipment --</option>
+                    <option value="">{t('chooseResource')}</option>
                     {resources.map(r => (
                       <option key={r.id} value={r.id}>{r.name} ({r.club_name})</option>
                     ))}
@@ -367,7 +361,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
                     <CalendarDays className="w-4 h-4 text-[var(--brand-blue)]" />
                   </div>
-                  <span className="text-sm font-semibold text-[var(--brand-light)]">2. Resource</span>
+                  <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.resource')}</span>
                 </div>
               </div>
               <div className="p-4">
@@ -387,7 +381,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
                     <Calendar className="w-4 h-4 text-[var(--brand-peach)]" />
                   </div>
-                  <span className="text-sm font-semibold text-[var(--brand-light)]">3. Select Date</span>
+                  <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.selectDate')}</span>
                 </div>
               </div>
               <div className="p-4">
@@ -413,12 +407,12 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
                     <Calendar className="w-4 h-4 text-[var(--brand-peach)]" />
                   </div>
-                  <span className="text-sm font-semibold text-[var(--brand-light)]">3. Date</span>
+                  <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.date')}</span>
                 </div>
               </div>
               <div className="p-4">
                 <div className="bg-[var(--dark-600)] rounded-xl border border-[var(--brand-primary)]/30 p-4">
-                  <div className="font-semibold text-[var(--brand-light)]">{format(new Date(date), 'EEEE, MMMM d, yyyy')}</div>
+                  <div className="font-semibold text-[var(--brand-light)]">{format(new Date(date), 'EEEE, MMMM d, yyyy', { locale: dateLocale })}</div>
                 </div>
               </div>
             </div>
@@ -433,7 +427,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
                     <Clock className="w-4 h-4 text-[var(--brand-green)]" />
                   </div>
-                  <span className="text-sm font-semibold text-[var(--brand-light)]">4. Time Slot</span>
+                  <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.timeSlot')}</span>
                 </div>
               </div>
               <div className="p-4">
@@ -447,16 +441,16 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                         <div className="font-bold text-[var(--brand-light)] text-base">
                           {format(new Date(selectedSlot.start), 'HH:mm')} - {format(new Date(selectedSlot.end), 'HH:mm')}
                         </div>
-                        <div className="text-xs text-[var(--brand-primary)] mt-0.5">Pre-selected from calendar</div>
+                        <div className="text-xs text-[var(--brand-primary)] mt-0.5">{t('preSelectedFromCalendar')}</div>
                       </div>
                     </div>
                     <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--brand-primary)] text-white">
-                      Locked
+                      {t('locked')}
                     </span>
                   </div>
                   <div className="mt-3 pt-3 border-t border-[var(--dark-500)]">
                     <p className="text-xs text-[var(--brand-light)]/60">
-                      To select a different time slot, close this modal and click on another available slot in the calendar.
+                      {t('selectDifferentSlot')}
                     </p>
                   </div>
                 </div>
@@ -470,20 +464,20 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
                     <Clock className="w-4 h-4 text-[var(--brand-green)]" />
                   </div>
-                  <span className="text-sm font-semibold text-[var(--brand-light)]">4. Select Available Time Slot</span>
+                  <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.selectTimeSlot')}</span>
                 </div>
               </div>
               <div className="p-4">
                 {loadingSlots ? (
                   <div className="text-center py-6">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-[var(--brand-primary)]" />
-                    <p className="text-xs text-[var(--brand-light)]/50">Loading available slots...</p>
+                    <p className="text-xs text-[var(--brand-light)]/50">{t('loadingSlots')}</p>
                   </div>
                 ) : availableSlots.length === 0 ? (
                   <div className="bg-[var(--brand-peach)]/10 rounded-xl border border-[var(--brand-peach)]/30 p-4 text-center">
                     <AlertTriangle className="w-6 h-6 text-[var(--brand-peach)] mx-auto mb-2" />
-                    <p className="text-xs text-[var(--brand-peach)] font-medium">No available slots for this date</p>
-                    <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">Please check the schedule or select a different date</p>
+                    <p className="text-xs text-[var(--brand-peach)] font-medium">{t('noSlotsAvailable')}</p>
+                    <p className="text-xs text-[var(--brand-light)]/50 mt-0.5">{t('noSlotsHint')}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto p-2 border-2 border-[var(--dark-500)] rounded-xl bg-[var(--dark-600)]">
@@ -525,7 +519,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                     <RefreshCw className="w-4 h-4 text-[var(--brand-purple)]" />
                   </div>
-                  <span className="text-sm font-semibold text-[var(--brand-light)]">5. Recurring Options</span>
+                  <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.recurringOptions')}</span>
                 </div>
               </div>
               <div className="p-4 space-y-4">
@@ -549,13 +543,13 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                     }}
                     className="sr-only"
                   />
-                  <span className="text-sm font-medium text-[var(--brand-light)]">Make this a recurring booking</span>
+                  <span className="text-sm font-medium text-[var(--brand-light)]">{t('makeRecurring')}</span>
                 </label>
                 
                 {isRecurring && (
                   <div className="bg-[var(--dark-600)] rounded-xl border border-[var(--dark-500)] p-4 space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">Recurrence Type</label>
+                      <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">{t('recurrenceType')}</label>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <label className="flex items-center gap-2 cursor-pointer">
                           <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
@@ -573,7 +567,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                             onChange={(e) => setRecurringType(e.target.value as 'WEEKS')}
                             className="sr-only"
                           />
-                          <span className="text-xs text-[var(--brand-light)]">For a specific number of weeks</span>
+                          <span className="text-xs text-[var(--brand-light)]">{t('forSpecificWeeks')}</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
@@ -591,14 +585,14 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                             onChange={(e) => setRecurringType(e.target.value as 'FOREVER')}
                             className="sr-only"
                           />
-                          <span className="text-xs text-[var(--brand-light)]">Forever</span>
+                          <span className="text-xs text-[var(--brand-light)]">{t('forever')}</span>
                         </label>
                       </div>
                     </div>
                     
                     {recurringType === 'WEEKS' && (
                       <div className="space-y-2">
-                        <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">Number of Weeks</label>
+                        <label className="text-[10px] font-semibold text-[var(--brand-light)]/40 uppercase tracking-wider">{t('numberOfWeeks')}</label>
                         <input
                           type="number"
                           min="1"
@@ -606,10 +600,10 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                           value={recurringWeeks}
                           onChange={(e) => setRecurringWeeks(parseInt(e.target.value) || 1)}
                           className="w-full h-10 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] outline-none focus:border-[var(--brand-primary)] transition-colors"
-                          placeholder="e.g., 4"
+                          placeholder={t('weeksPlaceholder')}
                         />
                         <p className="text-xs text-[var(--brand-light)]/50">
-                          Bookings will be created for the same day and time each week, respecting even/odd week schedules.
+                          {t('recurringWeeksHint')}
                         </p>
                       </div>
                     )}
@@ -618,7 +612,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                       <div className="bg-[var(--brand-peach)]/10 rounded-xl border border-[var(--brand-peach)]/30 p-3">
                         <p className="text-xs text-[var(--brand-peach)] font-medium flex items-start gap-2">
                           <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                          Bookings will be created indefinitely (up to 1 year initially). The system will respect even/odd week schedules automatically.
+                          {t('recurringForeverHint')}
                         </p>
                       </div>
                     )}
@@ -637,7 +631,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
             disabled={loading}
             className="w-full sm:w-auto px-6 py-2.5 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] bg-[var(--dark-600)] hover:bg-[var(--dark-500)] rounded-xl transition-colors disabled:opacity-50"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button 
             onClick={handleSubmit} 
@@ -647,24 +641,16 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Creating...</span>
+                <span>{t('creating')}</span>
               </>
             ) : (
-              'Create Booking'
+              t('createBooking')
             )}
           </button>
         </div>
       </div>
       
       {/* Toast Notification */}
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode
-      />
-      
       {/* Animation Styles */}
       <style jsx global>{`
         @keyframes fadeIn {

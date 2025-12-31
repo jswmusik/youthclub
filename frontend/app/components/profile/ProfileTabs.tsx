@@ -13,9 +13,11 @@ interface ProfileTabsProps {
 
 export default function ProfileTabs({ activeTab, onTabChange, isSticky = false, darkMode = false, isCheckedIn = false }: ProfileTabsProps) {
   const t = useTranslations('profile');
+  const tEvents = useTranslations('events');
   const tabs = [
     { id: 'overview', label: t('overview') },
     { id: 'clubs', label: t('clubsAndGroups') },
+    { id: 'events', label: tEvents('myEvents') },
     { id: 'inventory', label: t('inventoryHistory') },
     { id: 'guardians', label: t('guardians') },
     { id: 'wallet', label: t('myWallet') },

@@ -45,7 +45,7 @@ export default function DarkRichTextEditor({
     'header',
     'bold', 'italic', 'underline', 'strike',
     'blockquote',
-    'list', 'bullet',
+    'list',
     'link', 'image'
   ];
 

@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Plus, Search, BarChart3, ChevronUp, Edit, Trash2, X, Tag, ArrowLeft, ChevronLeft } from 'lucide-react';
 import api from '../../lib/api';
 import ConfirmationModal from './ConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -19,6 +20,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete }: SwipeableCardProps) {
+  const t = useTranslations('tagManager');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -103,14 +105,14 @@ function SwipeableCard({ children, onEdit, onDelete }: SwipeableCardProps) {
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
         >
           <Edit className="w-5 h-5" />
-          <span className="text-xs font-medium">Edit</span>
+          <span className="text-xs font-medium">{t('actions.edit')}</span>
         </button>
         <button
           onClick={handleDeleteClick}
           className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
         >
           <Trash2 className="w-5 h-5" />
-          <span className="text-xs font-medium">Delete</span>
+          <span className="text-xs font-medium">{t('actions.delete')}</span>
         </button>
       </div>
 
@@ -185,6 +187,7 @@ function TagTableRowSkeleton() {
 }
 
 function TagPageSkeleton() {
+  const t = useTranslations('tagManager');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -199,9 +202,9 @@ function TagPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Tag</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Slug</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.tag')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.slug')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -223,6 +226,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('tagManager');
   
   const [tags, setTags] = useState<any[]>([]);
   const [allTagsForAnalytics, setAllTagsForAnalytics] = useState<any[]>([]);
@@ -233,7 +237,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   
   const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // Debounce search input
   useEffect(() => {
@@ -415,11 +419,11 @@ export default function TagManager({ basePath }: TagManagerProps) {
     if (!itemToDelete) return;
     try {
       await api.delete(`/news_tags/${itemToDelete.id}/`);
-      setToast({ message: 'Tag deleted successfully.', type: 'success', isVisible: true });
+      success(t('toast.tagDeleted'));
       fetchTags();
       fetchAllTagsForAnalytics();
     } catch (err) {
-      setToast({ message: 'Failed to delete tag.', type: 'error', isVisible: true });
+      error(t('toast.failedToDelete'));
     } finally {
       setItemToDelete(null);
     }
@@ -450,7 +454,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
             className="inline-flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors w-fit"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Back to News</span>
+            <span className="text-sm font-medium">{t('backToNews')}</span>
           </Link>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -458,13 +462,13 @@ export default function TagManager({ basePath }: TagManagerProps) {
                 <Tag className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Tags</h1>
-                <p className="text-[var(--brand-light)]/50 text-sm mt-0.5">Manage news article tags and categories</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+                <p className="text-[var(--brand-light)]/50 text-sm mt-0.5">{t('description')}</p>
               </div>
             </div>
             <Link href={`${basePath}/create`}>
               <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-5 py-2.5 transition-all">
-                <Plus className="h-4 w-4" /> Create Tag
+                <Plus className="h-4 w-4" /> {t('createTag')}
               </button>
             </Link>
           </div>
@@ -479,7 +483,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
         >
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-[var(--brand-primary)]" />
-            <span className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</span>
+            <span className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</span>
           </div>
           <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? '' : 'rotate-180'}`} />
         </button>
@@ -493,7 +497,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Tag className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total Tags</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.totalTags')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-primary)]">{analytics.total}</div>
               </div>
@@ -508,7 +512,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
           <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
           <input 
             type="text"
-            placeholder="Search by name or slug..." 
+            placeholder={t('filters.searchPlaceholder')} 
             className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
@@ -528,7 +532,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
       {!showSkeleton && paginatedTags.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{paginatedTags.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? 'tag' : 'tags'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{paginatedTags.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {totalCount === 1 ? t('statsBar.tag') : t('statsBar.tags')}
           </p>
         </div>
       )}
@@ -541,14 +545,14 @@ export default function TagManager({ basePath }: TagManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Tag className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No tags found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noTagsFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {hasFilters ? 'Try adjusting your search.' : 'Get started by creating your first tag.'}
+            {hasFilters ? t('emptyState.adjustSearch') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Create Tag
+                <Plus className="h-4 w-4" /> {t('createTag')}
               </button>
             </Link>
           )}
@@ -587,9 +591,9 @@ export default function TagManager({ basePath }: TagManagerProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Tag</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Slug</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.tag')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.slug')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -642,17 +646,17 @@ export default function TagManager({ basePath }: TagManagerProps) {
             onClick={() => updateUrl('page', (currentPage - 1).toString())}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            Prev
+            {t('pagination.previous')}
           </button>
           <span className="text-sm text-[var(--brand-light)]/50">
-            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
           </span>
           <button 
             disabled={currentPage >= totalPages} 
             onClick={() => updateUrl('page', (currentPage + 1).toString())}
             className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            Next
+            {t('pagination.next')}
           </button>
         </div>
       )}
@@ -662,16 +666,15 @@ export default function TagManager({ basePath }: TagManagerProps) {
         isVisible={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleDelete}
-        title="Delete Tag"
-        message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { name: itemToDelete?.name || '' })}
+        confirmButtonText={t('deleteModal.delete')}
+        cancelButtonText={t('deleteModal.cancel')}
         variant="danger"
         darkMode={true}
       />
       
       {/* Toast Notification */}
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-    </div>
+      </div>
   );
 }

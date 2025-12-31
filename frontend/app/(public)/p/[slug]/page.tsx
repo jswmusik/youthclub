@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { cmsApi } from '@/lib/cms-api';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { Page, TableOfContentsItem } from '@/types/cms';
 import { Loader2, ArrowLeft, ChevronRight, Clock, User, List, X, Facebook, Linkedin, Link2, Check } from 'lucide-react';
 import Link from 'next/link';
@@ -588,7 +589,7 @@ export default function DynamicCmsPage() {
                     prose-th:bg-[var(--dark-800)] prose-th:text-[var(--brand-light)] prose-th:px-5 prose-th:py-3 prose-th:text-left prose-th:border prose-th:border-[var(--dark-600)]
                     prose-td:px-5 prose-td:py-3 prose-td:border prose-td:border-[var(--dark-700)] prose-td:text-[var(--brand-light)]/75
                   "
-                  dangerouslySetInnerHTML={{ __html: processedContent }} 
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(processedContent) }} 
                 />
               )}
 

@@ -11,7 +11,7 @@ import { format, parseISO } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getMediaUrl } from '../../utils';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.208:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface PublicEvent {
   id: number;

@@ -9,9 +9,8 @@ import { GuardianLink } from '@/types/user';
 import GuardianCard from './GuardianCard';
 import GuardianDetailModal from './GuardianDetailModal';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 import { Users } from 'lucide-react';
-
 
 export default function YouthGuardianManager({ darkMode = false }: { darkMode?: boolean } = {}) {
     const router = useRouter();
@@ -28,11 +27,7 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
     const [isDeleting, setIsDeleting] = useState(false);
 
     // Toast
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({ 
-        message: '', 
-        type: 'success', 
-        isVisible: false 
-    });
+    const { success, error, info, warning } = useToast();
 
     useEffect(() => {
         loadGuardians();
@@ -91,11 +86,7 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
         } catch (err: any) {
             console.error('Error loading guardians:', err);
             console.error('Error response:', err.response?.data);
-            setToast({ 
-                message: err.response?.data?.detail || err.response?.data?.error || t('failedToLoadGuardians'), 
-                type: 'error', 
-                isVisible: true 
-            });
+            error(err.response?.data?.detail || err.response?.data?.error || t('failedToLoadGuardians'));
         } finally {
             setLoading(false);
         }
@@ -107,10 +98,10 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
         try {
             await removeGuardianLink(linkToDelete.id);
             setLinks(prev => prev.filter(l => l.id !== linkToDelete.id));
-            setToast({ message: t('guardianRemoved'), type: 'success', isVisible: true });
+            success(t('guardianRemoved'));
             setLinkToDelete(null);
         } catch (err) {
-            setToast({ message: t('failedToRemoveGuardian'), type: 'error', isVisible: true });
+            error(t('failedToRemoveGuardian'));
         } finally {
             setIsDeleting(false);
         }
@@ -210,13 +201,7 @@ export default function YouthGuardianManager({ darkMode = false }: { darkMode?: 
                 darkMode={darkMode}
             />
 
-            <Toast 
-                message={toast.message} 
-                type={toast.type} 
-                isVisible={toast.isVisible} 
-                onClose={() => setToast({ ...toast, isVisible: false })} 
-            />
-        </div>
+            </div>
     );
 }
 

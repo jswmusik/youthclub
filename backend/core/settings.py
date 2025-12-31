@@ -33,6 +33,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'djoser',
+    'django_apscheduler',  # Scheduled tasks
+    # Core app with image optimization signals
+    'core.apps.CoreConfig',
     'users',
     'api',
     'organization',
@@ -54,6 +57,7 @@ INSTALLED_APPS = [
     'cms',
     'analytics',
     'licensing',
+    'emails',
 ]
 
 MIDDLEWARE = [
@@ -167,25 +171,100 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
     # --- PAGINATION ---
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10, # How many items per page
+    'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardResultsSetPagination',
+    'PAGE_SIZE': 10,  # Default items per page (can be overridden via page_size query param)
 }
 
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    # Access tokens are short-lived for security - will be auto-refreshed by frontend
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    # Refresh tokens last 30 days for "Remember Me" functionality
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    # Rotate refresh tokens on each use for added security
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': False,  # Set to True if using token blacklist app
     'AUTH_HEADER_TYPES': ('JWT',),
+    'UPDATE_LAST_LOGIN': True,
 }
 
 DJOSER = {
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': True,
+    # Password Reset Configuration
+    'PASSWORD_RESET_CONFIRM_URL': 'reset-password/{uid}/{token}',
+    'PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND': False,  # Security: don't reveal if email exists
+    'SEND_ACTIVATION_EMAIL': False,
+    'EMAIL': {
+        'password_reset': 'emails.djoser_emails.PasswordResetEmail',
+    },
     'SERIALIZERS': {
         'user_create': 'djoser.serializers.UserCreateSerializer',
-        # Update these two lines to use your new serializer:
         'user': 'users.serializers.CustomUserSerializer',
         'current_user': 'users.serializers.CustomUserSerializer',
     },
 }
+
+# Frontend URL for password reset links
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+
+# --- APSCHEDULER CONFIGURATION ---
+# Format: "HH:MM" in 24-hour time (server timezone)
+APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds
+
+# Scheduler settings
+SCHEDULER_CONFIG = {
+    "apscheduler.jobstores.default": {
+        "class": "django_apscheduler.jobstores:DjangoJobStore"
+    },
+    "apscheduler.executors.default": {
+        "class": "apscheduler.executors.pool:ThreadPoolExecutor",
+        "max_workers": "5"
+    },
+    "apscheduler.job_defaults.coalesce": "true",
+    "apscheduler.job_defaults.max_instances": "1",
+}
+
+# --- EMAIL CONFIGURATION ---
+# 
+# DEVELOPMENT OPTIONS (set EMAIL_BACKEND in .env):
+# ------------------------------------------------
+# 1. Console (default) - Prints emails to terminal
+#    EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+#
+# 2. File - Saves emails as .eml files in /backend/sent_emails/
+#    EMAIL_BACKEND=django.core.mail.backends.filebased.EmailBackend
+#
+# 3. Mailtrap (recommended for testing) - Free fake SMTP inbox
+#    EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+#    EMAIL_HOST=sandbox.smtp.mailtrap.io
+#    EMAIL_PORT=2525
+#    EMAIL_HOST_USER=<your-mailtrap-username>
+#    EMAIL_HOST_PASSWORD=<your-mailtrap-password>
+#    Sign up free at: https://mailtrap.io
+#
+# 4. Gmail (for real emails in dev)
+#    EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+#    EMAIL_HOST=smtp.gmail.com
+#    EMAIL_PORT=587
+#    EMAIL_HOST_USER=your-email@gmail.com
+#    EMAIL_HOST_PASSWORD=<app-password>  (NOT your regular password!)
+#    Create app password: https://myaccount.google.com/apppasswords
+#
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+
+# File backend settings (saves to sent_emails folder)
+EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
+
+# SMTP Settings
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.example.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Ungdomsappen <noreply@ungdomsappen.se>')
+
+# App-specific email settings
+EMAIL_SUBJECT_PREFIX = '[Ungdomsappen] '

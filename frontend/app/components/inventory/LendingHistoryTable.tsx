@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import { Package, Clock, CheckCircle2, AlertTriangle, ChevronLeft, User, Calendar, Eye } from 'lucide-react';
 
@@ -96,7 +97,7 @@ function SwipeableCard({ children, onView, onClick, showActions = true }: Swipea
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
           >
             <Eye className="w-5 h-5" />
-            <span className="text-xs font-medium">View</span>
+            <span className="text-xs font-medium">{t('labels.view')}</span>
           </button>
         </div>
       )}
@@ -144,6 +145,7 @@ interface LendingHistoryTableProps {
 }
 
 export default function LendingHistoryTable({ sessions, showReturnButton = false, onReturnItem }: LendingHistoryTableProps) {
+    const t = useTranslations('inventoryAdmin.history');
     const sessionsArray = Array.isArray(sessions) ? sessions : [];
     
     const isOverdue = (dueAt?: string) => {
@@ -158,12 +160,12 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
             return overdue ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
                     <AlertTriangle className="w-3 h-3" />
-                    Overdue
+                    {t('status.overdue')}
                 </span>
             ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
                     <Clock className="w-3 h-3" />
-                    Active
+                    {t('status.active')}
                 </span>
             );
         }
@@ -172,7 +174,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
             return (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--dark-600)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]">
                     <CheckCircle2 className="w-3 h-3" />
-                    Returned
+                    {t('status.returned')}
                 </span>
             );
         }
@@ -180,7 +182,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
         if (session.status === 'RETURNED_SYSTEM') {
             return (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
-                    System Auto
+                    {t('status.systemAuto')}
                 </span>
             );
         }
@@ -188,7 +190,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
         if (session.status === 'RETURNED_ADMIN') {
             return (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
-                    Admin Return
+                    {t('status.adminReturn')}
                 </span>
             );
         }
@@ -206,8 +208,8 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                 <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                     <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
                 </div>
-                <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No history found</h3>
-                <p className="text-[var(--brand-light)]/50 text-sm">Lending history will appear here.</p>
+                <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noHistoryFound')}</h3>
+                <p className="text-[var(--brand-light)]/50 text-sm">{t('emptyState.lendingHistoryWillAppear')}</p>
             </div>
         );
     }
@@ -246,7 +248,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                                     </p>
                                                     {session.is_guest && (
                                                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)]">
-                                                            Guest
+                                                            {t('labels.guest')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -258,14 +260,14 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                         <div className="mt-3 grid grid-cols-2 gap-2">
                                             <div className="flex items-center gap-1.5">
                                                 <Calendar className="w-3 h-3 text-[var(--brand-light)]/40" />
-                                                <span className="text-xs text-[var(--brand-light)]/50">Out:</span>
+                                                <span className="text-xs text-[var(--brand-light)]/50">{t('labels.out')}</span>
                                                 <span className="text-xs text-[var(--brand-light)]">
                                                     {format(new Date(session.borrowed_at), 'MMM d, HH:mm')}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-1.5">
                                                 <Clock className="w-3 h-3 text-[var(--brand-light)]/40" />
-                                                <span className="text-xs text-[var(--brand-light)]/50">Due:</span>
+                                                <span className="text-xs text-[var(--brand-light)]/50">{t('labels.due')}</span>
                                                 <span className={`text-xs ${overdue ? 'text-[var(--brand-red)] font-semibold' : 'text-[var(--brand-light)]'}`}>
                                                     {session.due_at ? format(new Date(session.due_at), 'MMM d, HH:mm') : '-'}
                                                 </span>
@@ -273,7 +275,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                             {session.returned_at && (
                                                 <div className="flex items-center gap-1.5 col-span-2">
                                                     <CheckCircle2 className="w-3 h-3 text-[var(--brand-green)]" />
-                                                    <span className="text-xs text-[var(--brand-light)]/50">Returned:</span>
+                                                    <span className="text-xs text-[var(--brand-light)]/50">{t('labels.returned')}</span>
                                                     <span className="text-xs text-[var(--brand-light)]">
                                                         {format(new Date(session.returned_at), 'MMM d, HH:mm')}
                                                     </span>
@@ -290,7 +292,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                                 }}
                                                 className="mt-3 w-full py-2 rounded-xl text-sm font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all"
                                             >
-                                                Return Item
+                                                {t('labels.returnItem')}
                                             </button>
                                         )}
                                     </div>
@@ -306,14 +308,14 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-[var(--dark-600)]">
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Item</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Borrower</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time Out</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Due Date</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Time In</th>
-                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.item')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.borrower')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.timeOut')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.dueDate')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.timeIn')}</th>
+                            <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
                             {showReturnButton && (
-                                <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                                <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                             )}
                         </tr>
                     </thead>
@@ -338,7 +340,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                             <span className="text-[var(--brand-light)]">{session.user_name}</span>
                                             {session.is_guest && (
                                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30">
-                                                    Guest
+                                                    {t('labels.guest')}
                                                 </span>
                                             )}
                                         </div>
@@ -373,7 +375,7 @@ export default function LendingHistoryTable({ sessions, showReturnButton = false
                                                     onClick={() => onReturnItem(session.item)}
                                                     className="px-4 py-2 rounded-xl text-sm font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all"
                                                 >
-                                                    Return Item
+                                                    {t('labels.returnItem')}
                                                 </button>
                                             )}
                                         </td>

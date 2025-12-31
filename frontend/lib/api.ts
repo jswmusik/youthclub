@@ -1,10 +1,29 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
-const API_URL = 'http://192.168.1.208:8000/api';
+const API_URL = 'http://127.0.0.1:8000/api';
 
 // Export for use in other files
 export { API_URL };
+
+// Token refresh state management
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: Error) => void;
+}> = [];
+
+// Process queued requests after token refresh
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else if (token) {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
 
 const api = axios.create({
   baseURL: API_URL,
@@ -24,6 +43,7 @@ api.interceptors.request.use((config: any) => {
     '/interests/',
     '/marketing/public/',
     '/public/events/',
+    '/auth/jwt/refresh/',  // Token refresh endpoint
   ];
   
   // Endpoints that are public only for GET requests (read-only public access)
@@ -58,7 +78,6 @@ api.interceptors.request.use((config: any) => {
     if (config.headers) {
       delete config.headers.Authorization;
     }
-    console.log('[API] Skipping auth for public endpoint:', urlPath, method);
     return config;
   }
   
@@ -69,23 +88,102 @@ api.interceptors.request.use((config: any) => {
   return config;
 });
 
-// Interceptor: Handle errors (like if token expires)
+// Interceptor: Handle errors with automatic token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Save current pathname before session expires (only if we're in an admin or dashboard area)
-      if (typeof window !== 'undefined') {
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/admin/') || currentPath.startsWith('/dashboard/')) {
-          sessionStorage.setItem('redirectAfterLogin', currentPath);
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    
+    // Only attempt refresh on 401 errors and if we haven't already retried
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't try to refresh for login/auth endpoints
+      const url = originalRequest.url || '';
+      if (url.includes('/auth/jwt/create') || url.includes('/auth/jwt/refresh')) {
+        return Promise.reject(error);
+      }
+      
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `JWT ${token}`;
+            }
+            return api(originalRequest);
+          })
+          .catch(err => Promise.reject(err));
+      }
+      
+      originalRequest._retry = true;
+      isRefreshing = true;
+      
+      const refreshToken = Cookies.get('refresh_token');
+      
+      if (refreshToken) {
+        try {
+          // Use a separate axios instance to avoid interceptor loops
+          const response = await axios.post(`${API_URL}/auth/jwt/refresh/`, {
+            refresh: refreshToken
+          });
+          
+          const newAccessToken = response.data.access;
+          const newRefreshToken = response.data.refresh; // If rotation is enabled
+          
+          // Check if we should use session cookies or persistent cookies
+          // We check if the existing refresh token cookie has an expiration
+          const rememberMe = Cookies.get('remember_me') === 'true';
+          const cookieOptions = rememberMe ? { expires: 30 } : undefined;
+          
+          // Update tokens
+          Cookies.set('access_token', newAccessToken, cookieOptions);
+          if (newRefreshToken) {
+            Cookies.set('refresh_token', newRefreshToken, cookieOptions);
+          }
+          
+          // Process queued requests
+          processQueue(null, newAccessToken);
+          
+          // Retry original request
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `JWT ${newAccessToken}`;
+          }
+          
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed - clear tokens and redirect to login
+          processQueue(refreshError as Error, null);
+          
+          Cookies.remove('access_token');
+          Cookies.remove('refresh_token');
+          Cookies.remove('remember_me');
+          
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('redirectAfterLogin');
+            // Only redirect if not already on login page
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+          }
+          
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
+      } else {
+        // No refresh token - clear access token and redirect
+        Cookies.remove('access_token');
+        
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('redirectAfterLogin');
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
         }
       }
-      // If token is invalid, logout (optional: add refresh logic later)
-      Cookies.remove('access_token');
-      Cookies.remove('refresh_token');
-      // window.location.href = '/login'; // Optional: Force redirect
     }
+    
     return Promise.reject(error);
   }
 );
@@ -261,6 +359,22 @@ export const inviteGuardian = (data: {
 }) => api.post('/youth/guardians/', data);
 
 export const removeGuardianLink = (linkId: number) => api.delete(`/youth/guardians/${linkId}/`);
+
+// --- GUARDIAN CHILDREN MANAGEMENT ---
+
+export const fetchMyChildren = () => api.get('/guardian/children/');
+
+export const approveChildConnection = (linkId: number) => 
+    api.post(`/guardian/children/${linkId}/approve/`);
+
+export const rejectChildConnection = (linkId: number) => 
+    api.post(`/guardian/children/${linkId}/reject/`);
+
+export const removeChildConnection = (linkId: number) => 
+    api.delete(`/guardian/children/${linkId}/`);
+
+export const setPrimaryChild = (linkId: number, isPrimary: boolean) => 
+    api.patch(`/guardian/children/${linkId}/`, { is_primary_guardian: isPrimary });
 
 // --- ADMIN GUARDIAN RELATIONSHIP MANAGEMENT ---
 export const fetchGuardianRelationships = async (params?: { guardian_id?: number; youth_id?: number; status?: string }) => {
@@ -445,6 +559,10 @@ export const visits = {
   getKioskToken: (clubId: number | string) => 
     api.get<{token: string}>(`/visits/kiosk/token/?club_id=${clubId}`),
 
+  // Get the PIN code for the Kiosk (changes every 60 minutes)
+  getKioskPin: (clubId: number | string) => 
+    api.get<{pin: string; expires_in: number}>(`/visits/kiosk/pin/?club_id=${clubId}`),
+
   // Get current active sessions (for the dashboard)
   getActiveSessions: (clubId: number | string) => 
     api.get(`/visits/sessions/?club_id=${clubId}&active=true`),
@@ -490,9 +608,13 @@ export const visits = {
   // Get the CURRENT status of the logged-in user (Are they inside?)
   getMyActiveVisit: () => api.get('/visits/sessions/active_status/'),
 
-  // The Scan Action
+  // The Scan Action (QR Code)
   scan: (token: string, latitude?: number, longitude?: number) => 
     api.post('/visits/sessions/scan/', { token, latitude, longitude }),
+
+  // PIN Code check-in (alternative to QR scan for users without camera)
+  pinCheckIn: (pin: string, clubId: number | string) => 
+    api.post('/visits/sessions/pin-checkin/', { pin, club_id: clubId }),
 
   // Manual check-in (Admin types a name)
   manualCheckIn: (data: { user_id: number }) => 

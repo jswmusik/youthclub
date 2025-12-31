@@ -1,28 +1,32 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Info, AlertCircle, AlertTriangle, Link as LinkIcon, MessageSquare, Settings, Users, Clock, Pin } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 interface MessageFormProps {
   redirectPath: string;
 }
 
-const ROLES = [
-  { id: 'SUPER_ADMIN', label: 'Super Admin' },
-  { id: 'MUNICIPALITY_ADMIN', label: 'Municipality Admin' },
-  { id: 'CLUB_ADMIN', label: 'Club Admin' },
-  { id: 'YOUTH_MEMBER', label: 'Youth Member' },
-  { id: 'GUARDIAN', label: 'Guardian' },
-];
-
 export default function MessageForm({ redirectPath }: MessageFormProps) {
+  const t = useTranslations('systemMessages.form');
+  const tRoles = useTranslations('systemMessages.roles');
   const router = useRouter();
+  
+  const ROLES = [
+    { id: 'PUBLIC', label: tRoles('public') },
+    { id: 'SUPER_ADMIN', label: tRoles('superAdmin') },
+    { id: 'MUNICIPALITY_ADMIN', label: tRoles('municipalityAdmin') },
+    { id: 'CLUB_ADMIN', label: tRoles('clubAdmin') },
+    { id: 'YOUTH_MEMBER', label: tRoles('youthMember') },
+    { id: 'GUARDIAN', label: tRoles('guardian') },
+  ];
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // Form State
@@ -60,7 +64,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
     setLoading(true);
     
     if (!formData.target_all && formData.selected_roles.length === 0) {
-      setToast({ message: 'Please select at least one role or select "All Roles".', type: 'error', isVisible: true });
+      error(t('validation.selectRole'));
       setLoading(false);
       return;
     }
@@ -83,14 +87,14 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
 
     try {
       await api.post('/messages/', payload);
-      setToast({ message: 'System message created!', type: 'success', isVisible: true });
+      success(t('toasts.createSuccess'));
       setTimeout(() => router.push(redirectPath), 1000);
     } catch (err: any) {
       console.error('Error creating message:', err);
       const errorMessage = err?.response?.data?.message || 
                           err?.response?.data?.detail || 
-                          (typeof err?.response?.data === 'object' ? JSON.stringify(err.response.data) : 'Failed to create message.');
-      setToast({ message: errorMessage, type: 'error', isVisible: true });
+                          (typeof err?.response?.data === 'object' ? JSON.stringify(err.response.data) : t('toasts.createFailed'));
+      error(errorMessage);
       setLoading(false);
     }
   };
@@ -160,15 +164,15 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
             </button>
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Create System Message</h1>
-            <p className="text-sm text-[var(--brand-light)]/50">Create and send a system-wide message to users</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+            <p className="text-sm text-[var(--brand-light)]/50">{t('subtitle')}</p>
           </div>
         </div>
 
         {/* Progress Bar */}
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] px-4 sm:px-6 py-4 mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-[var(--brand-light)]/50">Required fields</span>
+            <span className="text-sm text-[var(--brand-light)]/50">{t('progress.requiredFields')}</span>
             <span className="text-sm font-bold text-[var(--brand-primary)]">{progress}%</span>
           </div>
           <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -190,8 +194,8 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                   <MessageSquare className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Message Details</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter the message title and content</p>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('messageDetails.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('messageDetails.subtitle')}</p>
                 </div>
               </div>
             </div>
@@ -201,12 +205,12 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                  Title <span className="text-[var(--brand-red)]">*</span>
+                  {t('messageDetails.titleLabel')} <span className="text-[var(--brand-red)]">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Enter message title..."
+                  placeholder={t('messageDetails.titlePlaceholder')}
                   value={formData.title}
                   onChange={e => setFormData({...formData, title: e.target.value})}
                   onFocus={() => setFocusedField('title')}
@@ -218,12 +222,12 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
               {/* Message Body */}
               <div>
                 <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                  Message Body <span className="text-[var(--brand-red)]">*</span>
+                  {t('messageDetails.messageLabel')} <span className="text-[var(--brand-red)]">*</span>
                 </label>
                 <textarea
                   required
                   rows={4}
-                  placeholder="Enter your message..."
+                  placeholder={t('messageDetails.messagePlaceholder')}
                   value={formData.message}
                   onChange={e => setFormData({...formData, message: e.target.value})}
                   onFocus={() => setFocusedField('message')}
@@ -235,13 +239,13 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
               {/* External Link */}
               <div>
                 <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                  External Link (Optional)
+                  {t('messageDetails.externalLinkLabel')}
                 </label>
                 <div className="relative">
                   <LinkIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
                   <input
                     type="url"
-                    placeholder="https://..."
+                    placeholder={t('messageDetails.externalLinkPlaceholder')}
                     value={formData.external_link}
                     onChange={e => setFormData({...formData, external_link: e.target.value})}
                     onFocus={() => setFocusedField('external_link')}
@@ -250,7 +254,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                   />
                 </div>
                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                  Add an optional link for users to learn more
+                  {t('messageDetails.externalLinkHelp')}
                 </p>
               </div>
             </div>
@@ -265,8 +269,8 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                   <Settings className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Message Settings</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Configure message type, duration, and visibility</p>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('settings.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('settings.subtitle')}</p>
                 </div>
               </div>
             </div>
@@ -277,7 +281,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                 {/* Message Type */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Message Type
+                    {t('settings.messageTypeLabel')}
                   </label>
                   <select
                     value={formData.message_type}
@@ -285,9 +289,9 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                     className="w-full h-12 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all appearance-none cursor-pointer hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)]"
                     style={selectArrowStyle}
                   >
-                    <option value="INFO">Information (Blue)</option>
-                    <option value="IMPORTANT">Important (Orange)</option>
-                    <option value="WARNING">Warning (Red)</option>
+                    <option value="INFO">{t('settings.messageTypeInfo')}</option>
+                    <option value="IMPORTANT">{t('settings.messageTypeImportant')}</option>
+                    <option value="WARNING">{t('settings.messageTypeWarning')}</option>
                   </select>
                   
                   {/* Type Preview */}
@@ -305,7 +309,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                 {/* Duration */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Duration (Days) <span className="text-[var(--brand-red)]">*</span>
+                    {t('settings.durationLabel')} <span className="text-[var(--brand-red)]">*</span>
                   </label>
                   <div className="relative">
                     <Clock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
@@ -322,7 +326,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                     />
                   </div>
                   <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                    Message will expire after this many days
+                    {t('settings.durationHelp')}
                   </p>
                 </div>
               </div>
@@ -350,10 +354,10 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Pin className="w-4 h-4 text-[var(--brand-primary)]" />
-                    <span className="font-semibold text-[var(--brand-light)]">Sticky Message</span>
+                    <span className="font-semibold text-[var(--brand-light)]">{t('settings.stickyTitle')}</span>
                   </div>
                   <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-                    Reappears on refresh even if closed by user
+                    {t('settings.stickyDescription')}
                   </p>
                 </div>
               </div>
@@ -369,8 +373,8 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                   <Users className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Target Audience</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Select which user roles should receive this message</p>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('audience.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('audience.subtitle')}</p>
                 </div>
               </div>
             </div>
@@ -398,9 +402,9 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
                   )}
                 </div>
                 <div className="flex-1">
-                  <span className="font-semibold text-[var(--brand-light)]">All Roles</span>
+                  <span className="font-semibold text-[var(--brand-light)]">{t('audience.allRolesTitle')}</span>
                   <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-                    Send this message to all users regardless of their role
+                    {t('audience.allRolesDescription')}
                   </p>
                 </div>
               </div>
@@ -409,7 +413,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
               {!formData.target_all && (
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-3">
-                    Select Specific Roles
+                    {t('audience.selectRolesLabel')}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {ROLES.map(role => (
@@ -450,21 +454,20 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
               disabled={loading}
               className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all disabled:opacity-50"
             >
-              Cancel
+              {t('buttons.cancel')}
             </button>
             <button 
               type="submit"
               disabled={loading || !formData.title.trim() || !formData.message.trim()}
               className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending...' : 'Send Message'}
+              {loading ? t('buttons.sending') : t('buttons.send')}
             </button>
           </div>
 
         </form>
       </div>
 
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
-    </div>
+      </div>
   );
 }

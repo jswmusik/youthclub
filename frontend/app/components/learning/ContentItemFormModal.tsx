@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm, Controller } from 'react-hook-form';
 import { ContentItem, ContentItemFormData, ContentType } from '@/types/learning';
 import DarkRichTextEditor from '@/app/components/DarkRichTextEditor';
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapterId, initialData, isSubmitting }: Props) {
+    const t = useTranslations('knowledgeAdmin.courses.lessonModal');
     const { register, handleSubmit, setValue, watch, reset, control } = useForm<ContentItemFormData>({
         defaultValues: {
             type: 'VIDEO',
@@ -62,9 +64,9 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
     if (!isOpen) return null;
 
     const contentTypes = [
-        { id: 'VIDEO', label: 'Video', icon: Video, description: 'YouTube video content' },
-        { id: 'TEXT', label: 'Text Article', icon: FileText, description: 'Written content with formatting' },
-        { id: 'FILE', label: 'File Download', icon: Download, description: 'Downloadable resource' },
+        { id: 'VIDEO', label: t('contentTypes.VIDEO.label'), icon: Video, description: t('contentTypes.VIDEO.description') },
+        { id: 'TEXT', label: t('contentTypes.TEXT.label'), icon: FileText, description: t('contentTypes.TEXT.description') },
+        { id: 'FILE', label: t('contentTypes.FILE.label'), icon: Download, description: t('contentTypes.FILE.description') },
     ];
 
     return (
@@ -90,9 +92,9 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">
-                                {initialData ? 'Edit Lesson' : 'Add New Lesson'}
+                                {initialData ? t('title.edit') : t('title.add')}
                             </h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Configure lesson content and settings</p>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('description')}</p>
                         </div>
                     </div>
                     <button 
@@ -108,18 +110,18 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                                Lesson Title <span className="text-[var(--brand-red)]">*</span>
+                                {t('fields.lessonTitle')} <span className="text-[var(--brand-red)]">*</span>
                             </label>
                             <input 
                                 type="text"
                                 {...register('title', { required: true })} 
-                                placeholder="e.g., Introduction to Safety"
+                                placeholder={t('fields.titlePlaceholder')}
                                 className="w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none focus:border-[var(--brand-primary)] transition-all"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
-                                <Clock className="w-4 h-4" /> Duration (minutes)
+                                <Clock className="w-4 h-4" /> {t('fields.duration')}
                             </label>
                             <input 
                                 type="number"
@@ -132,7 +134,7 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                     {/* Content Type Selection */}
                     <div>
                         <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-3">
-                            Content Type
+                            {t('fields.contentType')}
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {contentTypes.map((type) => {
@@ -170,16 +172,16 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                     {selectedType === 'VIDEO' && (
                         <div>
                             <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
-                                <Video className="w-4 h-4" /> YouTube URL
+                                <Video className="w-4 h-4" /> {t('video.youtubeUrl')}
                             </label>
                             <input 
                                 type="text"
                                 {...register('video_url')} 
-                                placeholder="https://youtube.com/watch?v=..."
+                                placeholder={t('video.urlPlaceholder')}
                                 className="w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none focus:border-[var(--brand-primary)] transition-all"
                             />
                             <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                                Paste a YouTube video URL to embed it in this lesson
+                                {t('video.hint')}
                             </p>
                         </div>
                     )}
@@ -188,10 +190,10 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                     {selectedType === 'TEXT' && (
                         <div>
                             <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Article Content
+                                <FileText className="w-4 h-4" /> {t('text.articleContent')}
                             </label>
                             <p className="text-xs text-[var(--brand-light)]/40 mb-3">
-                                Use the toolbar to format text, add headings, lists, and images.
+                                {t('text.hint')}
                             </p>
                             <div className="min-h-[300px]">
                                 <DarkRichTextEditor 
@@ -207,7 +209,7 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                     {selectedType === 'FILE' && (
                         <div>
                             <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
-                                <Download className="w-4 h-4" /> Upload File
+                                <Download className="w-4 h-4" /> {t('file.uploadFile')}
                             </label>
                             <div className="border-2 border-dashed border-[var(--dark-500)] rounded-xl p-6 text-center hover:border-[var(--brand-primary)]/50 transition-all">
                                 <input 
@@ -220,7 +222,7 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                                 />
                                 {initialData?.file_upload && (
                                     <p className="text-xs text-[var(--brand-green)] mt-3">
-                                        ✓ Current file exists. Upload a new file to replace it.
+                                        {t('file.currentFileExists')}
                                     </p>
                                 )}
                             </div>
@@ -234,7 +236,7 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                             onClick={onClose}
                             className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all"
                         >
-                            Cancel
+                            {t('actions.cancel')}
                         </button>
                         <button 
                             type="submit" 
@@ -244,10 +246,10 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                             {isSubmitting ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                                    Saving...
+                                    {t('actions.saving')}
                                 </>
                             ) : (
-                                'Save Lesson'
+                                t('actions.saveLesson')
                             )}
                         </button>
                     </div>

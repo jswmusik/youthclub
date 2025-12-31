@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
   eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, 
@@ -18,6 +19,7 @@ interface EventCalendarProps {
 
 export default function EventCalendar({ scope }: EventCalendarProps) {
     const router = useRouter();
+    const t = useTranslations('eventsAdmin.calendar');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
@@ -146,7 +148,7 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
                                 onClick={() => setCurrentDate(new Date())}
                                 className="h-10 px-4 text-sm font-medium text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-colors border-x border-[var(--dark-500)]"
                             >
-                                Today
+                                {t('today')}
                             </button>
                             <button 
                                 onClick={() => setCurrentDate(addMonths(currentDate, 1))}
@@ -161,10 +163,10 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
 
             {/* Days Header */}
             <div className="grid grid-cols-7 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
                     <div key={day} className="py-2 sm:py-3 text-center text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wide">
-                        <span className="hidden sm:inline">{day}</span>
-                        <span className="sm:hidden">{day.slice(0, 1)}</span>
+                        <span className="hidden sm:inline">{t(`weekDays.${day}`)}</span>
+                        <span className="sm:hidden">{t(`weekDays.${day}`).slice(0, 1)}</span>
                     </div>
                 ))}
             </div>
@@ -175,7 +177,7 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
                     <div className="flex-1 flex items-center justify-center p-8 min-h-[400px]">
                         <div className="text-center">
                             <div className="w-10 h-10 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-                            <p className="text-[var(--brand-light)]/50">Loading events...</p>
+                            <p className="text-[var(--brand-light)]/50">{t('loadingEvents')}</p>
                         </div>
                     </div>
                 ) : (
@@ -322,7 +324,7 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
                                                 </div>
                                                 {dayEvents.length > 0 && (
                                                     <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30">
-                                                        {dayEvents.length} {dayEvents.length === 1 ? 'event' : 'events'}
+                                                        {dayEvents.length} {dayEvents.length === 1 ? t('event') : t('events')}
                                                     </span>
                                                 )}
                                             </div>
@@ -370,7 +372,7 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
                                             {/* Empty state for today */}
                                             {dayEvents.length === 0 && isTodayDate && (
                                                 <div className="px-4 pb-4">
-                                                    <p className="text-sm text-[var(--brand-light)]/40 text-center py-2">No events today</p>
+                                                    <p className="text-sm text-[var(--brand-light)]/40 text-center py-2">{t('noEventsToday')}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -381,7 +383,7 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
                                 {calendarDays.filter(day => isSameMonth(day, monthStart) && (getEventsForDay(day).length > 0 || isToday(day))).length === 0 && (
                                     <div className="py-12 text-center">
                                         <CalendarIcon className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                                        <p className="text-[var(--brand-light)]/50">No events this month</p>
+                                        <p className="text-[var(--brand-light)]/50">{t('noEventsThisMonth')}</p>
                                     </div>
                                 )}
                             </div>
@@ -391,7 +393,7 @@ export default function EventCalendar({ scope }: EventCalendarProps) {
             </div>
             
             <div className="p-3 border-t border-[var(--dark-600)] bg-[var(--dark-700)]/30">
-                <p className="text-xs text-[var(--brand-light)]/40 text-center">Tap an event to view options</p>
+                <p className="text-xs text-[var(--brand-light)]/40 text-center">{t('tapEventToView')}</p>
             </div>
 
             {/* Event Action Modal */}

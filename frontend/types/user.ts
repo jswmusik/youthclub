@@ -37,3 +37,20 @@ export interface GuardianLink {
     created_at: string;
 }
 
+export interface ChildLink {
+    id: number; // ID of the Link, not the user
+    youth: number; // Youth user ID
+    youth_id: number;
+    youth_email: string;
+    youth_first_name: string;
+    youth_last_name: string;
+    youth_grade?: number | null;
+    youth_avatar?: string | null;
+    youth_background_image?: string | null;
+    relationship_type: 'MOTHER' | 'FATHER' | 'GUARDIAN' | 'SIBLING' | 'OTHER';
+    is_primary_guardian: boolean;
+    status: 'PENDING' | 'ACTIVE' | 'REJECTED';
+    created_at: string;
+    verified_at?: string | null;
+}
+

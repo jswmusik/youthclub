@@ -4,14 +4,17 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import CheckInScanner from '@/app/components/visits/CheckInScanner';
+import PinCheckIn from '@/app/components/visits/PinCheckIn';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { ScanPageSkeleton } from '@/app/components/ui/Skeleton';
-import YouthFooter from '@/app/components/youth/YouthFooter';
-import { X, QrCode, ArrowLeft } from 'lucide-react';
+import Footer from '@/app/components/Footer';
+import { X, QrCode, ArrowLeft, Keyboard } from 'lucide-react';
 
 // Minimum skeleton display time (in ms) for better UX
 const MIN_LOADING_TIME = 500;
+
+type CheckInMode = 'qr' | 'pin';
 
 export default function ScanPage() {
   const t = useTranslations('visits');
@@ -20,6 +23,7 @@ export default function ScanPage() {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [checkInMode, setCheckInMode] = useState<CheckInMode>('qr');
 
   useEffect(() => {
     // Show skeleton for minimum time before displaying scanner
@@ -38,7 +42,8 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
+    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+      <div className="flex-1">
       <NavBar 
         darkMode={true}
         onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -77,7 +82,7 @@ export default function ScanPage() {
       <div className="pt-14 sm:pt-16">
         <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
           {/* Desktop Sidebar - Fixed position aligned with container */}
-          <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 bg-[var(--dark-900)] z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
+          <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
             <YouthSidebar activePath={pathname} darkMode={true} />
           </aside>
           
@@ -91,13 +96,50 @@ export default function ScanPage() {
                   {/* Header */}
                   <div className="mb-6 sm:mb-8 text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--brand-primary)]/20 mb-4">
-                      <QrCode className="w-8 h-8 text-[var(--brand-primary)]" />
+                      {checkInMode === 'qr' ? (
+                        <QrCode className="w-8 h-8 text-[var(--brand-primary)]" />
+                      ) : (
+                        <Keyboard className="w-8 h-8 text-[var(--brand-primary)]" />
+                      )}
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">{t('checkIn')}</h1>
-                    <p className="text-[var(--brand-light)]/60 mt-2 text-sm sm:text-base">{t('scanInstructions')}</p>
+                    <p className="text-[var(--brand-light)]/60 mt-2 text-sm sm:text-base">
+                      {checkInMode === 'qr' ? t('scanInstructions') : t('pinInstructions')}
+                    </p>
                   </div>
 
-                  <CheckInScanner onSuccess={handleSuccess} darkMode={true} />
+                  {/* Mode Toggle */}
+                  <div className="flex items-center justify-center gap-2 mb-6 p-1 bg-[var(--dark-800)] rounded-xl border border-[var(--dark-600)]">
+                    <button
+                      onClick={() => setCheckInMode('qr')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                        checkInMode === 'qr'
+                          ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                          : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]'
+                      }`}
+                    >
+                      <QrCode className="w-4 h-4" />
+                      {t('scanQR')}
+                    </button>
+                    <button
+                      onClick={() => setCheckInMode('pin')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                        checkInMode === 'pin'
+                          ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                          : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]'
+                      }`}
+                    >
+                      <Keyboard className="w-4 h-4" />
+                      {t('enterPin')}
+                    </button>
+                  </div>
+
+                  {/* Check-in Method */}
+                  {checkInMode === 'qr' ? (
+                    <CheckInScanner onSuccess={handleSuccess} darkMode={true} />
+                  ) : (
+                    <PinCheckIn onSuccess={handleSuccess} darkMode={true} />
+                  )}
 
                   <button 
                     onClick={() => router.back()}
@@ -112,9 +154,10 @@ export default function ScanPage() {
           </div>
         </div>
       </div>
+      </div>
       
       {/* Footer */}
-      <YouthFooter />
+      <Footer />
     </div>
   );
 }

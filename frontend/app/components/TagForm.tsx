@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ArrowLeft, Tag, Lightbulb, Save, Hash, Sparkles, CheckCircle2 } from 'lucide-react';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 interface TagFormProps {
   initialData?: any;
@@ -16,10 +17,11 @@ interface TagFormProps {
 export default function TagForm({ initialData, redirectPath }: TagFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('tagForm');
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -88,15 +90,15 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
     try {
       if (initialData) {
         await api.patch(`/news_tags/${initialData.id}/`, formData);
-        setToast({ message: 'Tag updated successfully!', type: 'success', isVisible: true });
+        success(t('toast.tagUpdated'));
       } else {
         await api.post('/news_tags/', formData);
-        setToast({ message: 'Tag created successfully!', type: 'success', isVisible: true });
+        success(t('toast.tagCreated'));
       }
       setTimeout(() => router.push(buildUrlWithParams(redirectPath)), 1000);
     } catch (err: any) {
       console.error(err);
-      setToast({ message: 'Failed to save tag. Please try again.', type: 'error', isVisible: true });
+      error(t('toast.failedToSave'));
       setLoading(false);
     }
   };
@@ -127,10 +129,10 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Tag' : 'Create New Tag'}
+              {initialData ? t('editTitle') : t('createTitle')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              {initialData ? 'Update tag details and information' : 'Add a new tag for categorizing articles'}
+              {initialData ? t('editDescription') : t('createDescription')}
             </p>
           </div>
         </div>
@@ -139,7 +141,7 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
         <div ref={progressPlaceholderRef} className="mb-6 sm:mb-8" style={{ minHeight: isProgressFixed ? 72 : 'auto' }}>
           <div className={`bg-[var(--dark-800)] backdrop-blur-sm rounded-none sm:rounded-2xl p-4 border-y sm:border border-[var(--dark-600)] transition-opacity duration-200 ${isProgressFixed ? 'opacity-0' : 'opacity-100'}`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -148,7 +150,7 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Ready to save!</span>
+                <span className="text-sm font-medium">{t('progress.readyToSave')}</span>
               </div>
             )}
           </div>
@@ -159,7 +161,7 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
           <div className={`fixed z-[9999] left-0 right-0 bg-[var(--dark-800)]/95 backdrop-blur-sm border-b border-[var(--dark-600)] shadow-lg transition-all duration-200 top-16 md:top-0 ${isProgressFixed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Required fields</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.requiredFields')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -181,8 +183,8 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
                   <Tag className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Tag Information</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter the tag name and URL slug</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tagInformation.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('tagInformation.description')}</p>
                 </div>
               </div>
             </div>
@@ -192,12 +194,12 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
               {/* Tag Name */}
               <div>
                 <label className={labelClasses}>
-                  Tag Name <span className="text-[var(--brand-red)]">*</span>
+                  {t('tagInformation.tagNameLabel')} <span className="text-[var(--brand-red)]">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Summer Events"
+                  placeholder={t('tagInformation.tagNamePlaceholder')}
                   value={formData.name}
                   onChange={handleNameChange}
                   onFocus={() => setFocusedField('name')}
@@ -205,14 +207,14 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
                   className={inputClasses('name')}
                 />
                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                  Choose a descriptive name for your tag
+                  {t('tagInformation.tagNameHint')}
                 </p>
               </div>
 
               {/* Slug */}
               <div>
                 <label className={labelClasses}>
-                  URL Slug <span className="text-[var(--brand-red)]">*</span>
+                  {t('tagInformation.urlSlugLabel')} <span className="text-[var(--brand-red)]">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -221,7 +223,7 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. summer-events"
+                    placeholder={t('tagInformation.urlSlugPlaceholder')}
                     value={formData.slug}
                     onChange={e => setFormData({...formData, slug: e.target.value})}
                     onFocus={() => setFocusedField('slug')}
@@ -230,7 +232,7 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
                   />
                 </div>
                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                  Used in URLs. Auto-generated from tag name, but you can customize it.
+                  {t('tagInformation.urlSlugHint')}
                 </p>
               </div>
             </div>
@@ -244,8 +246,8 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
                   <Lightbulb className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Quick Tips</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Best practices for tags</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tips.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('tips.description')}</p>
                 </div>
               </div>
             </div>
@@ -253,15 +255,15 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
               <ul className="space-y-3 text-sm text-[var(--brand-light)]/60">
                 <li className="flex items-start gap-2">
                   <Sparkles className="w-4 h-4 text-[var(--brand-primary)] mt-0.5 flex-shrink-0" />
-                  <span>Use clear, descriptive names that readers will understand</span>
+                  <span>{t('tips.tip1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Sparkles className="w-4 h-4 text-[var(--brand-primary)] mt-0.5 flex-shrink-0" />
-                  <span>Keep slugs short and URL-friendly (lowercase, hyphens)</span>
+                  <span>{t('tips.tip2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Sparkles className="w-4 h-4 text-[var(--brand-primary)] mt-0.5 flex-shrink-0" />
-                  <span>Avoid creating duplicate or very similar tags</span>
+                  <span>{t('tips.tip3')}</span>
                 </li>
               </ul>
             </div>
@@ -277,7 +279,7 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
                 text-[var(--brand-light)]/70 hover:text-[var(--brand-light)]
                 hover:border-[var(--brand-primary)]/50 transition-all"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button
               type="submit"
@@ -291,12 +293,12 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Saving...</span>
+                  <span>{t('actions.saving')}</span>
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  <span>{initialData ? 'Update Tag' : 'Create Tag'}</span>
+                  <span>{initialData ? t('actions.updateTag') : t('actions.createTag')}</span>
                 </>
               )}
             </button>
@@ -305,7 +307,6 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
         </form>
       </div>
 
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode duration={1250} />
-    </div>
+      </div>
   );
 }

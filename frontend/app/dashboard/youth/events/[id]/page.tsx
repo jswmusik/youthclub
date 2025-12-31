@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
+import { sanitizeAndStripColors } from '@/lib/sanitize';
 import { Event } from '@/types/event';
 import { 
     MapPin, Calendar, Clock, FileText, ChevronLeft, ChevronRight, 
@@ -16,19 +17,8 @@ import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { GoogleMap, Marker, LoadScript } from '@react-google-maps/api';
 import EventRegistrationModal from '@/app/components/events/youth/EventRegistrationModal';
 import NavBar from '@/app/components/NavBar';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../../hooks/useToast';
 import { useAuth } from '@/context/AuthContext';
-
-// Helper function to strip inline color styles from HTML (for pasted Word content)
-function stripInlineColors(html: string): string {
-    if (!html) return '';
-    // Remove color and background-color from inline styles
-    return html
-        .replace(/color\s*:\s*[^;"}]+;?/gi, '')
-        .replace(/background-color\s*:\s*[^;"}]+;?/gi, '')
-        .replace(/background\s*:\s*[^;"}]+;?/gi, '')
-        .replace(/style\s*=\s*""/gi, ''); // Clean up empty style attributes
-}
 
 // Countdown Timer Component
 function CountdownTimer({ targetDate, darkMode = false }: { targetDate: string; darkMode?: boolean }) {
@@ -98,7 +88,7 @@ export default function EventDetailPage() {
     const [isCancelling, setIsCancelling] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({ message: '', type: 'success', isVisible: false });
+    const { success, error, info, warning } = useToast();
     
     // Gallery State
     const [activeSlide, setActiveSlide] = useState(0);
@@ -128,10 +118,10 @@ export default function EventDetailPage() {
             await api.post(`/events/${event.id}/cancel/`);
             await fetchEvent();
             setCancelModalOpen(false);
-            setToast({ message: t('registrationCancelled'), type: 'success', isVisible: true });
+            success(t('registrationCancelled'));
         } catch (err: any) {
             console.error(err);
-            setToast({ message: err.response?.data?.error || t('failedToCancelRegistration'), type: 'error', isVisible: true });
+            error(err.response?.data?.error || t('failedToCancelRegistration'));
         } finally {
             setIsCancelling(false);
         }
@@ -378,7 +368,7 @@ export default function EventDetailPage() {
                             </h2>
                             <div 
                                 className="prose prose-invert max-w-none leading-relaxed event-description-content" 
-                                dangerouslySetInnerHTML={{ __html: stripInlineColors(event.description) }} 
+                                dangerouslySetInnerHTML={{ __html: sanitizeAndStripColors(event.description) }} 
                             />
                         </div>
                         
@@ -681,13 +671,6 @@ export default function EventDetailPage() {
                 </div>
             )}
 
-            {/* Toast notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
-            />
         </div>
     );
 }

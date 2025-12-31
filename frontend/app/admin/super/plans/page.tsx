@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import {
   Plus, Edit, Save, Package, Check, Trash2, AlertTriangle, 
   Eye, EyeOff, Zap, Users
 } from 'lucide-react';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../../hooks/useToast';
 import Skeleton from '@/app/components/ui/Skeleton';
 
 interface Feature {
@@ -40,6 +41,7 @@ interface Plan {
 }
 
 export default function PlanManagementPage() {
+  const t = useTranslations('plans');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [allFeatures, setAllFeatures] = useState<Feature[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,31 @@ export default function PlanManagementPage() {
     name: '', description: '', monthly_price_sek: 0, features: [], is_public: true, is_active: true
   });
   const { showToast } = useToast();
+
+  // Function to get translated feature name based on slug
+  const getFeatureDisplayName = (feature: Feature): string => {
+    const slugToKey: Record<string, string> = {
+      'posts': 'features.newsAndPosts',
+      'groups': 'features.interestGroups',
+      'learning': 'features.learningPlatform',
+      'custom_fields': 'features.customDataFields',
+      'visits': 'features.checkInSystem',
+      'events': 'features.eventsSystem',
+      'messenger': 'features.messengerAndChat',
+      'inventory': 'features.inventoryAndLending',
+      'bookings': 'features.facilityBookings',
+      'questionnaires': 'features.questionnairesAndVoting',
+      'rewards': 'features.rewardsAndGamification',
+      'analytics': 'features.analyticsDashboard',
+    };
+    
+    const translationKey = slugToKey[feature.slug];
+    if (translationKey) {
+      return t(translationKey);
+    }
+    // Fallback to original name if slug not found
+    return feature.name;
+  };
 
   useEffect(() => {
     fetchData();
@@ -76,45 +103,50 @@ export default function PlanManagementPage() {
         }
       });
       
-      // Add license count to plans
+      // Add license count to plans and translate feature names
       const plansWithCounts = plansData.map((plan: Plan) => ({
         ...plan,
-        active_licenses_count: licenseCounts[plan.id] || 0
+        active_licenses_count: licenseCounts[plan.id] || 0,
+        features_details: plan.features_details?.map(f => ({
+          ...f,
+          name: getFeatureDisplayName(f)
+        })) || []
       }));
       
       setPlans(plansWithCounts);
 
-      // Extract features from plans or use defaults
+      // Extract features from translated plans or use defaults
       const featureMap = new Map<number, Feature>();
-      plansData.forEach((plan: Plan) => {
+      plansWithCounts.forEach((plan: Plan) => {
         plan.features_details?.forEach((f: Feature) => {
           featureMap.set(f.id, f);
         });
       });
 
       if (featureMap.size > 0) {
+        // Features are already translated in plansWithCounts
         setAllFeatures(Array.from(featureMap.values()));
       } else {
         const commonFeatures = [
-          { id: 1, name: 'News & Posts', slug: 'posts' },
-          { id: 2, name: 'Interest Groups', slug: 'groups' },
-          { id: 3, name: 'Learning Platform', slug: 'learning' },
-          { id: 4, name: 'Custom Data Fields', slug: 'custom_fields' },
-          { id: 5, name: 'Check-in System', slug: 'visits' },
-          { id: 6, name: 'Events System', slug: 'events' },
-          { id: 7, name: 'Messenger & Chat', slug: 'messenger' },
-          { id: 8, name: 'Inventory & Lending', slug: 'inventory' },
-          { id: 9, name: 'Facility Bookings', slug: 'bookings' },
-          { id: 10, name: 'Questionnaires & Voting', slug: 'questionnaires' },
-          { id: 11, name: 'Rewards & Gamification', slug: 'rewards' },
-          { id: 12, name: 'Analytics Dashboard', slug: 'analytics' },
+          { id: 1, name: t('features.newsAndPosts'), slug: 'posts' },
+          { id: 2, name: t('features.interestGroups'), slug: 'groups' },
+          { id: 3, name: t('features.learningPlatform'), slug: 'learning' },
+          { id: 4, name: t('features.customDataFields'), slug: 'custom_fields' },
+          { id: 5, name: t('features.checkInSystem'), slug: 'visits' },
+          { id: 6, name: t('features.eventsSystem'), slug: 'events' },
+          { id: 7, name: t('features.messengerAndChat'), slug: 'messenger' },
+          { id: 8, name: t('features.inventoryAndLending'), slug: 'inventory' },
+          { id: 9, name: t('features.facilityBookings'), slug: 'bookings' },
+          { id: 10, name: t('features.questionnairesAndVoting'), slug: 'questionnaires' },
+          { id: 11, name: t('features.rewardsAndGamification'), slug: 'rewards' },
+          { id: 12, name: t('features.analyticsDashboard'), slug: 'analytics' },
         ];
         setAllFeatures(commonFeatures);
       }
 
     } catch (error) {
       console.error(error);
-      showToast('Failed to load plans', 'error');
+      showToast(t('toast.failedToLoadPlans'), 'error');
     } finally {
       setLoading(false);
     }
@@ -122,7 +154,7 @@ export default function PlanManagementPage() {
 
   const handleSave = async () => {
     if (!editingPlan.name?.trim()) {
-      showToast('Plan name is required', 'error');
+      showToast(t('toast.planNameRequired'), 'error');
       return;
     }
     
@@ -139,16 +171,16 @@ export default function PlanManagementPage() {
 
       if (editingPlan.id) {
         await api.patch(`/licensing/plans/${editingPlan.id}/`, payload);
-        showToast('Plan updated successfully', 'success');
+        showToast(t('toast.planUpdatedSuccessfully'), 'success');
       } else {
         await api.post('/licensing/plans/', payload);
-        showToast('Plan created successfully', 'success');
+        showToast(t('toast.planCreatedSuccessfully'), 'success');
       }
       setIsDialogOpen(false);
       fetchData();
     } catch (error: any) {
       console.error(error);
-      const message = error.response?.data?.detail || error.response?.data?.message || 'Failed to save plan';
+      const message = error.response?.data?.detail || error.response?.data?.message || t('toast.failedToSavePlan');
       showToast(message, 'error');
     } finally {
       setSaving(false);
@@ -161,13 +193,13 @@ export default function PlanManagementPage() {
     try {
       setDeleting(true);
       await api.delete(`/licensing/plans/${planToDelete.id}/`);
-      showToast('Plan deleted successfully', 'success');
+      showToast(t('toast.planDeletedSuccessfully'), 'success');
       setIsDeleteDialogOpen(false);
       setPlanToDelete(null);
       fetchData();
     } catch (error: any) {
       console.error(error);
-      const message = error.response?.data?.detail || 'Failed to delete plan';
+      const message = error.response?.data?.detail || t('toast.failedToDeletePlan');
       showToast(message, 'error');
     } finally {
       setDeleting(false);
@@ -187,6 +219,7 @@ export default function PlanManagementPage() {
   };
 
   const openEdit = (plan: Plan) => {
+    // Plan features are already translated when loaded, so we can use them directly
     setEditingPlan({
       ...plan,
       features: plan.features_details?.map(f => f.id) || plan.features || []
@@ -245,11 +278,11 @@ export default function PlanManagementPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--brand-light)]">Plan Builder</h1>
-          <p className="text-[var(--brand-light)]/60 mt-1">Create and manage subscription packages</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--brand-light)]">{t('title')}</h1>
+          <p className="text-[var(--brand-light)]/60 mt-1">{t('description')}</p>
         </div>
         <Button onClick={openNew} className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90">
-          <Plus className="w-4 h-4 mr-2" /> Create New Plan
+          <Plus className="w-4 h-4 mr-2" /> {t('createNewPlan')}
         </Button>
       </div>
 
@@ -257,7 +290,7 @@ export default function PlanManagementPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Total Plans</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalPlans')}</CardTitle>
             <Package className="h-4 w-4 text-[var(--brand-primary)]" />
           </CardHeader>
           <CardContent>
@@ -266,7 +299,7 @@ export default function PlanManagementPage() {
         </Card>
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Active Plans</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.activePlans')}</CardTitle>
             <Check className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -275,7 +308,7 @@ export default function PlanManagementPage() {
         </Card>
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Public Plans</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.publicPlans')}</CardTitle>
             <Eye className="h-4 w-4 text-[var(--brand-sky)]" />
           </CardHeader>
           <CardContent>
@@ -284,7 +317,7 @@ export default function PlanManagementPage() {
         </Card>
         <Card className="bg-[var(--dark-700)] border-[var(--dark-600)]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">Active Licenses</CardTitle>
+            <CardTitle className="text-sm font-medium text-[var(--brand-light)]/70">{t('stats.activeLicenses')}</CardTitle>
             <Users className="h-4 w-4 text-[var(--brand-peach)]" />
           </CardHeader>
           <CardContent>
@@ -299,12 +332,12 @@ export default function PlanManagementPage() {
           <Card className="col-span-full bg-[var(--dark-700)] border-[var(--dark-600)]">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Package className="w-12 h-12 text-[var(--brand-light)]/30 mb-4" />
-              <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No Plans Created</h3>
+              <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noPlansCreated')}</h3>
               <p className="text-[var(--brand-light)]/60 text-center mb-4">
-                Create your first subscription plan to get started.
+                {t('emptyState.createFirstPlan')}
               </p>
               <Button onClick={openNew} className="bg-[var(--brand-primary)]">
-                <Plus className="w-4 h-4 mr-2" /> Create Plan
+                <Plus className="w-4 h-4 mr-2" /> {t('emptyState.createPlan')}
               </Button>
             </CardContent>
           </Card>
@@ -324,34 +357,34 @@ export default function PlanManagementPage() {
                         : 'border-[var(--dark-500)] text-[var(--brand-light)]/50'
                       }
                     >
-                      {plan.is_public ? <><Eye className="w-3 h-3 mr-1" /> Public</> : <><EyeOff className="w-3 h-3 mr-1" /> Hidden</>}
+                      {plan.is_public ? <><Eye className="w-3 h-3 mr-1" /> {t('planCard.public')}</> : <><EyeOff className="w-3 h-3 mr-1" /> {t('planCard.hidden')}</>}
                     </Badge>
                     {!plan.is_active && (
-                      <Badge variant="destructive">Archived</Badge>
+                      <Badge variant="destructive">{t('planCard.archived')}</Badge>
                     )}
                   </div>
                   {(plan.active_licenses_count || 0) > 0 && (
                     <Badge className="bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-0">
                       <Users className="w-3 h-3 mr-1" />
-                      {plan.active_licenses_count} active
+                      {plan.active_licenses_count} {t('planCard.active')}
                     </Badge>
                   )}
                 </div>
                 <CardTitle className="text-xl mt-3 text-[var(--brand-light)]">{plan.name}</CardTitle>
                 <div className="text-2xl font-bold text-[var(--brand-primary)]">
                   {plan.monthly_price_sek.toLocaleString()} SEK 
-                  <span className="text-sm font-normal text-[var(--brand-light)]/50"> /month</span>
+                  <span className="text-sm font-normal text-[var(--brand-light)]/50"> {t('planCard.perMonth')}</span>
                 </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <p className="text-sm text-[var(--brand-light)]/60 mb-4 min-h-[40px] line-clamp-2">
-                  {plan.description || 'No description provided'}
+                  {plan.description || t('planCard.noDescription')}
                 </p>
                 
                 <div className="space-y-2 mb-4 flex-1">
                   <p className="text-xs font-semibold uppercase text-[var(--brand-light)]/40 flex items-center gap-1">
                     <Zap className="w-3 h-3" />
-                    {plan.features_details?.length || 0} features included
+                    {plan.features_details?.length || 0} {t('planCard.featuresIncluded')}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {plan.features_details?.slice(0, 5).map(f => (
@@ -360,7 +393,7 @@ export default function PlanManagementPage() {
                         variant="secondary" 
                         className="text-xs bg-[var(--dark-600)] text-[var(--brand-light)]/80 border-0"
                       >
-                        {f.name}
+                        {getFeatureDisplayName(f)}
                       </Badge>
                     ))}
                     {(plan.features_details?.length || 0) > 5 && (
@@ -368,7 +401,7 @@ export default function PlanManagementPage() {
                         variant="secondary" 
                         className="text-xs bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-0"
                       >
-                        +{plan.features_details.length - 5} more
+                        +{plan.features_details.length - 5} {t('planCard.more')}
                       </Badge>
                     )}
                   </div>
@@ -379,7 +412,7 @@ export default function PlanManagementPage() {
                     className="flex-1 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90" 
                     onClick={() => openEdit(plan)}
                   >
-                    <Edit className="w-4 h-4 mr-2" /> Edit
+                    <Edit className="w-4 h-4 mr-2" /> {t('planCard.edit')}
                   </Button>
                   <Button 
                     variant="outline"
@@ -391,7 +424,7 @@ export default function PlanManagementPage() {
                     }`}
                     onClick={() => (plan.active_licenses_count || 0) === 0 && openDeleteConfirm(plan)}
                     disabled={(plan.active_licenses_count || 0) > 0}
-                    title={(plan.active_licenses_count || 0) > 0 ? 'Cannot delete: Plan has active licenses' : 'Delete plan'}
+                    title={(plan.active_licenses_count || 0) > 0 ? t('planCard.cannotDelete') : t('planCard.deletePlan')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -407,12 +440,12 @@ export default function PlanManagementPage() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-[var(--dark-800)] border-[var(--dark-600)]">
           <DialogHeader className="pb-4 border-b border-[var(--dark-600)]">
             <DialogTitle className="text-xl text-[var(--brand-light)]">
-              {editingPlan.id ? 'Edit Plan' : 'Create New Plan'}
+              {editingPlan.id ? t('dialog.editPlan') : t('dialog.createNewPlan')}
             </DialogTitle>
             <DialogDescription className="text-[var(--brand-light)]/60">
               {editingPlan.id 
-                ? 'Update the plan details and features below.' 
-                : 'Fill in the details to create a new subscription plan.'}
+                ? t('dialog.editDescription')
+                : t('dialog.createDescription')}
             </DialogDescription>
           </DialogHeader>
           
@@ -420,40 +453,40 @@ export default function PlanManagementPage() {
             {/* Basic Info Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-[var(--brand-light)]/80 uppercase tracking-wide">
-                Basic Information
+                {t('dialog.basicInformation')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[var(--brand-light)]">
-                    Plan Name <span className="text-red-400">*</span>
+                    {t('dialog.planName')} <span className="text-red-400">{t('dialog.required')}</span>
                   </Label>
                   <Input 
                     value={editingPlan.name} 
                     onChange={e => setEditingPlan({...editingPlan, name: e.target.value})}
-                    placeholder="e.g. Premium Package"
+                    placeholder={t('dialog.planNamePlaceholder')}
                     className="bg-[var(--dark-700)] border-[var(--dark-600)] text-[var(--brand-light)] focus:border-[var(--brand-primary)]"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[var(--brand-light)]">
-                    Monthly Price (SEK)
+                    {t('dialog.monthlyPrice')}
                   </Label>
                   <Input 
                     type="number" 
                     value={editingPlan.monthly_price_sek} 
                     onChange={e => setEditingPlan({...editingPlan, monthly_price_sek: parseInt(e.target.value) || 0})}
-                    placeholder="0"
+                    placeholder={t('dialog.monthlyPricePlaceholder')}
                     className="bg-[var(--dark-700)] border-[var(--dark-600)] text-[var(--brand-light)] focus:border-[var(--brand-primary)]"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[var(--brand-light)]">Description</Label>
+                <Label className="text-[var(--brand-light)]">{t('dialog.description')}</Label>
                 <Textarea 
                   value={editingPlan.description}
                   onChange={e => setEditingPlan({...editingPlan, description: e.target.value})}
-                  placeholder="Describe what this plan is best suited for..."
+                  placeholder={t('dialog.descriptionPlaceholder')}
                   rows={3}
                   className="bg-[var(--dark-700)] border-[var(--dark-600)] text-[var(--brand-light)] focus:border-[var(--brand-primary)] resize-none"
                 />
@@ -464,7 +497,7 @@ export default function PlanManagementPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[var(--brand-light)]/80 uppercase tracking-wide">
-                  Included Features
+                  {t('dialog.includedFeatures')}
                 </h3>
                 <div className="flex gap-2">
                   <Button 
@@ -472,18 +505,18 @@ export default function PlanManagementPage() {
                     variant="ghost" 
                     size="sm"
                     onClick={selectAllFeatures}
-                    className="text-xs text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10"
+                    className="text-xs text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10 hover:text-[var(--brand-primary)]"
                   >
-                    Select All
+                    {t('dialog.selectAll')}
                   </Button>
                   <Button 
                     type="button"
                     variant="ghost" 
                     size="sm"
                     onClick={clearAllFeatures}
-                    className="text-xs text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)]"
+                    className="text-xs text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]"
                   >
-                    Clear All
+                    {t('dialog.clearAll')}
                   </Button>
                 </div>
               </div>
@@ -515,7 +548,7 @@ export default function PlanManagementPage() {
                               isSelected ? 'text-[var(--brand-light)]' : 'text-[var(--brand-light)]/80'
                             }`}
                           >
-                            {feat.name}
+                            {getFeatureDisplayName(feat)}
                           </Label>
                           <span className="text-[10px] text-[var(--brand-light)]/40 font-mono">{feat.slug}</span>
                         </div>
@@ -527,7 +560,7 @@ export default function PlanManagementPage() {
                   })}
                 </div>
                 <p className="text-xs text-[var(--brand-light)]/50 mt-3 text-center">
-                  {editingPlan.features?.length || 0} of {allFeatures.length} features selected
+                  {t('dialog.featuresSelected', { selected: editingPlan.features?.length || 0, total: allFeatures.length })}
                 </p>
               </div>
             </div>
@@ -535,16 +568,16 @@ export default function PlanManagementPage() {
             {/* Visibility Settings */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-[var(--brand-light)]/80 uppercase tracking-wide">
-                Visibility Settings
+                {t('dialog.visibilitySettings')}
               </h3>
               <div className="bg-[var(--dark-700)] rounded-lg p-4 border border-[var(--dark-600)]">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--dark-800)]">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        editingPlan.is_public ? 'bg-green-500/20' : 'bg-[var(--dark-600)]'
+                        (editingPlan.is_public ?? true) ? 'bg-green-500/20' : 'bg-[var(--dark-600)]'
                       }`}>
-                        {editingPlan.is_public ? (
+                        {(editingPlan.is_public ?? true) ? (
                           <Eye className="w-4 h-4 text-green-400" />
                         ) : (
                           <EyeOff className="w-4 h-4 text-[var(--brand-light)]/40" />
@@ -552,17 +585,18 @@ export default function PlanManagementPage() {
                       </div>
                       <div>
                         <Label htmlFor="public-mode" className="text-[var(--brand-light)] cursor-pointer">
-                          Public Plan
+                          {t('dialog.publicPlan')}
                         </Label>
                         <p className="text-xs text-[var(--brand-light)]/50">
-                          Visible to all users
+                          {t('dialog.visibleToAllUsers')}
                         </p>
                       </div>
                     </div>
                     <Switch 
                       id="public-mode"
-                      checked={editingPlan.is_public}
+                      checked={editingPlan.is_public ?? true}
                       onCheckedChange={c => setEditingPlan({...editingPlan, is_public: c})}
+                      className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-[var(--dark-500)]"
                     />
                   </div>
 
@@ -579,17 +613,18 @@ export default function PlanManagementPage() {
                       </div>
                       <div>
                         <Label htmlFor="active-mode" className="text-[var(--brand-light)] cursor-pointer">
-                          Active Plan
+                          {t('dialog.activePlan')}
                         </Label>
                         <p className="text-xs text-[var(--brand-light)]/50">
-                          Available for purchase
+                          {t('dialog.availableForPurchase')}
                         </p>
                       </div>
                     </div>
                     <Switch 
                       id="active-mode"
-                      checked={editingPlan.is_active}
+                      checked={editingPlan.is_active ?? true}
                       onCheckedChange={c => setEditingPlan({...editingPlan, is_active: c})}
+                      className="data-[state=checked]:bg-[var(--brand-primary)] data-[state=unchecked]:bg-[var(--dark-500)]"
                     />
                   </div>
                 </div>
@@ -601,10 +636,10 @@ export default function PlanManagementPage() {
             <Button 
               variant="ghost" 
               onClick={() => setIsDialogOpen(false)}
-              className="text-[var(--brand-light)] hover:bg-[var(--dark-700)]"
+              className="text-[var(--brand-light)] hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
               disabled={saving}
             >
-              Cancel
+              {t('dialog.cancel')}
             </Button>
             <Button 
               onClick={handleSave} 
@@ -612,9 +647,9 @@ export default function PlanManagementPage() {
               disabled={saving}
             >
               {saving ? (
-                <>Saving...</>
+                <>{t('dialog.saving')}</>
               ) : (
-                <><Save className="w-4 h-4 mr-2" /> {editingPlan.id ? 'Update Plan' : 'Create Plan'}</>
+                <><Save className="w-4 h-4 mr-2" /> {editingPlan.id ? t('dialog.updatePlan') : t('dialog.createPlan')}</>
               )}
             </Button>
           </DialogFooter>
@@ -630,12 +665,11 @@ export default function PlanManagementPage() {
                 <AlertTriangle className="w-5 h-5 text-red-400" />
               </div>
               <DialogTitle className="text-xl text-[var(--brand-light)]">
-                Delete Plan
+                {t('deleteDialog.title')}
               </DialogTitle>
             </div>
             <DialogDescription className="text-[var(--brand-light)]/60">
-              Are you sure you want to delete <span className="font-semibold text-[var(--brand-light)]">{planToDelete?.name}</span>? 
-              This action cannot be undone.
+              {t('deleteDialog.description', { planName: planToDelete?.name || '' })}
             </DialogDescription>
           </DialogHeader>
 
@@ -643,7 +677,7 @@ export default function PlanManagementPage() {
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
               <p className="text-sm text-red-400 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                This plan has {planToDelete.active_licenses_count} active license(s) and cannot be deleted.
+                {t('deleteDialog.hasActiveLicenses', { count: planToDelete.active_licenses_count })}
               </p>
             </div>
           )}
@@ -655,10 +689,10 @@ export default function PlanManagementPage() {
                 setIsDeleteDialogOpen(false);
                 setPlanToDelete(null);
               }}
-              className="text-[var(--brand-light)] hover:bg-[var(--dark-700)]"
+              className="text-[var(--brand-light)] hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
               disabled={deleting}
             >
-              Cancel
+              {t('deleteDialog.cancel')}
             </Button>
             <Button 
               variant="destructive"
@@ -666,7 +700,7 @@ export default function PlanManagementPage() {
               disabled={deleting || (planToDelete?.active_licenses_count || 0) > 0}
               className="bg-red-500 hover:bg-red-600"
             >
-              {deleting ? 'Deleting...' : 'Delete Plan'}
+              {deleting ? t('deleteDialog.deleting') : t('deleteDialog.deletePlan')}
             </Button>
           </DialogFooter>
         </DialogContent>

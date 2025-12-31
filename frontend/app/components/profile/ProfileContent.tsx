@@ -9,12 +9,13 @@ import ActivityFeed from './tabs/ActivityFeed';
 import ClubsAndGroups from './tabs/ClubsAndGroups';
 import WalletGrid from './tabs/WalletGrid';
 import YouthGuardianManager from '../youth/guardians/YouthGuardianManager';
+import YouthEventList from '../youth/events/YouthEventList';
 import { inventoryApi } from '@/lib/inventory-api';
 import { Package, Clock, CheckCircle, AlertCircle, Building2, GraduationCap, Calendar, CalendarDays, Activity } from 'lucide-react';
 import { differenceInMinutes, parseISO, format, type Locale } from 'date-fns';
 import { enUS, sv, da, nb, fi } from 'date-fns/locale';
 
-const VALID_TABS = ['overview', 'clubs', 'guardians', 'wallet', 'timeline', 'inventory'];
+const VALID_TABS = ['overview', 'clubs', 'events', 'guardians', 'wallet', 'timeline', 'inventory'];
 
 export default function ProfileContent({ user, darkMode = false, isCheckedIn = false }: { user: any; darkMode?: boolean; isCheckedIn?: boolean }) {
   const searchParams = useSearchParams();
@@ -95,6 +96,8 @@ export default function ProfileContent({ user, darkMode = false, isCheckedIn = f
         return <OverviewTab user={user} getAge={getAge} onSwitchTab={handleTabChange} darkMode={darkMode} />;
       case 'clubs':
         return <ClubsAndGroups user={user} darkMode={darkMode} />;
+      case 'events':
+        return <YouthEventList user={user} darkMode={darkMode} />;
       case 'inventory':
         return <InventoryTab darkMode={darkMode} />;
       case 'guardians':

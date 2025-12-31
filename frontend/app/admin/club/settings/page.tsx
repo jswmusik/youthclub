@@ -3,18 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import api from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
-import Toast from '../../../components/Toast';
-import { ArrowLeft, Upload, X, Camera, Building, Mail, Phone, MapPin, FileText, Globe } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useToast } from '../../../../hooks/useToast';
+import { Upload, X, Building, Mail, Phone, MapPin, FileText, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import BackButton from '@/app/components/BackButton';
 
 interface ClubFormState {
   name: string;
@@ -30,6 +28,7 @@ interface ClubFormState {
 }
 
 export default function ClubSettingsPage() {
+  const t = useTranslations('clubSettings');
   const router = useRouter();
   const { user, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -41,11 +40,8 @@ export default function ClubSettingsPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const { success, error, info, warning } = useToast();
 
   const [formData, setFormData] = useState<ClubFormState>({
     name: '',
@@ -153,339 +149,423 @@ export default function ClubSettingsPage() {
       if (heroFile) data.append('hero_image', heroFile);
 
       await api.patch(`/clubs/${clubData.id}/`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setToast({ message: 'Club settings updated!', type: 'success', isVisible: true });
+      success(t('toast.updateSuccess'));
       setAvatarFile(null);
       setHeroFile(null);
       fetchClub();
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Failed to update club settings.', type: 'error', isVisible: true });
+      error(t('toast.updateFailed'));
     } finally {
       setIsSaving(false);
     }
   };
 
+  const inputClasses = (fieldName: string) => `
+    w-full px-4 py-3.5 
+    bg-[var(--dark-700)] 
+    border-2 ${focusedField === fieldName ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    rounded-xl 
+    text-[var(--brand-light)] 
+    placeholder-[var(--brand-light)]/40 
+    focus:ring-0 focus:border-[var(--brand-primary)] 
+    outline-none 
+    transition-all duration-200
+    text-base
+  `;
+
+  const labelClasses = "block text-sm font-semibold text-[var(--brand-light)]/80 mb-2";
+
   if (loading || isLoading) {
     return (
-      <div className="p-8 text-center text-gray-400 animate-pulse">Loading...</div>
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center p-4">
+        <div className="flex flex-col items-center text-[var(--brand-light)]/50">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mb-4 animate-pulse">
+            <Building className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-lg font-medium">{t('loading')}</p>
+        </div>
+      </div>
     );
   }
 
   if (!clubData) {
     return (
-      <div className="p-8">
-        <Card className="border border-gray-100 shadow-sm">
-          <CardContent className="p-12 text-center">
-            <p className="text-gray-500">No club assigned. Please contact your administrator.</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center p-4">
+        <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] p-8 max-w-md w-full">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+              <Building className="w-8 h-8 text-[var(--brand-light)]/30" />
+            </div>
+            <p className="text-[var(--brand-light)]/70">{t('noClubAssigned')}</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/admin/club/details">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge className="bg-purple-50 text-purple-600 border-purple-200 px-3 py-1 text-xs font-semibold uppercase">
-              Club Admin
-            </Badge>
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
+        
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+          <BackButton href="/admin/club/details" translationKey="backToDetails" />
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+              {t('title')}
+            </h1>
+            <p className="text-[var(--brand-light)]/50 text-sm mt-1">
+              {t('description')}
+            </p>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Edit Club Settings</h1>
-          <p className="text-gray-500 mt-1">Update your club profile information. Changes are instantly visible to your members.</p>
         </div>
+
+        {/* Main Form */}
+        <form onSubmit={handleSubmit}>
+          
+          {/* Basic Information Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Building className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInformation.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('basicInformation.description')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Name and Categories */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="name" className={labelClasses}>
+                    {t('basicInformation.clubName')} <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <input 
+                    id="name"
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onFocus={() => setFocusedField('name')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('name')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="club_categories" className={labelClasses}>
+                    <Globe className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
+                    {t('basicInformation.clubCategories')}
+                  </label>
+                  <input 
+                    id="club_categories"
+                    type="text"
+                    placeholder={t('basicInformation.categoriesPlaceholder')}
+                    value={formData.club_categories}
+                    onChange={(e) => setFormData({ ...formData, club_categories: e.target.value })}
+                    onFocus={() => setFocusedField('club_categories')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('club_categories')}
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className={labelClasses}>
+                  {t('basicInformation.description')} <span className="text-[var(--brand-primary)]">*</span>
+                </label>
+                <textarea
+                  id="description"
+                  rows={3}
+                  required
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onFocus={() => setFocusedField('description')}
+                  onBlur={() => setFocusedField(null)}
+                  className={inputClasses('description')}
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Images */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className={labelClasses}>{t('basicInformation.logoAvatar')}</label>
+                  <div className="flex items-start gap-4">
+                    <div 
+                      className="relative group w-20 h-20 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => avatarRef.current?.click()}
+                    >
+                      {avatarPreview ? (
+                        <>
+                          <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Upload className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
+                          <span className="text-[10px] text-[var(--brand-light)]/40">{t('basicInformation.clickToUpload')}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => avatarRef.current?.click()}
+                          className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
+                        >
+                          {t('basicInformation.chooseFile')}
+                        </button>
+                        {avatarPreview && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveImage('avatar')}
+                            className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
+                          >
+                            <X className="h-3 w-3" /> {t('basicInformation.remove')}
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('basicInformation.avatarTip')}</p>
+                    </div>
+                    <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'avatar')} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClasses}>{t('basicInformation.heroImage')}</label>
+                  <div className="flex items-start gap-4">
+                    <div 
+                      className="relative group w-20 h-32 border-2 border-dashed border-[var(--dark-500)] rounded-lg bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => heroRef.current?.click()}
+                    >
+                      {heroPreview ? (
+                        <>
+                          <img src={heroPreview} alt="Hero preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Upload className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-2">
+                          <Upload className="h-5 w-5 text-[var(--brand-light)]/40 mx-auto mb-1" />
+                          <span className="text-[10px] text-[var(--brand-light)]/40">{t('basicInformation.clickToUpload')}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => heroRef.current?.click()}
+                          className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
+                        >
+                          {t('basicInformation.chooseFile')}
+                        </button>
+                        {heroPreview && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveImage('hero')}
+                            className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
+                          >
+                            <X className="h-3 w-3" /> {t('basicInformation.remove')}
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('basicInformation.heroTip')}</p>
+                    </div>
+                    <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'hero')} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact & Location Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-third)] flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('contactLocation.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('contactLocation.description')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="email" className={labelClasses}>
+                    <Mail className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
+                    {t('contactLocation.email')} <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <input 
+                    id="email"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('email')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="phone" className={labelClasses}>
+                    <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
+                    {t('contactLocation.phone')} <span className="text-[var(--brand-primary)]">*</span>
+                  </label>
+                  <input 
+                    id="phone"
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('phone')}
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="address" className={labelClasses}>
+                  <MapPin className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
+                  {t('contactLocation.address')}
+                </label>
+                <input 
+                  id="address"
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  onFocus={() => setFocusedField('address')}
+                  onBlur={() => setFocusedField(null)}
+                  className={inputClasses('address')}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="latitude" className={labelClasses}>{t('contactLocation.latitude')}</label>
+                  <input 
+                    id="latitude"
+                    type="number"
+                    step="any"
+                    placeholder={t('contactLocation.latitudePlaceholder')}
+                    value={formData.latitude}
+                    onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                    onFocus={() => setFocusedField('latitude')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('latitude')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="longitude" className={labelClasses}>{t('contactLocation.longitude')}</label>
+                  <input 
+                    id="longitude"
+                    type="number"
+                    step="any"
+                    placeholder={t('contactLocation.longitudePlaceholder')}
+                    value={formData.longitude}
+                    onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                    onFocus={() => setFocusedField('longitude')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('longitude')}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Policies Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-peach)] flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('policies.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('policies.description')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="terms_and_conditions" className={labelClasses}>
+                    <FileText className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
+                    {t('policies.termsConditions')}
+                  </label>
+                  <textarea
+                    id="terms_and_conditions"
+                    rows={4}
+                    value={formData.terms_and_conditions}
+                    onChange={(e) => setFormData({ ...formData, terms_and_conditions: e.target.value })}
+                    onFocus={() => setFocusedField('terms_and_conditions')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('terms_and_conditions')}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="club_policies" className={labelClasses}>
+                    <FileText className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
+                    {t('policies.clubPolicies')}
+                  </label>
+                  <textarea
+                    id="club_policies"
+                    rows={4}
+                    value={formData.club_policies}
+                    onChange={(e) => setFormData({ ...formData, club_policies: e.target.value })}
+                    onFocus={() => setFocusedField('club_policies')}
+                    onBlur={() => setFocusedField(null)}
+                    className={inputClasses('club_policies')}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-5 flex flex-col sm:flex-row justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={() => router.push('/admin/club/details')} 
+                className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
+              >
+                {t('buttons.cancel')}
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSaving}
+                className="px-8 py-3 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-[var(--dark-900)]/20 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                    {t('buttons.saving')}
+                  </>
+                ) : (
+                  t('buttons.saveChanges')
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#FF5485] rounded-full"></div>
-              <CardTitle className="text-xl font-bold text-[#121213]">Basic Information</CardTitle>
-            </div>
-            <CardDescription>Enter the essential details for the club.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Building className="h-4 w-4 text-[#4D4DA4]" />
-                  Club Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="name"
-                  required
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="club_categories" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-[#4D4DA4]" />
-                  Club Categories
-                </Label>
-                <Input
-                  id="club_categories"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  value={formData.club_categories}
-                  onChange={(e) => setFormData({ ...formData, club_categories: e.target.value })}
-                  placeholder="e.g. Sports, Arts, Music"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-semibold text-gray-700">
-                Description <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="description"
-                rows={3}
-                required
-                className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-
-            {/* Images */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="space-y-2">
-                <Label>Logo / Avatar</Label>
-                <div className="flex gap-4 items-center">
-                  <div 
-                    className="relative group h-20 w-20 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer"
-                    onClick={() => avatarRef.current?.click()}
-                  >
-                    {avatarPreview ? (
-                      <>
-                        <img src={avatarPreview} className="h-full w-full object-cover" alt="Avatar" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Upload className="h-5 w-5 text-white" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-2">
-                        <Upload className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                        <span className="text-[10px] text-gray-400">Click to upload</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex gap-2">
-                      <Button type="button" variant="secondary" size="sm" onClick={() => avatarRef.current?.click()}>
-                        Choose File
-                      </Button>
-                      {avatarPreview && (
-                        <Button type="button" variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleRemoveImage('avatar')}>
-                          <X className="h-4 w-4 mr-1" /> Remove
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500">Recommended: Square image, 400x400px</p>
-                  </div>
-                  <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'avatar')} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Hero Image</Label>
-                <div className="flex gap-4 items-center">
-                  <div 
-                    className="relative group h-20 w-32 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 hover:border-[#4D4DA4]/50 transition-colors cursor-pointer"
-                    onClick={() => heroRef.current?.click()}
-                  >
-                    {heroPreview ? (
-                      <>
-                        <img src={heroPreview} className="h-full w-full object-cover" alt="Hero" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Upload className="h-5 w-5 text-white" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-2">
-                        <Upload className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                        <span className="text-[10px] text-gray-400">Click to upload</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex gap-2">
-                      <Button type="button" variant="secondary" size="sm" onClick={() => heroRef.current?.click()}>
-                        Choose File
-                      </Button>
-                      {heroPreview && (
-                        <Button type="button" variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleRemoveImage('hero')}>
-                          <X className="h-4 w-4 mr-1" /> Remove
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500">Recommended: 1200x400px</p>
-                  </div>
-                  <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'hero')} />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Contact & Location */}
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#4D4DA4] rounded-full"></div>
-              <CardTitle className="text-xl font-bold text-[#121213]">Contact & Location</CardTitle>
-            </div>
-            <CardDescription>Provide contact information and location details.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-[#4D4DA4]" />
-                  Email <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="email"
-                  required
-                  type="email"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-[#4D4DA4]" />
-                  Phone <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="phone"
-                  required
-                  type="tel"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-[#4D4DA4]" />
-                Address
-              </Label>
-              <Input
-                id="address"
-                className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude</Label>
-                <Input
-                  id="latitude"
-                  type="number"
-                  step="any"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  value={formData.latitude}
-                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                  placeholder="e.g. 59.3293"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input
-                  id="longitude"
-                  type="number"
-                  step="any"
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  value={formData.longitude}
-                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                  placeholder="e.g. 18.0686"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Policies */}
-        <Card className="border-2 border-gray-100 bg-gradient-to-br from-white to-[#EBEBFE]/20 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#0EA5E9] rounded-full"></div>
-              <CardTitle className="text-xl font-bold text-[#121213]">Policies</CardTitle>
-            </div>
-            <CardDescription>Legal documents and guidelines for your club.</CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="terms_and_conditions" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-[#4D4DA4]" />
-                  Terms & Conditions
-                </Label>
-                <Textarea
-                  id="terms_and_conditions"
-                  rows={4}
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  value={formData.terms_and_conditions}
-                  onChange={(e) => setFormData({ ...formData, terms_and_conditions: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="club_policies" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-[#4D4DA4]" />
-                  Club Policies
-                </Label>
-                <Textarea
-                  id="club_policies"
-                  rows={4}
-                  className="bg-gray-50 border-gray-200 focus:border-[#4D4DA4] focus:ring-[#4D4DA4]"
-                  value={formData.club_policies}
-                  onChange={(e) => setFormData({ ...formData, club_policies: e.target.value })}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Submit Button */}
-        <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
-          <Link href="/admin/club/details">
-            <Button type="button" variant="outline" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-              Cancel
-            </Button>
-          </Link>
-          <Button
-            type="submit"
-            className="bg-[#4D4DA4] hover:bg-[#FF5485] text-white px-8 py-2 rounded-full transition-colors disabled:opacity-50"
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
-      </form>
-
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-      />
+      
     </div>
   );
 }
-

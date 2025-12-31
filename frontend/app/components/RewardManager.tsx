@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   Plus, Search, BarChart3, ChevronUp, ChevronLeft, Eye, Edit, Trash2, X, 
   Gift, Building, MapPin, Globe, CheckCircle2, TrendingUp, UserPlus, Clock, AlertCircle
 } from 'lucide-react';
 import api from '../../lib/api';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
 import { getMediaUrl } from '../utils';
 
@@ -25,6 +26,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onClick, showActions = true }: SwipeableCardProps) {
+  const t = useTranslations('rewardsAdmin');
   const [isOpen, setIsOpen] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
@@ -115,14 +117,14 @@ function SwipeableCard({ children, onEdit, onDelete, onClick, showActions = true
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
           >
             <Edit className="w-5 h-5" />
-            <span className="text-xs font-medium">Edit</span>
+            <span className="text-xs font-medium">{t('actions.edit')}</span>
           </button>
           <button
             onClick={handleDeleteClick}
             className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
           >
             <Trash2 className="w-5 h-5" />
-            <span className="text-xs font-medium">Delete</span>
+            <span className="text-xs font-medium">{t('actions.delete')}</span>
           </button>
         </div>
       )}
@@ -207,6 +209,7 @@ function RewardTableRowSkeleton() {
 }
 
 function RewardPageSkeleton() {
+  const t = useTranslations('rewardsAdmin');
   return (
     <>
       {/* Mobile Cards Skeleton */}
@@ -221,11 +224,11 @@ function RewardPageSkeleton() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--dark-600)]">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Reward</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Scope</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expiry</th>
-              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.reward')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.scope')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.expiry')}</th>
+              <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -267,6 +270,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('rewardsAdmin');
   
   const isSuperAdmin = pathname.includes('/super');
   const isMuniAdmin = pathname.includes('/municipality');
@@ -280,7 +284,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [rewardToDelete, setRewardToDelete] = useState<Reward | null>(null);
 
   // Filter state
@@ -380,7 +384,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
       setAnalytics(statsRes.data);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Failed to load rewards.', type: 'error', isVisible: true });
+      error(t('toast.failedToLoad'));
     } finally {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
@@ -458,20 +462,20 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
     if (!rewardToDelete) return;
     try {
       await api.delete(`/rewards/${rewardToDelete.id}/`);
-      setToast({ message: 'Reward deleted successfully.', type: 'success', isVisible: true });
+      success(t('toast.rewardDeleted'));
       setRewardToDelete(null);
       await fetchData();
       applyFilters();
     } catch (err) {
-      setToast({ message: 'Failed to delete reward.', type: 'error', isVisible: true });
+      error(t('toast.failedToDelete'));
     }
   };
 
   const getScopeLabel = (r: Reward) => {
-    if (r.owner_role === 'SUPER_ADMIN') return 'Global';
-    if (r.owner_role === 'MUNICIPALITY_ADMIN') return r.municipality_name || 'Municipality';
-    if (r.owner_role === 'CLUB_ADMIN') return r.club_name || 'Club';
-    return '-';
+    if (r.owner_role === 'SUPER_ADMIN') return t('scope.global');
+    if (r.owner_role === 'MUNICIPALITY_ADMIN') return r.municipality_name || t('scope.municipality');
+    if (r.owner_role === 'CLUB_ADMIN') return r.club_name || t('scope.club');
+    return t('scope.dash');
   };
 
   const getScopeIcon = (r: Reward) => {
@@ -521,13 +525,13 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <Gift className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Manage Rewards</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
-          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage rewards and their information.</p>
+          <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
         <Link href={`${basePath}/create`}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="h-4 w-4" /> Add Reward
+            <Plus className="h-4 w-4" /> {t('addReward')}
           </button>
         </Link>
       </div>
@@ -543,7 +547,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/50 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
@@ -557,7 +561,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Active</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.active')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{analytics.active_rewards}</div>
               </div>
@@ -568,7 +572,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                     <Gift className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_created}</div>
               </div>
@@ -579,7 +583,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
                     <TrendingUp className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Claims</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.claims')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.total_uses}</div>
               </div>
@@ -590,7 +594,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                     <UserPlus className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">7 Days</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.sevenDays')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{analytics.uses_last_7_days}</div>
               </div>
@@ -607,7 +611,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
             <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
             <input 
               type="text"
-              placeholder="Search by reward name..." 
+              placeholder={t('searchPlaceholder')} 
               className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -632,10 +636,10 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                   onChange={e => setScopeFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Scopes</option>
-                  <option value="GLOBAL">Global</option>
-                  <option value="MUNICIPALITY">Municipality</option>
-                  <option value="CLUB">Club</option>
+                  <option value="">{t('filters.allScopes')}</option>
+                  <option value="GLOBAL">{t('filters.global')}</option>
+                  <option value="MUNICIPALITY">{t('filters.municipality')}</option>
+                  <option value="CLUB">{t('filters.club')}</option>
                 </select>
               </div>
             )}
@@ -647,9 +651,9 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                   onChange={e => setScopeFilter(e.target.value)}
                   style={selectArrowStyle}
                 >
-                  <option value="">All Scopes</option>
-                  <option value="MUNICIPALITY">Municipality</option>
-                  <option value="CLUB">Club</option>
+                  <option value="">{t('filters.allScopes')}</option>
+                  <option value="MUNICIPALITY">{t('filters.municipality')}</option>
+                  <option value="CLUB">{t('filters.club')}</option>
                 </select>
               </div>
             )}
@@ -660,9 +664,9 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                 onChange={e => setStatusFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="">{t('filters.allStatuses')}</option>
+                <option value="active">{t('filters.active')}</option>
+                <option value="inactive">{t('filters.inactive')}</option>
               </select>
             </div>
             <div className="w-full sm:w-[140px]">
@@ -672,9 +676,9 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                 onChange={e => setExpiredFilter(e.target.value)}
                 style={selectArrowStyle}
               >
-                <option value="">Expiry</option>
-                <option value="no">Not Expired</option>
-                <option value="yes">Expired</option>
+                <option value="">{t('filters.expiry')}</option>
+                <option value="no">{t('filters.notExpired')}</option>
+                <option value="yes">{t('filters.expired')}</option>
               </select>
             </div>
             {hasFilters && (
@@ -682,7 +686,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                 onClick={clearFilters}
                 className="px-4 py-2 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
               >
-                Clear All
+                {t('filters.clearAll')}
               </button>
             )}
           </div>
@@ -693,7 +697,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
       {!showSkeleton && rewards.length > 0 && (
         <div className="px-4 sm:px-0">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{rewards.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{filteredRewards.length}</span> {filteredRewards.length === 1 ? 'reward' : 'rewards'}
+            {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{rewards.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{filteredRewards.length}</span> {filteredRewards.length === 1 ? t('statsBar.reward') : t('statsBar.rewards')}
           </p>
         </div>
       )}
@@ -706,14 +710,14 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <Gift className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">No rewards found</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noRewardsFound')}</h3>
           <p className="text-[var(--brand-light)]/50 text-sm mb-6">
-            {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by creating your first reward.'}
+            {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
             <Link href={`${basePath}/create`}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-                <Plus className="h-4 w-4" /> Add Reward
+                <Plus className="h-4 w-4" /> {t('addReward')}
               </button>
             </Link>
           )}
@@ -762,7 +766,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                             : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]'
                         }`}>
                           {reward.is_active ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                          {reward.is_active ? 'Active' : 'Inactive'}
+                          {reward.is_active ? t('status.active') : t('status.inactive')}
                         </span>
                         {reward.expiration_date && (
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
@@ -771,7 +775,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                               : 'bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]'
                           }`}>
                             <Clock className="w-3 h-3" />
-                            {isExpired(reward) ? 'Expired' : new Date(reward.expiration_date).toLocaleDateString()}
+                            {isExpired(reward) ? t('status.expired') : new Date(reward.expiration_date).toLocaleDateString()}
                           </span>
                         )}
                       </div>
@@ -787,11 +791,11 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Reward</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Scope</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Status</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expiry</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.reward')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.scope')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.expiry')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -825,7 +829,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                           : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]'
                       }`}>
                         {reward.is_active ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                        {reward.is_active ? 'Active' : 'Inactive'}
+                        {reward.is_active ? t('status.active') : t('status.inactive')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -834,10 +838,10 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                           isExpired(reward) ? 'text-[var(--brand-red)]' : 'text-[var(--brand-light)]/60'
                         }`}>
                           <Clock className="w-3.5 h-3.5" />
-                          {isExpired(reward) ? 'Expired' : new Date(reward.expiration_date).toLocaleDateString()}
+                          {isExpired(reward) ? t('status.expired') : new Date(reward.expiration_date).toLocaleDateString()}
                         </span>
                       ) : (
-                        <span className="text-sm text-[var(--brand-light)]/40">No Expiry</span>
+                        <span className="text-sm text-[var(--brand-light)]/40">{t('status.noExpiry')}</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -874,17 +878,17 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                 onClick={() => handlePageChange(currentPage - 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <div className="text-sm text-[var(--brand-light)]/50">
-                Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
               </div>
               <button 
                 disabled={currentPage >= totalPages} 
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           )}
@@ -896,14 +900,13 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
         isVisible={!!rewardToDelete}
         onClose={() => setRewardToDelete(null)}
         onConfirm={handleDelete}
-        title="Delete Reward"
-        message={`Are you sure you want to delete "${rewardToDelete?.name}"? This action cannot be undone.`}
-        confirmButtonText="Delete"
-        cancelButtonText="Cancel"
+        title={t('modals.deleteReward.title')}
+        message={rewardToDelete ? t('modals.deleteReward.message', { name: rewardToDelete.name }) : ''}
+        confirmButtonText={t('modals.deleteReward.confirm')}
+        cancelButtonText={t('modals.deleteReward.cancel')}
         variant="danger"
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode />
-    </div>
+      </div>
   );
 }

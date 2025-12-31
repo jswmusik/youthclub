@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Html5QrcodeScanner } from 'html5-qrcode';
@@ -21,6 +21,10 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scannerInstance, setScannerInstance] = useState<Html5QrcodeScanner | null>(null);
   
+  // Use ref to prevent multiple initializations
+  const scannerInitializedRef = useRef(false);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  
   // Modal State
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -30,8 +34,13 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
   const [invalidQRMessage, setInvalidQRMessage] = useState<string>('');
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (scannerInitializedRef.current) {
+      return;
+    }
+    scannerInitializedRef.current = true;
+    
     let scanner: Html5QrcodeScanner | null = null;
-    let observer: MutationObserver | null = null;
     
     // Initialize Scanner with mobile-friendly configuration
     const config = {
@@ -64,69 +73,34 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
         /* verbose= */ false
       );
 
+      scannerRef.current = scanner;
       setScannerInstance(scanner);
 
-      scanner.render(
-        onScanSuccess,
-        onScanFailure,
-        (errorMessage: string, error: any) => {
-          // Handle camera permission errors
-          console.error('Scanner error:', errorMessage, error);
-          
-          // Check for specific error types
-          const errorStr = errorMessage?.toLowerCase() || '';
-          const errorObj = error?.name || error?.message || '';
-          const errorObjStr = errorObj?.toLowerCase() || '';
-          
-          if (errorStr.includes('permission') || errorStr.includes('notallowed') || 
-              errorObjStr.includes('notallowederror') || errorStr.includes('camera access denied')) {
-            setCameraError(t('cameraAccessDenied'));
-          } else if (errorStr.includes('notfound') || errorStr.includes('no camera') || 
-                     errorObjStr.includes('notfounderror') || errorStr.includes('no devices found')) {
-            setCameraError(t('noCameraFound'));
-          } else if (errorStr.includes('notreadable') || errorObjStr.includes('notreadableerror')) {
-            setCameraError(t('cameraInUse'));
-          } else {
-            setCameraError(t('cameraErrorGeneric', { error: errorMessage || t('unknownError') }));
-          }
-          setScanning(false);
-        }
-      );
+      scanner.render(onScanSuccess, onScanFailure);
 
-      // Update button texts after scanner renders
+      // Update button texts after scanner renders (run a few times to catch async rendering)
       const updateButtonTexts = () => {
         const cameraPermissionBtn = document.getElementById('html5-qrcode-button-camera-permission');
         const fileSelectionBtn = document.getElementById('html5-qrcode-button-file-selection');
         
         if (cameraPermissionBtn) {
-          cameraPermissionBtn.textContent = t('requestCameraPermissions');
+          cameraPermissionBtn.textContent = 'Request Camera Permissions';
         }
         if (fileSelectionBtn) {
-          fileSelectionBtn.textContent = t('scanImageFile');
+          fileSelectionBtn.textContent = 'Scan Image File';
         }
       };
 
-      // Try immediately and also set up observer for when buttons are added
+      // Try multiple times with delays to catch async rendering
       setTimeout(updateButtonTexts, 100);
-      
-      // Watch for when buttons are added to DOM
-      observer = new MutationObserver(() => {
-        updateButtonTexts();
-      });
-      
-      const readerElement = document.getElementById('reader');
-      if (readerElement) {
-        observer.observe(readerElement, {
-          childList: true,
-          subtree: true
-        });
-      }
+      setTimeout(updateButtonTexts, 500);
+      setTimeout(updateButtonTexts, 1000);
 
       function onScanSuccess(decodedText: string) {
         // 1. Stop scanning immediately to prevent double-calls
-        if (scanner) {
+        if (scannerRef.current) {
           try {
-            scanner.clear(); 
+            scannerRef.current.clear(); 
           } catch (e) {
             console.error('Error clearing scanner:', e);
           }
@@ -144,23 +118,23 @@ export default function CheckInScanner({ onSuccess, darkMode = false }: CheckInS
       }
     } catch (error: any) {
       console.error('Error initializing scanner:', error);
-      setCameraError(t('scannerInitFailed'));
+      setCameraError('Failed to initialize scanner. Please try again.');
       setScanning(false);
     }
 
     return () => {
       try { 
-        if (scanner) {
-          scanner.clear(); 
-        }
-        if (observer) {
-          observer.disconnect();
+        if (scannerRef.current) {
+          scannerRef.current.clear(); 
+          scannerRef.current = null;
         }
       } catch (e) { 
         console.error('Error cleaning up scanner:', e);
       }
+      // Reset the initialization flag on cleanup
+      scannerInitializedRef.current = false;
     };
-  }, [t]);
+  }, []); // Empty dependency array - only run once on mount
 
   const handleCheckIn = async (token: string) => {
     setProcessing(true);

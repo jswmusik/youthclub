@@ -10,7 +10,7 @@ import ProfileHeader from '@/app/components/profile/ProfileHeader';
 import ProfileContent from '@/app/components/profile/ProfileContent';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { X } from 'lucide-react';
-import YouthFooter from '@/app/components/youth/YouthFooter';
+import Footer from '@/app/components/Footer';
 
 export default function YouthProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -78,7 +78,8 @@ export default function YouthProfilePage() {
   if (!profileData) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
+    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+      <div className="flex-1">
       <NavBar 
         showBackButton={true}
         darkMode={true}
@@ -133,9 +134,10 @@ export default function YouthProfilePage() {
 
         </main>
       </div>
+      </div>
       
       {/* Footer */}
-      <YouthFooter />
+      <Footer />
     </div>
   );
 }

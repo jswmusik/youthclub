@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 interface InterestDetailProps {
   interestId: string;
@@ -21,7 +21,7 @@ export default function InterestDetailView({ interestId, basePath }: InterestDet
   const [interest, setInterest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   useEffect(() => {
     api.get(`/interests/${interestId}/`).then(res => {
@@ -48,10 +48,10 @@ export default function InterestDetailView({ interestId, basePath }: InterestDet
   const handleDelete = async () => {
     try {
       await api.delete(`/interests/${interestId}/`);
-      setToast({ message: 'Interest deleted successfully.', type: 'success', isVisible: true });
+      success('Interest deleted successfully.');
       setTimeout(() => router.push(buildUrlWithParams(basePath)), 1000);
     } catch (err) {
-      setToast({ message: 'Failed to delete. It might be in use.', type: 'error', isVisible: true });
+      error('Failed to delete. It might be in use.');
     } finally {
       setShowDeleteModal(false);
     }
@@ -280,7 +280,6 @@ export default function InterestDetailView({ interestId, basePath }: InterestDet
         message={`Are you sure you want to delete "${interest?.name}"? It will be removed from all users and groups using it.`}
         darkMode={true}
       />
-      <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} darkMode={true} />
-    </div>
+      </div>
   );
 }

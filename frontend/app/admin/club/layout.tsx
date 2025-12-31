@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -44,8 +45,11 @@ import { useAuth } from '../../../context/AuthContext';
 import { getMediaUrl } from '../../utils';
 import RoleGuard from '../../components/RoleGuard';
 import api from '../../../lib/api';
+import { messengerApi } from '../../../lib/messenger-api';
 // License hook for feature gating
 import { useLicense } from '../../../hooks/useLicense';
+import { Toaster } from '../../components/Toaster';
+import { useAdminInactivityTimeout } from '../../../hooks/useAdminInactivityTimeout';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -56,6 +60,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { BackgroundGlow } from '@/components/BackgroundGlow';
 
 // Helper to get initials
 const getInitials = (first?: string | null, last?: string | null) => {
@@ -63,11 +68,15 @@ const getInitials = (first?: string | null, last?: string | null) => {
 };
 
 export default function ClubAdminLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('clubAdmin.sidebar');
   const pathname = usePathname();
   const { logout, user, messageCount, refreshMessageCount } = useAuth();
   // License hook for feature gating
   const { hasFeature } = useLicense();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  
+  // Admin inactivity timeout - logs out after 20 minutes of inactivity
+  useAdminInactivityTimeout();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   
   // Collapsible groups state
@@ -89,11 +98,13 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [pendingBookingsCount, setPendingBookingsCount] = useState(0);
   const [pendingEventApplicationsCount, setPendingEventApplicationsCount] = useState(0);
+  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
 
   // Keep your existing useEffects logic exactly as it was
   // Only fetch counts if feature is enabled to avoid 403s
   useEffect(() => {
     refreshMessageCount();
+    if (hasFeature('messenger')) refreshInboxUnreadCount();
     if (hasFeature('groups')) refreshPendingRequestsCount();
     if (hasFeature('bookings')) refreshPendingBookingsCount();
     if (hasFeature('events')) refreshPendingEventApplicationsCount();
@@ -178,128 +189,147 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     }
   };
 
+  const refreshInboxUnreadCount = async () => {
+    if (!user) {
+      setInboxUnreadCount(0);
+      return;
+    }
+    
+    try {
+      const res = await messengerApi.getUnreadCount();
+      setInboxUnreadCount(res.data.count || 0);
+    } catch (err: any) {
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        setInboxUnreadCount(0);
+        return;
+      }
+      console.error('Failed to load inbox unread count', err);
+      setInboxUnreadCount(0);
+    }
+  };
+
   // Navigation structure with groups - FILTERED BY LICENSE
   const allNavigationGroups = [
     {
       id: 'main',
       // Always show Overview. Inbox depends on 'messenger'
       items: [
-        { name: 'Overview', href: '/admin/club', icon: LayoutDashboard },
-        ...(hasFeature('messenger') ? [{ name: 'Inbox', href: '/admin/club/inbox', showBadge: true, icon: MessageSquare }] : []),
+        { name: t('main.overview'), href: '/admin/club', icon: LayoutDashboard },
+        ...(hasFeature('messenger') ? [{ name: t('main.inbox'), href: '/admin/club/inbox', showBadge: true, icon: MessageSquare }] : []),
       ]
     },
     {
       id: 'club',
-      title: 'Club Management',
+      title: t('groups.clubManagement'),
       icon: Building2,
       // Visits is usually core
       items: [
-        { name: 'Visits & Kiosk', href: '/admin/club/visits', icon: LogIn },
-        { name: 'Club Details', href: '/admin/club/details', icon: Building2 },
-        { name: 'Manage Opening Hours', href: '/admin/club/opening-hours', icon: Clock },
+        { name: t('items.visitsAndKiosk'), href: '/admin/club/visits', icon: LogIn },
+        { name: t('items.clubDetails'), href: '/admin/club/details', icon: Building2 },
+        { name: t('items.manageOpeningHours'), href: '/admin/club/opening-hours', icon: Clock },
       ]
     },
     {
       id: 'users',
-      title: 'Users & Access',
+      title: t('groups.usersAndAccess'),
       icon: Users,
       items: [
-        { name: 'Manage Admins', href: '/admin/club/admins', icon: UserCog },
-        { name: 'Manage Youth', href: '/admin/club/youth', icon: Users },
-        { name: 'Manage Guardians', href: '/admin/club/guardians', icon: Shield },
+        { name: t('items.manageAdmins'), href: '/admin/club/admins', icon: UserCog },
+        { name: t('items.manageYouth'), href: '/admin/club/youth', icon: Users },
+        { name: t('items.manageGuardians'), href: '/admin/club/guardians', icon: Shield },
       ]
     },
     // --- FEATURE GATED GROUPS ---
     ...(hasFeature('posts') ? [{
       id: 'content',
-      title: 'Content',
+      title: t('groups.content'),
       icon: Newspaper,
       items: [
-        { name: 'News Feed', href: '/admin/club/news-feed', icon: Rss },
-        { name: 'Manage Posts', href: '/admin/club/posts', icon: FileEdit },
+        { name: t('items.newsFeed'), href: '/admin/club/news-feed', icon: Rss },
+        { name: t('items.managePosts'), href: '/admin/club/posts', icon: FileEdit },
       ]
     }] : []),
 
     ...(hasFeature('events') ? [{
       id: 'events',
-      title: 'Events',
+      title: t('groups.events'),
       icon: Calendar,
       items: [
-        { name: 'Events', href: '/admin/club/events', icon: Calendar },
-        { name: 'Event Calendar', href: '/admin/club/events/calendar', icon: CalendarDays },
-        { name: 'Event Applications', href: '/admin/club/events/applications', icon: ClipboardList },
+        { name: t('items.events'), href: '/admin/club/events', icon: Calendar },
+        { name: t('items.eventCalendar'), href: '/admin/club/events/calendar', icon: CalendarDays },
+        { name: t('items.eventApplications'), href: '/admin/club/events/applications', icon: ClipboardList },
       ]
     }] : []),
 
     ...(hasFeature('groups') ? [{
       id: 'groups',
-      title: 'Groups & Social',
+      title: t('groups.groupsAndSocial'),
       icon: UsersRound,
       items: [
-        { name: 'Groups', href: '/admin/club/groups', icon: UsersRound },
-        { name: 'Applications', href: '/admin/club/groups/requests', showBadge: true, icon: FileText },
+        { name: t('items.groups'), href: '/admin/club/groups', icon: UsersRound },
+        { name: t('items.applications'), href: '/admin/club/groups/requests', showBadge: true, icon: FileText },
       ]
     }] : []),
 
     ...(hasFeature('rewards') ? [{
       id: 'rewards',
-      title: 'Rewards and Loyalty',
+      title: t('groups.rewardsAndLoyalty'),
       icon: Gift,
       items: [
-        { name: 'Manage Rewards', href: '/admin/club/rewards', icon: Gift },
+        { name: t('items.manageRewards'), href: '/admin/club/rewards', icon: Gift },
       ]
     }] : []),
 
     ...(hasFeature('inventory') ? [{
       id: 'inventory',
-      title: 'Inventory',
+      title: t('groups.inventory'),
       icon: Box,
       items: [
-        { name: 'Inventory', href: '/admin/club/inventory', icon: Box },
-        { name: 'Inventory History', href: '/admin/club/inventory/history', icon: History },
+        { name: t('items.inventory'), href: '/admin/club/inventory', icon: Box },
+        { name: t('items.inventoryHistory'), href: '/admin/club/inventory/history', icon: History },
       ]
     }] : []),
 
     ...(hasFeature('bookings') ? [{
       id: 'bookings',
-      title: 'Bookings',
+      title: t('groups.bookings'),
       icon: FileText,
       items: [
-        { name: 'Bookings', href: '/admin/club/bookings', icon: FileText },
-        { name: 'Booking Calendar', href: '/admin/club/bookings/calendar', icon: CalendarDays },
-        { name: 'Booking Resources', href: '/admin/club/bookings/resources', icon: Package },
+        { name: t('items.bookings'), href: '/admin/club/bookings', icon: FileText },
+        { name: t('items.bookingCalendar'), href: '/admin/club/bookings/calendar', icon: CalendarDays },
+        { name: t('items.bookingResources'), href: '/admin/club/bookings/resources', icon: Package },
       ]
     }] : []),
 
     ...(hasFeature('learning') ? [{
       id: 'learning',
-      title: 'Learning Center',
+      title: t('groups.learningCenter'),
       icon: GraduationCap,
       items: [
-        { name: 'Knowledge Center', href: '/admin/club/knowledge', icon: GraduationCap },
-        { name: 'Find a course', href: '/admin/club/knowledge/courses', icon: BookOpen },
+        { name: t('items.knowledgeCenter'), href: '/admin/club/knowledge', icon: GraduationCap },
+        { name: t('items.findCourse'), href: '/admin/club/knowledge/courses', icon: BookOpen },
       ]
     }] : []),
 
     ...(hasFeature('analytics') ? [{
       id: 'analytics',
-      title: 'Analytics',
+      title: t('groups.analytics'),
       icon: BarChart3,
       items: [
-        { name: 'Dashboard', href: '/admin/club/analytics', icon: TrendingUp },
-        { name: 'Visit Analytics', href: '/admin/club/visits/analytics', icon: BarChart3 },
+        { name: t('items.dashboard'), href: '/admin/club/analytics', icon: TrendingUp },
+        { name: t('items.visitAnalytics'), href: '/admin/club/visits/analytics', icon: BarChart3 },
       ]
     }] : []),
 
     {
       id: 'settings',
-      title: 'Settings & Configuration',
+      title: t('groups.settingsAndConfiguration'),
       icon: Wrench,
       items: [
         // Filter individual items inside Settings
-        ...(hasFeature('messenger') ? [{ name: 'Message Board', href: '/admin/club/msgboard', showBadge: true, icon: MessageCircle }] : []),
-        ...(hasFeature('custom_fields') ? [{ name: 'Custom Fields', href: '/admin/club/custom-fields', icon: Wrench }] : []),
-        ...(hasFeature('questionnaires') ? [{ name: 'Questionnaires', href: '/admin/club/questionnaires', icon: FileText }] : []),
+        ...(hasFeature('messenger') ? [{ name: t('items.messageBoard'), href: '/admin/club/msgboard', showBadge: true, icon: MessageCircle }] : []),
+        ...(hasFeature('custom_fields') ? [{ name: t('items.customFields'), href: '/admin/club/custom-fields', icon: Wrench }] : []),
+        ...(hasFeature('questionnaires') ? [{ name: t('items.questionnaires'), href: '/admin/club/questionnaires', icon: FileText }] : []),
       ]
     },
   ];
@@ -337,7 +367,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
           <h2 className="text-sm font-semibold truncate text-[var(--brand-light)]">
             {user?.first_name} {user?.last_name}
           </h2>
-          <p className="text-xs text-[var(--brand-light)]/60 truncate">Club Admin</p>
+          <p className="text-xs text-[var(--brand-light)]/60 truncate">{t('role')}</p>
         </div>
       </div>
 
@@ -357,11 +387,31 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                 if (!group.title) {
                   return group.items.map((item) => {
                     const isActive = pathname === item.href;
-                    const hasBadge = 
-                      ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
-                      ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
-                      (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
-                      (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+                    // Determine badge count and visibility for each specific item
+                    let badgeCount = 0;
+                    let hasBadge = false;
+                    
+                    if (item.href === '/admin/club/inbox') {
+                      // Inbox: use inbox unread count
+                      badgeCount = inboxUnreadCount;
+                      hasBadge = inboxUnreadCount > 0;
+                    } else if (item.href.includes('/msgboard')) {
+                      // Message board: use system messages count
+                      badgeCount = messageCount;
+                      hasBadge = messageCount > 0;
+                    } else if (item.href.includes('/requests')) {
+                      // Group requests: use pending requests count
+                      badgeCount = pendingRequestsCount;
+                      hasBadge = pendingRequestsCount > 0;
+                    } else if (item.href === '/admin/club/bookings') {
+                      // Bookings main page only: use pending bookings count
+                      badgeCount = pendingBookingsCount;
+                      hasBadge = pendingBookingsCount > 0;
+                    } else if (item.href.includes('/events/applications')) {
+                      // Event applications: use pending event applications count
+                      badgeCount = pendingEventApplicationsCount;
+                      hasBadge = pendingEventApplicationsCount > 0;
+                    }
 
                     const navItem = (
                       <Link
@@ -393,7 +443,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                                 ? "opacity-0 max-w-0 w-0 ml-0" 
                                 : "opacity-100 max-w-full"
                             )}>
-                              {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                              {badgeCount}
                             </span>
                             {isCollapsed && (
                               <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--brand-primary)] ring-2 ring-[var(--dark-800)] transition-opacity duration-500 ease-in-out"></span>
@@ -451,11 +501,26 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                         <div className="space-y-1">
                           {group.items.map((item) => {
                             const isActive = pathname === item.href;
-                            const hasBadge = 
-                              ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
-                              ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
-                              (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
-                              (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+                            // Determine badge count and visibility for each specific item
+                            let badgeCount = 0;
+                            let hasBadge = false;
+                            
+                            if (item.href === '/admin/club/inbox') {
+                              badgeCount = inboxUnreadCount;
+                              hasBadge = inboxUnreadCount > 0;
+                            } else if (item.href.includes('/msgboard')) {
+                              badgeCount = messageCount;
+                              hasBadge = messageCount > 0;
+                            } else if (item.href.includes('/requests')) {
+                              badgeCount = pendingRequestsCount;
+                              hasBadge = pendingRequestsCount > 0;
+                            } else if (item.href === '/admin/club/bookings') {
+                              badgeCount = pendingBookingsCount;
+                              hasBadge = pendingBookingsCount > 0;
+                            } else if (item.href.includes('/events/applications')) {
+                              badgeCount = pendingEventApplicationsCount;
+                              hasBadge = pendingEventApplicationsCount > 0;
+                            }
 
                             return (
                               <Link
@@ -475,7 +540,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                                 <span className="flex-1 truncate">{item.name}</span>
                                 {hasBadge && (
                                   <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-[10px] font-bold text-white flex-shrink-0">
-                                    {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                                    {badgeCount}
                                   </span>
                                 )}
                               </Link>
@@ -516,11 +581,26 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                     <CollapsibleContent className="mt-1 space-y-1 pl-4">
                       {group.items.map((item) => {
                         const isActive = pathname === item.href;
-                        const hasBadge = 
-                          ((item as any).showBadge && item.href.includes('/requests') && pendingRequestsCount > 0) ||
-                          ((item as any).showBadge && !item.href.includes('/requests') && messageCount > 0) ||
-                          (item.href.includes('/bookings') && !item.href.includes('/calendar') && !item.href.includes('/resources') && pendingBookingsCount > 0) ||
-                          (item.href.includes('/events/applications') && pendingEventApplicationsCount > 0);
+                        // Determine badge count and visibility for each specific item
+                        let badgeCount = 0;
+                        let hasBadge = false;
+                        
+                        if (item.href === '/admin/club/inbox') {
+                          badgeCount = inboxUnreadCount;
+                          hasBadge = inboxUnreadCount > 0;
+                        } else if (item.href.includes('/msgboard')) {
+                          badgeCount = messageCount;
+                          hasBadge = messageCount > 0;
+                        } else if (item.href.includes('/requests')) {
+                          badgeCount = pendingRequestsCount;
+                          hasBadge = pendingRequestsCount > 0;
+                        } else if (item.href === '/admin/club/bookings') {
+                          badgeCount = pendingBookingsCount;
+                          hasBadge = pendingBookingsCount > 0;
+                        } else if (item.href.includes('/events/applications')) {
+                          badgeCount = pendingEventApplicationsCount;
+                          hasBadge = pendingEventApplicationsCount > 0;
+                        }
 
                         return (
                           <Link
@@ -540,7 +620,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                             <span className="flex-1 truncate">{item.name}</span>
                             {hasBadge && (
                               <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-[10px] font-bold text-white flex-shrink-0">
-                                {messageCount || pendingRequestsCount || pendingBookingsCount || pendingEventApplicationsCount}
+                                {badgeCount}
                               </span>
                             )}
                           </Link>
@@ -573,12 +653,12 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                 isCollapsed 
                   ? "opacity-0 max-w-0 w-0" 
                   : "opacity-100 max-w-full"
-              )}>Sign Out</span>
+              )}>{t('signOut')}</span>
             </Button>
           </TooltipTrigger>
           {isCollapsed && (
             <TooltipContent side="right" className="bg-[var(--dark-700)] text-[var(--brand-light)] border-[var(--dark-600)]">
-              <p>Sign Out</p>
+              <p>{t('signOut')}</p>
             </TooltipContent>
           )}
         </Tooltip>
@@ -586,18 +666,34 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
     </div>
   );
 
+  // Check if this is the kiosk page - if so, render without sidebar and system messages
+  const isKioskPage = pathname?.includes('/kiosk');
+
+  // For kiosk page, render children directly without layout wrapper
+  if (isKioskPage) {
+    return (
+      <RoleGuard allowedRoles={['CLUB_ADMIN']}>
+        {children}
+      </RoleGuard>
+    );
+  }
+
   return (
     <RoleGuard allowedRoles={['CLUB_ADMIN']}>
       <div className="flex min-h-screen bg-[var(--dark-900)]">
+        {/* Background Glow Effect */}
+        <BackgroundGlow variant="admin" />
         
         {/* DESKTOP SIDEBAR */}
         <aside 
           className={cn(
-            "hidden md:block fixed inset-y-0 z-50",
+            "hidden md:block fixed z-50",
             isSidebarCollapsed ? "w-16" : "w-72"
           )}
           style={{
-            transition: 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+            top: 'var(--system-alert-height, 0px)',
+            bottom: 0
           }}
         >
           <div className="relative h-full w-full">
@@ -608,7 +704,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
               className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] shadow-md flex items-center justify-center hover:bg-[var(--brand-purple)]/20 hover:border-[var(--brand-primary)]/30 transition-all duration-300 ease-in-out z-50 hover:scale-110"
               style={{ right: '-12px' }}
-              aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={isSidebarCollapsed ? t('expandSidebar') : t('collapseSidebar')}
             >
               {isSidebarCollapsed ? (
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--brand-light)]/60 transition-transform duration-300" />
@@ -625,12 +721,13 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
           isSidebarCollapsed ? "md:ml-16" : "md:ml-72"
         )}
           style={{
-            transition: 'margin-left 500ms cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: 'margin-left 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+            paddingTop: 'var(--system-alert-height, 0px)'
           }}
         >
           
-          {/* Mobile Header - Fixed at top */}
-          <header className="md:hidden flex items-center justify-between p-4 bg-[var(--dark-800)] border-b border-[var(--dark-600)] fixed top-0 left-0 right-0 z-50">
+          {/* Mobile Header - Fixed at top, positioned below system alert */}
+          <header className="md:hidden flex items-center justify-between p-4 bg-[var(--dark-800)] border-b border-[var(--dark-600)] fixed left-0 right-0 z-50" style={{ top: 'var(--system-alert-height, 0px)' }}>
             <div className="flex items-center gap-3">
               <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                 <SheetTrigger asChild>
@@ -639,13 +736,13 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-72 bg-[var(--dark-800)] border-r-[var(--dark-600)]">
-                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  <SheetTitle className="sr-only">{t('navigationMenu')}</SheetTitle>
                   <SidebarContent />
                 </SheetContent>
               </Sheet>
               <span className="font-semibold text-lg text-[var(--brand-light)]">Ungdomsappen</span>
             </div>
-            {messageCount > 0 && (
+            {(inboxUnreadCount > 0 || messageCount > 0 || pendingRequestsCount > 0 || pendingBookingsCount > 0 || pendingEventApplicationsCount > 0) && (
               <div className="relative">
                 <Bell className="h-5 w-5 text-[var(--brand-light)]/60" />
                 <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[var(--brand-primary)] ring-2 ring-[var(--dark-800)]"></span>
@@ -658,6 +755,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
             <div className="mx-auto max-w-7xl w-full min-w-0">
               {children}
             </div>
+            <Toaster />
           </main>
         </div>
       </div>

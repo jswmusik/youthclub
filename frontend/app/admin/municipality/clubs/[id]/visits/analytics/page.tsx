@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { visits } from '@/lib/api';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, BarChart3, Users, UserCheck, TrendingUp, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { BarChart3, Users, UserCheck, TrendingUp, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import VisitsTabs from '@/app/components/visits/VisitsTabs';
+import BackButton from '@/app/components/BackButton';
 
 export default function MunicipalityClubAnalyticsPage() {
   const params = useParams();
@@ -43,11 +43,7 @@ export default function MunicipalityClubAnalyticsPage() {
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       {/* Back Link */}
       <div>
-        <Link href={`/admin/municipality/clubs/${clubId}`}>
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="h-4 w-4" /> Back to Club
-          </Button>
-        </Link>
+        <BackButton href={`/admin/municipality/clubs/${clubId}`} label="Back to Club" />
       </div>
 
       {/* Header Section */}

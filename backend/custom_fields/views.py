@@ -5,8 +5,14 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny
 from django.db.models import Q
 # Import User to check roles if needed, though request.user is sufficient
-from .models import CustomFieldDefinition, CustomFieldValue
-from .serializers import CustomFieldDefinitionSerializer, CustomFieldUserViewSerializer, CustomFieldValueSerializer
+from .models import CustomFieldDefinition, CustomFieldValue, EventCustomField, EventRegistrationCustomFieldValue
+from .serializers import (
+    CustomFieldDefinitionSerializer, 
+    CustomFieldUserViewSerializer, 
+    CustomFieldValueSerializer,
+    EventCustomFieldSerializer,
+    EventRegistrationCustomFieldValueSerializer
+)
 from core.permissions import HasLicenseFeature
 
 class CustomFieldDefinitionViewSet(viewsets.ModelViewSet):
@@ -444,6 +450,71 @@ class CustomFieldDefinitionViewSet(viewsets.ModelViewSet):
                 continue
                 
         return Response({"results": results})
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def available_for_events(self, request):
+        """
+        Returns custom fields with context=EVENT that the current admin can attach to their events.
+        
+        Permission rules:
+        - SUPER_ADMIN: Only sees fields created by SUPER_ADMIN (global event fields)
+        - MUNICIPALITY_ADMIN: Only sees fields created by MUNICIPALITY_ADMIN in their municipality
+        - CLUB_ADMIN: Only sees fields created by CLUB_ADMIN in their club
+        """
+        user = request.user
+        role = user.role
+        
+        if role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+            return Response([])
+        
+        # Base query: only EVENT context and published
+        queryset = CustomFieldDefinition.objects.filter(
+            context='EVENT',
+            is_published=True
+        )
+        
+        if role == 'SUPER_ADMIN':
+            # Super admins can only use global event fields (created by super admins)
+            queryset = queryset.filter(owner_role='SUPER_ADMIN')
+        
+        elif role == 'MUNICIPALITY_ADMIN':
+            # Municipality admins can only use fields created by municipality admins in their municipality
+            municipality = user.assigned_municipality
+            if isinstance(municipality, dict):
+                municipality_id = municipality.get('id')
+            elif hasattr(municipality, 'id'):
+                municipality_id = municipality.id
+            else:
+                municipality_id = municipality
+            
+            if municipality_id:
+                queryset = queryset.filter(
+                    owner_role='MUNICIPALITY_ADMIN',
+                    municipality_id=municipality_id
+                )
+            else:
+                return Response([])
+        
+        elif role == 'CLUB_ADMIN':
+            # Club admins can only use fields created by club admins in their club
+            club = user.assigned_club
+            if isinstance(club, dict):
+                club_id = club.get('id')
+            elif hasattr(club, 'id'):
+                club_id = club.id
+            else:
+                club_id = club
+            
+            if club_id:
+                queryset = queryset.filter(
+                    owner_role='CLUB_ADMIN',
+                    club_id=club_id
+                )
+            else:
+                return Response([])
+        
+        serializer = CustomFieldDefinitionSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class PublicCustomFieldListView(generics.ListAPIView):

@@ -1,9 +1,10 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 import { useAuth } from '../../../../context/AuthContext';
 import { User, Mail, Phone, Globe, UserCircle, Lock, ShieldCheck, Clock, Camera, Shield, Eye, EyeOff } from 'lucide-react';
 
@@ -26,17 +27,8 @@ interface LoginHistoryItem {
   user_agent: string;
 }
 
-const formatRole = (role?: string) => {
-  if (!role) return 'Unknown';
-  return role
-    .toLowerCase()
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-const formatDateTime = (value: string | null | undefined) => {
-  if (!value) return 'Never';
+const formatDateTime = (value: string | null | undefined, neverText: string) => {
+  if (!value) return neverText;
   return new Date(value).toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
@@ -60,7 +52,18 @@ const getRoleBadgeStyle = (role?: string) => {
 };
 
 function ClubProfileContent() {
-  const { user, loading } = useAuth();
+  const t = useTranslations('profileAdmin');
+  const { user, loading, refreshUser } = useAuth();
+  
+  const formatRole = (role?: string) => {
+    if (!role) return t('roles.unknown');
+    switch (role) {
+      case 'SUPER_ADMIN': return t('roles.superAdmin');
+      case 'MUNICIPALITY_ADMIN': return t('roles.municipalityAdmin');
+      case 'CLUB_ADMIN': return t('roles.clubAdmin');
+      default: return t('roles.unknown');
+    }
+  };
   const [profile, setProfile] = useState<ProfileForm>({
     first_name: '',
     last_name: '',
@@ -79,11 +82,7 @@ function ClubProfileContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
 
   useEffect(() => {
     if (!user?.id) return;
@@ -156,11 +155,15 @@ function ClubProfileContent() {
       await api.patch('/auth/users/me/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setToast({ message: 'Profile updated successfully!', type: 'success', isVisible: true });
+      
+      // Refresh user data in AuthContext to update the app state
+      await refreshUser();
+      
+      success(t('toast.profileUpdated'));
       setProfile((prev) => ({ ...prev, password: '' }));
     } catch (err) {
       console.error('Failed to update profile', err);
-      setToast({ message: 'Failed to update profile.', type: 'error', isVisible: true });
+      error(t('toast.failedToUpdate'));
     } finally {
       setIsSaving(false);
     }
@@ -190,7 +193,7 @@ function ClubProfileContent() {
           <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
             <User className="w-8 h-8 text-[var(--dark-900)]" />
           </div>
-          <span className="text-[var(--brand-light)]/60">Loading profile...</span>
+          <span className="text-[var(--brand-light)]/60">{t('loading')}</span>
         </div>
       </div>
     );
@@ -208,9 +211,9 @@ function ClubProfileContent() {
               {formatRole(user.role)}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">My Profile</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           <p className="text-sm sm:text-base text-[var(--brand-light)]/50">
-            Update your personal information and review your recent login activity.
+            {t('description')}
           </p>
         </div>
 
@@ -226,8 +229,8 @@ function ClubProfileContent() {
                     <User className="w-5 h-5 text-[var(--dark-900)]" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-[var(--brand-light)]">Profile Details</h2>
-                    <p className="text-sm text-[var(--brand-light)]/50">Your personal information</p>
+                    <h2 className="font-semibold text-[var(--brand-light)]">{t('profileDetails.title')}</h2>
+                    <p className="text-sm text-[var(--brand-light)]/50">{t('profileDetails.subtitle')}</p>
                   </div>
                 </div>
               </div>
@@ -275,7 +278,7 @@ function ClubProfileContent() {
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                         <User className="h-4 w-4 text-[var(--brand-primary)]" />
-                        First Name
+                        {t('form.firstName')}
                       </label>
                       <input
                         type="text"
@@ -292,7 +295,7 @@ function ClubProfileContent() {
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                         <User className="h-4 w-4 text-[var(--brand-primary)]" />
-                        Last Name
+                        {t('form.lastName')}
                       </label>
                       <input
                         type="text"
@@ -309,7 +312,7 @@ function ClubProfileContent() {
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                         <Mail className="h-4 w-4 text-[var(--brand-primary)]" />
-                        Email
+                        {t('form.email')}
                       </label>
                       <input
                         type="email"
@@ -326,7 +329,7 @@ function ClubProfileContent() {
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                         <Phone className="h-4 w-4 text-[var(--brand-primary)]" />
-                        Phone Number
+                        {t('form.phoneNumber')}
                       </label>
                       <input
                         type="text"
@@ -342,7 +345,7 @@ function ClubProfileContent() {
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                         <Globe className="h-4 w-4 text-[var(--brand-primary)]" />
-                        Preferred Language
+                        {t('form.preferredLanguage')}
                       </label>
                       <select
                         value={profile.preferred_language}
@@ -350,9 +353,9 @@ function ClubProfileContent() {
                         className="w-full h-12 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all appearance-none cursor-pointer hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)]"
                         style={selectArrowStyle}
                       >
-                        <option value="sv">Swedish</option>
-                        <option value="en">English</option>
-                        <option value="fi">Finnish</option>
+                        <option value="sv">{t('languages.swedish')}</option>
+                        <option value="en">{t('languages.english')}</option>
+                        <option value="fi">{t('languages.finnish')}</option>
                       </select>
                     </div>
 
@@ -360,7 +363,7 @@ function ClubProfileContent() {
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                         <UserCircle className="h-4 w-4 text-[var(--brand-primary)]" />
-                        Profession / Job Title
+                        {t('form.profession')}
                       </label>
                       <input
                         type="text"
@@ -369,7 +372,7 @@ function ClubProfileContent() {
                         onFocus={() => setFocusedField('profession')}
                         onBlur={() => setFocusedField(null)}
                         className={inputClasses('profession')}
-                        placeholder="Optional"
+                        placeholder={t('form.professionPlaceholder')}
                       />
                     </div>
 
@@ -377,7 +380,7 @@ function ClubProfileContent() {
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                         <UserCircle className="h-4 w-4 text-[var(--brand-primary)]" />
-                        Nickname
+                        {t('form.nickname')}
                       </label>
                       <input
                         type="text"
@@ -386,7 +389,7 @@ function ClubProfileContent() {
                         onFocus={() => setFocusedField('nickname')}
                         onBlur={() => setFocusedField(null)}
                         className={inputClasses('nickname')}
-                        placeholder="Optional"
+                        placeholder={t('form.nicknamePlaceholder')}
                       />
                     </div>
 
@@ -394,7 +397,7 @@ function ClubProfileContent() {
                     <div className="sm:col-span-2">
                       <label className="flex items-center gap-2 text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                         <Lock className="h-4 w-4 text-[var(--brand-primary)]" />
-                        New Password
+                        {t('form.newPassword')}
                       </label>
                       <div className="relative">
                         <input
@@ -404,7 +407,7 @@ function ClubProfileContent() {
                           onFocus={() => setFocusedField('password')}
                           onBlur={() => setFocusedField(null)}
                           className={`${inputClasses('password')} pr-12`}
-                          placeholder="Leave blank to keep current password"
+                          placeholder={t('form.newPasswordPlaceholder')}
                         />
                         <button
                           type="button"
@@ -440,10 +443,10 @@ function ClubProfileContent() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4 text-[var(--brand-primary)]" />
-                        <span className="font-semibold text-[var(--brand-light)]">Privacy Mode</span>
+                        <span className="font-semibold text-[var(--brand-light)]">{t('privacy.title')}</span>
                       </div>
                       <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-                        Hide my contact info from public listings
+                        {t('privacy.description')}
                       </p>
                     </div>
                   </div>
@@ -455,7 +458,7 @@ function ClubProfileContent() {
                       disabled={isSaving}
                       className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isSaving ? 'Saving...' : 'Save Changes'}
+                      {isSaving ? t('buttons.saving') : t('buttons.saveChanges')}
                     </button>
                   </div>
                 </form>
@@ -473,14 +476,14 @@ function ClubProfileContent() {
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
                     <ShieldCheck className="w-5 h-5 text-white" />
                   </div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Account Summary</h2>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('accountSummary.title')}</h2>
                 </div>
               </div>
 
               {/* Card Content */}
               <div className="px-4 sm:px-6 py-4 space-y-3">
                 <div className="flex justify-between items-center p-3 bg-[var(--dark-700)] rounded-xl">
-                  <span className="text-sm text-[var(--brand-light)]/60">Role</span>
+                  <span className="text-sm text-[var(--brand-light)]/60">{t('accountSummary.role')}</span>
                   <span className={`px-3 py-1 text-xs font-bold uppercase rounded-lg border ${getRoleBadgeStyle(user.role)}`}>
                     {formatRole(user.role)}
                   </span>
@@ -488,10 +491,10 @@ function ClubProfileContent() {
                 <div className="flex justify-between items-center p-3 bg-[var(--dark-700)] rounded-xl">
                   <span className="text-sm text-[var(--brand-light)]/60 flex items-center gap-2">
                     <Clock className="h-4 w-4 text-[var(--brand-primary)]" />
-                    Last Login
+                    {t('accountSummary.lastLogin')}
                   </span>
                   <span className="text-sm font-semibold text-[var(--brand-light)]">
-                    {formatDateTime(latestLoginTimestamp)}
+                    {formatDateTime(latestLoginTimestamp, t('accountSummary.never'))}
                   </span>
                 </div>
               </div>
@@ -505,7 +508,7 @@ function ClubProfileContent() {
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                     <Clock className="w-5 h-5 text-white" />
                   </div>
-                  <h2 className="font-semibold text-[var(--brand-light)]">Recent Logins</h2>
+                  <h2 className="font-semibold text-[var(--brand-light)]">{t('recentLogins.title')}</h2>
                 </div>
               </div>
 
@@ -513,7 +516,7 @@ function ClubProfileContent() {
               <div className="px-4 sm:px-6 py-4">
                 {loginHistory.length === 0 ? (
                   <p className="text-sm text-[var(--brand-light)]/50 text-center py-4">
-                    No login history recorded yet.
+                    {t('recentLogins.noHistory')}
                   </p>
                 ) : (
                   <ul className="space-y-3">
@@ -525,7 +528,7 @@ function ClubProfileContent() {
                         <div className="w-2 h-2 rounded-full bg-[var(--brand-green)]"></div>
                         <div className="flex-1 min-w-0">
                           <span className="text-sm font-semibold text-[var(--brand-light)] block">
-                            {formatDateTime(entry.timestamp)}
+                            {formatDateTime(entry.timestamp, t('accountSummary.never'))}
                           </span>
                           {entry.ip_address && (
                             <span className="text-xs text-[var(--brand-light)]/40 truncate block">
@@ -543,29 +546,27 @@ function ClubProfileContent() {
         </div>
       </div>
 
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode={true}
-      />
+    </div>
+  );
+}
+
+function LoadingFallback() {
+  const t = useTranslations('profileAdmin');
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+          <User className="w-8 h-8 text-[var(--dark-900)]" />
+        </div>
+        <span className="text-[var(--brand-light)]/60">{t('loading')}</span>
+      </div>
     </div>
   );
 }
 
 export default function ClubProfilePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
-            <User className="w-8 h-8 text-[var(--dark-900)]" />
-          </div>
-          <span className="text-[var(--brand-light)]/60">Loading profile...</span>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingFallback />}>
       <ClubProfileContent />
     </Suspense>
   );

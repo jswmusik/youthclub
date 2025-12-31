@@ -2,8 +2,9 @@
 
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '../../../../lib/api';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 import { useAuth } from '../../../../context/AuthContext';
 import DeleteConfirmationModal from '../../../components/DeleteConfirmationModal';
 import { BarChart3, ChevronUp, Search, X, MessageSquare, Info, AlertTriangle, AlertCircle, ChevronDown } from 'lucide-react';
@@ -84,6 +85,7 @@ function MunicipalityMessageBoardContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('municipalityAdmin.msgboard');
   
   const [messages, setMessages] = useState<SystemMessage[]>([]);
   const [filteredMessages, setFilteredMessages] = useState<SystemMessage[]>([]);
@@ -95,11 +97,7 @@ function MunicipalityMessageBoardContent() {
   
   // Pagination state
   const pageSize = 10;
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { success, error, info, warning } = useToast();
   const { refreshMessageCount } = useAuth();
   
   // Hide Confirmation Modal State
@@ -219,7 +217,7 @@ function MunicipalityMessageBoardContent() {
       refreshMessageCount();
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Failed to load messages.', type: 'error', isVisible: true });
+      error(t('toast.loadFailed'));
     } finally {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
@@ -247,13 +245,13 @@ function MunicipalityMessageBoardContent() {
     setIsHiding(true);
     try {
       await api.post(`/messages/${messageToHide.id}/dismiss/`);
-      setToast({ message: 'Message hidden.', type: 'success', isVisible: true });
+      success(t('toast.hideSuccess'));
       setShowHideModal(false);
       setMessageToHide(null);
       fetchMessages();
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Failed to hide message.', type: 'error', isVisible: true });
+      error(t('toast.hideFailed'));
     } finally {
       setIsHiding(false);
     }
@@ -308,15 +306,15 @@ function MunicipalityMessageBoardContent() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Message Board</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
-            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Manage system messages and announcements.</p>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
           </div>
           <button
             onClick={fetchMessages}
             className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all"
           >
-            Refresh
+            {t('refresh')}
           </button>
         </div>
       </div>
@@ -332,7 +330,7 @@ function MunicipalityMessageBoardContent() {
               <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                 <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
               </div>
-              <h3 className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</h3>
+              <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
             {analyticsExpanded ? (
               <ChevronUp className="h-4 w-4 text-[var(--brand-light)]/50" />
@@ -350,7 +348,7 @@ function MunicipalityMessageBoardContent() {
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
                     <MessageSquare className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total}</div>
               </div>
@@ -361,7 +359,7 @@ function MunicipalityMessageBoardContent() {
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                     <Info className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Info</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('info')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{analytics.info}</div>
               </div>
@@ -372,7 +370,7 @@ function MunicipalityMessageBoardContent() {
                   <div className="w-10 h-10 rounded-xl bg-[#F59E0B] flex items-center justify-center">
                     <AlertCircle className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Important</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('important')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[#F59E0B]">{analytics.important}</div>
               </div>
@@ -383,7 +381,7 @@ function MunicipalityMessageBoardContent() {
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)] flex items-center justify-center">
                     <AlertTriangle className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Warning</span>
+                  <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('warning')}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-red)]">{analytics.warning}</div>
               </div>
@@ -400,7 +398,7 @@ function MunicipalityMessageBoardContent() {
             <input 
               ref={searchInputRef}
               type="text"
-              placeholder="Search by title or message..." 
+              placeholder={t('searchPlaceholder')} 
               className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -413,10 +411,10 @@ function MunicipalityMessageBoardContent() {
               value={searchParams.get('type') || ''} 
               onChange={e => updateUrl('type', e.target.value)}
             >
-              <option value="">All Types</option>
-              <option value="INFO">Info</option>
-              <option value="IMPORTANT">Important</option>
-              <option value="WARNING">Warning</option>
+              <option value="">{t('allTypes')}</option>
+              <option value="INFO">{t('info')}</option>
+              <option value="IMPORTANT">{t('important')}</option>
+              <option value="WARNING">{t('warning')}</option>
             </select>
           </div>
           {hasFilters && (
@@ -424,7 +422,7 @@ function MunicipalityMessageBoardContent() {
               onClick={() => router.push(pathname)}
               className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all flex items-center justify-center gap-2"
             >
-              <X className="h-4 w-4" /> Clear
+              <X className="h-4 w-4" /> {t('clear')}
             </button>
           )}
         </div>
@@ -434,7 +432,7 @@ function MunicipalityMessageBoardContent() {
       {!showSkeleton && filteredMessages.length > 0 && (
         <div className="px-4 sm:px-6 md:px-8">
           <p className="text-sm text-[var(--brand-light)]/50">
-            Showing <span className="text-[var(--brand-primary)] font-semibold">{filteredMessages.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalFilteredCount}</span> {totalFilteredCount === 1 ? 'message' : 'messages'}
+            {t('showing')} <span className="text-[var(--brand-primary)] font-semibold">{filteredMessages.length}</span> {t('of')} <span className="text-[var(--brand-primary)] font-semibold">{totalFilteredCount}</span> {totalFilteredCount === 1 ? t('message') : t('messages')}
           </p>
         </div>
       )}
@@ -454,12 +452,12 @@ function MunicipalityMessageBoardContent() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Message</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Created</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.type')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.title')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.message')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.created')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.expires')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -478,8 +476,8 @@ function MunicipalityMessageBoardContent() {
             </div>
             <p className="text-[var(--brand-light)]">
               {messages.length === 0 
-                ? 'No active messages for your role right now.'
-                : 'No messages match your filters.'}
+                ? t('emptyStates.noMessages')
+                : t('emptyStates.noMatches')}
             </p>
           </div>
         </div>
@@ -500,7 +498,7 @@ function MunicipalityMessageBoardContent() {
                           </span>
                           {msg.is_sticky && (
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
-                              Sticky
+                              {t('sticky')}
                             </span>
                           )}
                         </div>
@@ -510,11 +508,11 @@ function MunicipalityMessageBoardContent() {
                     </div>
                     <div className="space-y-2 pt-2 border-t border-[var(--dark-600)]">
                       <div className="flex items-center justify-between text-[var(--brand-light)]/60">
-                        <span className="text-xs uppercase font-semibold">Created</span>
+                        <span className="text-xs uppercase font-semibold">{t('tableHeaders.created')}</span>
                         <span className="text-xs">{formatDate(msg.created_at)}</span>
                       </div>
                       <div className="flex items-center justify-between text-[var(--brand-light)]/60">
-                        <span className="text-xs uppercase font-semibold">Expires</span>
+                        <span className="text-xs uppercase font-semibold">{t('tableHeaders.expires')}</span>
                         <span className="text-xs">{formatDate(msg.expires_at)}</span>
                       </div>
                     </div>
@@ -528,7 +526,7 @@ function MunicipalityMessageBoardContent() {
                             className="flex-1"
                           >
                             <button className="w-full px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all">
-                              View more
+                              {t('viewMore')}
                             </button>
                           </a>
                         )}
@@ -541,7 +539,7 @@ function MunicipalityMessageBoardContent() {
                               : 'text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30'
                           }`}
                         >
-                          Hide
+                          {t('hide')}
                         </button>
                       </div>
                     )}
@@ -556,12 +554,12 @@ function MunicipalityMessageBoardContent() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--dark-600)]">
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Type</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Title</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Message</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Created</th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Expires</th>
-                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Actions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.type')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.title')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.message')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.created')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.expires')}</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -576,7 +574,7 @@ function MunicipalityMessageBoardContent() {
                           </span>
                           {msg.is_sticky && (
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30">
-                              Sticky
+                              {t('sticky')}
                             </span>
                           )}
                         </div>
@@ -638,17 +636,17 @@ function MunicipalityMessageBoardContent() {
                   onClick={() => handlePageChange(currentPage - 1)}
                   className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Previous
+                  {t('pagination.previous')}
                 </button>
                 <div className="text-sm text-[var(--brand-light)]/50">
-                  Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                  {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
                 </div>
                 <button 
                   disabled={currentPage >= totalPages} 
                   onClick={() => handlePageChange(currentPage + 1)}
                   className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t('pagination.next')}
                 </button>
               </div>
             );
@@ -666,22 +664,26 @@ function MunicipalityMessageBoardContent() {
           }
         }}
         onConfirm={handleHideConfirm}
-        title="Hide Message"
+        title={t('hideModal.title')}
         itemName={messageToHide?.title}
-        message={messageToHide ? `Are you sure you want to hide "${messageToHide.title}"? You can refresh the page to see it again.` : undefined}
-        confirmButtonText="Hide"
+        message={messageToHide ? t('hideModal.message', { title: messageToHide.title }) : undefined}
+        confirmButtonText={t('hideModal.confirm')}
         isLoading={isHiding}
         darkMode
       />
 
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode
-        duration={1250}
-      />
+    </div>
+  );
+}
+
+function LoadingFallback() {
+  const t = useTranslations('municipalityAdmin.msgboard');
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
+      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
+        <MessageSquare className="w-6 h-6 text-white" />
+      </div>
+      <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</div>
     </div>
   );
 }
@@ -689,14 +691,7 @@ function MunicipalityMessageBoardContent() {
 export default function MunicipalityMessageBoardPage() {
   return (
     <div className="min-h-screen bg-[var(--dark-900)]">
-      <Suspense fallback={
-        <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-            <MessageSquare className="w-6 h-6 text-white" />
-          </div>
-          <div className="text-[var(--brand-light)]/60 animate-pulse">Loading message board…</div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingFallback />}>
         <MunicipalityMessageBoardContent />
       </Suspense>
     </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ContentItem } from '@/types/learning';
@@ -13,6 +14,7 @@ interface SortableItemProps {
 }
 
 export default function SortableItem({ item, index, onEdit, onDelete }: SortableItemProps) {
+    const t = useTranslations('knowledgeAdmin.courses.curriculum.lessons');
     const {
         attributes,
         listeners,
@@ -101,14 +103,14 @@ export default function SortableItem({ item, index, onEdit, onDelete }: Sortable
                                         className="px-3 py-1.5 rounded-lg text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10 transition-all text-sm font-medium flex items-center gap-1.5"
                                     >
                                         <Edit2 className="w-4 h-4" /> 
-                                        <span className="hidden sm:inline">Edit</span>
+                                        <span className="hidden sm:inline">{t('edit')}</span>
                                     </button>
                                     <button 
                                         onClick={onDelete}
                                         className="px-3 py-1.5 rounded-lg text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all text-sm font-medium flex items-center gap-1.5"
                                     >
                                         <Trash2 className="w-4 h-4" /> 
-                                        <span className="hidden sm:inline">Delete</span>
+                                        <span className="hidden sm:inline">{t('delete')}</span>
                                     </button>
                                 </div>
                             </div>

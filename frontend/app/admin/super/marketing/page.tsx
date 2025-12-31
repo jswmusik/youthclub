@@ -2,14 +2,16 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { 
   Settings, Quote, Plus, Pencil, Trash2, Star, 
   Save, X, Eye, EyeOff, Loader2, Image as ImageIcon,
-  Sparkles, Upload, Globe, Megaphone, Search, ChevronUp, ChevronDown
+  Sparkles, Upload, Globe, Megaphone, Search
 } from 'lucide-react';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../../hooks/useToast';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
 
 interface Testimonial {
   id: number;
@@ -51,8 +53,9 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 export default function MarketingPage() {
+  const t = useTranslations('marketingAdmin');
   const [activeTab, setActiveTab] = useState<'hero' | 'seo' | 'testimonials'>('hero');
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   
   // SEO/Hero State
   const [seoSettings, setSeoSettings] = useState<SEOSettings>({
@@ -87,6 +90,7 @@ export default function MarketingPage() {
   });
   const [testimonialSaving, setTestimonialSaving] = useState(false);
   const [searchInput, setSearchInput] = useState('');
+  const [testimonialToDelete, setTestimonialToDelete] = useState<number | null>(null);
 
   // Fetch SEO settings
   useEffect(() => {
@@ -169,10 +173,10 @@ export default function MarketingPage() {
       });
       
       setHeroBackgroundFile(null);
-      setToast({ message: 'Inställningar sparade!', type: 'success', isVisible: true });
+      success(t('toast.settingsSaved'));
     } catch (error) {
       console.error('Failed to save SEO settings:', error);
-      setToast({ message: 'Kunde inte spara inställningar', type: 'error', isVisible: true });
+      error(t('toast.failedToSave'));
     } finally {
       setSeoSaving(false);
     }
@@ -187,32 +191,34 @@ export default function MarketingPage() {
         setTestimonials(prev => 
           prev.map(t => t.id === editingTestimonial.id ? { ...t, ...testimonialForm } : t)
         );
-        setToast({ message: 'Omdöme uppdaterat!', type: 'success', isVisible: true });
+        success(t('toast.testimonialUpdated'));
       } else {
         const res = await api.post('/marketing/testimonials/', testimonialForm);
         setTestimonials(prev => [res.data, ...prev]);
-        setToast({ message: 'Omdöme skapat!', type: 'success', isVisible: true });
+        success(t('toast.testimonialCreated'));
       }
       resetTestimonialForm();
     } catch (error) {
       console.error('Failed to save testimonial:', error);
-      setToast({ message: 'Kunde inte spara omdöme', type: 'error', isVisible: true });
+      error(t('toast.failedToSaveTestimonial'));
     } finally {
       setTestimonialSaving(false);
     }
   };
 
   // Delete testimonial
-  const handleDeleteTestimonial = async (id: number) => {
-    if (!confirm('Är du säker på att du vill ta bort detta omdöme?')) return;
+  const handleDeleteTestimonial = async () => {
+    if (!testimonialToDelete) return;
     
     try {
-      await api.delete(`/marketing/testimonials/${id}/`);
-      setTestimonials(prev => prev.filter(t => t.id !== id));
-      setToast({ message: 'Omdöme borttaget!', type: 'success', isVisible: true });
+      await api.delete(`/marketing/testimonials/${testimonialToDelete}/`);
+      setTestimonials(prev => prev.filter(t => t.id !== testimonialToDelete));
+      success(t('toast.testimonialDeleted'));
     } catch (error) {
       console.error('Failed to delete testimonial:', error);
-      setToast({ message: 'Kunde inte ta bort omdöme', type: 'error', isVisible: true });
+      error(t('toast.failedToDeleteTestimonial'));
+    } finally {
+      setTestimonialToDelete(null);
     }
   };
 
@@ -272,9 +278,9 @@ export default function MarketingPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <Megaphone className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Marknadsföring</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
-            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">Hantera startsida, SEO och omdömen.</p>
+            <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
           </div>
         </div>
 
@@ -285,7 +291,7 @@ export default function MarketingPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Hero</span>
+              <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.hero')}</span>
             </div>
             <div className="text-lg font-bold text-[var(--brand-light)] truncate">{seoSettings.hero_title || '—'}</div>
           </div>
@@ -295,9 +301,11 @@ export default function MarketingPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                 <Globe className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">SEO</span>
+              <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.seo')}</span>
             </div>
-            <div className="text-lg font-bold text-[var(--brand-blue)] truncate">{seoSettings.page_title ? 'Konfigurerat' : 'Ej konfigurerat'}</div>
+            <div className="text-lg font-bold text-[var(--brand-blue)] truncate">
+              {seoSettings.page_title ? t('stats.configured') : t('stats.notConfigured')}
+            </div>
           </div>
 
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
@@ -305,7 +313,7 @@ export default function MarketingPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
                 <Quote className="h-5 w-5 text-[var(--dark-900)]" />
               </div>
-              <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Omdömen</span>
+              <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.testimonials')}</span>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{testimonials.length}</div>
           </div>
@@ -315,7 +323,7 @@ export default function MarketingPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
                 <Eye className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Aktiva</span>
+              <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.active')}</span>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{activeCount}</div>
           </div>
@@ -333,8 +341,8 @@ export default function MarketingPage() {
               }`}
             >
               <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">Startsida (Hero)</span>
-              <span className="sm:hidden">Hero</span>
+              <span className="hidden sm:inline">{t('tabs.hero')}</span>
+              <span className="sm:hidden">{t('tabs.heroShort')}</span>
             </button>
             <button
               onClick={() => setActiveTab('seo')}
@@ -345,8 +353,8 @@ export default function MarketingPage() {
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">SEO & Social</span>
-              <span className="sm:hidden">SEO</span>
+              <span className="hidden sm:inline">{t('tabs.seo')}</span>
+              <span className="sm:hidden">{t('tabs.seoShort')}</span>
             </button>
             <button
               onClick={() => setActiveTab('testimonials')}
@@ -357,8 +365,7 @@ export default function MarketingPage() {
               }`}
             >
               <Quote className="w-4 h-4" />
-              <span className="hidden sm:inline">Omdömen</span>
-              <span className="sm:hidden">Omdömen</span>
+              <span>{t('tabs.testimonials')}</span>
             </button>
           </div>
         </div>
@@ -367,9 +374,9 @@ export default function MarketingPage() {
         {activeTab === 'hero' && (
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Hero Section</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('hero.title')}</h2>
               <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-                Anpassa innehållet som visas i hero-sektionen på startsidan.
+                {t('hero.description')}
               </p>
             </div>
             
@@ -385,7 +392,7 @@ export default function MarketingPage() {
                 {/* Hero Background Image */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Bakgrundsbild
+                    {t('hero.backgroundImage')}
                   </label>
                   <div className="flex flex-col sm:flex-row items-start gap-4">
                     <div 
@@ -401,7 +408,7 @@ export default function MarketingPage() {
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full text-[var(--brand-light)]/40">
                           <ImageIcon className="w-8 h-8 mb-2" />
-                          <span className="text-sm">Klicka för att ladda upp</span>
+                          <span className="text-sm">{t('hero.clickToUpload')}</span>
                         </div>
                       )}
                       <input
@@ -413,12 +420,12 @@ export default function MarketingPage() {
                       />
                     </div>
                     <div className="text-sm text-[var(--brand-light)]/50">
-                      <p>Rekommenderad storlek: 1920x1080px</p>
-                      <p>Format: JPG, PNG, WebP</p>
+                      <p>{t('hero.recommendedSize')}</p>
+                      <p>{t('hero.format')}</p>
                       {heroBackgroundFile && (
                         <p className="text-[var(--brand-green)] mt-2 flex items-center gap-1">
                           <Upload className="w-4 h-4" />
-                          Ny bild vald (sparas vid "Spara")
+                          {t('hero.newImageSelected')}
                         </p>
                       )}
                     </div>
@@ -428,48 +435,48 @@ export default function MarketingPage() {
                 {/* Hero Title */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Rubrik
+                    {t('hero.heading')}
                   </label>
                   <input
                     type="text"
                     value={seoSettings.hero_title}
                     onChange={(e) => setSeoSettings({ ...seoSettings, hero_title: e.target.value })}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                    placeholder="Hitta din grej!"
+                    placeholder={t('hero.headingPlaceholder')}
                   />
                 </div>
 
                 {/* Hero Subtitle */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Underrubrik
+                    {t('hero.subheading')}
                   </label>
                   <textarea
                     value={seoSettings.hero_subtitle}
                     onChange={(e) => setSeoSettings({ ...seoSettings, hero_subtitle: e.target.value })}
                     rows={2}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
-                    placeholder="Samlade aktiviteter och evenemang för unga."
+                    placeholder={t('hero.subheadingPlaceholder')}
                   />
                 </div>
 
                 {/* Hero CTA Text */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Knapptext (CTA)
+                    {t('hero.ctaText')}
                   </label>
                   <input
                     type="text"
                     value={seoSettings.hero_cta_text}
                     onChange={(e) => setSeoSettings({ ...seoSettings, hero_cta_text: e.target.value })}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                    placeholder="Sök aktiviteter"
+                    placeholder={t('hero.ctaPlaceholder')}
                   />
                 </div>
 
                 {/* Preview */}
                 <div className="pt-4 border-t border-[var(--dark-600)]">
-                  <h3 className="text-sm font-medium text-[var(--brand-light)]/70 mb-3">Förhandsvisning</h3>
+                  <h3 className="text-sm font-medium text-[var(--brand-light)]/70 mb-3">{t('hero.preview')}</h3>
                   <div 
                     className="relative rounded-xl overflow-hidden h-48 sm:h-56"
                     style={{
@@ -481,10 +488,10 @@ export default function MarketingPage() {
                     }}
                   >
                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white p-4">
-                      <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-center">{seoSettings.hero_title || 'Hitta din grej!'}</h2>
-                      <p className="text-sm opacity-80 mb-4 text-center max-w-md">{seoSettings.hero_subtitle || 'Samlade aktiviteter och evenemang för unga.'}</p>
+                      <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-center">{seoSettings.hero_title || t('hero.headingPlaceholder')}</h2>
+                      <p className="text-sm opacity-80 mb-4 text-center max-w-md">{seoSettings.hero_subtitle || t('hero.subheadingPlaceholder')}</p>
                       <button className="px-6 py-2.5 bg-[var(--brand-primary)] rounded-xl text-sm font-bold text-[var(--dark-900)]">
-                        {seoSettings.hero_cta_text || 'Sök aktiviteter'}
+                        {seoSettings.hero_cta_text || t('hero.ctaPlaceholder')}
                       </button>
                     </div>
                   </div>
@@ -497,7 +504,7 @@ export default function MarketingPage() {
                     className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all disabled:opacity-50"
                   >
                     {seoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Spara ändringar
+                    {t('hero.saveChanges')}
                   </button>
                 </div>
               </div>
@@ -509,9 +516,9 @@ export default function MarketingPage() {
         {activeTab === 'seo' && (
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">SEO & Sociala Medier</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('seo.title')}</h2>
               <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-                Optimera hur din sida visas i sökmotorer och på sociala medier.
+                {t('seo.description')}
               </p>
             </div>
             
@@ -525,43 +532,43 @@ export default function MarketingPage() {
               <div className="p-4 sm:p-6 space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Sidtitel
+                    {t('seo.pageTitle')}
                   </label>
                   <input
                     type="text"
                     value={seoSettings.page_title}
                     onChange={(e) => setSeoSettings({ ...seoSettings, page_title: e.target.value })}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                    placeholder="Ungdomsappen - Hitta aktiviteter nära dig"
+                    placeholder={t('seo.pageTitlePlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Meta-beskrivning
+                    {t('seo.metaDescription')}
                   </label>
                   <textarea
                     value={seoSettings.meta_description}
                     onChange={(e) => setSeoSettings({ ...seoSettings, meta_description: e.target.value })}
                     rows={3}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
-                    placeholder="Upptäck aktiviteter, evenemang och fritidsgårdar nära dig..."
+                    placeholder={t('seo.metaDescriptionPlaceholder')}
                   />
                   <p className="text-xs text-[var(--brand-light)]/40 mt-1">
-                    Rekommenderad längd: 150-160 tecken
+                    {t('seo.metaDescriptionHint')}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Nyckelord (kommaseparerade)
+                    {t('seo.keywords')}
                   </label>
                   <input
                     type="text"
                     value={seoSettings.keywords}
                     onChange={(e) => setSeoSettings({ ...seoSettings, keywords: e.target.value })}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                    placeholder="ungdomsappen, fritidsgård, aktiviteter, ungdom"
+                    placeholder={t('seo.keywordsPlaceholder')}
                   />
                 </div>
 
@@ -570,33 +577,33 @@ export default function MarketingPage() {
                     <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
                       <Globe className="h-4 w-4 text-[var(--brand-blue)]" />
                     </div>
-                    <h3 className="text-md font-semibold text-[var(--brand-light)]">Open Graph (Sociala medier)</h3>
+                    <h3 className="text-md font-semibold text-[var(--brand-light)]">{t('seo.openGraph')}</h3>
                   </div>
                   
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                        OG Titel
+                        {t('seo.ogTitle')}
                       </label>
                       <input
                         type="text"
                         value={seoSettings.og_title}
                         onChange={(e) => setSeoSettings({ ...seoSettings, og_title: e.target.value })}
                         className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                        placeholder="Lämna tom för att använda sidtiteln"
+                        placeholder={t('seo.ogTitlePlaceholder')}
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                        OG Beskrivning
+                        {t('seo.ogDescription')}
                       </label>
                       <textarea
                         value={seoSettings.og_description}
                         onChange={(e) => setSeoSettings({ ...seoSettings, og_description: e.target.value })}
                         rows={2}
                         className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
-                        placeholder="Lämna tom för att använda meta-beskrivningen"
+                        placeholder={t('seo.ogDescriptionPlaceholder')}
                       />
                     </div>
                   </div>
@@ -609,7 +616,7 @@ export default function MarketingPage() {
                     className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all disabled:opacity-50"
                   >
                     {seoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Spara ändringar
+                    {t('seo.saveChanges')}
                   </button>
                 </div>
               </div>
@@ -626,7 +633,7 @@ export default function MarketingPage() {
                 <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
                 <input 
                   type="text"
-                  placeholder="Sök omdömen..." 
+                  placeholder={t('testimonials.searchPlaceholder')}
                   className="flex-1 bg-transparent text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none text-base"
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
@@ -645,7 +652,7 @@ export default function MarketingPage() {
                 className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all"
               >
                 <Plus className="w-4 h-4" />
-                Lägg till omdöme
+                {t('testimonials.addTestimonial')}
               </button>
             </div>
 
@@ -653,7 +660,7 @@ export default function MarketingPage() {
             {!testimonialsLoading && testimonials.length > 0 && (
               <div className="px-4 sm:px-0">
                 <p className="text-sm text-[var(--brand-light)]/50">
-                  Visar <span className="text-[var(--brand-primary)] font-semibold">{filteredTestimonials.length}</span> av <span className="text-[var(--brand-primary)] font-semibold">{testimonials.length}</span> omdömen
+                  {t('testimonials.showing')} <span className="text-[var(--brand-primary)] font-semibold">{filteredTestimonials.length}</span> {t('testimonials.of')} <span className="text-[var(--brand-primary)] font-semibold">{testimonials.length}</span> {t('testimonials.testimonialsLabel')}
                 </p>
               </div>
             )}
@@ -664,7 +671,7 @@ export default function MarketingPage() {
                 <div className="bg-[var(--dark-800)] rounded-2xl w-full max-w-md border border-[var(--dark-600)] overflow-hidden">
                   <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--dark-600)]">
                     <h3 className="text-lg font-semibold text-[var(--brand-light)]">
-                      {editingTestimonial ? 'Redigera omdöme' : 'Nytt omdöme'}
+                      {editingTestimonial ? t('testimonials.formTitle.edit') : t('testimonials.formTitle.new')}
                     </h3>
                     <button 
                       onClick={resetTestimonialForm} 
@@ -676,40 +683,40 @@ export default function MarketingPage() {
 
                   <div className="p-6 space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">Namn</label>
+                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">{t('testimonials.form.name')}</label>
                       <input
                         type="text"
                         value={testimonialForm.author_name}
                         onChange={(e) => setTestimonialForm({ ...testimonialForm, author_name: e.target.value })}
                         className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                        placeholder="Emma Andersson"
+                        placeholder={t('testimonials.form.namePlaceholder')}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">Roll</label>
+                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">{t('testimonials.form.role')}</label>
                       <input
                         type="text"
                         value={testimonialForm.author_role}
                         onChange={(e) => setTestimonialForm({ ...testimonialForm, author_role: e.target.value })}
                         className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                        placeholder="Ungdom, 16 år"
+                        placeholder={t('testimonials.form.rolePlaceholder')}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">Omdöme</label>
+                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">{t('testimonials.form.quote')}</label>
                       <textarea
                         value={testimonialForm.quote}
                         onChange={(e) => setTestimonialForm({ ...testimonialForm, quote: e.target.value })}
                         rows={3}
                         className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
-                        placeholder="Skriv omdömet här..."
+                        placeholder={t('testimonials.form.quotePlaceholder')}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">Betyg</label>
+                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">{t('testimonials.form.rating')}</label>
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button
@@ -745,7 +752,7 @@ export default function MarketingPage() {
                         />
                       </button>
                       <label className="text-sm text-[var(--brand-light)]/70">
-                        Visa på startsidan
+                        {t('testimonials.form.showOnHomepage')}
                       </label>
                     </div>
                   </div>
@@ -755,7 +762,7 @@ export default function MarketingPage() {
                       onClick={resetTestimonialForm}
                       className="px-4 py-2.5 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] rounded-xl transition-all font-medium"
                     >
-                      Avbryt
+                      {t('testimonials.form.cancel')}
                     </button>
                     <button
                       onClick={handleSaveTestimonial}
@@ -763,7 +770,7 @@ export default function MarketingPage() {
                       className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all disabled:opacity-50"
                     >
                       {testimonialSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                      Spara
+                      {t('testimonials.form.save')}
                     </button>
                   </div>
                 </div>
@@ -790,14 +797,14 @@ export default function MarketingPage() {
               <div className="text-center py-16 bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
                 <Quote className="w-12 h-12 mx-auto text-[var(--brand-light)]/20 mb-4" />
                 <p className="text-[var(--brand-light)]/50 mb-2">
-                  {searchInput ? 'Inga omdömen matchade din sökning' : 'Inga omdömen ännu'}
+                  {searchInput ? t('testimonials.emptyState.noMatch') : t('testimonials.emptyState.noTestimonials')}
                 </p>
                 {!searchInput && (
                   <button
                     onClick={() => setShowTestimonialForm(true)}
                     className="text-[var(--brand-primary)] hover:underline text-sm font-medium"
                   >
-                    Lägg till ditt första omdöme
+                    {t('testimonials.emptyState.addFirst')}
                   </button>
                 )}
               </div>
@@ -819,7 +826,7 @@ export default function MarketingPage() {
                           <span className="text-sm text-[var(--brand-light)]/50">• {testimonial.author_role}</span>
                           {!testimonial.is_active && (
                             <span className="px-2 py-0.5 text-xs bg-[var(--dark-700)] text-[var(--brand-light)]/50 rounded-full">
-                              Dold
+                              {t('testimonials.hidden')}
                             </span>
                           )}
                         </div>
@@ -846,7 +853,7 @@ export default function MarketingPage() {
                               ? 'text-[var(--brand-green)] hover:bg-[var(--brand-green)]/10' 
                               : 'text-[var(--brand-light)]/40 hover:bg-[var(--dark-700)]'
                           }`}
-                          title={testimonial.is_active ? 'Dölj' : 'Visa'}
+                          title={testimonial.is_active ? t('testimonials.hide') : t('testimonials.show')}
                         >
                           {testimonial.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         </button>
@@ -857,7 +864,7 @@ export default function MarketingPage() {
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteTestimonial(testimonial.id)}
+                          onClick={() => setTestimonialToDelete(testimonial.id)}
                           className="p-2.5 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -871,15 +878,21 @@ export default function MarketingPage() {
           </div>
         )}
 
-        {/* Toast Notification */}
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          isVisible={toast.isVisible} 
-          onClose={() => setToast({ ...toast, isVisible: false })}
-          darkMode
+        {/* Delete Confirmation Modal */}
+        <ConfirmationModal
+          isVisible={testimonialToDelete !== null}
+          onClose={() => setTestimonialToDelete(null)}
+          onConfirm={handleDeleteTestimonial}
+          title={t('deleteModal.title')}
+          message={t('deleteModal.message')}
+          confirmButtonText={t('deleteModal.confirm')}
+          cancelButtonText={t('deleteModal.cancel')}
+          variant="danger"
+          darkMode={true}
         />
-      </div>
+
+        {/* Toast Notification */}
+        </div>
     </div>
   );
 }

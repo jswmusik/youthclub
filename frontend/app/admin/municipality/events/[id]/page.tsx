@@ -4,15 +4,17 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
-    ArrowLeft, Edit, BarChart3, ChevronDown, ChevronUp, CheckCircle, Clock, Calendar, 
+    Edit, BarChart3, ChevronDown, ChevronUp, CheckCircle, Clock, Calendar, 
     MapPin, Users, Building, Settings, Target, Bell, Ticket, Eye, User, 
     CalendarDays, Globe, Shield, FileText, ChevronRight, Sparkles
 } from 'lucide-react';
 import api from '@/lib/api';
+import { sanitizeHtml } from '@/lib/sanitize';
 import ParticipantManager from '@/app/components/events/ParticipantManager';
 import { Event } from '@/types/event';
 import { getMediaUrl, getInitials } from '@/app/utils';
 import { format } from 'date-fns';
+import BackButton from '@/app/components/BackButton';
 
 export default function EventDashboardPage() {
     const params = useParams();
@@ -150,12 +152,7 @@ export default function EventDashboardPage() {
                 
                 {/* Navigation Header */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
-                    <Link 
-                        href={buildBackUrl()}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
-                    >
-                        <ArrowLeft className="h-4 w-4" /> Back to Events
-                    </Link>
+                    <BackButton href={buildBackUrl()} translationKey="backToEvents" />
                     <Link 
                         href={`/admin/municipality/events/edit/${event.id}`}
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
@@ -487,7 +484,7 @@ export default function EventDashboardPage() {
                                             </div>
                                             <div>
                                                 <label className="text-[10px] text-[var(--brand-light)]/40 uppercase font-semibold mb-1 block">Description</label>
-                                                <div className="prose prose-invert prose-sm max-w-none text-[var(--brand-light)]/80" dangerouslySetInnerHTML={{ __html: event.description }} />
+                                                <div className="prose prose-invert prose-sm max-w-none text-[var(--brand-light)]/80" dangerouslySetInnerHTML={{ __html: sanitizeHtml(event.description) }} />
                                             </div>
                                             {event.cost !== null && event.cost !== undefined && (
                                                 <div>

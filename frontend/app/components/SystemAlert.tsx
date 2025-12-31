@@ -1,28 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { Info, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function SystemAlert() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [msg, setMsg] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
   const pathname = usePathname();
+  const alertRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (user) {
-      checkMessage();
-    } else {
-      setIsVisible(false);
-    }
-  }, [pathname, user]);
+    // Wait for auth to finish loading before fetching messages
+    if (authLoading) return;
+    
+    // Always check for messages - use different endpoints based on auth status
+    checkMessage();
+  }, [pathname, user, authLoading]);
 
   const checkMessage = async () => {
     try {
-      const res = await api.get('/messages/my_latest/');
+      // Use authenticated endpoint if logged in, public endpoint otherwise
+      const endpoint = user ? '/messages/my_latest/' : '/messages/public_latest/';
+      const res = await api.get(endpoint);
       const message = res.data;
 
       // Handle null or empty response
@@ -55,12 +58,40 @@ export default function SystemAlert() {
     }
   };
 
+  // Hide system alert on kiosk page
+  const isKioskPage = pathname?.includes('/kiosk');
+
+  // Update CSS variable for system alert height
+  useEffect(() => {
+    // Always reset height on kiosk page
+    if (isKioskPage) {
+      document.documentElement.style.setProperty('--system-alert-height', '0px');
+      return;
+    }
+    
+    if (isVisible && alertRef.current) {
+      const height = alertRef.current.offsetHeight;
+      document.documentElement.style.setProperty('--system-alert-height', `${height}px`);
+    } else {
+      document.documentElement.style.setProperty('--system-alert-height', '0px');
+    }
+    
+    return () => {
+      document.documentElement.style.setProperty('--system-alert-height', '0px');
+    };
+  }, [isVisible, msg, isKioskPage]);
+
   const handleDismiss = () => {
     if (!msg) return;
     setIsVisible(false);
     // Remember that this specific message ID was closed
     localStorage.setItem(`closed_msg_${msg.id}`, 'true');
+    // Reset the CSS variable immediately
+    document.documentElement.style.setProperty('--system-alert-height', '0px');
   };
+
+  // Don't render on kiosk page
+  if (isKioskPage) return null;
 
   if (!isVisible || !msg) return null;
 
@@ -87,7 +118,7 @@ export default function SystemAlert() {
   const IconComponent = theme.icon;
 
   return (
-    <div className={`${theme.bg} text-white relative z-50 shadow-md`}>
+    <div ref={alertRef} className={`${theme.bg} text-white fixed top-0 left-0 right-0 z-[100] shadow-md`}>
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-start justify-between gap-4">
         
         {/* Message Content */}

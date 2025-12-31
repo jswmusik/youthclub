@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import RichTextEditor from '@/app/components/RichTextEditor';
 import { cmsApi } from '@/lib/cms-api';
 import { Page, FeatureShowcase } from '@/types/cms';
-import { useToast } from '@/app/components/ToastProvider';
-import { Loader2, Save, ArrowLeft, Image as ImageIcon, FileText, Settings, Search, Sparkles, Check, GripVertical, Plus, X, User, List, Trash2 } from 'lucide-react';
+import { useToast } from '../../../../../../hooks/useToast';
+import { Loader2, Save, ArrowLeft, Image as ImageIcon, FileText, Settings, Search, Sparkles, GripVertical, Plus, X, User, List } from 'lucide-react';
 import Link from 'next/link';
 
 interface PageFormProps {
@@ -15,6 +16,7 @@ interface PageFormProps {
 }
 
 export default function PageForm({ initialData, isEditing = false }: PageFormProps) {
+  const t = useTranslations('cmsAdmin.form');
   const router = useRouter();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -41,8 +43,6 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
     ai_description: initialData?.ai_description || '',
     is_published: initialData?.is_published ?? false,
   });
-
-  // Table of contents is now auto-generated from content headings
 
   // Features state for creative pages
   const [availableFeatures, setAvailableFeatures] = useState<FeatureShowcase[]>([]);
@@ -100,7 +100,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
     }, 0);
   };
 
-  const handleDragEnd = (e: React.DragEvent) => {
+  const handleDragEnd = () => {
     const element = document.getElementById(`selected-feature-${draggedFeatureId}`);
     if (element) element.style.opacity = '1';
     setDraggedFeatureId(null);
@@ -115,7 +115,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
     }
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = () => {
     setDragOverFeatureId(null);
   };
 
@@ -178,8 +178,6 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
         }
       });
 
-      // Table of contents is auto-generated from content headings, no need to send it
-
       // Append feature IDs for creative pages (in order)
       if (formData.page_type === 'creative' && selectedFeatureIds.length > 0) {
         selectedFeatureIds.forEach(id => {
@@ -192,27 +190,20 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
       if (ogImage) data.append('og_image', ogImage);
       if (authorImage) data.append('author_image', authorImage);
 
-      // Debug: Log what we're sending
-      console.log('Sending form data:');
-      for (const [key, value] of data.entries()) {
-        console.log(`  ${key}:`, value);
-      }
-
       if (isEditing && initialData) {
         await cmsApi.updatePage(initialData.slug, data);
-        showToast("Page updated successfully", "success");
+        showToast(t('toast.pageUpdated'), "success");
       } else {
         await cmsApi.createPage(data);
-        showToast("Page created successfully", "success");
+        showToast(t('toast.pageCreated'), "success");
       }
       
       // Always redirect to pages list after successful save
       router.push('/admin/super/cms/pages');
     } catch (error: any) {
       console.error('Full error:', error);
-      console.error('Error response:', error.response?.data);
       // Try to get more detailed error info
-      let errorMsg = "Error saving page";
+      let errorMsg = t('toast.saveFailed');
       if (error.response?.data) {
         if (typeof error.response.data === 'object') {
           // Get first error message from validation errors
@@ -245,7 +236,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 sm:px-0">
         <Link href="/admin/super/cms/pages" className="flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          <span className="font-medium">Back to Pages</span>
+          <span className="font-medium">{t('backToPages')}</span>
         </Link>
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <button
@@ -262,7 +253,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
             />
           </button>
           <span className="text-sm text-[var(--brand-light)]/70 flex-shrink-0">
-            {formData.is_published ? 'Published' : 'Draft'}
+            {formData.is_published ? t('published') : t('draft')}
           </span>
           <button
             type="submit"
@@ -270,7 +261,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
             className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all disabled:opacity-50 flex-1 sm:flex-none justify-center"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isEditing ? 'Update Page' : 'Create Page'}
+            {isEditing ? t('updatePage') : t('createPage')}
           </button>
         </div>
       </div>
@@ -288,7 +279,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">Content</span>
+            <span className="hidden sm:inline">{t('tabs.content')}</span>
           </button>
           <button
             type="button"
@@ -300,7 +291,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
             }`}
           >
             <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Settings</span>
+            <span className="hidden sm:inline">{t('tabs.settings')}</span>
           </button>
           <button
             type="button"
@@ -312,7 +303,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
             }`}
           >
             <User className="w-4 h-4" />
-            <span className="hidden sm:inline">Author & TOC</span>
+            <span className="hidden sm:inline">{t('tabs.author')}</span>
           </button>
           <button
             type="button"
@@ -324,7 +315,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
             }`}
           >
             <Search className="w-4 h-4" />
-            <span className="hidden sm:inline">SEO & AI</span>
+            <span className="hidden sm:inline">{t('tabs.seo')}</span>
           </button>
         </div>
       </div>
@@ -333,30 +324,30 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
       {activeTab === 'content' && (
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
-            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Page Content</h2>
+            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('content.title')}</h2>
             <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-              Define the title, URL, and main content for this page.
+              {t('content.description')}
             </p>
           </div>
           
           <div className="p-4 sm:p-6 space-y-6">
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Page Title
+                {t('content.pageTitle')}
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleChange('title', e.target.value)}
                 className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                placeholder="e.g., About Us"
+                placeholder={t('content.pageTitlePlaceholder')}
                 required
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Slug (URL)
+                {t('content.slug')}
               </label>
               <div className="flex items-center gap-2">
                 <span className="text-[var(--brand-light)]/40">/</span>
@@ -365,43 +356,43 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                   value={formData.slug}
                   onChange={(e) => handleChange('slug', e.target.value)}
                   className="flex-1 px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                  placeholder="about-us"
+                  placeholder={t('content.slugPlaceholder')}
                 />
               </div>
-              <p className="text-xs text-[var(--brand-light)]/40 mt-1">Leave empty to auto-generate from title</p>
+              <p className="text-xs text-[var(--brand-light)]/40 mt-1">{t('content.slugHint')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Hero Tagline
+                {t('content.heroTagline')}
               </label>
               <input
                 type="text"
                 value={formData.hero_tagline}
                 onChange={(e) => handleChange('hero_tagline', e.target.value)}
                 className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                placeholder="e.g., En app för alla ungdomar i Sverige"
+                placeholder={t('content.heroTaglinePlaceholder')}
               />
-              <p className="text-xs text-[var(--brand-light)]/40 mt-1">A short tagline displayed below the main title (bold, dark background)</p>
+              <p className="text-xs text-[var(--brand-light)]/40 mt-1">{t('content.heroTaglineHint')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Excerpt / Short Description
+                {t('content.excerpt')}
               </label>
               <textarea
                 value={formData.excerpt}
                 onChange={(e) => handleChange('excerpt', e.target.value)}
                 rows={2}
                 className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
-                placeholder="A longer description (optional)"
+                placeholder={t('content.excerptPlaceholder')}
               />
-              <p className="text-xs text-[var(--brand-light)]/40 mt-1">Optional longer description (not currently displayed on page)</p>
+              <p className="text-xs text-[var(--brand-light)]/40 mt-1">{t('content.excerptHint')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Page Content
+                {t('content.pageContent')}
               </label>
               <RichTextEditor 
                 content={formData.content}
@@ -417,16 +408,16 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
       {activeTab === 'settings' && (
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
-            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Page Settings</h2>
+            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('settings.title')}</h2>
             <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-              Configure page type and hero section.
+              {t('settings.description')}
             </p>
           </div>
           
           <div className="p-4 sm:p-6 space-y-6">
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Page Type
+                {t('settings.pageType')}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -438,8 +429,8 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                       : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--dark-400)]'
                   }`}
                 >
-                  <div className="font-semibold text-[var(--brand-light)] mb-1">Standard Page</div>
-                  <div className="text-xs text-[var(--brand-light)]/50">Regular content page with text and images</div>
+                  <div className="font-semibold text-[var(--brand-light)] mb-1">{t('settings.standardPage')}</div>
+                  <div className="text-xs text-[var(--brand-light)]/50">{t('settings.standardPageDesc')}</div>
                 </button>
                 <button
                   type="button"
@@ -450,8 +441,8 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                       : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--dark-400)]'
                   }`}
                 >
-                  <div className="font-semibold text-[var(--brand-light)] mb-1">Creative Showcase</div>
-                  <div className="text-xs text-[var(--brand-light)]/50">Animated feature showcase page</div>
+                  <div className="font-semibold text-[var(--brand-light)] mb-1">{t('settings.creativeShowcase')}</div>
+                  <div className="text-xs text-[var(--brand-light)]/50">{t('settings.creativeShowcaseDesc')}</div>
                 </button>
               </div>
             </div>
@@ -459,8 +450,8 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
             <div className="pt-4 border-t border-[var(--dark-600)]">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-[var(--brand-light)]">Hero Section</label>
-                  <p className="text-xs text-[var(--brand-light)]/50">Display a hero image at the top of the page</p>
+                  <label className="block text-sm font-medium text-[var(--brand-light)]">{t('settings.heroSection')}</label>
+                  <p className="text-xs text-[var(--brand-light)]/50">{t('settings.heroSectionDesc')}</p>
                 </div>
                 <button
                   type="button"
@@ -487,8 +478,8 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-[var(--brand-light)]/40">
                       <ImageIcon className="w-8 h-8 mb-2" />
-                      <span className="text-sm">Click to upload hero image</span>
-                      <span className="text-xs mt-1">Recommended: 1920x600px</span>
+                      <span className="text-sm">{t('settings.clickToUploadHero')}</span>
+                      <span className="text-xs mt-1">{t('settings.heroRecommended')}</span>
                     </div>
                   )}
                   <input
@@ -510,8 +501,8 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                     <Sparkles className="w-4 h-4 text-[var(--brand-purple)]" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[var(--brand-light)]">Select Features</label>
-                    <p className="text-xs text-[var(--brand-light)]/50">Choose and order features for this page</p>
+                    <label className="block text-sm font-medium text-[var(--brand-light)]">{t('settings.selectFeatures')}</label>
+                    <p className="text-xs text-[var(--brand-light)]/50">{t('settings.selectFeaturesDesc')}</p>
                   </div>
                 </div>
 
@@ -522,12 +513,12 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                 ) : availableFeatures.length === 0 ? (
                   <div className="text-center py-8 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
                     <Sparkles className="w-8 h-8 mx-auto mb-2 text-[var(--brand-light)]/30" />
-                    <p className="text-[var(--brand-light)]/50 text-sm">No features available</p>
+                    <p className="text-[var(--brand-light)]/50 text-sm">{t('settings.noFeatures')}</p>
                     <Link 
                       href="/admin/super/cms/features/create"
                       className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block"
                     >
-                      Create your first feature →
+                      {t('settings.createFirstFeature')}
                     </Link>
                   </div>
                 ) : (
@@ -537,10 +528,10 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-medium text-[var(--brand-purple)] uppercase tracking-wider">
-                            Selected Features ({selectedFeatures.length})
+                            {t('settings.selectedFeatures')} ({selectedFeatures.length})
                           </span>
                           <span className="text-xs text-[var(--brand-light)]/40">
-                            Drag to reorder
+                            {t('settings.dragToReorder')}
                           </span>
                         </div>
                         <div className="space-y-2 bg-[var(--dark-700)]/50 rounded-xl p-2 border border-[var(--brand-purple)]/20">
@@ -609,7 +600,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                     {unselectedFeatures.length > 0 && (
                       <div>
                         <span className="text-xs font-medium text-[var(--brand-light)]/50 uppercase tracking-wider mb-2 block">
-                          Available Features ({unselectedFeatures.length})
+                          {t('settings.availableFeatures')} ({unselectedFeatures.length})
                         </span>
                         <div className="space-y-2">
                           {unselectedFeatures.map((feature) => (
@@ -644,7 +635,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                                   {!feature.is_active && (
                                     <>
                                       <span>•</span>
-                                      <span className="text-[var(--brand-coral)]">Inactive</span>
+                                      <span className="text-[var(--brand-coral)]">{t('settings.inactive')}</span>
                                     </>
                                   )}
                                 </div>
@@ -658,7 +649,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                     {/* Empty state when all features are selected */}
                     {unselectedFeatures.length === 0 && selectedFeatures.length > 0 && (
                       <div className="text-center py-4 text-[var(--brand-light)]/40 text-sm">
-                        All available features have been added
+                        {t('settings.allFeaturesAdded')}
                       </div>
                     )}
                   </div>
@@ -673,9 +664,9 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
       {activeTab === 'author' && (
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
-            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Author & Table of Contents</h2>
+            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('author.title')}</h2>
             <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-              Add author information and navigation for long pages.
+              {t('author.description')}
             </p>
           </div>
           
@@ -686,39 +677,39 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
                   <User className="w-4 h-4 text-[var(--brand-primary)]" />
                 </div>
-                <h3 className="text-md font-semibold text-[var(--brand-light)]">Author Information</h3>
+                <h3 className="text-md font-semibold text-[var(--brand-light)]">{t('author.authorInfo')}</h3>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Author Name
+                    {t('author.authorName')}
                   </label>
                   <input
                     type="text"
                     value={formData.author_name}
                     onChange={(e) => handleChange('author_name', e.target.value)}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                    placeholder="e.g., Anna Svensson"
+                    placeholder={t('author.authorNamePlaceholder')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Author Title
+                    {t('author.authorTitle')}
                   </label>
                   <input
                     type="text"
                     value={formData.author_title}
                     onChange={(e) => handleChange('author_title', e.target.value)}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                    placeholder="e.g., Content Manager"
+                    placeholder={t('author.authorTitlePlaceholder')}
                   />
                 </div>
               </div>
               
               <div className="mt-4">
                 <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                  Author Photo
+                  {t('author.authorPhoto')}
                 </label>
                 <div className="flex items-center gap-4">
                   <div 
@@ -741,8 +732,8 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                     />
                   </div>
                   <p className="text-xs text-[var(--brand-light)]/40">
-                    Click to upload author photo<br />
-                    Recommended: 200x200px square
+                    {t('author.clickToUploadPhoto')}<br />
+                    {t('author.photoRecommended')}
                   </p>
                 </div>
               </div>
@@ -756,8 +747,8 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                     <List className="w-4 h-4 text-[var(--brand-purple)]" />
                   </div>
                   <div>
-                    <h3 className="text-md font-semibold text-[var(--brand-light)]">Table of Contents</h3>
-                    <p className="text-xs text-[var(--brand-light)]/50">Auto-generated from your headings</p>
+                    <h3 className="text-md font-semibold text-[var(--brand-light)]">{t('author.toc')}</h3>
+                    <p className="text-xs text-[var(--brand-light)]/50">{t('author.tocDesc')}</p>
                   </div>
                 </div>
                 <button
@@ -779,28 +770,27 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                 <div className="space-y-3">
                   <div className="p-4 bg-[var(--brand-green)]/10 border border-[var(--brand-green)]/20 rounded-xl">
                     <p className="text-sm text-[var(--brand-light)]/80 mb-2">
-                      <strong className="text-[var(--brand-green)]">✨ Automatic TOC</strong>
+                      <strong className="text-[var(--brand-green)]">✨ {t('author.tocAutomatic')}</strong>
                     </p>
                     <p className="text-xs text-[var(--brand-light)]/60">
-                      The Table of Contents is automatically generated from your <strong>H2</strong> and <strong>H3</strong> headings in the content. 
-                      Just write your article with headings and the TOC will appear on the public page!
+                      {t('author.tocAutomaticDesc')}
                     </p>
                   </div>
                   
                   <div className="p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
-                    <p className="text-xs font-medium text-[var(--brand-light)]/50 uppercase tracking-wider mb-3">How it works:</p>
+                    <p className="text-xs font-medium text-[var(--brand-light)]/50 uppercase tracking-wider mb-3">{t('author.tocHowItWorks')}</p>
                     <ol className="text-sm text-[var(--brand-light)]/70 space-y-2 list-decimal list-inside">
-                      <li>Go to the <strong className="text-[var(--brand-light)]">Content</strong> tab</li>
-                      <li>Use the <strong className="text-[var(--brand-light)]">Header dropdown</strong> in the editor to create H2 or H3 headings</li>
-                      <li>Each heading becomes a TOC entry automatically</li>
-                      <li>Save the page - the TOC will appear on the public page</li>
+                      <li>{t('author.tocStep1')}</li>
+                      <li>{t('author.tocStep2')}</li>
+                      <li>{t('author.tocStep3')}</li>
+                      <li>{t('author.tocStep4')}</li>
                     </ol>
                   </div>
                   
                   {/* Preview of detected headings */}
                   {formData.content && (
                     <div className="p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
-                      <p className="text-xs font-medium text-[var(--brand-light)]/50 uppercase tracking-wider mb-3">Preview (detected headings):</p>
+                      <p className="text-xs font-medium text-[var(--brand-light)]/50 uppercase tracking-wider mb-3">{t('author.tocPreview')}</p>
                       {(() => {
                         const headingRegex = /<h([2-3])[^>]*>(.*?)<\/h[2-3]>/gi;
                         const headings: {level: string, text: string}[] = [];
@@ -815,7 +805,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                         if (headings.length === 0) {
                           return (
                             <p className="text-sm text-[var(--brand-light)]/40 italic">
-                              No H2 or H3 headings found in your content yet.
+                              {t('author.noHeadingsFound')}
                             </p>
                           );
                         }
@@ -849,38 +839,38 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
       {activeTab === 'seo' && (
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
-            <h2 className="text-lg font-semibold text-[var(--brand-light)]">SEO & AI Context</h2>
+            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('seo.title')}</h2>
             <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-              Optimize for search engines and AI assistants.
+              {t('seo.description')}
             </p>
           </div>
           
           <div className="p-4 sm:p-6 space-y-6">
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Meta Title
+                {t('seo.metaTitle')}
               </label>
               <input
                 type="text"
                 value={formData.meta_title}
                 onChange={(e) => handleChange('meta_title', e.target.value)}
                 className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                placeholder="Title for Google search"
+                placeholder={t('seo.metaTitlePlaceholder')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Meta Description
+                {t('seo.metaDescription')}
               </label>
               <textarea
                 value={formData.meta_description}
                 onChange={(e) => handleChange('meta_description', e.target.value)}
                 rows={3}
                 className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
-                placeholder="Description for Google search results"
+                placeholder={t('seo.metaDescriptionPlaceholder')}
               />
-              <p className="text-xs text-[var(--brand-light)]/40 mt-1">Recommended: 150-160 characters</p>
+              <p className="text-xs text-[var(--brand-light)]/40 mt-1">{t('seo.metaDescriptionHint')}</p>
             </div>
 
             <div className="pt-4 border-t border-[var(--dark-600)]">
@@ -888,23 +878,23 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
                   <span className="text-[var(--brand-purple)] text-lg">✨</span>
                 </div>
-                <h3 className="text-md font-semibold text-[var(--brand-light)]">AI Context Description</h3>
+                <h3 className="text-md font-semibold text-[var(--brand-light)]">{t('seo.aiContext')}</h3>
               </div>
               <textarea
                 value={formData.ai_description}
                 onChange={(e) => handleChange('ai_description', e.target.value)}
                 rows={4}
                 className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--brand-purple)]/30 rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-purple)] transition-colors resize-none"
-                placeholder="Explain this page to an AI. E.g. 'This page contains the pricing tiers for 2025...'"
+                placeholder={t('seo.aiContextPlaceholder')}
               />
               <p className="text-xs text-[var(--brand-light)]/40 mt-1">
-                This text is injected into the page schema for LLMs to read.
+                {t('seo.aiContextHint')}
               </p>
             </div>
 
             <div className="pt-4 border-t border-[var(--dark-600)]">
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                OG Image (Social Share)
+                {t('seo.ogImage')}
               </label>
               <div 
                 className="relative w-full sm:w-80 h-44 rounded-xl overflow-hidden bg-[var(--dark-700)] border-2 border-dashed border-[var(--dark-500)] cursor-pointer hover:border-[var(--brand-primary)] transition-colors"
@@ -915,8 +905,8 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-[var(--brand-light)]/40">
                     <ImageIcon className="w-8 h-8 mb-2" />
-                    <span className="text-sm">Click to upload OG image</span>
-                    <span className="text-xs mt-1">Recommended: 1200x630px</span>
+                    <span className="text-sm">{t('seo.clickToUploadOg')}</span>
+                    <span className="text-xs mt-1">{t('seo.ogRecommended')}</span>
                   </div>
                 )}
                 <input

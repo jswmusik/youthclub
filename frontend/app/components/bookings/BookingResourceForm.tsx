@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Upload, X, Package, Calendar, Users, Settings, Image as ImageIcon } from 'lucide-react';
 import api from '../../../lib/api';
 import { getMediaUrl } from '../../utils';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface Props {
   initialData?: any;
@@ -15,9 +16,11 @@ interface Props {
 }
 
 export default function BookingResourceForm({ initialData, redirectPath, clubId }: Props) {
+  const t = useTranslations('bookingsAdmin.resources.form');
+  const tResources = useTranslations('bookingsAdmin.resources');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [clubs, setClubs] = useState<any[]>([]); // To store available clubs
   const [groups, setGroups] = useState<any[]>([]); // To store available groups
   const [qualificationGroups, setQualificationGroups] = useState<any[]>([]); // To store CLOSED groups for qualification
@@ -119,15 +122,15 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.club) {
-        setToast({ message: 'Please select a club.', type: 'error', isVisible: true });
+        error(t('toast.selectClub'));
         return;
     }
     if (formData.allowed_user_scope === 'GROUP' && !formData.allowed_group) {
-        setToast({ message: 'Please select a group when "Specific Group Only" is chosen.', type: 'error', isVisible: true });
+        error(t('toast.selectGroup'));
         return;
     }
     if (formData.requires_training && !formData.qualification_group) {
-        setToast({ message: 'Please select a qualification group when "Requires Qualification/Training" is checked.', type: 'error', isVisible: true });
+        error(t('toast.selectQualificationGroup'));
         return;
     }
     setLoading(true);
@@ -149,13 +152,13 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
       if (initialData) {
         // EDIT MODE: Stay here or go back to list
         await api.patch(`/bookings/resources/${initialData.id}/`, data, config);
-        setToast({ message: 'Resource updated successfully!', type: 'success', isVisible: true });
+        success(t('toast.resourceUpdated'));
         setTimeout(() => router.push(redirectPath), 1000);
       } else {
         // CREATE MODE: Capture response to get ID
         const res = await api.post('/bookings/resources/', data, config);
         const newResourceId = res.data.id;
-        setToast({ message: 'Resource created successfully!', type: 'success', isVisible: true });
+        success(t('toast.resourceCreated'));
         
         // Redirect to the SCHEDULE page for this new resource
         setTimeout(() => router.push(`${redirectPath}/${newResourceId}/schedule`), 1000);
@@ -163,8 +166,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
       
     } catch (err: any) {
       console.error(err);
-      const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || 'Error saving resource.';
-      setToast({ message: errorMsg, type: 'error', isVisible: true });
+      const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || t('toast.errorSaving');
+      error(errorMsg);
       setLoading(false);
     }
   };
@@ -203,10 +206,10 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Resource' : 'Create New Resource'}
+              {initialData ? t('pageTitle.edit') : t('pageTitle.create')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              Manage booking resource details and settings.
+              {t('pageDescription')}
             </p>
           </div>
         </div>
@@ -221,8 +224,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                   <Package className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Enter the basic details for this resource.</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.basicInformation.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.basicInformation.description')}</p>
                 </div>
               </div>
             </div>
@@ -231,7 +234,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
               {!clubId && (
                 <div>
                   <label className={labelClasses}>
-                    Assign to Club <span className="text-[var(--brand-primary)]">*</span>
+                    {t('sections.basicInformation.assignToClub')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <select 
                     required
@@ -242,7 +245,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     onFocus={() => setFocusedField('club')}
                     onBlur={() => setFocusedField(null)}
                   >
-                    <option value="">Select a Club...</option>
+                    <option value="">{t('sections.basicInformation.selectClub')}</option>
                     {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
@@ -251,7 +254,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label className={labelClasses}>
-                    Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('sections.basicInformation.name')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     type="text"
@@ -261,12 +264,12 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     onChange={e => setFormData({...formData, name: e.target.value})}
                     onFocus={() => setFocusedField('name')}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="Enter resource name"
+                    placeholder={t('sections.basicInformation.namePlaceholder')}
                   />
                 </div>
                 <div>
                   <label className={labelClasses}>
-                    Type <span className="text-[var(--brand-primary)]">*</span>
+                    {t('sections.basicInformation.type')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <select 
                     className={`${inputClasses('resource_type')} appearance-none cursor-pointer`}
@@ -276,19 +279,19 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     onFocus={() => setFocusedField('resource_type')}
                     onBlur={() => setFocusedField(null)}
                   >
-                    <option value="ROOM">Room</option>
-                    <option value="EQUIPMENT">Equipment</option>
+                    <option value="ROOM">{tResources('resourceTypes.ROOM')}</option>
+                    <option value="EQUIPMENT">{tResources('resourceTypes.EQUIPMENT')}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className={labelClasses}>Description</label>
+                <label className={labelClasses}>{t('sections.basicInformation.description')}</label>
                 <textarea 
                   className={`${inputClasses('description')} min-h-[100px] resize-none`}
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
-                  placeholder="Enter a description for this resource..."
+                  placeholder={t('sections.basicInformation.descriptionPlaceholder')}
                   onFocus={() => setFocusedField('description')}
                   onBlur={() => setFocusedField(null)}
                 />
@@ -304,8 +307,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                   <ImageIcon className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Resource Image</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Upload an image for this resource.</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.resourceImage.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.resourceImage.description')}</p>
                 </div>
               </div>
             </div>
@@ -325,7 +328,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                   ) : (
                     <div className="text-center p-2">
                       <Package className="h-8 w-8 text-[var(--brand-light)]/40 mx-auto mb-1" />
-                      <span className="text-xs text-[var(--brand-light)]/50">Click to upload</span>
+                      <span className="text-xs text-[var(--brand-light)]/50">{t('sections.resourceImage.clickToUpload')}</span>
                     </div>
                   )}
                 </div>
@@ -336,7 +339,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                       onClick={() => imageRef.current?.click()}
                       className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all"
                     >
-                      Choose File
+                      {t('sections.resourceImage.chooseFile')}
                     </button>
                     {imagePreview && (
                       <button 
@@ -344,11 +347,11 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                         onClick={handleRemoveImage}
                         className="px-4 py-2 rounded-xl text-sm font-medium text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 border border-[var(--brand-red)]/30 transition-all flex items-center gap-2"
                       >
-                        <X className="h-4 w-4" /> Remove
+                        <X className="h-4 w-4" /> {t('sections.resourceImage.remove')}
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-[var(--brand-light)]/50">Recommended: Square image, 400x400px</p>
+                  <p className="text-xs text-[var(--brand-light)]/50">{t('sections.resourceImage.recommended')}</p>
                 </div>
                 <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
               </div>
@@ -363,15 +366,15 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                   <Users className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Rules & Limits</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Configure booking rules and participant limits.</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rulesAndLimits.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.rulesAndLimits.description')}</p>
                 </div>
               </div>
             </div>
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className={labelClasses}>Max Participants</label>
+                  <label className={labelClasses}>{t('sections.rulesAndLimits.maxParticipants')}</label>
                   <input 
                     type="number" 
                     min="1"
@@ -384,7 +387,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                 </div>
 
                 <div>
-                  <label className={labelClasses}>Who can book?</label>
+                  <label className={labelClasses}>{t('sections.rulesAndLimits.whoCanBook')}</label>
                   <select 
                     className={`${inputClasses('allowed_user_scope')} appearance-none cursor-pointer`}
                     style={selectArrowStyle}
@@ -401,17 +404,17 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     onFocus={() => setFocusedField('allowed_user_scope')}
                     onBlur={() => setFocusedField(null)}
                   >
-                    <option value="CLUB">This Club Only</option>
-                    <option value="MUNICIPALITY">Municipality Members</option>
-                    <option value="GLOBAL">Everyone</option>
-                    <option value="GROUP">Specific Group Only</option>
+                    <option value="CLUB">{t('sections.rulesAndLimits.thisClubOnly')}</option>
+                    <option value="MUNICIPALITY">{t('sections.rulesAndLimits.municipalityMembers')}</option>
+                    <option value="GLOBAL">{t('sections.rulesAndLimits.everyone')}</option>
+                    <option value="GROUP">{t('sections.rulesAndLimits.specificGroupOnly')}</option>
                   </select>
                 </div>
 
                 {formData.allowed_user_scope === 'GROUP' && (
                   <div className="sm:col-span-2">
                     <label className={labelClasses}>
-                      Select Group <span className="text-[var(--brand-primary)]">*</span>
+                      {t('sections.rulesAndLimits.selectGroup')} <span className="text-[var(--brand-primary)]">*</span>
                     </label>
                     <select 
                       className={`${inputClasses('allowed_group')} appearance-none cursor-pointer`}
@@ -422,19 +425,19 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                       onFocus={() => setFocusedField('allowed_group')}
                       onBlur={() => setFocusedField(null)}
                     >
-                      <option value="">Select a Group...</option>
+                      <option value="">{t('sections.rulesAndLimits.selectGroupPlaceholder')}</option>
                       {groups.map(g => (
                         <option key={g.id} value={g.id}>{g.name}</option>
                       ))}
                     </select>
                     {groups.length === 0 && (
-                      <p className="text-xs text-[var(--brand-peach)] mt-1">No groups available. Please create a group first.</p>
+                      <p className="text-xs text-[var(--brand-peach)] mt-1">{t('sections.rulesAndLimits.noGroupsAvailable')}</p>
                     )}
                   </div>
                 )}
                 
                 <div>
-                  <label className={labelClasses}>Booking Window (Weeks)</label>
+                  <label className={labelClasses}>{t('sections.rulesAndLimits.bookingWindowWeeks')}</label>
                   <input 
                     type="number" 
                     min="1"
@@ -444,11 +447,11 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     onFocus={() => setFocusedField('booking_window_weeks')}
                     onBlur={() => setFocusedField(null)}
                   />
-                  <p className="text-xs text-[var(--brand-light)]/50 mt-1">How far in advance users can book.</p>
+                  <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('sections.rulesAndLimits.bookingWindowHint')}</p>
                 </div>
                 
                 <div>
-                  <label className={labelClasses}>Max Bookings / User / Week</label>
+                  <label className={labelClasses}>{t('sections.rulesAndLimits.maxBookingsPerUserPerWeek')}</label>
                   <input 
                     type="number" 
                     min="0"
@@ -458,7 +461,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     onFocus={() => setFocusedField('max_bookings_per_user_per_week')}
                     onBlur={() => setFocusedField(null)}
                   />
-                  <p className="text-xs text-[var(--brand-light)]/50 mt-1">Limit how many times per week a user can book this resource. Set to 0 for no limit.</p>
+                  <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('sections.rulesAndLimits.maxBookingsHint')}</p>
                 </div>
               </div>
             </div>
@@ -472,8 +475,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                   <Settings className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Settings</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Configure resource availability and approval settings.</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.settings.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('sections.settings.description')}</p>
                 </div>
               </div>
             </div>
@@ -494,7 +497,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     className="h-5 w-5 rounded border-2 border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)] cursor-pointer"
                   />
                   <label htmlFor="training" className="text-sm font-medium text-[var(--brand-light)] cursor-pointer">
-                    Requires Qualification/Training
+                    {t('sections.settings.requiresQualification')}
                   </label>
                 </div>
                 
@@ -502,7 +505,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                 {formData.requires_training && (
                   <div className="ml-8 space-y-2">
                     <label className={labelClasses}>
-                      Qualification Group <span className="text-[var(--brand-primary)]">*</span>
+                      {t('sections.settings.qualificationGroup')} <span className="text-[var(--brand-primary)]">*</span>
                     </label>
                     <select 
                       className={`${inputClasses('qualification_group')} appearance-none cursor-pointer`}
@@ -513,12 +516,12 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                       onFocus={() => setFocusedField('qualification_group')}
                       onBlur={() => setFocusedField(null)}
                     >
-                      <option value="">Select a hidden group...</option>
+                      <option value="">{t('sections.settings.selectHiddenGroup')}</option>
                       {qualificationGroups.map(g => (
                         <option key={g.id} value={g.id}>{g.name}</option>
                       ))}
                     </select>
-                    <p className="text-xs text-[var(--brand-light)]/50">Only CLOSED (hidden) groups can be used for qualifications.</p>
+                    <p className="text-xs text-[var(--brand-light)]/50">{t('sections.settings.qualificationHint')}</p>
                   </div>
                 )}
               </div>
@@ -533,7 +536,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     className="h-5 w-5 rounded border-2 border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-green)] focus:ring-2 focus:ring-[var(--brand-green)]/20 focus:border-[var(--brand-green)] cursor-pointer"
                   />
                   <label htmlFor="active" className="text-sm font-medium text-[var(--brand-light)] cursor-pointer">
-                    Is Active (Bookable)
+                    {t('sections.settings.isActive')}
                   </label>
                 </div>
 
@@ -547,9 +550,9 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                   />
                   <div className="flex-1">
                     <label htmlFor="auto_approve" className="text-sm font-medium text-[var(--brand-light)] cursor-pointer block mb-1">
-                      Auto-Approve Bookings
+                      {t('sections.settings.autoApproveBookings')}
                     </label>
-                    <p className="text-xs text-[var(--brand-light)]/50">If checked, bookings are automatically approved. Otherwise, they require admin approval.</p>
+                    <p className="text-xs text-[var(--brand-light)]/50">{t('sections.settings.autoApproveHint')}</p>
                   </div>
                 </div>
               </div>
@@ -564,27 +567,19 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
               disabled={loading}
               className="px-6 py-3 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button 
               type="submit" 
               disabled={loading}
               className="px-6 py-3 rounded-xl text-sm font-bold bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : initialData ? 'Update Resource' : 'Create Resource'}
+              {loading ? t('actions.saving') : initialData ? t('actions.updateResource') : t('actions.createResource')}
             </button>
           </div>
         </form>
 
-        <Toast 
-          message={toast.message}
-          type={toast.type}
-          isVisible={toast.isVisible}
-          onClose={() => setToast({ ...toast, isVisible: false })}
-          darkMode
-          duration={1250}
-        />
-      </div>
+        </div>
     </div>
   );
 }

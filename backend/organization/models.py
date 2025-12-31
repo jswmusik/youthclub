@@ -72,6 +72,13 @@ class Municipality(models.Model):
     allow_self_registration = models.BooleanField(default=True)
     require_guardian_at_registration = models.BooleanField(default=False)
     
+    # --- DATA RETENTION SETTINGS (GDPR) ---
+    data_retention_months = models.PositiveIntegerField(
+        null=True, 
+        blank=True,
+        help_text="Override: Months of inactivity before user data deletion. Null = use global default"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -91,6 +98,17 @@ class Municipality(models.Model):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
+
+    @property
+    def effective_retention_months(self):
+        """Returns the actual retention period (municipality override or global default)."""
+        if self.data_retention_months is not None:
+            return self.data_retention_months
+        # Import here to avoid circular import
+        from licensing.models import GlobalDataRetentionSettings
+        settings = GlobalDataRetentionSettings.get_settings()
+        return settings.default_retention_months
+
 
 class Club(models.Model):
     """

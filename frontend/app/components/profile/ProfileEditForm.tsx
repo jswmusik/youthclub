@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { updateUserProfile, saveCustomFieldValues } from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
 import api from '@/lib/api';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../hooks/useToast';
 import { Camera, User, X, Search, Sparkles, Globe, Check } from 'lucide-react';
 import { localeOptions, type Locale } from '@/i18n/config';
 import { useLocale } from '@/context/LocaleContext';
@@ -35,7 +35,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
   const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
+  const { success, error, info, warning } = useToast();
   
   // Interests state
   const [interestsList, setInterestsList] = useState<any[]>([]);
@@ -271,7 +271,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
       }
       
       // Show success toast
-      setToast({ message: t('profileUpdated'), type: 'success', isVisible: true });
+      success(t('profileUpdated'));
       
       // Redirect after a short delay to show the toast
       setTimeout(() => {
@@ -280,7 +280,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
       }, 1500);
     } catch (error) {
       console.error("Update failed", error);
-      setToast({ message: t('updateFailed'), type: 'error', isVisible: true });
+      error(t('updateFailed'));
       setLoading(false);
     }
   };
@@ -785,13 +785,6 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         </button>
       </div>
       
-      <Toast 
-        message={toast.message} 
-        type={toast.type} 
-        isVisible={toast.isVisible} 
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode={darkMode}
-      />
-    </form>
+      </form>
   );
 }

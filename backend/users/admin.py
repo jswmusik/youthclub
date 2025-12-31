@@ -11,6 +11,7 @@ from .models import (
     GuardianYouthLink,
     UserLoginHistory,
 )
+from .models_2fa import UserTwoFactorSettings, OTPCode, TrustedDevice
 # Import the Reward models
 from rewards.models import Reward, RewardUsage
 
@@ -269,3 +270,38 @@ class UserLoginHistoryAdmin(admin.ModelAdmin):
     list_display = ('user', 'timestamp', 'ip_address')
     list_filter = ('user',)
     search_fields = ('user__email', 'ip_address', 'user_agent')
+
+
+# --- 2FA Admin ---
+
+@admin.register(UserTwoFactorSettings)
+class UserTwoFactorSettingsAdmin(admin.ModelAdmin):
+    list_display = ('user', 'is_enabled', 'last_verified_at', 'failed_attempts', 'is_locked_display')
+    list_filter = ('is_enabled',)
+    search_fields = ('user__email',)
+    readonly_fields = ('first_2fa_completed_at', 'last_verified_at', 'locked_until', 'created_at', 'updated_at')
+    
+    def is_locked_display(self, obj):
+        return obj.is_locked()
+    is_locked_display.boolean = True
+    is_locked_display.short_description = "Is Locked"
+
+
+@admin.register(OTPCode)
+class OTPCodeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'purpose', 'is_used', 'expires_at', 'created_at')
+    list_filter = ('purpose', 'is_used')
+    search_fields = ('user__email',)
+    readonly_fields = ('code_hash', 'created_at')
+
+
+@admin.register(TrustedDevice)
+class TrustedDeviceAdmin(admin.ModelAdmin):
+    list_display = ('user', 'device_name_short', 'ip_address', 'is_active', 'expires_at', 'last_used_at')
+    list_filter = ('is_active',)
+    search_fields = ('user__email', 'device_name')
+    readonly_fields = ('token_hash', 'created_at', 'last_used_at')
+    
+    def device_name_short(self, obj):
+        return obj.device_name[:50] + '...' if len(obj.device_name) > 50 else obj.device_name
+    device_name_short.short_description = "Device"

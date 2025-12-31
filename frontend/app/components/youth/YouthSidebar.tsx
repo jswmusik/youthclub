@@ -178,8 +178,6 @@ export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode
             icon: <CalendarDays className="w-5 h-5" />, 
             label: t('events'), 
             path: '/dashboard/youth/events',
-            badge: '6',
-            badgeColor: 'orange' as const,
         }] : []),
     ];
 

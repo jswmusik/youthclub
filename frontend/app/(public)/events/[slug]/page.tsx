@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import EventDetailClient from './EventDetailClient';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.208:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -27,6 +27,12 @@ async function getEvent(slug: string) {
   }
 }
 
+// Helper function to strip HTML tags from text
+function stripHtml(html: string | undefined | null): string {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
 // Generate dynamic metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -39,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const title = event.page_title || `${event.title} | Ungdomsappen`;
-  const description = event.meta_description || event.description?.slice(0, 160) || 
+  const description = event.meta_description || stripHtml(event.description)?.slice(0, 160) || 
     `Anmäl dig till ${event.title} hos ${event.organizer_display_name}`;
   
   // Get image URL
@@ -70,7 +76,7 @@ function generateEventJsonLd(event: any) {
     '@context': 'https://schema.org',
     '@type': 'Event',
     name: event.title,
-    description: event.description?.replace(/<[^>]*>/g, '').slice(0, 500), // Strip HTML
+    description: stripHtml(event.description)?.slice(0, 500),
     startDate: event.start_date,
     endDate: event.end_date,
     eventStatus: 'https://schema.org/EventScheduled',

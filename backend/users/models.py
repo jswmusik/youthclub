@@ -11,6 +11,9 @@ user_avatar_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg'
 # Define allowed file types for background images
 background_image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
 
+# Define allowed file types for ID documents
+id_document_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf'])
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -45,6 +48,20 @@ class User(AbstractUser):
         UNVERIFIED = 'UNVERIFIED', 'Unverified'
         PENDING = 'PENDING', 'Pending'
         VERIFIED = 'VERIFIED', 'Verified'
+
+    # ID Document Type Enum
+    class IdDocumentType(models.TextChoices):
+        PASSPORT = 'PASSPORT', 'Passport'
+        ID_CARD = 'ID_CARD', 'ID Card'
+        DRIVERS_LICENSE = 'DRIVERS_LICENSE', 'Driver\'s License'
+        OTHER = 'OTHER', 'Other'
+
+    # ID Document Review Status Enum
+    class IdDocumentReviewStatus(models.TextChoices):
+        NOT_SUBMITTED = 'NOT_SUBMITTED', 'Not Submitted'
+        PENDING_REVIEW = 'PENDING_REVIEW', 'Pending Review'
+        APPROVED = 'APPROVED', 'Approved'
+        REJECTED = 'REJECTED', 'Rejected'
 
     username = None
     email = models.EmailField(_('email address'), unique=True)
@@ -85,6 +102,49 @@ class User(AbstractUser):
         default=VerificationStatus.UNVERIFIED,
         help_text="Status of identity verification"
     )
+
+    # --- ID Document Verification Fields (for Guardians) ---
+    id_document = models.FileField(
+        upload_to='users/id_documents/',
+        blank=True,
+        null=True,
+        validators=[id_document_validator],
+        help_text="Scanned ID document (passport, ID card, driver's license)"
+    )
+    id_document_type = models.CharField(
+        max_length=20,
+        choices=IdDocumentType.choices,
+        blank=True,
+        help_text="Type of ID document uploaded"
+    )
+    id_document_uploaded_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the ID document was uploaded"
+    )
+    id_document_review_status = models.CharField(
+        max_length=20,
+        choices=IdDocumentReviewStatus.choices,
+        default=IdDocumentReviewStatus.NOT_SUBMITTED,
+        help_text="Review status of the uploaded ID document"
+    )
+    id_document_reviewed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the ID document was reviewed"
+    )
+    id_document_reviewed_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_documents',
+        help_text="Admin who reviewed the ID document"
+    )
+    id_document_rejection_reason = models.TextField(
+        blank=True,
+        help_text="Reason for rejecting the ID document (if rejected)"
+    )
     
     # Shared Fields
     nickname = models.CharField(max_length=50, blank=True)
@@ -121,6 +181,23 @@ class User(AbstractUser):
     
     preferred_gender = models.CharField(max_length=50, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    
+    # --- DATA RETENTION / ACTIVITY TRACKING ---
+    last_active_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="Last meaningful activity (login, check-in, etc.). Used for data retention."
+    )
+    deletion_warning_sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the first deletion warning was sent"
+    )
+    deletion_final_warning_sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the final deletion warning was sent"
+    )
 
     objects = CustomUserManager()
     USERNAME_FIELD = 'email'
@@ -197,6 +274,74 @@ class UserLoginHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.email} @ {self.timestamp}"
+
+
+class IdDocumentUpload(models.Model):
+    """
+    Tracks history of ID document uploads for guardians.
+    Allows max 3 pending requests at a time.
+    """
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Review'
+        APPROVED = 'APPROVED', 'Approved'
+        REJECTED = 'REJECTED', 'Rejected'
+        DELETED = 'DELETED', 'Deleted by Admin'
+
+    guardian = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='id_document_uploads',
+        limit_choices_to={'role': User.Role.GUARDIAN}
+    )
+    document = models.FileField(
+        upload_to='users/id_documents/',
+        validators=[id_document_validator],
+        help_text="Scanned ID document"
+    )
+    document_type = models.CharField(
+        max_length=20,
+        choices=User.IdDocumentType.choices,
+        help_text="Type of ID document"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_id_uploads',
+        help_text="Admin who reviewed this document"
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        help_text="Reason for rejection (if rejected)"
+    )
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Internal notes for admins"
+    )
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.guardian.email} - {self.document_type} ({self.status})"
+
+    @classmethod
+    def get_pending_count(cls, guardian):
+        """Returns the count of pending uploads for a guardian."""
+        return cls.objects.filter(guardian=guardian, status=cls.Status.PENDING).count()
+
+    @classmethod
+    def can_upload(cls, guardian, max_pending=3):
+        """Check if guardian can upload more documents (max 3 pending)."""
+        return cls.get_pending_count(guardian) < max_pending
 
 
 # --- PROXY MODELS ---

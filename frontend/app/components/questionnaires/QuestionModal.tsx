@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { X, Plus, Trash2, FileQuestion, ListChecks, Type, Star, CheckCircle } from 'lucide-react';
 
 interface QuestionModalProps {
@@ -12,6 +13,7 @@ interface QuestionModalProps {
 }
 
 export default function QuestionModal({ isVisible, onClose, onSave, initialData, allQuestions }: QuestionModalProps) {
+  const t = useTranslations('questionnairesAdmin.editor.questionModal');
   const [q, setQ] = useState<any>({
     text: '',
     question_type: 'FREE_TEXT',
@@ -109,10 +111,10 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
   const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
 
   const questionTypes = [
-    { value: 'FREE_TEXT', label: 'Free Text', icon: Type, description: 'Open-ended text response' },
-    { value: 'RATING', label: 'Star Rating', icon: Star, description: 'Rate from 1 to 5 stars' },
-    { value: 'SINGLE_CHOICE', label: 'Single Choice', icon: CheckCircle, description: 'Select one option' },
-    { value: 'MULTI_CHOICE', label: 'Multiple Choice', icon: ListChecks, description: 'Select multiple options' },
+    { value: 'FREE_TEXT', label: t('types.freeText.label'), icon: Type, description: t('types.freeText.description') },
+    { value: 'RATING', label: t('types.rating.label'), icon: Star, description: t('types.rating.description') },
+    { value: 'SINGLE_CHOICE', label: t('types.singleChoice.label'), icon: CheckCircle, description: t('types.singleChoice.description') },
+    { value: 'MULTI_CHOICE', label: t('types.multiChoice.label'), icon: ListChecks, description: t('types.multiChoice.description') },
   ];
 
   const isValid = q.text.trim() && !(['SINGLE_CHOICE', 'MULTI_CHOICE'].includes(q.question_type) && (!q.options || q.options.length === 0));
@@ -140,9 +142,9 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
               </div>
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">
-                  {initialData ? 'Edit Question' : 'Add Question'}
+                  {initialData ? t('editTitle') : t('addTitle')}
                 </h2>
-                <p className="text-sm text-[var(--brand-light)]/50">Configure your question settings</p>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('subtitle')}</p>
               </div>
             </div>
             <button
@@ -159,7 +161,7 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
           
           {/* Question Type Selector */}
           <div>
-            <label className={labelClasses}>Question Type</label>
+            <label className={labelClasses}>{t('questionType')}</label>
             <div className="grid grid-cols-2 gap-2">
               {questionTypes.map((type) => {
                 const Icon = type.icon;
@@ -188,13 +190,13 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
 
           {/* Question Text */}
           <div>
-            <label className={labelClasses}>Question Text <span className="text-[var(--brand-red)]">*</span></label>
+            <label className={labelClasses}>{t('questionText')} <span className="text-[var(--brand-red)]">{t('required')}</span></label>
             <input
               type="text"
               required
               value={q.text}
               onChange={(e) => setQ({ ...q, text: e.target.value })}
-              placeholder="e.g. How satisfied are you with..."
+              placeholder={t('questionPlaceholder')}
               className={inputClasses('text')}
               onFocus={() => setFocusedField('text')}
               onBlur={() => setFocusedField(null)}
@@ -203,11 +205,11 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
 
           {/* Description */}
           <div>
-            <label className={labelClasses}>Description (Optional)</label>
+            <label className={labelClasses}>{t('description')}</label>
             <textarea
               value={q.description || ''}
               onChange={(e) => setQ({ ...q, description: e.target.value })}
-              placeholder="Helper text for the user..."
+              placeholder={t('descriptionPlaceholder')}
               className={textareaClasses('description')}
               onFocus={() => setFocusedField('description')}
               onBlur={() => setFocusedField(null)}
@@ -219,7 +221,7 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
             <div className="bg-[var(--brand-purple)]/10 rounded-xl p-4 border border-[var(--brand-purple)]/30">
               <div className="flex items-center gap-2 mb-4">
                 <ListChecks className="w-4 h-4 text-[var(--brand-purple)]" />
-                <span className="font-semibold text-sm text-[var(--brand-light)]">Answer Options</span>
+                <span className="font-semibold text-sm text-[var(--brand-light)]">{t('options.title')}</span>
               </div>
               
               <div className="space-y-3">
@@ -230,7 +232,7 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
                       className={`flex-1 h-10 px-3 rounded-lg bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none focus:border-[var(--brand-primary)] transition-colors`}
                       value={opt.text}
                       onChange={(e) => handleOptionChange(idx, e.target.value)}
-                      placeholder={`Option ${idx + 1}`}
+                      placeholder={t('options.placeholder')}
                     />
                     <button
                       type="button"
@@ -248,7 +250,7 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
                   className="w-full py-3 rounded-xl border-2 border-dashed border-[var(--brand-purple)]/50 text-[var(--brand-purple)] font-medium hover:bg-[var(--brand-purple)]/10 hover:border-[var(--brand-purple)] transition-all flex items-center justify-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Option
+                  {t('options.addOption')}
                 </button>
                 
                 {(!q.options || q.options.length === 0) && (
@@ -267,14 +269,14 @@ export default function QuestionModal({ isVisible, onClose, onSave, initialData,
             onClick={onClose}
             className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all"
           >
-            Cancel
+            {t('buttons.cancel')}
           </button>
           <button 
             onClick={handleSave}
             disabled={!isValid}
             className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save Question
+            {t('buttons.save')}
           </button>
         </div>
       </div>

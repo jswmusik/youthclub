@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
     Plus, Search, BarChart3, ChevronUp, Eye, Edit, Trash2, X, 
@@ -11,7 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../../../lib/api';
 import ConfirmationModal from '../ConfirmationModal';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 
 // Types
 interface PostTemplate {
@@ -61,6 +62,7 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({ children, onEdit, onDelete, onDuplicate, onClick }: SwipeableCardProps) {
+    const t = useTranslations('postTemplatesManager');
     const [isOpen, setIsOpen] = useState(false);
     const [startX, setStartX] = useState(0);
     const [currentX, setCurrentX] = useState(0);
@@ -133,21 +135,21 @@ function SwipeableCard({ children, onEdit, onDelete, onDuplicate, onClick }: Swi
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-purple)] text-white transition-all active:bg-[var(--brand-purple)]/80"
                 >
                     <Copy className="w-5 h-5" />
-                    <span className="text-xs font-medium">Copy</span>
+                    <span className="text-xs font-medium">{t('actions.copy')}</span>
                 </button>
                 <button
                     onClick={(e) => { e.stopPropagation(); onEdit(); setIsOpen(false); setCurrentX(0); }}
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-blue)] text-white transition-all active:bg-[var(--brand-blue)]/80"
                 >
                     <Edit className="w-5 h-5" />
-                    <span className="text-xs font-medium">Edit</span>
+                    <span className="text-xs font-medium">{t('actions.edit')}</span>
                 </button>
                 <button
                     onClick={(e) => { e.stopPropagation(); onDelete(); setIsOpen(false); setCurrentX(0); }}
                     className="w-[70px] flex flex-col items-center justify-center gap-1 bg-[var(--brand-red)] text-white transition-all active:bg-[var(--brand-red)]/80"
                 >
                     <Trash2 className="w-5 h-5" />
-                    <span className="text-xs font-medium">Delete</span>
+                    <span className="text-xs font-medium">{t('actions.delete')}</span>
                 </button>
             </div>
 
@@ -241,6 +243,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const t = useTranslations('postTemplatesManager');
     
     const [templates, setTemplates] = useState<PostTemplate[]>([]);
     const [allFilteredTemplates, setAllFilteredTemplates] = useState<PostTemplate[]>([]);
@@ -254,11 +257,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
     const [templateToDelete, setTemplateToDelete] = useState<{ id: number; name: string } | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '',
-        type: 'success',
-        isVisible: false,
-    });
+    const { success, error, info, warning } = useToast();
 
     const updateUrl = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -358,12 +357,12 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
         setIsDeleting(true);
         try {
             await api.delete(`/post-templates/${templateToDelete.id}/`);
-            setToast({ message: 'Template deleted successfully!', type: 'success', isVisible: true });
+            success(t('toast.templateDeleted'));
             setShowDeleteModal(false);
             setTemplateToDelete(null);
             fetchData(); 
         } catch (err) {
-            setToast({ message: 'Failed to delete template.', type: 'error', isVisible: true });
+            error(t('toast.failedToDelete'));
         } finally {
             setIsDeleting(false);
         }
@@ -372,37 +371,68 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
     const handleDuplicate = async (template: PostTemplate) => {
         try {
             await api.post(`/post-templates/${template.id}/duplicate/`);
-            setToast({ message: 'Template duplicated!', type: 'success', isVisible: true });
+            success(t('toast.templateDuplicated'));
             fetchData();
         } catch (err) {
-            setToast({ message: 'Failed to duplicate template.', type: 'error', isVisible: true });
+            error(t('toast.failedToDuplicate'));
         }
     };
 
     const handleToggleActive = async (template: PostTemplate) => {
         try {
             await api.post(`/post-templates/${template.id}/toggle_active/`);
-            setToast({ message: `Template ${template.is_active ? 'deactivated' : 'activated'}!`, type: 'success', isVisible: true });
+            const message = template.is_active ? t('toast.templateDeactivated') : t('toast.templateActivated');
             fetchData();
         } catch (err) {
-            setToast({ message: 'Failed to toggle template status.', type: 'error', isVisible: true });
+            error(t('toast.failedToToggle'));
         }
     };
 
-    const getStatusBadge = (isActive: boolean) => {
+    // Memoize all translations to prevent re-creation on each render
+    const translations = useMemo(() => ({
+        status: {
+            active: t('status.active'),
+            inactive: t('status.inactive'),
+        },
+        tableHeaders: {
+            template: t('tableHeaders.template'),
+            target: t('tableHeaders.target'),
+            settings: t('tableHeaders.settings'),
+            used: t('tableHeaders.used'),
+            status: t('tableHeaders.status'),
+            actions: t('tableHeaders.actions'),
+        },
+        mobile: {
+            used: t('mobile.used'),
+            noDescription: t('mobile.noDescription'),
+            inactive: t('mobile.inactive'),
+        },
+        settings: {
+            push: t('settings.push'),
+            pin: t('settings.pin'),
+            default: t('settings.default'),
+        },
+        actions: {
+            activate: t('actions.activate'),
+            deactivate: t('actions.deactivate'),
+            duplicate: t('actions.duplicate'),
+        },
+    }), [t]);
+
+    const getStatusBadge = useCallback((isActive: boolean) => {
         if (isActive) {
             return (
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30">
-                    Active
+                    {translations.status.active}
                 </span>
             );
         }
         return (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--dark-600)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]">
-                Inactive
+                {translations.status.inactive}
             </span>
         );
-    };
+    }, [translations.status]);
 
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
@@ -427,19 +457,19 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                             <Sparkles className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Post Templates</h1>
-                            <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">Create and manage reusable templates for quick posting</p>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+                            <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">{t('description')}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
                         <Link href={`${basePath}/posts`}>
                             <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all">
-                                <FileText className="h-4 w-4" /> Posts
+                                <FileText className="h-4 w-4" /> {t('posts')}
                             </button>
                         </Link>
                         <Link href={`${basePath}/posts/templates/create`}>
-                            <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-purple)] transition-all">
-                                <Plus className="h-4 w-4" /> Create Template
+                            <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-purple)] transition-all">
+                                <Plus className="h-4 w-4" /> {t('createTemplate')}
                             </button>
                         </Link>
                     </div>
@@ -454,7 +484,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                         >
                             <div className="flex items-center gap-2">
                                 <BarChart3 className="h-4 w-4 text-[var(--brand-primary)]" />
-                                <span className="text-sm font-semibold text-[var(--brand-light)]">Analytics Dashboard</span>
+                                <span className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</span>
                             </div>
                             <ChevronUp className={`h-4 w-4 text-[var(--brand-light)]/60 transition-transform duration-300 ${analyticsExpanded ? 'rotate-0' : 'rotate-180'}`} />
                         </button>
@@ -468,7 +498,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
                                                 <Sparkles className="h-4 w-4 text-white" />
                                             </div>
-                                            <span className="text-xs text-[var(--brand-light)]/60 font-medium">Total</span>
+                                            <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.total')}</span>
                                         </div>
                                         <div className="text-2xl font-bold text-[var(--brand-light)]">{totalTemplates}</div>
                                     </div>
@@ -479,7 +509,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-green)] to-[#34D399] flex items-center justify-center">
                                                 <ToggleRight className="h-4 w-4 text-white" />
                                             </div>
-                                            <span className="text-xs text-[var(--brand-light)]/60 font-medium">Active</span>
+                                            <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.active')}</span>
                                         </div>
                                         <div className="text-2xl font-bold text-[var(--brand-light)]">{activeTemplates}</div>
                                     </div>
@@ -490,7 +520,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
                                                 <FileText className="h-4 w-4 text-white" />
                                             </div>
-                                            <span className="text-xs text-[var(--brand-light)]/60 font-medium">Used</span>
+                                            <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.used')}</span>
                                         </div>
                                         <div className="text-2xl font-bold text-[var(--brand-light)]">{totalUsage}</div>
                                     </div>
@@ -509,7 +539,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                                 <input 
                                     ref={searchInputRef}
-                                    placeholder="Search templates..." 
+                                    placeholder={t('filters.searchPlaceholder')} 
                                     className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none focus:border-[var(--brand-primary)] transition-colors"
                                     value={searchInput} 
                                     onChange={e => setSearchInput(e.target.value)}
@@ -527,7 +557,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                     }`}
                                 >
                                     {showInactive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                                    <span className="text-sm font-medium">Show Inactive</span>
+                                    <span className="text-sm font-medium">{t('filters.showInactive')}</span>
                                 </button>
                             </div>
                             
@@ -540,7 +570,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                     }}
                                     className="w-full h-10 px-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:border-[var(--brand-red)]/30 transition-all flex items-center justify-center gap-2"
                                 >
-                                    <X className="h-4 w-4" /> Clear
+                                    <X className="h-4 w-4" /> {t('filters.clear')}
                                 </button>
                             </div>
                         </div>
@@ -550,7 +580,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                 {/* Stats Bar */}
                 <div className="flex items-center justify-between px-4 sm:px-0 mb-4">
                     <p className="text-sm text-[var(--brand-light)]/60">
-                        Showing <span className="text-[var(--brand-primary)] font-semibold">{templates.length}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> templates
+                        {t('statsBar.showing')} <span className="text-[var(--brand-primary)] font-semibold">{templates.length}</span> {t('statsBar.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalCount}</span> {t('statsBar.templates')}
                     </p>
                 </div>
 
@@ -568,12 +598,12 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[var(--dark-600)]">
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Template</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Target</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Settings</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Used</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Status</th>
-                                        <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Actions</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.template}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.target}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.settings}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.used}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.status}</th>
+                                        <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.actions}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -588,15 +618,15 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] py-16 text-center">
                         <Sparkles className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
                         <p className="text-[var(--brand-light)]/50 mb-2">
-                            {hasActiveFilters ? 'No templates found matching your filters' : 'No templates found'}
+                            {hasActiveFilters ? t('emptyState.noTemplatesMatchingFilters') : t('emptyState.noTemplatesFound')}
                         </p>
                         <p className="text-sm text-[var(--brand-light)]/30 mb-6">
-                            {hasActiveFilters ? 'Try adjusting your search or filters' : 'Create your first template to get started'}
+                            {hasActiveFilters ? t('emptyState.adjustFilters') : t('emptyState.createFirstTemplate')}
                         </p>
                         {!hasActiveFilters && (
                             <Link href={`${basePath}/posts/templates/create`}>
-                                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-purple)] transition-all">
-                                    <Plus className="h-4 w-4" /> Create Template
+                                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-purple)] transition-all">
+                                    <Plus className="h-4 w-4" /> {t('createTemplate')}
                                 </button>
                             </Link>
                         )}
@@ -622,11 +652,11 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <h3 className="font-semibold text-[var(--brand-light)] truncate">{template.name}</h3>
                                                     {!template.is_active && (
-                                                        <span className="text-xs text-[var(--brand-light)]/40">(Inactive)</span>
+                                                        <span className="text-xs text-[var(--brand-light)]/40">{translations.mobile.inactive}</span>
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-[var(--brand-light)]/50 mb-2 line-clamp-2">
-                                                    {template.description || 'No description'}
+                                                    {template.description || translations.mobile.noDescription}
                                                 </p>
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--dark-600)] text-[var(--brand-light)]/60 text-xs">
@@ -634,7 +664,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                                         {template.target_summary}
                                                     </span>
                                                     <span className="text-xs text-[var(--brand-light)]/40">
-                                                        Used {template.usage_count}×
+                                                        {translations.mobile.used} {template.usage_count}×
                                                     </span>
                                                 </div>
                                             </div>
@@ -649,12 +679,12 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[var(--dark-600)]">
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Template</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Target</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Settings</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Used</th>
-                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Status</th>
-                                        <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">Actions</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.template}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.target}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.settings}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.used}</th>
+                                        <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.status}</th>
+                                        <th className="h-12 px-6 text-right text-xs font-semibold text-[var(--brand-light)]/60 uppercase tracking-wider">{translations.tableHeaders.actions}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -670,7 +700,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                                             {template.name}
                                                         </div>
                                                         <div className="text-xs text-[var(--brand-light)]/50 line-clamp-1 max-w-[200px]">
-                                                            {template.description || 'No description'}
+                                                            {template.description || translations.mobile.noDescription}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -684,16 +714,16 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                                 <div className="flex flex-wrap gap-1">
                                                     {template.send_push_notification && (
                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] text-xs">
-                                                            <Bell className="w-3 h-3" /> Push
+                                                            <Bell className="w-3 h-3" /> {translations.settings.push}
                                                         </span>
                                                     )}
                                                     {template.is_pinned_default && (
                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] text-xs">
-                                                            <Pin className="w-3 h-3" /> Pin
+                                                            <Pin className="w-3 h-3" /> {translations.settings.pin}
                                                         </span>
                                                     )}
                                                     {!template.send_push_notification && !template.is_pinned_default && (
-                                                        <span className="text-xs text-[var(--brand-light)]/40">Default</span>
+                                                        <span className="text-xs text-[var(--brand-light)]/40">{translations.settings.default}</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -710,14 +740,14 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                                                 ? 'text-[var(--brand-green)] hover:bg-[var(--brand-green)]/10' 
                                                                 : 'text-[var(--brand-light)]/50 hover:text-[var(--brand-green)] hover:bg-[var(--dark-600)]'
                                                         }`}
-                                                        title={template.is_active ? 'Deactivate' : 'Activate'}
+                                                        title={template.is_active ? translations.actions.deactivate : translations.actions.activate}
                                                     >
                                                         {template.is_active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                                                     </button>
                                                     <button 
                                                         onClick={() => handleDuplicate(template)}
                                                         className="h-8 w-8 rounded-lg flex items-center justify-center text-[var(--brand-light)]/50 hover:text-[var(--brand-purple)] hover:bg-[var(--dark-600)] transition-all"
-                                                        title="Duplicate"
+                                                        title={translations.actions.duplicate}
                                                     >
                                                         <Copy className="h-4 w-4" />
                                                     </button>
@@ -750,17 +780,17 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                             onClick={() => updateUrl('page', (currentPage - 1).toString())}
                             className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
                         >
-                            Prev
+                            {t('pagination.previous')}
                         </button>
                         <span className="text-sm text-[var(--brand-light)]/60">
-                            Page <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> of <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
+                            {t('pagination.page')} <span className="text-[var(--brand-primary)] font-semibold">{currentPage}</span> {t('pagination.of')} <span className="text-[var(--brand-primary)] font-semibold">{totalPages}</span>
                         </span>
                         <button 
                             disabled={currentPage >= totalPages} 
                             onClick={() => updateUrl('page', (currentPage + 1).toString())}
                             className="px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
                         >
-                            Next
+                            {t('pagination.next')}
                         </button>
                     </div>
                 )}
@@ -769,25 +799,16 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                     isVisible={showDeleteModal}
                     onClose={() => { if (!isDeleting) { setShowDeleteModal(false); setTemplateToDelete(null); } }}
                     onConfirm={handleDeleteConfirm}
-                    title="Delete Template"
-                    message={`Are you sure you want to delete "${templateToDelete?.name}"? This action cannot be undone.`}
-                    confirmButtonText="Delete"
-                    cancelButtonText="Cancel"
+                    title={t('deleteModal.title')}
+                    message={t('deleteModal.message', { name: templateToDelete?.name || '' })}
+                    confirmButtonText={t('deleteModal.delete')}
+                    cancelButtonText={t('deleteModal.cancel')}
                     variant="danger"
                     darkMode={true}
                     isLoading={isDeleting}
                 />
-                <Toast 
-                    message={toast.message} 
-                    type={toast.type} 
-                    isVisible={toast.isVisible} 
-                    onClose={() => setToast({ ...toast, isVisible: false })} 
-                    darkMode 
-                    duration={1250}
-                />
-            </div>
+                </div>
         </div>
     );
 }
-
 

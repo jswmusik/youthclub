@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { VisitAnalytics } from '@/types/visit';
 import { CheckCircle2, Calendar, Clock, Building2 } from 'lucide-react';
 
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export default function UserVisitsAnalytics({ stats, loading }: Props) {
+  const t = useTranslations('youthDetail.visits.analytics');
+  
   if (loading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 animate-pulse">
@@ -27,7 +30,7 @@ export default function UserVisitsAnalytics({ stats, loading }: Props) {
           <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center">
             <CheckCircle2 className="h-5 w-5 text-[var(--brand-purple)]" />
           </div>
-          <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total</span>
+          <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
         </div>
         <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{stats.total_checkins}</div>
       </div>
@@ -38,7 +41,7 @@ export default function UserVisitsAnalytics({ stats, loading }: Props) {
           <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)]/20 flex items-center justify-center">
             <Calendar className="h-5 w-5 text-[var(--brand-blue)]" />
           </div>
-          <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Weekly Avg</span>
+          <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('weeklyAvg')}</span>
         </div>
         <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-blue)]">{stats.avg_weekly_visits}</div>
       </div>
@@ -49,7 +52,7 @@ export default function UserVisitsAnalytics({ stats, loading }: Props) {
           <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)]/20 flex items-center justify-center">
             <Clock className="h-5 w-5 text-[var(--brand-green)]" />
           </div>
-          <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Avg Time</span>
+          <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('avgTime')}</span>
         </div>
         <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{stats.avg_duration_minutes}m</div>
       </div>
@@ -60,7 +63,7 @@ export default function UserVisitsAnalytics({ stats, loading }: Props) {
           <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)]/20 flex items-center justify-center">
             <Building2 className="h-5 w-5 text-[var(--brand-peach)]" />
           </div>
-          <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Clubs</span>
+          <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('clubs')}</span>
         </div>
         <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{stats.clubs_visited_count}</div>
       </div>

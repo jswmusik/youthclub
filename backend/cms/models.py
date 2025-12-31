@@ -141,3 +141,158 @@ class CookieConsent(models.Model):
 
     def __str__(self):
         return f"Cookie Policy v{self.version}"
+
+
+class PricingPageContent(models.Model):
+    """
+    Singleton model for managing pricing page content.
+    All text content on the pricing page is managed here.
+    """
+    # Hero Section
+    hero_title = models.CharField(max_length=255, default="Choose Your Plan")
+    hero_subtitle = models.TextField(blank=True, help_text="Short description below the title")
+    hero_tagline = models.CharField(max_length=255, blank=True, help_text="Small text above the title (e.g., 'Simple Pricing')")
+    
+    # CTA Section
+    cta_title = models.CharField(max_length=255, blank=True, default="Ready to Get Started?")
+    cta_description = models.TextField(blank=True)
+    cta_button_text = models.CharField(max_length=100, blank=True, default="Contact Us")
+    cta_button_url = models.URLField(blank=True, help_text="Link for the CTA button")
+    
+    # Trust/Social Proof Section
+    trust_section_title = models.CharField(max_length=255, blank=True, default="Trusted by Municipalities")
+    trust_section_description = models.TextField(blank=True)
+    
+    # Trust Stats (the numbers shown in the trust section)
+    trust_stat_municipalities = models.CharField(max_length=50, blank=True, default="50+", help_text="Number of municipalities (e.g., '50+')")
+    trust_stat_active_users = models.CharField(max_length=50, blank=True, default="100K+", help_text="Number of active users (e.g., '100K+')")
+    trust_stat_satisfaction = models.CharField(max_length=50, blank=True, default="4.9/5", help_text="Satisfaction rating (e.g., '4.9/5')")
+    trust_stat_uptime = models.CharField(max_length=50, blank=True, default="99.9%", help_text="Uptime percentage (e.g., '99.9%')")
+    
+    # SEO Fields
+    meta_title = models.CharField(max_length=255, blank=True, help_text="Page title for SEO")
+    meta_description = models.TextField(blank=True, help_text="Meta description for search engines")
+    og_title = models.CharField(max_length=255, blank=True, help_text="Open Graph title for social sharing")
+    og_description = models.TextField(blank=True, help_text="Open Graph description")
+    og_image = models.ImageField(upload_to='cms/seo/', blank=True, null=True, help_text="Image for social sharing")
+    ai_description = models.TextField(blank=True, help_text="Description optimized for AI search engines")
+    
+    # Timestamps
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Pricing Page Content"
+        verbose_name_plural = "Pricing Page Content"
+    
+    def save(self, *args, **kwargs):
+        # Ensure only one instance exists (singleton pattern)
+        if not self.pk and PricingPageContent.objects.exists():
+            # Update existing instead of creating new
+            existing = PricingPageContent.objects.first()
+            self.pk = existing.pk
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_instance(cls):
+        """Get or create the singleton instance."""
+        instance, _ = cls.objects.get_or_create(pk=1)
+        return instance
+    
+    def __str__(self):
+        return "Pricing Page Content"
+
+
+class PricingFAQ(models.Model):
+    """
+    FAQ items displayed on the pricing page.
+    """
+    question = models.CharField(max_length=500)
+    answer = models.TextField()
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Pricing FAQ"
+        verbose_name_plural = "Pricing FAQs"
+    
+    def __str__(self):
+        return self.question[:50]
+
+
+class ContactPageContent(models.Model):
+    """
+    Singleton model for managing contact page content.
+    """
+    # Hero Section
+    hero_title = models.CharField(max_length=255, default="Kontakta oss")
+    hero_subtitle = models.TextField(blank=True, default="Vi hjälper dig gärna med frågor om Ungdomsappen")
+    
+    # Contact Info
+    contact_email = models.EmailField(default="support@ungdomsappen.se")
+    response_time_text = models.CharField(max_length=255, blank=True, default="Vi svarar vanligtvis inom 24 timmar")
+    
+    # Form Section
+    form_title = models.CharField(max_length=255, blank=True, default="Skicka ett meddelande")
+    form_description = models.TextField(blank=True, default="Fyll i formuläret nedan så återkommer vi så snart som möjligt")
+    
+    # Success Message
+    success_title = models.CharField(max_length=255, blank=True, default="Tack för ditt meddelande!")
+    success_message = models.TextField(blank=True, default="Vi har tagit emot ditt meddelande och återkommer så snart som möjligt.")
+    
+    # Additional Info Section
+    info_title = models.CharField(max_length=255, blank=True, default="Annan information")
+    info_content = models.TextField(blank=True, help_text="Additional information shown on the contact page (supports markdown)")
+    
+    # SEO Fields
+    meta_title = models.CharField(max_length=255, blank=True, default="Kontakt - Ungdomsappen")
+    meta_description = models.TextField(blank=True, default="Kontakta Ungdomsappen för frågor om vår plattform för ungdomsverksamhet.")
+    
+    # Timestamps
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Contact Page Content"
+        verbose_name_plural = "Contact Page Content"
+    
+    def save(self, *args, **kwargs):
+        if not self.pk and ContactPageContent.objects.exists():
+            existing = ContactPageContent.objects.first()
+            self.pk = existing.pk
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_instance(cls):
+        instance, _ = cls.objects.get_or_create(pk=1)
+        return instance
+    
+    def __str__(self):
+        return "Contact Page Content"
+
+
+class ContactSubmission(models.Model):
+    """
+    Stores contact form submissions.
+    """
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    organization = models.CharField(max_length=255, blank=True)
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    
+    # Status tracking
+    is_read = models.BooleanField(default=False)
+    is_replied = models.BooleanField(default=False)
+    replied_at = models.DateTimeField(null=True, blank=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Contact Submission"
+        verbose_name_plural = "Contact Submissions"
+    
+    def __str__(self):
+        return f"{self.name} - {self.subject[:30]}"

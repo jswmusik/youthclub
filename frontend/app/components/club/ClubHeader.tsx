@@ -6,7 +6,7 @@ import { Club } from '@/types/organization';
 import { getMediaUrl } from '../../utils';
 import { useAuth } from '@/context/AuthContext';
 import { followClub, unfollowClub } from '@/lib/api';
-import Toast from '../Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface ClubHeaderProps {
   club: Club;
@@ -18,7 +18,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
   const t = useTranslations('club.header');
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
 
   // If no hero image, use a gradient based on your app's theme
   const heroImageUrl = club.hero_image ? getMediaUrl(club.hero_image) : null;
@@ -39,10 +39,10 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
     try {
       if (isFollowing) {
         await unfollowClub(club.id);
-        setToast({ message: t('unfollowed', { name: club.name }), type: 'success', isVisible: true });
+        success(t('unfollowed'));
       } else {
         await followClub(club.id);
-        setToast({ message: t('following', { name: club.name }), type: 'success', isVisible: true });
+        success(t('followed'));
       }
       
       // Update local state
@@ -53,7 +53,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
       
     } catch (error) {
       console.error('Failed to toggle follow status', error);
-      setToast({ message: t('somethingWentWrong'), type: 'error', isVisible: true });
+      error(t('somethingWentWrong'));
     } finally {
       setLoading(false);
     }
@@ -61,6 +61,8 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
 
   // Determine if we should show the button
   const isYouth = user?.role === 'YOUTH_MEMBER';
+  const isGuardian = user?.role === 'GUARDIAN';
+  const canFollow = isYouth || isGuardian;
   const isHomeClub = user?.preferred_club?.id === club.id || (typeof user?.preferred_club === 'number' && user.preferred_club === club.id);
 
   return (
@@ -135,7 +137,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
 
             {/* ACTIONS */}
             <div className="flex gap-3 mt-4 md:mt-0 md:ml-auto">
-              {isYouth && !isHomeClub && (
+              {canFollow && !isHomeClub && (
                 <button
                   onClick={handleFollowToggle}
                   disabled={loading}
@@ -170,13 +172,6 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
       </div>
 
       {/* Toast Notification */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode={darkMode}
-      />
     </>
   );
 }

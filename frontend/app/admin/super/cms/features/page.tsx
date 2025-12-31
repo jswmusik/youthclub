@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { cmsApi } from '@/lib/cms-api';
 import { FeatureShowcase } from '@/types/cms';
 import { Plus, Pencil, Trash2, Sparkles, Eye, EyeOff, Image, Video, FileJson, Loader2 } from 'lucide-react';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../../../hooks/useToast';
+import ConfirmationModal from '../../../../components/ConfirmationModal';
 
 // Skeleton Component
 function Skeleton({ className }: { className?: string }) {
@@ -22,8 +24,11 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 export default function FeaturesList() {
+  const t = useTranslations('cmsAdmin.features');
   const [features, setFeatures] = useState<FeatureShowcase[]>([]);
   const [loading, setLoading] = useState(true);
+  const [featureToDelete, setFeatureToDelete] = useState<FeatureShowcase | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { showToast } = useToast();
 
   const fetchFeatures = async () => {
@@ -32,7 +37,7 @@ export default function FeaturesList() {
       setFeatures(data);
     } catch (error) {
       console.error("Failed to fetch features", error);
-      showToast("Failed to load features", "error");
+      showToast(t('toast.loadFailed'), "error");
     } finally {
       setLoading(false);
     }
@@ -42,14 +47,18 @@ export default function FeaturesList() {
     fetchFeatures();
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this feature?')) return;
+  const handleDeleteConfirm = async () => {
+    if (!featureToDelete) return;
+    setIsDeleting(true);
     try {
-      await cmsApi.deleteFeature(id);
-      showToast("Feature deleted", "success");
+      await cmsApi.deleteFeature(featureToDelete.id);
+      showToast(t('toast.deleted'), "success");
       fetchFeatures();
     } catch (error) {
-      showToast("Error deleting feature", "error");
+      showToast(t('toast.deleteFailed'), "error");
+    } finally {
+      setIsDeleting(false);
+      setFeatureToDelete(null);
     }
   };
 
@@ -65,9 +74,9 @@ export default function FeaturesList() {
 
   const getLayoutLabel = (layout: string) => {
     switch (layout) {
-      case 'left': return 'Text Left';
-      case 'right': return 'Text Right';
-      case 'grid': return 'Grid Card';
+      case 'left': return t('layout.textLeft');
+      case 'right': return t('layout.textRight');
+      case 'grid': return t('layout.gridCard');
       default: return layout;
     }
   };
@@ -81,7 +90,7 @@ export default function FeaturesList() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Total Features</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalFeatures')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-primary)]">{features.length}</div>
         </div>
@@ -91,7 +100,7 @@ export default function FeaturesList() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
               <Eye className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Active</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.active')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{activeCount}</div>
         </div>
@@ -101,7 +110,7 @@ export default function FeaturesList() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
               <EyeOff className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Inactive</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.inactive')}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{features.length - activeCount}</div>
         </div>
@@ -111,10 +120,10 @@ export default function FeaturesList() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
               <Image className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">Media Types</span>
+            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.mediaTypes')}</span>
           </div>
           <div className="text-lg font-bold text-[var(--brand-blue)]">
-            {[...new Set(features.map(f => f.media_type))].length} types
+            {[...new Set(features.map(f => f.media_type))].length} {t('stats.types')}
           </div>
         </div>
       </div>
@@ -124,7 +133,7 @@ export default function FeaturesList() {
         <Link href="/admin/super/cms/features/create">
           <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="w-4 h-4" />
-            Add Feature
+            {t('addFeature')}
           </button>
         </Link>
       </div>
@@ -148,10 +157,10 @@ export default function FeaturesList() {
       ) : features.length === 0 ? (
         <div className="text-center py-16 bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
           <Sparkles className="w-12 h-12 mx-auto text-[var(--brand-light)]/20 mb-4" />
-          <p className="text-[var(--brand-light)]/50 mb-2">No features yet</p>
+          <p className="text-[var(--brand-light)]/50 mb-2">{t('emptyState.noFeatures')}</p>
           <Link href="/admin/super/cms/features/create">
             <button className="text-[var(--brand-primary)] hover:underline text-sm font-medium">
-              Create your first feature
+              {t('emptyState.createFirst')}
             </button>
           </Link>
         </div>
@@ -196,7 +205,7 @@ export default function FeaturesList() {
                           ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 
                           : 'bg-[var(--dark-600)] text-[var(--brand-light)]/50'
                       }`}>
-                        {feature.is_active ? 'Active' : 'Inactive'}
+                        {feature.is_active ? t('status.active') : t('status.inactive')}
                       </span>
                     </div>
                     <p className="text-sm text-[var(--brand-light)]/60 mb-3 line-clamp-2">{feature.description}</p>
@@ -222,7 +231,7 @@ export default function FeaturesList() {
                       </button>
                     </Link>
                     <button
-                      onClick={() => handleDelete(feature.id)}
+                      onClick={() => setFeatureToDelete(feature)}
                       className="p-2.5 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -234,6 +243,23 @@ export default function FeaturesList() {
           })}
         </div>
       )}
+
+      <ConfirmationModal
+        isVisible={featureToDelete !== null}
+        onClose={() => {
+          if (!isDeleting) {
+            setFeatureToDelete(null);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        title={t('deleteModal.title')}
+        message={t('deleteModal.message', { title: featureToDelete?.title || '' })}
+        confirmButtonText={t('deleteModal.confirm')}
+        cancelButtonText={t('deleteModal.cancel')}
+        variant="danger"
+        darkMode={true}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

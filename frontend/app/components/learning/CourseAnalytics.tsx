@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { learningApi } from '@/lib/learning-api';
 import { Users, CheckCircle2, Eye, TrendingUp, Star, BarChart3 } from 'lucide-react';
 
@@ -18,6 +19,7 @@ interface AnalyticsData {
 }
 
 export default function CourseAnalytics({ courseSlug }: Props) {
+    const t = useTranslations('knowledgeAdmin.courses.courseAnalytics');
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function CourseAnalytics({ courseSlug }: Props) {
                 setAnalytics(response.data);
             } catch (err: any) {
                 console.error('Failed to load analytics', err);
-                setError(err.response?.data?.error || 'Failed to load analytics');
+                setError(err.response?.data?.error || t('error.failedToLoad'));
             } finally {
                 setLoading(false);
             }
@@ -40,7 +42,7 @@ export default function CourseAnalytics({ courseSlug }: Props) {
         if (courseSlug) {
             loadAnalytics();
         }
-    }, [courseSlug]);
+    }, [courseSlug, t]);
 
     if (loading) {
         return (
@@ -88,43 +90,43 @@ export default function CourseAnalytics({ courseSlug }: Props) {
                 <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
                     <BarChart3 className="w-8 h-8 text-[var(--brand-light)]/30" />
                 </div>
-                <p className="text-[var(--brand-light)]/50">No analytics data available.</p>
+                <p className="text-[var(--brand-light)]/50">{t('error.noData')}</p>
             </div>
         );
     }
 
     const stats = [
         {
-            title: 'Started Course',
+            title: t('stats.startedCourse.title'),
             value: analytics.total_students,
             icon: Users,
             gradient: 'from-[var(--brand-primary)] to-[var(--brand-purple)]',
             borderColor: 'border-l-[var(--brand-primary)]',
-            description: 'Users who have started the course'
+            description: t('stats.startedCourse.description')
         },
         {
-            title: 'Completed',
+            title: t('stats.completed.title'),
             value: analytics.completions,
             icon: CheckCircle2,
             gradient: 'from-[var(--brand-green)] to-[var(--brand-third)]',
             borderColor: 'border-l-[var(--brand-green)]',
-            description: 'Users who completed the course'
+            description: t('stats.completed.description')
         },
         {
-            title: 'Viewed Only',
+            title: t('stats.viewedOnly.title'),
             value: analytics.viewed,
             icon: Eye,
             gradient: 'from-[var(--brand-red)] to-[var(--brand-peach)]',
             borderColor: 'border-l-[var(--brand-red)]',
-            description: 'Users who viewed but didn\'t start'
+            description: t('stats.viewedOnly.description')
         },
         {
-            title: 'Completion Rate',
+            title: t('stats.completionRate.title'),
             value: `${analytics.completion_rate}%`,
             icon: TrendingUp,
             gradient: 'from-[var(--brand-blue)] to-[var(--brand-primary)]',
             borderColor: 'border-l-[var(--brand-blue)]',
-            description: 'Percentage of starters who completed'
+            description: t('stats.completionRate.description')
         }
     ];
 
@@ -138,8 +140,8 @@ export default function CourseAnalytics({ courseSlug }: Props) {
                             <BarChart3 className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Course Analytics</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Track engagement and completion metrics</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('description')}</p>
                         </div>
                     </div>
                 </div>
@@ -182,8 +184,8 @@ export default function CourseAnalytics({ courseSlug }: Props) {
                             <Star className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Average Rating</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">User feedback and satisfaction</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('rating.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('rating.description')}</p>
                         </div>
                     </div>
                 </div>
@@ -208,12 +210,12 @@ export default function CourseAnalytics({ courseSlug }: Props) {
                                     ))}
                                 </div>
                                 <div className="text-sm text-[var(--brand-light)]/50">
-                                    Based on {typeof analytics.total_ratings === 'number' ? analytics.total_ratings : 0} {analytics.total_ratings === 1 ? 'review' : 'reviews'}
+                                    {t('rating.basedOn', { count: typeof analytics.total_ratings === 'number' ? analytics.total_ratings : 0 })}
                                 </div>
                             </div>
                         )}
                         {analytics.average_rating === 0 && (
-                            <p className="text-[var(--brand-light)]/50">No ratings yet</p>
+                            <p className="text-[var(--brand-light)]/50">{t('rating.noRatings')}</p>
                         )}
                     </div>
                 </div>

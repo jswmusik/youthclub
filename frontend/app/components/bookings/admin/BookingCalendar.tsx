@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import api from '../../../../lib/api';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
+import { sv } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Package, Users, AlertCircle } from 'lucide-react';
 import BookingDetailModal from './BookingDetailModal';
 import AdminCreateBookingModal from './AdminCreateBookingModal';
@@ -16,9 +18,13 @@ export interface BookingCalendarRef {
 
 const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNICIPALITY' | 'SUPER' }>(
   ({ scope }, ref) => {
+  const t = useTranslations('bookingsAdmin.calendar');
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  
+  const dateLocale = locale === 'sv' ? sv : undefined;
   
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [bookings, setBookings] = useState<any[]>([]);
@@ -209,7 +215,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-3 animate-pulse">
               <CalendarIcon className="w-5 h-5 text-white" />
             </div>
-            <div className="text-[var(--brand-light)]/50 animate-pulse">Loading calendar...</div>
+            <div className="text-[var(--brand-light)]/50 animate-pulse">{t('loading')}</div>
           </div>
         </div>
       </div>
@@ -227,14 +233,14 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
               <div className="flex items-center gap-2">
                 <CalendarIcon className="h-5 w-5 text-[var(--brand-primary)]" />
                 <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">
-                  {format(currentWeekStart, 'MMMM d')} - {format(addDays(currentWeekStart, 6), 'd, yyyy')}
+                  {format(currentWeekStart, 'MMMM d', { locale: dateLocale })} - {format(addDays(currentWeekStart, 6), 'd, yyyy', { locale: dateLocale })}
                 </h2>
               </div>
               <div className="flex items-center rounded-xl border border-[var(--dark-500)] bg-[var(--dark-700)] overflow-hidden">
                 <button 
                   onClick={() => setCurrentWeekStart(d => addDays(d, -7))}
                   className="h-9 w-9 flex items-center justify-center text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-colors"
-                  aria-label="Previous week"
+                  aria-label={t('previousWeek')}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -242,12 +248,12 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                   onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
                   className="h-9 px-3 text-sm font-medium text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-colors border-x border-[var(--dark-500)]"
                 >
-                  Today
+                  {t('today')}
                 </button>
                 <button 
                   onClick={() => setCurrentWeekStart(d => addDays(d, 7))}
                   className="h-9 w-9 flex items-center justify-center text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-colors"
-                  aria-label="Next week"
+                  aria-label={t('nextWeek')}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -267,7 +273,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                     setSelectedResource(''); // Reset resource when club changes
                   }}
                 >
-                  <option value="">All Clubs</option>
+                  <option value="">{t('allClubs')}</option>
                   {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -305,7 +311,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                   }
                 }}
               >
-                <option value="">All Resources</option>
+                <option value="">{t('allResources')}</option>
                 {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -326,7 +332,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
           <div className="w-20 flex-shrink-0 border-r border-[var(--dark-600)] bg-[var(--dark-700)] pt-12 sticky left-0 z-10">
             {HOURS.map(h => (
               <div key={h} className="h-[60px] text-right pr-3 text-xs text-[var(--brand-light)]/40 font-normal -mt-2">
-                {h === 12 ? '12 PM' : h < 12 ? `${h} AM` : `${h - 12} PM`}
+                {locale === 'sv' ? `${h}:00` : (h === 12 ? t('timeFormat.noon') : h < 12 ? `${h} ${t('timeFormat.am')}` : `${h - 12} ${t('timeFormat.pm')}`)}
               </div>
             ))}
           </div>
@@ -379,12 +385,12 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                   <div className={`text-xs font-semibold uppercase tracking-wide ${
                     isToday ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]/50'
                   }`}>
-                    {format(day, 'EEE')}
+                    {format(day, 'EEE', { locale: dateLocale })}
                   </div>
                   <div className={`text-base font-semibold mt-0.5 ${
                     isToday ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'
                   }`}>
-                    {format(day, 'd')}
+                    {format(day, 'd', { locale: dateLocale })}
                   </div>
                 </div>
                 
@@ -460,7 +466,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                               ? 'bg-[var(--dark-600)] border-[var(--dark-500)] opacity-50 cursor-not-allowed pointer-events-none' 
                               : 'bg-[var(--brand-green)]/20 border-[var(--brand-green)] opacity-70 cursor-pointer hover:bg-[var(--brand-green)]/30 hover:opacity-90'
                           }`}
-                          title={`${isBooked ? 'Booked' : 'Click to book'}: ${format(slotStart, 'HH:mm')} - ${format(slotEnd, 'HH:mm')}`}
+                          title={`${isBooked ? t('slotTooltip.booked') : t('slotTooltip.clickToBook')}: ${format(slotStart, 'HH:mm')} - ${format(slotEnd, 'HH:mm')}`}
                         >
                           {!isBooked && (
                             <div className="text-[10px] font-medium text-[var(--brand-green)] px-1.5 pt-1 leading-tight">
@@ -499,23 +505,23 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                         ${isInactive ? '' : 'hover:z-20 hover:shadow-lg cursor-pointer'}
                         ${getStatusStyles(b.status)}
                       `}
-                      title={b.status === 'CANCELLED' ? 'Cancelled - Slot is available (click the green slot below to book)' : 
-                             b.status === 'REJECTED' ? 'Rejected - Slot is available (click the green slot below to book)' : 
-                             `${b.status} - Click to view details`}
+                      title={b.status === 'CANCELLED' ? t('bookingTooltip.cancelled') : 
+                             b.status === 'REJECTED' ? t('bookingTooltip.rejected') : 
+                             t('bookingTooltip.clickToView', { status: b.status })}
                     >
                       <div className="font-medium truncate text-[11px] leading-tight">
                         {b.user_detail?.first_name && b.user_detail?.last_name 
                           ? `${b.user_detail.first_name} ${b.user_detail.last_name}`
-                          : b.user_detail?.first_name || 'Unknown'}
+                          : b.user_detail?.first_name || t('unknown')}
                       </div>
                       {style.height && parseFloat(style.height.replace('px', '')) > 30 && (
-                        <div className="truncate text-[10px] opacity-90 mt-0.5 leading-tight">{b.resource_name || 'Unknown Resource'}</div>
+                        <div className="truncate text-[10px] opacity-90 mt-0.5 leading-tight">{b.resource_name || t('unknownResource')}</div>
                       )}
                       {b.status === 'CANCELLED' && (
-                        <div className="text-[9px] uppercase font-semibold mt-0.5">Cancelled</div>
+                        <div className="text-[9px] uppercase font-semibold mt-0.5">{t('statusLabels.CANCELLED')}</div>
                       )}
                       {b.status === 'REJECTED' && (
-                        <div className="text-[9px] uppercase font-semibold mt-0.5">Rejected</div>
+                        <div className="text-[9px] uppercase font-semibold mt-0.5">{t('statusLabels.REJECTED')}</div>
                       )}
                     </div>
                   );
@@ -554,15 +560,15 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className={`text-sm font-bold ${isToday ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'}`}>
-                        {format(day, 'EEEE')}
+                        {format(day, 'EEEE', { locale: dateLocale })}
                       </h3>
                       <p className={`text-xs mt-0.5 ${isToday ? 'text-[var(--brand-primary)]/70' : 'text-[var(--brand-light)]/50'}`}>
-                        {format(day, 'MMMM d')}
+                        {format(day, 'MMMM d', { locale: dateLocale })}
                       </p>
                     </div>
                     {isToday && (
                       <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[var(--brand-primary)] text-white">
-                        Today
+                        {t('today')}
                       </span>
                     )}
                   </div>
@@ -571,7 +577,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                 {/* Day Content */}
                 <div className="p-3 space-y-2">
                   {dayBookings.length === 0 ? (
-                    <p className="text-xs text-[var(--brand-light)]/40 text-center py-3">No bookings</p>
+                    <p className="text-xs text-[var(--brand-light)]/40 text-center py-3">{t('mobile.noBookings')}</p>
                   ) : (
                     dayBookings.map(b => {
                       const start = new Date(b.start_time);
@@ -624,7 +630,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                               <div className={`font-semibold text-sm truncate ${isInactive ? 'text-[var(--brand-light)]/50' : 'text-[var(--brand-light)]'}`}>
                                 {b.user_detail?.first_name && b.user_detail?.last_name 
                                   ? `${b.user_detail.first_name} ${b.user_detail.last_name}`
-                                  : b.user_detail?.first_name || 'Unknown'}
+                                  : b.user_detail?.first_name || t('unknown')}
                               </div>
                               <div className="flex items-center gap-2 mt-1">
                                 <Clock className="w-3 h-3 text-[var(--brand-light)]/40" />
@@ -661,13 +667,13 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
               </div>
               <p className="text-sm text-[var(--brand-light)]/60 font-medium mb-1">
                 {selectedResource 
-                  ? 'No bookings found for this resource this week' 
-                  : 'No bookings found for this week'}
+                  ? t('mobile.noBookingsForResource')
+                  : t('mobile.noBookingsForWeek')}
               </p>
               <p className="text-xs text-[var(--brand-light)]/40">
                 {selectedResource 
-                  ? 'This resource has no bookings yet. Click "New Booking" to create one.'
-                  : 'Create a booking or select a resource to view its schedule.'}
+                  ? t('mobile.noBookingsHint')
+                  : t('mobile.noBookingsHintGeneral')}
               </p>
             </div>
           )}
@@ -682,13 +688,13 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
               </div>
               <p className="text-[var(--brand-light)]/60 font-medium mb-2">
                 {selectedResource 
-                  ? 'No bookings found for this resource this week' 
-                  : 'No bookings found for this week'}
+                  ? t('emptyState.noBookingsForResource')
+                  : t('emptyState.noBookingsForWeek')}
               </p>
               <p className="text-sm text-[var(--brand-light)]/40">
                 {selectedResource 
-                  ? 'This resource has no bookings yet. Click "New Booking" to create one, or check the Schedule page to ensure time slots are configured.'
-                  : 'Create a booking or select a resource to view its schedule.'}
+                  ? t('emptyState.hintForResource')
+                  : t('emptyState.hintGeneral')}
               </p>
             </div>
           </div>
@@ -698,8 +704,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
         {selectedResource && availableSlots.length > 0 && bookings.length === 0 && !loading && (
           <div className="hidden lg:flex p-4 text-center border-t border-[var(--dark-600)] bg-[var(--brand-primary)]/10 items-center justify-center">
             <p className="text-sm text-[var(--brand-primary)]">
-              ✓ This resource has {availableSlots.length} available time slot{availableSlots.length !== 1 ? 's' : ''} this week. 
-              Click "New Booking" to create a reservation.
+              {t('availableSlots.message', { count: availableSlots.length })}
             </p>
           </div>
         )}

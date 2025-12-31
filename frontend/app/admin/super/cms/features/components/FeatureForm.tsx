@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FeatureShowcase } from '@/types/cms';
 import { cmsApi } from '@/lib/cms-api';
-import { useToast } from '@/app/components/ToastProvider';
+import { useToast } from '../../../../../../hooks/useToast';
 import { Loader2, Save, ArrowLeft, Image as ImageIcon, Video, FileJson, Play, RotateCcw, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -14,59 +15,24 @@ interface FeatureFormProps {
   isEditing?: boolean;
 }
 
-// Animation definitions - must match FeatureShowcase component
-const animationOptions = [
-  { 
-    value: 'fade-up', 
-    label: 'Fade Up', 
-    description: 'Fades in while moving up',
-    variants: { hidden: { opacity: 0, y: 50 }, visible: { opacity: 1, y: 0 } }
-  },
-  { 
-    value: 'fade-in', 
-    label: 'Fade In', 
-    description: 'Simple fade in effect',
-    variants: { hidden: { opacity: 0 }, visible: { opacity: 1 } }
-  },
-  { 
-    value: 'slide-right', 
-    label: 'Slide Right', 
-    description: 'Slides in from the left',
-    variants: { hidden: { opacity: 0, x: -50 }, visible: { opacity: 1, x: 0 } }
-  },
-  { 
-    value: 'slide-left', 
-    label: 'Slide Left', 
-    description: 'Slides in from the right',
-    variants: { hidden: { opacity: 0, x: 50 }, visible: { opacity: 1, x: 0 } }
-  },
-  { 
-    value: 'zoom-in', 
-    label: 'Zoom In', 
-    description: 'Scales up while fading in',
-    variants: { hidden: { opacity: 0, scale: 0.8 }, visible: { opacity: 1, scale: 1 } }
-  },
-  { 
-    value: 'bounce-up', 
-    label: 'Bounce Up', 
-    description: 'Bounces in from below',
-    variants: { hidden: { opacity: 0, y: 100 }, visible: { opacity: 1, y: 0 } }
-  },
-  { 
-    value: 'rotate-in', 
-    label: 'Rotate In', 
-    description: 'Rotates while fading in',
-    variants: { hidden: { opacity: 0, rotate: -10, scale: 0.9 }, visible: { opacity: 1, rotate: 0, scale: 1 } }
-  },
-  { 
-    value: 'flip-up', 
-    label: 'Flip Up', 
-    description: '3D flip effect',
-    variants: { hidden: { opacity: 0, rotateX: 90 }, visible: { opacity: 1, rotateX: 0 } }
-  },
-];
+// Animation variants - must match FeatureShowcase component
+const animationVariants = {
+  'fade-up': { hidden: { opacity: 0, y: 50 }, visible: { opacity: 1, y: 0 } },
+  'fade-in': { hidden: { opacity: 0 }, visible: { opacity: 1 } },
+  'slide-right': { hidden: { opacity: 0, x: -50 }, visible: { opacity: 1, x: 0 } },
+  'slide-left': { hidden: { opacity: 0, x: 50 }, visible: { opacity: 1, x: 0 } },
+  'zoom-in': { hidden: { opacity: 0, scale: 0.8 }, visible: { opacity: 1, scale: 1 } },
+  'bounce-up': { hidden: { opacity: 0, y: 100 }, visible: { opacity: 1, y: 0 } },
+  'rotate-in': { hidden: { opacity: 0, rotate: -10, scale: 0.9 }, visible: { opacity: 1, rotate: 0, scale: 1 } },
+  'flip-up': { hidden: { opacity: 0, rotateX: 90 }, visible: { opacity: 1, rotateX: 0 } },
+};
 
 export default function FeatureForm({ initialData, isEditing = false }: FeatureFormProps) {
+  const t = useTranslations('cmsAdmin.features.form');
+  const tAnimations = useTranslations('cmsAdmin.features.animations');
+  const tMedia = useTranslations('cmsAdmin.features.mediaTypes');
+  const tLayout = useTranslations('cmsAdmin.features.layout');
+  const tStatus = useTranslations('cmsAdmin.features.status');
   const router = useRouter();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -87,6 +53,18 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(initialData?.media || null);
 
+  // Animation options with translations
+  const animationOptions = [
+    { value: 'fade-up', labelKey: 'fadeUp', descKey: 'fadeUpDesc' },
+    { value: 'fade-in', labelKey: 'fadeIn', descKey: 'fadeInDesc' },
+    { value: 'slide-right', labelKey: 'slideRight', descKey: 'slideRightDesc' },
+    { value: 'slide-left', labelKey: 'slideLeft', descKey: 'slideLeftDesc' },
+    { value: 'zoom-in', labelKey: 'zoomIn', descKey: 'zoomInDesc' },
+    { value: 'bounce-up', labelKey: 'bounceUp', descKey: 'bounceUpDesc' },
+    { value: 'rotate-in', labelKey: 'rotateIn', descKey: 'rotateInDesc' },
+    { value: 'flip-up', labelKey: 'flipUp', descKey: 'flipUpDesc' },
+  ];
+
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -104,13 +82,14 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
   };
 
   const currentAnimation = animationOptions.find(a => a.value === formData.animation_type) || animationOptions[0];
+  const currentVariants = animationVariants[formData.animation_type as keyof typeof animationVariants] || animationVariants['fade-up'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Client-side validation
     if (!formData.title.trim()) {
-      showToast("Please enter a title", "error");
+      showToast(t('titleRequired'), "error");
       return;
     }
     
@@ -127,10 +106,10 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
 
       if (isEditing && initialData) {
         await cmsApi.updateFeature(initialData.id, data);
-        showToast("Feature updated", "success");
+        showToast(t('updated'), "success");
       } else {
         await cmsApi.createFeature(data);
-        showToast("Feature created", "success");
+        showToast(t('created'), "success");
       }
       router.push('/admin/super/cms/features');
       router.refresh();
@@ -138,7 +117,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
       console.error('Feature save error:', error);
       
       // Try to extract error message from response
-      let errorMessage = "Error saving feature";
+      let errorMessage = t('saveFailed');
       if (error?.response?.data) {
         const errorData = error.response.data;
         if (typeof errorData === 'string') {
@@ -166,7 +145,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 sm:px-0">
         <Link href="/admin/super/cms/features" className="flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          <span className="font-medium">Back to Features</span>
+          <span className="font-medium">{t('backToFeatures')}</span>
         </Link>
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <button
@@ -183,7 +162,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
             />
           </button>
           <span className="text-sm text-[var(--brand-light)]/70 flex-shrink-0">
-            {formData.is_active ? 'Active' : 'Inactive'}
+            {formData.is_active ? tStatus('active') : tStatus('inactive')}
           </span>
           <button
             type="submit"
@@ -191,7 +170,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
             className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all disabled:opacity-50 flex-1 sm:flex-none justify-center"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isEditing ? 'Update Feature' : 'Create Feature'}
+            {isEditing ? t('updateFeature') : t('createFeature')}
           </button>
         </div>
       </div>
@@ -199,50 +178,50 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
       {/* Content */}
       <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
-          <h2 className="text-lg font-semibold text-[var(--brand-light)]">Feature Details</h2>
+          <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('featureDetails')}</h2>
           <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-            Configure the feature showcase content and appearance.
+            {t('featureDetailsDesc')}
           </p>
         </div>
         
         <div className="p-4 sm:p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-              Title
+              {t('title')}
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => handleChange('title', e.target.value)}
               className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-              placeholder="Feature title"
+              placeholder={t('titlePlaceholder')}
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-              Description
+              {t('description')}
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
               className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors resize-none"
-              placeholder="Describe this feature..."
+              placeholder={t('descriptionPlaceholder')}
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Layout Style
+                {t('layoutStyle')}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 'left', label: 'Text Left', icon: '◀ ▢' },
-                  { value: 'right', label: 'Text Right', icon: '▢ ▶' },
-                  { value: 'grid', label: 'Grid Card', icon: '▣' },
+                  { value: 'left', label: tLayout('textLeft'), icon: '◀ ▢' },
+                  { value: 'right', label: tLayout('textRight'), icon: '▢ ▶' },
+                  { value: 'grid', label: tLayout('gridCard'), icon: '▣' },
                 ].map((option) => (
                   <button
                     key={option.value}
@@ -263,7 +242,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
 
             <div>
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                Sort Order
+                {t('sortOrder')}
               </label>
               <input
                 type="number"
@@ -271,7 +250,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                 onChange={(e) => handleChange('order', parseInt(e.target.value))}
                 className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
               />
-              <p className="text-xs text-[var(--brand-light)]/40 mt-1">Lower numbers appear first</p>
+              <p className="text-xs text-[var(--brand-light)]/40 mt-1">{t('sortOrderHint')}</p>
             </div>
           </div>
 
@@ -280,10 +259,10 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
             <div className="flex items-center justify-between mb-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--brand-light)]">
-                  Animation Effect
+                  {t('animationEffect')}
                 </label>
                 <p className="text-xs text-[var(--brand-light)]/50">
-                  Choose how this feature animates when scrolled into view
+                  {t('animationEffectDesc')}
                 </p>
               </div>
               <button
@@ -296,7 +275,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                 }`}
               >
                 <Eye className="w-4 h-4" />
-                {showPreview ? 'Hide Preview' : 'Show Preview'}
+                {showPreview ? t('hidePreview') : t('showPreview')}
               </button>
             </div>
 
@@ -321,10 +300,10 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                       ? 'text-[var(--brand-purple)]' 
                       : 'text-[var(--brand-light)]'
                   }`}>
-                    {option.label}
+                    {tAnimations(option.labelKey)}
                   </span>
                   <span className="text-xs text-[var(--brand-light)]/50 mt-0.5">
-                    {option.description}
+                    {tAnimations(option.descKey)}
                   </span>
                 </button>
               ))}
@@ -341,14 +320,14 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                 >
                   <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] p-4">
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm text-[var(--brand-light)]/70">Animation Preview</span>
+                      <span className="text-sm text-[var(--brand-light)]/70">{t('animationPreview')}</span>
                       <button
                         type="button"
                         onClick={replayAnimation}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] text-sm transition-colors"
                       >
                         <RotateCcw className="w-4 h-4" />
-                        Replay
+                        {t('replay')}
                       </button>
                     </div>
                     
@@ -366,7 +345,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                         key={previewKey}
                         initial="hidden"
                         animate="visible"
-                        variants={currentAnimation.variants}
+                        variants={currentVariants}
                         transition={{ 
                           duration: 0.6, 
                           ease: formData.animation_type === 'bounce-up' ? [0.68, -0.55, 0.265, 1.55] : 'easeOut'
@@ -375,10 +354,10 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                       >
                         <div className="bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-xl px-6 py-4 shadow-lg">
                           <div className="text-[var(--dark-900)] font-bold text-lg">
-                            {formData.title || 'Feature Title'}
+                            {formData.title || t('featureTitle')}
                           </div>
                           <div className="text-[var(--dark-900)]/70 text-sm mt-1">
-                            {currentAnimation.label} animation
+                            {tAnimations(currentAnimation.labelKey)} {t('animation')}
                           </div>
                         </div>
                       </motion.div>
@@ -392,14 +371,14 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
           {/* Media Section */}
           <div className="pt-4 border-t border-[var(--dark-600)]">
             <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-3">
-              Media
+              {t('media')}
             </label>
             
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[
-                { value: 'image', label: 'Image', icon: ImageIcon },
-                { value: 'video', label: 'Video', icon: Video },
-                { value: 'lottie', label: 'Lottie', icon: FileJson },
+                { value: 'image', label: tMedia('image'), icon: ImageIcon },
+                { value: 'video', label: tMedia('video'), icon: Video },
+                { value: 'lottie', label: tMedia('lottie'), icon: FileJson },
               ].map((option) => {
                 const Icon = option.icon;
                 return (
@@ -434,7 +413,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                 ) : (
                   <div className="flex flex-col items-center text-[var(--brand-light)]/40">
                     <ImageIcon className="w-8 h-8 mb-2" />
-                    <span className="text-sm">Click to upload</span>
+                    <span className="text-sm">{t('clickToUpload')}</span>
                   </div>
                 )}
                 <input
@@ -449,14 +428,14 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
-                    Alt Text
+                    {t('altText')}
                   </label>
                   <input
                     type="text"
                     value={formData.alt_text}
                     onChange={(e) => handleChange('alt_text', e.target.value)}
                     className="w-full px-4 py-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors"
-                    placeholder="Describe the media for accessibility"
+                    placeholder={t('altTextPlaceholder')}
                   />
                 </div>
               </div>
@@ -470,9 +449,9 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Full Preview</h2>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('fullPreview')}</h2>
               <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-                See how this feature will look on the page
+                {t('fullPreviewDesc')}
               </p>
             </div>
             <button
@@ -481,7 +460,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-purple)] text-white text-sm font-medium hover:bg-[var(--brand-purple)]/90 transition-colors"
             >
               <Play className="w-4 h-4" />
-              Play Animation
+              {t('playAnimation')}
             </button>
           </div>
           
@@ -493,7 +472,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                 className="max-w-2xl mx-auto"
                 initial="hidden"
                 animate="visible"
-                variants={currentAnimation.variants}
+                variants={currentVariants}
                 transition={{ 
                   duration: 0.6, 
                   ease: formData.animation_type === 'bounce-up' ? [0.68, -0.55, 0.265, 1.55] : 'easeOut'
@@ -516,10 +495,10 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                   </div>
                   <div className="p-6 -mt-16 relative z-10">
                     <h3 className="text-2xl font-bold text-[var(--brand-light)] mb-2 font-heading">
-                      {formData.title || 'Feature Title'}
+                      {formData.title || t('featureTitle')}
                     </h3>
                     <p className="text-[var(--brand-light)]/70">
-                      {formData.description || 'Feature description will appear here...'}
+                      {formData.description || t('featureDescriptionPlaceholder')}
                     </p>
                   </div>
                 </div>
@@ -534,7 +513,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                   className="flex-1 space-y-4"
                   initial="hidden"
                   animate="visible"
-                  variants={currentAnimation.variants}
+                  variants={currentVariants}
                   transition={{ 
                     duration: 0.6, 
                     delay: 0.1,
@@ -542,10 +521,10 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
                   }}
                 >
                   <h3 className="text-3xl font-bold text-[var(--brand-light)] font-heading">
-                    {formData.title || 'Feature Title'}
+                    {formData.title || t('featureTitle')}
                   </h3>
                   <p className="text-lg text-[var(--brand-light)]/70">
-                    {formData.description || 'Feature description will appear here. This text explains what makes this feature special.'}
+                    {formData.description || t('featureDescriptionLong')}
                   </p>
                 </motion.div>
 

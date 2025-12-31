@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, Search, User, Mail, Phone, 
   CheckCircle2, Lightbulb, Save, Users, Shield, Calendar,
@@ -11,7 +12,7 @@ import {
 import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../utils';
-import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import CustomFieldsForm from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
 
@@ -25,6 +26,8 @@ interface YouthFormProps {
 }
 
 export default function YouthForm({ initialData, redirectPath, scope }: YouthFormProps) {
+  const t = useTranslations('youthForm');
+  const tStatuses = useTranslations('youthManager.statuses');
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: currentUser } = useAuth();
@@ -33,7 +36,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
   const bgRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success'|'error', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -269,11 +272,11 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
       if (initialData) {
         await api.patch(`/users/${initialData.id}/`, data, config);
         userId = initialData.id;
-        setToast({ message: 'Youth member updated!', type: 'success', isVisible: true });
+        success(t('toast.youthUpdated'));
       } else {
         const res = await api.post('/users/', data, config);
         userId = res.data.id;
-        setToast({ message: 'Youth member created!', type: 'success', isVisible: true });
+        success(t('toast.youthCreated'));
       }
 
       if (Object.keys(customFieldValues).length > 0) {
@@ -286,7 +289,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
       setTimeout(() => router.push(redirectPath), 1000);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Operation failed.', type: 'error', isVisible: true });
+      error(t('toast.operationFailed'));
       setLoading(false);
     }
   };
@@ -335,10 +338,10 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-              {initialData ? 'Edit Youth Member' : 'Create New Youth Member'}
+              {initialData ? t('title.edit') : t('title.create')}
             </h1>
             <p className="text-[var(--brand-light)]/50 text-sm mt-1">
-              {initialData ? 'Update youth member information' : 'Configure profile, demographics, and relationships'}
+              {initialData ? t('description.edit') : t('description.create')}
             </p>
           </div>
         </div>
@@ -355,7 +358,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
             aria-label="Form completion progress"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+              <span className="text-sm text-[var(--brand-light)]/60">{t('progress.formCompletion')}</span>
               <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
             </div>
             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -367,7 +370,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
             {completionPercent === 100 && (
               <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">All required fields completed!</span>
+                <span className="text-sm font-medium">{t('progress.allRequiredFieldsCompleted')}</span>
               </div>
             )}
           </div>
@@ -383,7 +386,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           >
             <div className="w-full md:max-w-3xl md:mx-auto px-4 md:px-6 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--brand-light)]/60">Form completion</span>
+                <span className="text-sm text-[var(--brand-light)]/60">{t('progress.formCompletion')}</span>
                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -395,7 +398,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               {completionPercent === 100 && (
                 <div className="flex items-center gap-2 mt-2 text-[var(--brand-third)]">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">All required fields completed!</span>
+                  <span className="text-sm font-medium">{t('progress.allRequiredFieldsCompleted')}</span>
                 </div>
               )}
             </div>
@@ -414,8 +417,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Profile Visuals</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Upload profile images and set mood status</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('profileVisuals.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('profileVisuals.description')}</p>
                 </div>
               </div>
             </div>
@@ -424,7 +427,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Avatar */}
                 <div>
-                  <label className={labelClasses}>Avatar</label>
+                  <label className={labelClasses}>{t('profileVisuals.avatar')}</label>
                   <div className="flex items-start gap-4">
                     <div 
                       className="relative group w-20 h-20 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -451,7 +454,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                           onClick={() => avatarRef.current?.click()}
                           className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                         >
-                          Choose File
+                          {t('profileVisuals.chooseFile')}
                         </button>
                         {avatarPreview && (
                           <button 
@@ -459,11 +462,11 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                             onClick={() => handleRemoveImage('avatar')}
                             className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" /> Remove
+                            <X className="h-3 w-3" /> {t('profileVisuals.remove')}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--brand-light)]/40">Square image, 400x400px</p>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('profileVisuals.avatarHint')}</p>
                     </div>
                     <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                   </div>
@@ -471,7 +474,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
 
                 {/* Cover Image */}
                 <div>
-                  <label className={labelClasses}>Cover Image</label>
+                  <label className={labelClasses}>{t('profileVisuals.coverImage')}</label>
                   <div className="flex items-start gap-4">
                     <div 
                       className="relative group w-24 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -498,7 +501,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                           onClick={() => bgRef.current?.click()}
                           className="px-3 py-2 bg-[var(--dark-600)] text-[var(--brand-light)] text-xs font-medium rounded-lg hover:bg-[var(--dark-500)] transition-all"
                         >
-                          Choose File
+                          {t('profileVisuals.chooseFile')}
                         </button>
                         {bgPreview && (
                           <button 
@@ -506,11 +509,11 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                             onClick={() => handleRemoveImage('bg')}
                             className="px-3 py-2 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium rounded-lg hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" /> Remove
+                            <X className="h-3 w-3" /> {t('profileVisuals.remove')}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--brand-light)]/40">1200x400px (JPG, PNG)</p>
+                      <p className="text-xs text-[var(--brand-light)]/40">{t('profileVisuals.coverHint')}</p>
                     </div>
                     <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={handleBgChange} />
                   </div>
@@ -523,12 +526,12 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               {/* Mood Status */}
               <div>
                 <label htmlFor="mood" className={labelClasses}>
-                  Mood Status
+                  {t('profileVisuals.moodStatus')}
                 </label>
                 <input 
                   id="mood"
                   type="text"
-                  placeholder="e.g. Playing FIFA..."
+                  placeholder={t('profileVisuals.moodPlaceholder')}
                   value={mood}
                   onChange={e => setMood(e.target.value)}
                   onFocus={() => setFocusedField('mood')}
@@ -547,8 +550,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Identity</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Basic personal information and account details</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('identity.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('identity.description')}</p>
                 </div>
               </div>
             </div>
@@ -557,13 +560,13 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="first_name" className={labelClasses}>
-                    First Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('identity.firstName')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="first_name"
                     type="text"
                     required
-                    placeholder="John"
+                    placeholder={t('identity.placeholders.firstName')}
                     value={formData.first_name}
                     onChange={e => setFormData({...formData, first_name: e.target.value})}
                     onFocus={() => setFocusedField('first_name')}
@@ -573,13 +576,13 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 </div>
                 <div>
                   <label htmlFor="last_name" className={labelClasses}>
-                    Last Name <span className="text-[var(--brand-primary)]">*</span>
+                    {t('identity.lastName')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="last_name"
                     type="text"
                     required
-                    placeholder="Doe"
+                    placeholder={t('identity.placeholders.lastName')}
                     value={formData.last_name}
                     onChange={e => setFormData({...formData, last_name: e.target.value})}
                     onFocus={() => setFocusedField('last_name')}
@@ -589,12 +592,12 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 </div>
                 <div>
                   <label htmlFor="nickname" className={labelClasses}>
-                    Nickname
+                    {t('identity.nickname')}
                   </label>
                   <input 
                     id="nickname"
                     type="text"
-                    placeholder="JD"
+                    placeholder={t('identity.placeholders.nickname')}
                     value={formData.nickname}
                     onChange={e => setFormData({...formData, nickname: e.target.value})}
                     onFocus={() => setFocusedField('nickname')}
@@ -605,13 +608,13 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 <div>
                   <label htmlFor="email" className={labelClasses}>
                     <Mail className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
-                    Email <span className="text-[var(--brand-primary)]">*</span>
+                    {t('identity.email')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="email"
                     type="email"
                     required
-                    placeholder="john.doe@example.com"
+                    placeholder={t('identity.placeholders.email')}
                     value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
                     onFocus={() => setFocusedField('email')}
@@ -622,13 +625,13 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 <div>
                   <label htmlFor="password" className={labelClasses}>
                     <Lock className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-peach)]" />
-                    {initialData ? 'New Password (Optional)' : 'Password'} {!initialData && <span className="text-[var(--brand-primary)]">*</span>}
+                    {initialData ? t('identity.newPassword') : t('identity.password')} {!initialData && <span className="text-[var(--brand-primary)]">*</span>}
                   </label>
                   <input 
                     id="password"
                     type="password"
                     required={!initialData}
-                    placeholder="••••••••"
+                    placeholder={t('identity.placeholders.password')}
                     value={formData.password}
                     onChange={e => setFormData({...formData, password: e.target.value})}
                     onFocus={() => setFocusedField('password')}
@@ -639,12 +642,12 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 <div>
                   <label htmlFor="phone_number" className={labelClasses}>
                     <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                    Phone
+                    {t('identity.phone')}
                   </label>
                   <input 
                     id="phone_number"
                     type="tel"
-                    placeholder="+46..."
+                    placeholder={t('identity.placeholders.phone')}
                     value={formData.phone_number}
                     onChange={e => setFormData({...formData, phone_number: e.target.value})}
                     onFocus={() => setFocusedField('phone_number')}
@@ -664,8 +667,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <Shield className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Verification Status</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Set the verification status for this youth member</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('verification.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('verification.description')}</p>
                 </div>
               </div>
             </div>
@@ -690,7 +693,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                           : 'border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:border-[var(--brand-primary)]/50'
                       }`}
                     >
-                      {status}
+                      {tStatuses(status)}
                     </button>
                   );
                 })}
@@ -706,8 +709,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Demographics</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Demographic information for the youth member</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('demographics.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('demographics.description')}</p>
                 </div>
               </div>
             </div>
@@ -716,7 +719,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="date_of_birth" className={labelClasses}>
-                    Date of Birth
+                    {t('demographics.dateOfBirth')}
                   </label>
                   <input 
                     id="date_of_birth"
@@ -730,12 +733,12 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 </div>
                 <div>
                   <label htmlFor="grade" className={labelClasses}>
-                    Grade
+                    {t('demographics.grade')}
                   </label>
                   <input 
                     id="grade"
                     type="number"
-                    placeholder="e.g. 7"
+                    placeholder={t('demographics.gradePlaceholder')}
                     value={formData.grade}
                     onChange={e => setFormData({...formData, grade: e.target.value})}
                     onFocus={() => setFocusedField('grade')}
@@ -745,7 +748,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 </div>
                 <div>
                   <label htmlFor="legal_gender" className={labelClasses}>
-                    Legal Gender
+                    {t('demographics.legalGender')}
                   </label>
                   <select 
                     id="legal_gender"
@@ -756,19 +759,19 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     className={selectClasses('legal_gender')}
                     style={selectArrowStyle}
                   >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
+                    <option value="MALE">{t('genders.MALE')}</option>
+                    <option value="FEMALE">{t('genders.FEMALE')}</option>
+                    <option value="OTHER">{t('genders.OTHER')}</option>
                   </select>
                 </div>
                 <div>
                   <label htmlFor="preferred_gender" className={labelClasses}>
-                    Preferred Gender
+                    {t('demographics.preferredGender')}
                   </label>
                   <input 
                     id="preferred_gender"
                     type="text"
-                    placeholder="Optional"
+                    placeholder={t('demographics.preferredGenderPlaceholder')}
                     value={formData.preferred_gender}
                     onChange={e => setFormData({...formData, preferred_gender: e.target.value})}
                     onFocus={() => setFocusedField('preferred_gender')}
@@ -788,8 +791,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <Users className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Club, Guardians & Interests</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Assign club, guardians, and interests</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('clubGuardiansInterests.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('clubGuardiansInterests.description')}</p>
                 </div>
               </div>
             </div>
@@ -799,7 +802,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               <div>
                 <label htmlFor="preferred_club" className={labelClasses}>
                   <Building className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-purple)]" />
-                  Preferred Club
+                  {t('clubGuardiansInterests.preferredClub')}
                 </label>
                 <select 
                   id="preferred_club"
@@ -810,7 +813,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   className={selectClasses('preferred_club')}
                   style={selectArrowStyle}
                 >
-                  <option value="">Select Club...</option>
+                  <option value="">{t('clubGuardiansInterests.selectClub')}</option>
                   {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
@@ -822,7 +825,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               <div>
                 <label className={labelClasses}>
                   <UserCheck className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
-                  Assign Guardians
+                  {t('clubGuardiansInterests.assignGuardians')}
                 </label>
                 
                 {/* Selected Guardians Display */}
@@ -849,7 +852,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                     <input
                       type="text"
-                      placeholder="Search guardians by name or email..."
+                      placeholder={t('clubGuardiansInterests.searchGuardians')}
                       value={guardianSearchTerm}
                       onChange={(e) => {
                         setGuardianSearchTerm(e.target.value);
@@ -881,13 +884,13 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                           ))
                         ) : guardianSearchTerm ? (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
-                            No guardians found matching "{guardianSearchTerm}"
+                            {t('clubGuardiansInterests.noGuardiansFound', { searchTerm: guardianSearchTerm })}
                           </div>
                         ) : (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                             {formData.guardians.length === 0 
-                              ? 'No guardians available. Create a guardian first.'
-                              : 'All guardians are already selected.'}
+                              ? t('clubGuardiansInterests.noGuardiansAvailable')
+                              : t('clubGuardiansInterests.allGuardiansSelected')}
                           </div>
                         )}
                       </div>
@@ -903,7 +906,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               <div>
                 <label className={labelClasses}>
                   <Heart className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-peach)]" />
-                  Interests
+                  {t('clubGuardiansInterests.interests')}
                 </label>
                 
                 {/* Selected Interests Display */}
@@ -930,7 +933,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                     <input
                       type="text"
-                      placeholder="Search interests by name..."
+                      placeholder={t('clubGuardiansInterests.searchInterests')}
                       value={interestSearchTerm}
                       onChange={(e) => {
                         setInterestSearchTerm(e.target.value);
@@ -961,13 +964,13 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                           ))
                         ) : interestSearchTerm ? (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
-                            No interests found matching "{interestSearchTerm}"
+                            {t('clubGuardiansInterests.noInterestsFound', { searchTerm: interestSearchTerm })}
                           </div>
                         ) : (
                           <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                             {formData.interests.length === 0 
-                              ? 'No interests available. Create interests first.'
-                              : 'All interests are already selected.'}
+                              ? t('clubGuardiansInterests.noInterestsAvailable')
+                              : t('clubGuardiansInterests.allInterestsSelected')}
                           </div>
                         )}
                       </div>
@@ -986,8 +989,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <Lightbulb className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">Custom Fields</h2>
-                  <p className="text-sm text-[var(--brand-light)]/50">Additional custom field values</p>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('customFields.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('customFields.description')}</p>
                 </div>
               </div>
             </div>
@@ -1013,12 +1016,12 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <Lightbulb className="w-4 h-4 text-[var(--brand-third)]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-2">Quick Tips</h3>
+                  <h3 className="text-sm font-semibold text-[var(--brand-light)] mb-2">{t('quickTips.title')}</h3>
                   <ul className="text-sm text-[var(--brand-light)]/60 space-y-1.5">
-                    <li>• Fill in all required fields marked with <span className="text-[var(--brand-primary)]">*</span></li>
-                    <li>• Assign guardians to enable parental oversight</li>
-                    <li>• Select interests to help match activities</li>
-                    <li>• Set verification status based on identity confirmation</li>
+                    <li>• {t('quickTips.fillRequired')} <span className="text-[var(--brand-primary)]">*</span></li>
+                    <li>• {t('quickTips.assignGuardians')}</li>
+                    <li>• {t('quickTips.selectInterests')}</li>
+                    <li>• {t('quickTips.setVerification')}</li>
                   </ul>
                 </div>
               </div>
@@ -1032,30 +1035,29 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               onClick={() => router.push(redirectPath)}
               className="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)] transition-all"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving...
+                  <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                  {t('actions.saving')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  {initialData ? 'Update Youth' : 'Create Youth'}
+                  {initialData ? t('actions.updateYouth') : t('actions.createYouth')}
                 </>
               )}
             </button>
           </div>
         </form>
 
-        <Toast {...toast} onClose={() => setToast({...toast, isVisible: false})} />
-      </div>
+        </div>
     </div>
   );
 }

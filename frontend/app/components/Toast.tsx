@@ -185,10 +185,3 @@ export const initialToastState: ToastState = {
 };
 
 export function showToast(
-  setToast: React.Dispatch<React.SetStateAction<ToastState>>,
-  message: string,
-  type: 'success' | 'error' | 'info' | 'warning' = 'success',
-  title?: string
-) {
-  setToast({ message, type, isVisible: true, title });
-}

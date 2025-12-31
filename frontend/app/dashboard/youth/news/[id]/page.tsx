@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import NavBar from '@/app/components/NavBar';
 import YouthSidebar from '@/app/components/youth/YouthSidebar';
 import { fetchNewsDetail } from '@/lib/api';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { NewsArticle } from '@/types/news';
 import { getMediaUrl } from '@/app/utils';
 import { ArrowLeft, Calendar, User, Clock, Share2, X } from 'lucide-react';
@@ -207,7 +208,7 @@ export default function NewsDetailPage() {
                     {/* Article Content */}
                     <div 
                         className="news-content-dark prose prose-lg max-w-none"
-                        dangerouslySetInnerHTML={{ __html: article.content }} 
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }} 
                     />
 
                     {/* Footer */}

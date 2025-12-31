@@ -6,10 +6,12 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import timedelta, date
 
-from .models import User, GuardianYouthLink, UserLoginHistory
+from .models import User, GuardianYouthLink, UserLoginHistory, IdDocumentUpload
 from .serializers import (
     CustomUserSerializer, UserManagementSerializer, YouthRegistrationSerializer,
-    GuardianYouthLinkSerializer, GuardianLinkCreateSerializer
+    GuardianYouthLinkSerializer, GuardianLinkCreateSerializer,
+    IdDocumentUploadSerializer, IdDocumentReviewSerializer,
+    IdDocumentUploadHistorySerializer, IdDocumentUploadCreateSerializer, IdDocumentReviewHistorySerializer
 )
 from .permissions import IsSuperAdmin, IsMunicipalityAdmin, IsClubOrMunicipalityAdmin
 from visits.models import CheckInSession
@@ -126,6 +128,10 @@ class UserViewSet(viewsets.ModelViewSet):
         verification_status = self.request.query_params.get('verification_status')
         if verification_status:
             queryset = queryset.filter(verification_status=verification_status)
+
+        id_document_review_status = self.request.query_params.get('id_document_review_status')
+        if id_document_review_status:
+            queryset = queryset.filter(id_document_review_status=id_document_review_status)
 
         preferred_club = self.request.query_params.get('preferred_club')
         if preferred_club:
@@ -611,6 +617,154 @@ class YouthGuardiansViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class GuardianChildrenViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for guardians to manage their connected youth members (children).
+    GET: Returns list of GuardianYouthLink objects where the current user is the guardian
+    PATCH: Update relationship details (e.g., set primary child)
+    DELETE: Remove a child connection (reject/drop)
+    """
+    serializer_class = GuardianYouthLinkSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        Return only GuardianYouthLink objects where the current user is the guardian.
+        """
+        user = self.request.user
+        if user.role != User.Role.GUARDIAN:
+            return GuardianYouthLink.objects.none()
+        return GuardianYouthLink.objects.filter(guardian=user).select_related(
+            'youth', 
+            'youth__preferred_club',
+            'youth__preferred_club__municipality'
+        ).order_by('-created_at')
+    
+    def partial_update(self, request, *args, **kwargs):
+        """
+        PATCH /api/guardian/children/{id}/
+        Update relationship details (e.g., set as primary child).
+        """
+        user = request.user
+        
+        if user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardians can update child relationships."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        link = self.get_object()
+        
+        # Verify the link belongs to the current guardian
+        if link.guardian != user:
+            return Response(
+                {"error": "You can only update your own child relationships."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Handle is_primary_guardian update
+        is_primary = request.data.get('is_primary_guardian')
+        if is_primary is not None:
+            if is_primary:
+                # Unset all other primary children
+                GuardianYouthLink.objects.filter(
+                    guardian=user,
+                    is_primary_guardian=True
+                ).exclude(id=link.id).update(is_primary_guardian=False)
+            link.is_primary_guardian = is_primary
+            link.save()
+        
+        serializer = self.get_serializer(link)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """
+        POST /api/guardian/children/{id}/approve/
+        Approve a pending child connection request.
+        """
+        user = request.user
+        
+        if user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardians can approve child connections."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        link = self.get_object()
+        
+        if link.guardian != user:
+            return Response(
+                {"error": "You can only approve your own child connections."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if link.status != 'PENDING':
+            return Response(
+                {"error": "This connection is not pending approval."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        link.status = 'ACTIVE'
+        link.verified_at = timezone.now()
+        link.save()
+        
+        serializer = self.get_serializer(link)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """
+        POST /api/guardian/children/{id}/reject/
+        Reject a pending child connection request.
+        """
+        user = request.user
+        
+        if user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardians can reject child connections."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        link = self.get_object()
+        
+        if link.guardian != user:
+            return Response(
+                {"error": "You can only reject your own child connections."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        link.status = 'REJECTED'
+        link.save()
+        
+        serializer = self.get_serializer(link)
+        return Response(serializer.data)
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        DELETE /api/guardian/children/{id}/
+        Remove a child connection entirely.
+        """
+        user = request.user
+        
+        if user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardians can remove child connections."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        link = self.get_object()
+        
+        if link.guardian != user:
+            return Response(
+                {"error": "You can only remove your own child connections."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        link.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class GuardianRelationshipViewSet(viewsets.ModelViewSet):
     """
     API endpoint for admins to manage guardian-youth relationships.
@@ -741,3 +895,416 @@ class CheckGuardianView(APIView):
         # Check if a user with this email exists (any role, but usually guardians)
         exists = User.objects.filter(email=email).exists()
         return Response({"exists": exists})
+
+
+class IdDocumentUploadView(APIView):
+    """
+    Allows guardians to upload their ID document for verification.
+    POST /api/users/upload_id_document/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        
+        # Only guardians can upload ID documents
+        if user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardians can upload ID documents."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = IdDocumentUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Update user with ID document
+        user.id_document = serializer.validated_data['id_document']
+        user.id_document_type = serializer.validated_data['id_document_type']
+        user.id_document_uploaded_at = timezone.now()
+        user.id_document_review_status = User.IdDocumentReviewStatus.PENDING_REVIEW
+        
+        # Also set the main verification_status to PENDING if it was UNVERIFIED
+        if user.verification_status == User.VerificationStatus.UNVERIFIED:
+            user.verification_status = User.VerificationStatus.PENDING
+        
+        # Clear any previous rejection reason
+        user.id_document_rejection_reason = ''
+        user.id_document_reviewed_at = None
+        user.id_document_reviewed_by = None
+        
+        user.save()
+        
+        return Response({
+            "status": "success",
+            "message": "ID document uploaded successfully. It is now pending review.",
+            "id_document_review_status": user.id_document_review_status,
+            "verification_status": user.verification_status,
+        }, status=status.HTTP_200_OK)
+
+
+class IdDocumentReviewView(APIView):
+    """
+    Allows admins to review (approve/reject/delete) ID documents.
+    POST /api/users/{user_id}/review_id_document/
+    """
+    permission_classes = [IsClubOrMunicipalityAdmin]
+    
+    def post(self, request, user_id):
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Only guardians can have their ID documents reviewed
+        if target_user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardian ID documents can be reviewed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = IdDocumentReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        action = serializer.validated_data['action']
+        rejection_reason = serializer.validated_data.get('rejection_reason', '')
+        
+        # For delete action, we don't require a document to exist
+        if action != 'delete':
+            # Check if there's a document to review
+            if not target_user.id_document:
+                return Response(
+                    {"error": "No ID document has been uploaded."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if action == 'approve':
+            target_user.id_document_review_status = User.IdDocumentReviewStatus.APPROVED
+            target_user.verification_status = User.VerificationStatus.VERIFIED
+            target_user.id_document_rejection_reason = ''
+            target_user.id_document_reviewed_at = timezone.now()
+            target_user.id_document_reviewed_by = request.user
+        elif action == 'reject':
+            target_user.id_document_review_status = User.IdDocumentReviewStatus.REJECTED
+            target_user.verification_status = User.VerificationStatus.UNVERIFIED
+            target_user.id_document_rejection_reason = rejection_reason
+            target_user.id_document_reviewed_at = timezone.now()
+            target_user.id_document_reviewed_by = request.user
+        elif action == 'delete':
+            # Delete the document file if it exists
+            if target_user.id_document:
+                target_user.id_document.delete(save=False)
+            
+            # Reset all ID document fields
+            target_user.id_document = None
+            target_user.id_document_type = ''
+            target_user.id_document_uploaded_at = None
+            target_user.id_document_review_status = User.IdDocumentReviewStatus.NOT_SUBMITTED
+            target_user.id_document_rejection_reason = ''
+            target_user.id_document_reviewed_at = None
+            target_user.id_document_reviewed_by = None
+            target_user.verification_status = User.VerificationStatus.UNVERIFIED
+            
+            # Also mark any related IdDocumentUpload entries as DELETED
+            IdDocumentUpload.objects.filter(
+                guardian=target_user,
+                status__in=[IdDocumentUpload.Status.PENDING, IdDocumentUpload.Status.APPROVED]
+            ).update(
+                status=IdDocumentUpload.Status.DELETED,
+                admin_notes='Deleted by admin via profile.',
+                reviewed_at=timezone.now(),
+                reviewed_by=request.user
+            )
+        
+        target_user.save()
+        
+        return Response({
+            "status": "success",
+            "message": f"ID document {action}d successfully.",
+            "id_document_review_status": target_user.id_document_review_status,
+            "verification_status": target_user.verification_status,
+        }, status=status.HTTP_200_OK)
+
+
+class IdDocumentHistoryView(APIView):
+    """
+    Allows guardians to view their ID document upload history.
+    GET /api/users/id_document_history/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        # Only guardians can view their ID document history
+        if user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardians can view ID document history."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        uploads = IdDocumentUpload.objects.filter(guardian=user)
+        serializer = IdDocumentUploadHistorySerializer(uploads, many=True)
+        
+        pending_count = IdDocumentUpload.get_pending_count(user)
+        can_upload = IdDocumentUpload.can_upload(user)
+        
+        return Response({
+            "uploads": serializer.data,
+            "pending_count": pending_count,
+            "can_upload": can_upload,
+            "max_pending": 3
+        })
+
+
+class IdDocumentUploadHistoryView(APIView):
+    """
+    Allows guardians to upload a new ID document (with history tracking).
+    POST /api/users/upload_id_document_v2/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        
+        # Only guardians can upload ID documents
+        if user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardians can upload ID documents."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = IdDocumentUploadCreateSerializer(
+            data=request.data,
+            context={'guardian': user}
+        )
+        serializer.is_valid(raise_exception=True)
+        upload = serializer.save()
+        
+        # Also update the user's main ID document fields for backward compatibility
+        user.id_document = upload.document
+        user.id_document_type = upload.document_type
+        user.id_document_uploaded_at = upload.uploaded_at
+        user.id_document_review_status = User.IdDocumentReviewStatus.PENDING_REVIEW
+        
+        # Set verification status to PENDING if it was UNVERIFIED
+        if user.verification_status == User.VerificationStatus.UNVERIFIED:
+            user.verification_status = User.VerificationStatus.PENDING
+        
+        # Clear any previous rejection reason
+        user.id_document_rejection_reason = ''
+        user.id_document_reviewed_at = None
+        user.id_document_reviewed_by = None
+        
+        user.save()
+        
+        response_serializer = IdDocumentUploadHistorySerializer(upload)
+        
+        return Response({
+            "status": "success",
+            "message": "ID document uploaded successfully. It is now pending review.",
+            "upload": response_serializer.data,
+            "pending_count": IdDocumentUpload.get_pending_count(user),
+            "can_upload": IdDocumentUpload.can_upload(user)
+        }, status=status.HTTP_201_CREATED)
+
+
+class AdminIdDocumentHistoryView(APIView):
+    """
+    Allows admins to view a guardian's ID document upload history.
+    GET /api/users/{user_id}/id_document_history/
+    """
+    permission_classes = [IsClubOrMunicipalityAdmin]
+    
+    def get(self, request, user_id):
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Only guardians have ID document history
+        if target_user.role != User.Role.GUARDIAN:
+            return Response(
+                {"error": "Only guardians have ID document history."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        uploads = IdDocumentUpload.objects.filter(guardian=target_user)
+        serializer = IdDocumentUploadHistorySerializer(uploads, many=True)
+        
+        return Response({
+            "uploads": serializer.data,
+            "pending_count": IdDocumentUpload.get_pending_count(target_user),
+            "guardian_id": target_user.id,
+            "guardian_name": f"{target_user.first_name} {target_user.last_name}"
+        })
+
+
+class AdminIdDocumentReviewView(APIView):
+    """
+    Allows admins to review (approve/reject/delete) a specific ID document upload.
+    POST /api/users/id_documents/{upload_id}/review/
+    """
+    permission_classes = [IsClubOrMunicipalityAdmin]
+    
+    def post(self, request, upload_id):
+        try:
+            upload = IdDocumentUpload.objects.select_related('guardian').get(id=upload_id)
+        except IdDocumentUpload.DoesNotExist:
+            return Response(
+                {"error": "ID document upload not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = IdDocumentReviewHistorySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        action = serializer.validated_data['action']
+        rejection_reason = serializer.validated_data.get('rejection_reason', '')
+        admin_notes = serializer.validated_data.get('admin_notes', '')
+        
+        guardian = upload.guardian
+        
+        if action == 'approve':
+            upload.status = IdDocumentUpload.Status.APPROVED
+            upload.rejection_reason = ''
+            
+            # Update guardian's verification status
+            guardian.id_document_review_status = User.IdDocumentReviewStatus.APPROVED
+            guardian.verification_status = User.VerificationStatus.VERIFIED
+            guardian.id_document_rejection_reason = ''
+            guardian.id_document = upload.document  # Set the approved document as the main one
+            guardian.id_document_type = upload.document_type
+            guardian.id_document_reviewed_at = timezone.now()
+            guardian.id_document_reviewed_by = request.user
+            guardian.save()
+            
+            # Reject all other pending uploads
+            IdDocumentUpload.objects.filter(
+                guardian=guardian,
+                status=IdDocumentUpload.Status.PENDING
+            ).exclude(id=upload.id).update(
+                status=IdDocumentUpload.Status.REJECTED,
+                rejection_reason='Another document was approved.',
+                reviewed_at=timezone.now(),
+                reviewed_by=request.user
+            )
+            
+        elif action == 'reject':
+            upload.status = IdDocumentUpload.Status.REJECTED
+            upload.rejection_reason = rejection_reason
+            
+            # Check if this was the most recent upload - if so, update user status
+            latest_upload = IdDocumentUpload.objects.filter(
+                guardian=guardian
+            ).exclude(status=IdDocumentUpload.Status.DELETED).order_by('-uploaded_at').first()
+            
+            if latest_upload and latest_upload.id == upload.id:
+                guardian.id_document_review_status = User.IdDocumentReviewStatus.REJECTED
+                guardian.id_document_rejection_reason = rejection_reason
+                guardian.id_document_reviewed_at = timezone.now()
+                guardian.id_document_reviewed_by = request.user
+                
+                # Only set to UNVERIFIED if they have no other pending uploads
+                pending_count = IdDocumentUpload.objects.filter(
+                    guardian=guardian,
+                    status=IdDocumentUpload.Status.PENDING
+                ).exclude(id=upload.id).count()
+                
+                if pending_count == 0:
+                    guardian.verification_status = User.VerificationStatus.UNVERIFIED
+                
+                guardian.save()
+                
+        elif action == 'delete':
+            upload.status = IdDocumentUpload.Status.DELETED
+            upload.admin_notes = admin_notes or 'Deleted by admin.'
+            
+            # If this was the current document, clear it
+            if guardian.id_document and guardian.id_document.name == upload.document.name:
+                guardian.id_document = None
+                guardian.id_document_type = ''
+                guardian.id_document_uploaded_at = None
+                guardian.id_document_review_status = User.IdDocumentReviewStatus.NOT_SUBMITTED
+                guardian.id_document_rejection_reason = ''
+                guardian.id_document_reviewed_at = None
+                guardian.id_document_reviewed_by = None
+                
+                # Check if there are other pending uploads
+                pending_count = IdDocumentUpload.objects.filter(
+                    guardian=guardian,
+                    status=IdDocumentUpload.Status.PENDING
+                ).exclude(id=upload.id).count()
+                
+                if pending_count == 0:
+                    guardian.verification_status = User.VerificationStatus.UNVERIFIED
+                
+                guardian.save()
+        
+        upload.reviewed_at = timezone.now()
+        upload.reviewed_by = request.user
+        if admin_notes:
+            upload.admin_notes = admin_notes
+        upload.save()
+        
+        response_serializer = IdDocumentUploadHistorySerializer(upload)
+        
+        return Response({
+            "status": "success",
+            "message": f"ID document {action}d successfully.",
+            "upload": response_serializer.data,
+            "guardian_verification_status": guardian.verification_status,
+            "guardian_id_document_review_status": guardian.id_document_review_status
+        }, status=status.HTTP_200_OK)
+
+
+class GuardianPendingVerificationsView(APIView):
+    """
+    Returns count of guardians with pending ID document verifications.
+    GET /api/users/pending_verifications/
+    """
+    permission_classes = [IsClubOrMunicipalityAdmin]
+    
+    def get(self, request):
+        user = request.user
+        
+        # Base query: Guardians with pending ID document uploads
+        pending_uploads = IdDocumentUpload.objects.filter(status=IdDocumentUpload.Status.PENDING)
+        
+        # Also get guardians with legacy pending status (id_document_review_status = PENDING_REVIEW)
+        pending_guardians_legacy = User.objects.filter(
+            role=User.Role.GUARDIAN,
+            id_document_review_status=User.IdDocumentReviewStatus.PENDING_REVIEW
+        )
+        
+        # Apply scope filtering
+        if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            pending_uploads = pending_uploads.filter(
+                guardian__youth_links__youth__preferred_club__municipality=user.assigned_municipality
+            )
+            pending_guardians_legacy = pending_guardians_legacy.filter(
+                youth_links__youth__preferred_club__municipality=user.assigned_municipality
+            )
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            pending_uploads = pending_uploads.filter(
+                guardian__youth_links__youth__preferred_club=user.assigned_club
+            )
+            pending_guardians_legacy = pending_guardians_legacy.filter(
+                youth_links__youth__preferred_club=user.assigned_club
+            )
+        
+        # Get unique guardian IDs from both sources
+        pending_guardian_ids_uploads = set(pending_uploads.values_list('guardian_id', flat=True).distinct())
+        pending_guardian_ids_legacy = set(pending_guardians_legacy.values_list('id', flat=True).distinct())
+        
+        all_pending_guardian_ids = pending_guardian_ids_uploads | pending_guardian_ids_legacy
+        
+        return Response({
+            "pending_count": len(all_pending_guardian_ids),
+            "pending_guardian_ids": list(all_pending_guardian_ids)
+        })

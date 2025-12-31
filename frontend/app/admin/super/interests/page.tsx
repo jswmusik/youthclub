@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
+import { useTranslations } from 'next-intl';
 import InterestManager from '@/app/components/InterestManager';
 import { Heart } from 'lucide-react';
 
@@ -9,6 +10,8 @@ function InterestManagerPageContent() {
 }
 
 function LoadingState() {
+  const t = useTranslations('interests');
+  
   return (
     <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
       <div className="relative">
@@ -17,7 +20,7 @@ function LoadingState() {
         </div>
         <div className="absolute -inset-2 bg-[var(--brand-primary)]/20 rounded-3xl blur-xl animate-pulse"></div>
       </div>
-      <div className="text-[var(--brand-light)]/60 animate-pulse">Loading interests...</div>
+      <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</div>
     </div>
   );
 }

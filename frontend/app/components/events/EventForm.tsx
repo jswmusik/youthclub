@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Upload, X, FileText, Search, Calendar, MapPin, Users, Clock, Settings, Image, Repeat, ChevronUp, Globe, Building, Save, Lightbulb, CheckCircle2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { Event, EventStatus, TargetAudience } from '@/types/event';
 import { useAuth } from '@/context/AuthContext';
 import { getMediaUrl } from '@/app/utils';
 import DarkRichTextEditor from '@/app/components/DarkRichTextEditor';
-import Toast from '@/app/components/Toast';
+import { useToast } from '../../../hooks/useToast';
 
 // Shadcn
 // Using custom dark-themed components instead of shadcn
@@ -23,8 +24,10 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user } = useAuth();
+    const t = useTranslations('eventsAdmin.form');
+    const tStatus = useTranslations('eventsAdmin.status');
     const [loading, setLoading] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+    const { success, error, info, warning } = useToast();
     const [clubDetails, setClubDetails] = useState<any>(null); // Store club details to get municipality
     
     // Super Admin & Municipality Admin Organization Selection States
@@ -78,6 +81,11 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
     
     // SEO section collapsed state (default collapsed)
     const [seoExpanded, setSeoExpanded] = useState(false);
+    
+    // Custom Fields for Registration
+    const [availableCustomFields, setAvailableCustomFields] = useState<any[]>([]);
+    const [selectedCustomFields, setSelectedCustomFields] = useState<Array<{field_id: number; is_required: boolean; order: number}>>([]);
+    const [showCustomFieldDropdown, setShowCustomFieldDropdown] = useState(false);
 
     const [formData, setFormData] = useState<Partial<Event>>({
         title: '',
@@ -144,6 +152,30 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 console.error('Failed to fetch groups:', err);
             });
     }, []);
+    
+    // Fetch available custom fields for events
+    useEffect(() => {
+        api.get('/custom-fields/available_for_events/')
+            .then(res => {
+                const fields = Array.isArray(res.data) ? res.data : (res.data.results || []);
+                setAvailableCustomFields(fields);
+            })
+            .catch(err => {
+                console.error('Failed to fetch custom fields:', err);
+            });
+    }, []);
+    
+    // Initialize selected custom fields when editing
+    useEffect(() => {
+        if (initialData?.event_custom_fields && initialData.event_custom_fields.length > 0) {
+            const existingFields = initialData.event_custom_fields.map((ecf: any) => ({
+                field_id: ecf.field_detail?.id || ecf.field_id,
+                is_required: ecf.is_required,
+                order: ecf.order
+            }));
+            setSelectedCustomFields(existingFields);
+        }
+    }, [initialData]);
 
     // Fetch municipalities and clubs for super admin
     useEffect(() => {
@@ -547,12 +579,12 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             // Validate recurrence settings
             if (formData.is_recurring) {
                 if (!formData.recurrence_pattern || formData.recurrence_pattern === 'NONE') {
-                    alert('Please select a recurrence pattern (Daily, Weekly, or Monthly) when creating a recurring event.');
+                    alert(t('validation.recurrencePatternRequired'));
                     setLoading(false);
                     return;
                 }
                 if (!formData.recurrence_end_date) {
-                    alert('Please set an end date for the recurring event series.');
+                    alert(t('validation.recurrenceEndDateRequired'));
                     setLoading(false);
                     return;
                 }
@@ -561,17 +593,17 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             // Validate super admin and municipality admin organization selection
             if (scope === 'SUPER' || scope === 'MUNICIPALITY') {
                 if (scope === 'SUPER' && (eventScope === 'municipality' || eventScope === 'global') && !selectedMunicipality) {
-                    alert(`Please select a municipality for the ${eventScope === 'global' ? 'global' : 'municipality'} event`);
+                    alert(t('validation.selectMunicipality', { scope: eventScope === 'global' ? t('sections.scope.globalEvent') : t('sections.scope.municipalityEvent') }));
                     setLoading(false);
                     return;
                 }
                 if (eventScope === 'clubs' && selectedClubs.length === 0) {
-                    alert('Please select a club for the club event');
+                    alert(t('validation.selectClub'));
                     setLoading(false);
                     return;
                 }
                 if (eventScope === 'clubs' && selectedClubs.length > 1) {
-                    alert('Please select only one club. For multiple clubs, use Municipality-Wide Event instead.');
+                    alert(t('validation.selectOnlyOneClub'));
                     setLoading(false);
                     return;
                 }
@@ -582,7 +614,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 const closeDate = new Date(convertToISO(formData.registration_close_date));
                 const startDate = new Date(convertToISO(formData.start_date));
                 if (closeDate >= startDate) {
-                    alert('Registration close date must be before the event start date.');
+                    alert(t('validation.registrationCloseDateBeforeStart'));
                     setLoading(false);
                     return;
                 }
@@ -1115,20 +1147,30 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 }
             }
 
-            // 4. Final validation - ensure no arrays are being sent
+            // 4. Custom Fields for Registration
+            const customFieldsPayload = selectedCustomFields.length > 0 ? selectedCustomFields : [];
+            const customFieldsJson = JSON.stringify(customFieldsPayload);
+            console.log('=== Custom Fields Debug ===');
+            console.log('selectedCustomFields:', selectedCustomFields);
+            console.log('customFieldsPayload:', customFieldsPayload);
+            console.log('customFieldsJson:', customFieldsJson);
+            console.log('Is array:', Array.isArray(customFieldsPayload));
+            data.append('custom_fields', customFieldsJson);
+            
+            // 5. Final validation - ensure no arrays are being sent
             console.log('=== Final FormData Validation ===');
             const formDataEntries: Array<[string, any]> = [];
             for (const [key, value] of data.entries()) {
                 formDataEntries.push([key, value]);
                 if (Array.isArray(value)) {
                     console.error(`CRITICAL: FormData contains array for ${key}:`, value);
-                } else if (typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']')) {
+                } else if (typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']') && key !== 'custom_fields') {
                     console.error(`CRITICAL: FormData contains stringified array for ${key}:`, value);
                 }
             }
             console.log('FormData entries:', formDataEntries.slice(0, 20)); // Log first 20 entries
             
-            // 5. Create/Update Event
+            // 6. Create/Update Event
             let eventId = initialData?.id;
             const config = { headers: { 'Content-Type': 'multipart/form-data' } };
             
@@ -1178,10 +1220,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             await Promise.all(uploads);
 
             // Show success toast
-            setToast({ 
-                message: initialData ? 'Event updated successfully!' : 'Event created successfully!', 
-                type: 'success' 
-            });
+            success(initialData ? t('toast.eventUpdated') : t('toast.eventCreated'));
 
             // Build URL with preserved query parameters
             const basePath = `/admin/${scope.toLowerCase()}/events`;
@@ -1296,9 +1335,9 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 </Link>
                 <div className="flex-1">
                     <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
-                        {initialData ? 'Edit Event' : 'Create New Event'}
+                        {initialData ? t('editTitle') : t('createTitle')}
                     </h1>
-                    <p className="text-[var(--brand-light)]/50 text-sm mt-1">Configure event details, targeting, and registration rules.</p>
+                    <p className="text-[var(--brand-light)]/50 text-sm mt-1">{t('subtitle')}</p>
                 </div>
             </div>
 
@@ -1312,8 +1351,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <Image className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Media & Presentation</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Upload cover image and gallery images for the event.</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.media.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('sections.media.description')}</p>
                         </div>
                     </div>
                 </div>
@@ -1321,7 +1360,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 
                 {/* Cover Image */}
                 <div className="space-y-2">
-                    <label className={labelClasses}>Cover Image (Main)</label>
+                    <label className={labelClasses}>{t('sections.media.coverImage')}</label>
                     <div className="flex flex-col sm:flex-row gap-4 items-start">
                         <div 
                             className="relative group w-full sm:w-64 h-40 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
@@ -1352,7 +1391,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             ) : (
                                 <div className="text-center p-4">
                                     <Image className="h-8 w-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
-                                    <span className="text-sm text-[var(--brand-light)]/40">Click to upload</span>
+                                    <span className="text-sm text-[var(--brand-light)]/40">{t('sections.media.clickToUpload')}</span>
                                     <p className="text-xs text-[var(--brand-light)]/30 mt-1">1200 × 400px</p>
                                 </div>
                             )}
@@ -1375,7 +1414,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     };
                                     input.click();
                                 }} className="px-4 py-2.5 bg-[var(--dark-600)] text-[var(--brand-light)] text-sm font-medium rounded-xl hover:bg-[var(--dark-500)] transition-all">
-                                    Choose File
+                                    {t('sections.media.chooseFile')}
                                 </button>
                                 {coverPreview && (
                                     <button type="button" onClick={() => {
@@ -1385,14 +1424,14 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         setCoverFile(null);
                                         setCoverPreview(null);
                                     }} className="px-4 py-2.5 bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-sm font-medium rounded-xl hover:bg-[var(--brand-red)]/30 transition-all flex items-center gap-2">
-                                        <X className="h-4 w-4" /> Remove
+                                        <X className="h-4 w-4" /> {t('sections.media.remove')}
                                     </button>
                                 )}
                             </div>
                             <div className="bg-[var(--dark-700)] rounded-xl p-3 border border-[var(--dark-500)]">
                                 <div className="flex items-start gap-2">
                                     <Lightbulb className="w-4 h-4 text-[var(--brand-peach)] flex-shrink-0 mt-0.5" />
-                                    <p className="text-xs text-[var(--brand-light)]/50">High-quality landscape images (3:1 ratio) work best for cover images.</p>
+                                    <p className="text-xs text-[var(--brand-light)]/50">{t('sections.media.coverImageHint')}</p>
                                 </div>
                             </div>
                         </div>
@@ -1401,11 +1440,11 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
 
                 {/* Image Gallery */}
                 <div className="space-y-2 mt-6">
-                    <label className={labelClasses}>Image Gallery (Slideshow)</label>
+                    <label className={labelClasses}>{t('sections.media.imageGallery')}</label>
                     <div className="flex items-center gap-2">
                         <label className="cursor-pointer bg-[var(--dark-700)] border-2 border-dashed border-[var(--dark-500)] rounded-xl p-4 text-center w-full hover:bg-[var(--dark-600)] hover:border-[var(--brand-primary)]/50 transition-colors">
                             <Upload className="w-5 h-5 mx-auto text-[var(--brand-light)]/40 mb-1" />
-                            <span className="text-xs text-[var(--brand-light)]/40">Upload Images</span>
+                            <span className="text-xs text-[var(--brand-light)]/40">{t('sections.media.uploadImages')}</span>
                             <input type="file" multiple accept="image/*" className="hidden" 
                                 onChange={e => {
                                     if (e.target.files) {
@@ -1435,7 +1474,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                     setExistingImages(prev => prev.filter(i => i.id !== img.id));
                                                 } catch (err) {
                                                     console.error('Failed to delete image:', err);
-                                                    alert('Failed to delete image');
+                                                    alert(t('sections.media.failedToDeleteImage'));
                                                 }
                                             }}
                                             className="absolute top-1 right-1 bg-[var(--brand-red)] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1450,7 +1489,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         {/* New Images Preview */}
                         {galleryFiles.length > 0 && (
                             <div className="mt-3">
-                                <div className="text-xs text-[var(--brand-primary)] mb-2">{galleryFiles.length} new image(s) selected</div>
+                                <div className="text-xs text-[var(--brand-primary)] mb-2">{t('sections.media.newImagesSelected', { count: galleryFiles.length })}</div>
                                 <div className="grid grid-cols-4 gap-2">
                                     {galleryFiles.map((file, index) => (
                                         <div key={index} className="relative group">
@@ -1485,58 +1524,58 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <FileText className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Enter event title, description, cost, and status.</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.basicInfo.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('sections.basicInfo.description')}</p>
                         </div>
                     </div>
                 </div>
                 <div className="p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2 space-y-2">
-                            <label className={labelClasses}>Event Title <span className="text-[var(--brand-red)]">*</span></label>
+                            <label className={labelClasses}>{t('sections.basicInfo.eventTitle')} <span className="text-[var(--brand-red)]">*</span></label>
                             <input 
                                 required 
                                 type="text" 
                                 className={inputClasses}
-                                placeholder="Enter event title..."
+                                placeholder={t('sections.basicInfo.eventTitlePlaceholder')}
                                 value={formData.title} 
                                 onChange={e => handleChange('title', e.target.value)}
                             />
                         </div>
                         
                         <div className="md:col-span-2 space-y-2">
-                            <label className={labelClasses}>Description</label>
+                            <label className={labelClasses}>{t('sections.basicInfo.description')}</label>
                             <DarkRichTextEditor
                                 value={formData.description || ''}
                                 onChange={(content) => handleChange('description', content)}
-                                placeholder="Describe your event..."
+                                placeholder={t('sections.basicInfo.descriptionPlaceholder')}
                                 minHeight="200px"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label className={labelClasses}>Cost (Leave empty for Free)</label>
+                            <label className={labelClasses}>{t('sections.basicInfo.cost')}</label>
                             <input 
                                 type="text" 
                                 className={inputClasses}
-                                placeholder="e.g. 50" 
+                                placeholder={t('sections.basicInfo.costPlaceholder')}
                                 value={formData.cost || ''} 
                                 onChange={e => handleChange('cost', e.target.value)}
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label className={labelClasses}>Status</label>
+                            <label className={labelClasses}>{t('sections.basicInfo.status')}</label>
                             <select 
                                 className={selectClasses}
                                 style={selectArrowStyle}
                                 value={formData.status}
                                 onChange={e => handleChange('status', e.target.value)}
                             >
-                                <option value={EventStatus.DRAFT}>Draft</option>
-                                <option value={EventStatus.PUBLISHED}>Published</option>
-                                <option value={EventStatus.SCHEDULED}>Scheduled</option>
-                                <option value={EventStatus.CANCELLED}>Cancelled</option>
+                                <option value={EventStatus.DRAFT}>{tStatus('draft')}</option>
+                                <option value={EventStatus.PUBLISHED}>{tStatus('published')}</option>
+                                <option value={EventStatus.SCHEDULED}>{tStatus('scheduled')}</option>
+                                <option value={EventStatus.CANCELLED}>{tStatus('cancelled')}</option>
                             </select>
                         </div>
                     </div>
@@ -1545,7 +1584,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     {formData.status === EventStatus.SCHEDULED && (
                         <div className="mt-6 p-4 bg-[var(--brand-primary)]/10 rounded-xl border border-[var(--brand-primary)]/30">
                             <label className={labelClasses}>
-                                Schedule Publish Date & Time <span className="text-[var(--brand-red)]">*</span>
+                                {t('sections.basicInfo.schedulePublishDate')} <span className="text-[var(--brand-red)]">*</span>
                             </label>
                             <input 
                                 required={formData.status === EventStatus.SCHEDULED}
@@ -1554,7 +1593,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 value={formatDateForInput(formData.scheduled_publish_date)}
                                 onChange={e => handleChange('scheduled_publish_date', e.target.value)}
                             />
-                            <p className="text-xs text-[var(--brand-light)]/50 mt-2">The event will be automatically published at this date and time</p>
+                            <p className="text-xs text-[var(--brand-light)]/50 mt-2">{t('sections.basicInfo.schedulePublishHint')}</p>
                         </div>
                     )}
                 </div>
@@ -1568,15 +1607,15 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <Clock className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">When</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Set the start and end date and time for the event.</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.when.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('sections.when.description')}</p>
                         </div>
                     </div>
                 </div>
                 <div className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className={labelClasses}>Start Date & Time <span className="text-[var(--brand-red)]">*</span></label>
+                            <label className={labelClasses}>{t('sections.when.startDate')} <span className="text-[var(--brand-red)]">*</span></label>
                             <input 
                                 required 
                                 type="datetime-local" 
@@ -1586,7 +1625,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className={labelClasses}>End Date & Time <span className="text-[var(--brand-red)]">*</span></label>
+                            <label className={labelClasses}>{t('sections.when.endDate')} <span className="text-[var(--brand-red)]">*</span></label>
                             <input 
                                 required 
                                 type="datetime-local" 
@@ -1608,8 +1647,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 <Repeat className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Recurring Event</h2>
-                                <p className="text-sm text-[var(--brand-light)]/50">Set up recurring event patterns.</p>
+                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.recurring.title')}</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">{t('sections.recurring.description')}</p>
                             </div>
                         </div>
                         <label className="flex items-center gap-2 cursor-pointer">
@@ -1619,7 +1658,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 onChange={e => handleChange('is_recurring', e.target.checked)} 
                                 className={checkboxClasses}
                             />
-                            <span className="text-sm font-medium text-[var(--brand-light)]">Repeat this event</span>
+                            <span className="text-sm font-medium text-[var(--brand-light)]">{t('sections.recurring.repeatThisEvent')}</span>
                         </label>
                     </div>
                 </div>
@@ -1627,21 +1666,21 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     <div className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-[var(--brand-primary)]/10 rounded-xl border border-[var(--brand-primary)]/30">
                             <div className="space-y-2">
-                                <label className={labelClasses}>Repeat Pattern</label>
+                                <label className={labelClasses}>{t('sections.recurring.repeatPattern')}</label>
                                 <select 
                                     className={selectClasses}
                                     style={selectArrowStyle}
                                     value={formData.recurrence_pattern || 'NONE'}
                                     onChange={e => handleChange('recurrence_pattern', e.target.value)}
                                 >
-                                    <option value="DAILY">Daily</option>
-                                    <option value="WEEKLY">Weekly</option>
-                                    <option value="MONTHLY">Monthly</option>
+                                    <option value="DAILY">{t('sections.recurring.patterns.daily')}</option>
+                                    <option value="WEEKLY">{t('sections.recurring.patterns.weekly')}</option>
+                                    <option value="MONTHLY">{t('sections.recurring.patterns.monthly')}</option>
                                 </select>
                             </div>
                             
                             <div className="space-y-2">
-                                <label className={labelClasses}>Repeat Until (End Date)</label>
+                                <label className={labelClasses}>{t('sections.recurring.repeatUntil')}</label>
                                 <input 
                                     type="date" 
                                     className={inputClasses}
@@ -1650,7 +1689,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     onChange={e => handleChange('recurrence_end_date', e.target.value)}
                                 />
                                 <p className="text-xs text-[var(--brand-light)]/50">
-                                    Instances will be created from the start date until this date.
+                                    {t('sections.recurring.repeatUntilHint')}
                                 </p>
                             </div>
                         </div>
@@ -1667,11 +1706,11 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 <Globe className="w-5 h-5 text-[var(--dark-900)]" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">Event Scope</h2>
+                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.scope.title')}</h2>
                                 <p className="text-sm text-[var(--brand-light)]/50">
                                     {scope === 'SUPER' 
-                                        ? 'Choose where this event will be visible and available'
-                                        : 'Choose if this event is for all clubs in your municipality or specific clubs'}
+                                        ? t('sections.scope.descriptionSuper')
+                                        : t('sections.scope.descriptionMunicipality')}
                                 </p>
                             </div>
                         </div>
@@ -1689,8 +1728,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 }}
                                 className={`px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all ${eventScope === 'global' ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                             >
-                                <div className="font-semibold">Global Event</div>
-                                <div className="text-xs opacity-75 mt-1">All municipalities and clubs</div>
+                                <div className="font-semibold">{t('sections.scope.globalEvent')}</div>
+                                <div className="text-xs opacity-75 mt-1">{t('sections.scope.globalEventDesc')}</div>
                             </button>
                         )}
                         <button
@@ -1701,9 +1740,9 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             }}
                             className={`px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all ${eventScope === 'municipality' ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                         >
-                            <div className="font-semibold">{scope === 'SUPER' ? 'Municipality Event' : 'Municipality-Wide Event'}</div>
+                            <div className="font-semibold">{scope === 'SUPER' ? t('sections.scope.municipalityEvent') : t('sections.scope.municipalityWideEvent')}</div>
                             <div className="text-xs opacity-75 mt-1">
-                                {scope === 'SUPER' ? 'Specific municipality' : 'All clubs in your municipality'}
+                                {scope === 'SUPER' ? t('sections.scope.municipalityEventDesc') : t('sections.scope.municipalityWideDesc')}
                             </div>
                         </button>
                         <button
@@ -1713,9 +1752,9 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             }}
                             className={`px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all ${eventScope === 'clubs' ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                         >
-                            <div className="font-semibold">Club Event(s)</div>
+                            <div className="font-semibold">{t('sections.scope.clubEvent')}</div>
                             <div className="text-xs opacity-75 mt-1">
-                                {scope === 'SUPER' ? 'Specific clubs' : 'Specific clubs in your municipality'}
+                                {scope === 'SUPER' ? t('sections.scope.clubEventDescSuper') : t('sections.scope.clubEventDescMunicipality')}
                             </div>
                         </button>
                     </div>
@@ -1724,9 +1763,9 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     {(eventScope === 'municipality' || eventScope === 'global') && scope === 'SUPER' && (
                         <div className="mb-4 space-y-2">
                             <label className={labelClasses}>
-                                Select Municipality
+                                {t('sections.scope.selectMunicipality')}
                                 {eventScope === 'global' && (
-                                    <span className="text-xs text-[var(--brand-light)]/40 font-normal ml-2">(Required for organizational purposes)</span>
+                                    <span className="text-xs text-[var(--brand-light)]/40 font-normal ml-2">{t('sections.scope.selectMunicipalityRequired')}</span>
                                 )}
                             </label>
                             <select
@@ -1740,7 +1779,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 }}
                                 required={eventScope === 'global' || eventScope === 'municipality'}
                             >
-                                <option value="">Select a municipality...</option>
+                                <option value="">{t('sections.scope.selectMunicipalityPlaceholder')}</option>
                                 {municipalities.map((muni) => (
                                     <option key={muni.id} value={muni.id}>
                                         {muni.name}
@@ -1749,7 +1788,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </select>
                             {eventScope === 'global' && selectedMunicipality && (
                                 <p className="text-xs text-[var(--brand-primary)] mt-2">
-                                    This event will be visible to all municipalities and clubs, regardless of the selected municipality.
+                                    {t('sections.scope.globalEventNote')}
                                 </p>
                             )}
                         </div>
@@ -1758,7 +1797,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     {eventScope === 'municipality' && scope === 'MUNICIPALITY' && selectedMunicipality && (
                         <div className="mb-4 p-3 bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 rounded-xl">
                             <p className="text-sm text-[var(--brand-primary)]">
-                                <strong>Municipality-wide:</strong> This event will be visible to all clubs in your municipality.
+                                <strong>{t('sections.scope.municipalityWideNote')}</strong>
                             </p>
                         </div>
                     )}
@@ -1769,7 +1808,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             {/* Municipality filter (Super Admin only) */}
                             {scope === 'SUPER' && (
                                 <>
-                                    <label className={labelClasses}>Select Municipality (to filter clubs)</label>
+                                    <label className={labelClasses}>{t('sections.scope.selectMunicipalityFilter')}</label>
                                     <select
                                         className={selectClasses}
                                         style={selectArrowStyle}
@@ -1780,7 +1819,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                             setSelectedClubs([]);
                                         }}
                                     >
-                                        <option value="">All municipalities</option>
+                                        <option value="">{t('sections.scope.allMunicipalities')}</option>
                                         {municipalities.map((muni) => (
                                             <option key={muni.id} value={muni.id}>
                                                 {muni.name}
@@ -1790,8 +1829,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 </>
                             )}
 
-                            <label className={`${labelClasses} mt-4`}>Select Club</label>
-                            <p className="text-xs text-[var(--brand-light)]/50 mb-2">Select one club. For multiple clubs, use Municipality-Wide Event instead.</p>
+                            <label className={`${labelClasses} mt-4`}>{t('sections.scope.selectClub')}</label>
+                            <p className="text-xs text-[var(--brand-light)]/50 mb-2">{t('sections.scope.selectClubHint')}</p>
                             
                             {/* Selected Clubs Display */}
                             {selectedClubs.length > 0 && (
@@ -1827,7 +1866,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40 pointer-events-none" />
                                     <input
                                         type="text"
-                                        placeholder="Search clubs by name..."
+                                        placeholder={t('sections.scope.searchClubsPlaceholder')}
                                         value={clubSearch}
                                         onChange={(e) => {
                                             setClubSearch(e.target.value);
@@ -1875,10 +1914,10 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                     return (
                                                         <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                                                             {clubSearch 
-                                                                ? `No clubs found matching "${clubSearch}"`
+                                                                ? t('sections.scope.noClubsFound', { search: clubSearch })
                                                                 : selectedMunicipality
-                                                                    ? 'No clubs available in this municipality'
-                                                                    : 'No clubs available'}
+                                                                    ? t('sections.scope.noClubsInMunicipality')
+                                                                    : t('sections.scope.noClubsAvailable')}
                                                         </div>
                                                     );
                                                 }
@@ -1911,8 +1950,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             {selectedClubs.length > 0 && (
                                 <div className="mt-3 p-3 bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 rounded-xl">
                                     <p className="text-sm text-[var(--brand-primary)]">
-                                        <strong>Note:</strong> This event will only be visible to members of <strong>{allClubs.find(c => c.id === selectedClubs[0])?.name}</strong>. 
-                                        If you want members from multiple clubs to join, create a <strong>Municipality-Wide Event</strong> instead.
+                                        <strong>{t('sections.scope.clubEventNote')}</strong> <strong>{allClubs.find(c => c.id === selectedClubs[0])?.name}</strong>. {t('sections.scope.clubEventNoteSuffix')}
                                     </p>
                                 </div>
                             )}
@@ -1930,36 +1968,36 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <MapPin className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Location</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Set the event location and map settings.</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.location.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('sections.location.description')}</p>
                         </div>
                     </div>
                 </div>
                 <div className="p-6 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2 space-y-2">
-                            <label className={labelClasses}>Location Name <span className="text-[var(--brand-red)]">*</span></label>
+                            <label className={labelClasses}>{t('sections.location.locationName')} <span className="text-[var(--brand-red)]">*</span></label>
                             <input required type="text" className={inputClasses}
-                                placeholder="e.g. Community Center"
+                                placeholder={t('sections.location.locationNamePlaceholder')}
                                 value={formData.location_name} onChange={e => handleChange('location_name', e.target.value)} />
                         </div>
                         <div className="md:col-span-2 space-y-2">
-                            <label className={labelClasses}>Address (for Map)</label>
+                            <label className={labelClasses}>{t('sections.location.address')}</label>
                             <input type="text" className={inputClasses}
-                                placeholder="Full address for map display"
+                                placeholder={t('sections.location.addressPlaceholder')}
                                 value={formData.address} onChange={e => handleChange('address', e.target.value)} />
                         </div>
                         
                         <div className="space-y-2">
-                            <label className={labelClasses}>Latitude</label>
+                            <label className={labelClasses}>{t('sections.location.latitude')}</label>
                             <input type="number" step="any" className={inputClasses}
-                                placeholder="e.g. 59.3293"
+                                placeholder={t('sections.location.latitudePlaceholder')}
                                 value={formData.latitude || ''} onChange={e => handleChange('latitude', e.target.value ? parseFloat(e.target.value) : undefined)} />
                         </div>
                         <div className="space-y-2">
-                            <label className={labelClasses}>Longitude</label>
+                            <label className={labelClasses}>{t('sections.location.longitude')}</label>
                             <input type="number" step="any" className={inputClasses}
-                                placeholder="e.g. 18.0686"
+                                placeholder={t('sections.location.longitudePlaceholder')}
                                 value={formData.longitude || ''} onChange={e => handleChange('longitude', e.target.value ? parseFloat(e.target.value) : undefined)} />
                         </div>
 
@@ -1968,7 +2006,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 <input type="checkbox" checked={formData.is_map_visible} 
                                     onChange={e => handleChange('is_map_visible', e.target.checked)}
                                     className={checkboxClasses} />
-                                <span className="text-sm font-medium text-[var(--brand-light)]">Show Map on Event Page</span>
+                                <span className="text-sm font-medium text-[var(--brand-light)]">{t('sections.location.showMap')}</span>
                             </label>
                         </div>
                     </div>
@@ -1983,8 +2021,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <Users className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Define who this event is targeted towards.</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.targetAudience.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('sections.targetAudience.description')}</p>
                         </div>
                     </div>
                 </div>
@@ -1998,14 +2036,14 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 onClick={() => handleChange('target_audience', type)}
                                 className={`px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${formData.target_audience === type ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                             >
-                                {type === 'BOTH' ? 'Youth & Guardians' : type.charAt(0) + type.slice(1).toLowerCase()}
+                                {type === 'BOTH' ? t('sections.targetAudience.both') : type === 'YOUTH' ? t('sections.targetAudience.youth') : t('sections.targetAudience.guardian')}
                             </button>
                         ))}
                     </div>
 
                 {/* Group Search Widget - Matching Guardian Pattern */}
                 <div className="mb-6 space-y-2">
-                    <label className={labelClasses}>Target Specific Groups</label>
+                    <label className={labelClasses}>{t('sections.targetAudience.groups')}</label>
                     
                     {/* Selected Groups Display */}
                     {selectedGroups.length > 0 && (
@@ -2032,7 +2070,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40 pointer-events-none" />
                             <input
                                 type="text"
-                                placeholder="Search groups by name..."
+                                placeholder={t('sections.targetAudience.searchGroups')}
                                 value={groupSearch}
                                 onChange={(e) => {
                                     setGroupSearch(e.target.value);
@@ -2067,15 +2105,15 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         ))
                                     ) : groupSearch ? (
                                         <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
-                                            No groups found matching "{groupSearch}"
+                                            {t('sections.targetAudience.noGroupsFound', { search: groupSearch })}
                                         </div>
                                     ) : (
                                         <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                                             {selectedGroups.length === 0 
                                                 ? groupsList.length === 0
-                                                    ? 'No groups available.'
-                                                    : 'All groups are shown below. Start typing to filter.'
-                                                : 'All groups are already selected.'}
+                                                    ? t('sections.targetAudience.noGroupsAvailable')
+                                                    : t('sections.targetAudience.allGroupsShown')
+                                                : t('sections.targetAudience.allGroupsSelected')}
                                         </div>
                                     )}
                                 </div>
@@ -2087,23 +2125,23 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 {/* Hide demographics if groups are selected */}
                 {(!formData.target_groups || formData.target_groups.length === 0) && (
                     <div className="mt-8 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
-                        <h4 className="font-bold text-[var(--brand-light)] mb-4">Or Filter by Demographics</h4>
+                        <h4 className="font-bold text-[var(--brand-light)] mb-4">{t('sections.targetAudience.filterByDemographics')}</h4>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className={labelClasses}>Age Range</label>
+                                <label className={labelClasses}>{t('sections.targetAudience.ageRange')}</label>
                                 <div className="flex items-center gap-2">
                                     <input 
                                         type="number" 
-                                        placeholder="Min" 
+                                        placeholder={t('sections.targetAudience.minAge')}
                                         className={`${inputClasses} w-24`}
                                         value={formData.target_min_age || ''} 
                                         onChange={e => handleChange('target_min_age', e.target.value ? parseInt(e.target.value) : undefined)} 
                                     />
-                                    <span className="text-sm text-[var(--brand-light)]/50">to</span>
+                                    <span className="text-sm text-[var(--brand-light)]/50">{t('sections.targetAudience.to')}</span>
                                     <input 
                                         type="number" 
-                                        placeholder="Max" 
+                                        placeholder={t('sections.targetAudience.maxAge')}
                                         className={`${inputClasses} w-24`}
                                         value={formData.target_max_age || ''} 
                                         onChange={e => handleChange('target_max_age', e.target.value ? parseInt(e.target.value) : undefined)} 
@@ -2112,7 +2150,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
 
                             <div className="space-y-2">
-                                <label className={labelClasses}>Genders</label>
+                                <label className={labelClasses}>{t('sections.targetAudience.gender')}</label>
                                 <div className="flex gap-4 mt-2">
                                     {['MALE', 'FEMALE', 'OTHER'].map(g => (
                                         <label key={g} className="flex items-center gap-2 cursor-pointer">
@@ -2129,7 +2167,9 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                 }}
                                                 className={checkboxClasses}
                                             />
-                                            <span className="text-sm capitalize text-[var(--brand-light)]/80">{g.toLowerCase()}</span>
+                                            <span className="text-sm capitalize text-[var(--brand-light)]/80">
+                                                {g === 'MALE' ? t('sections.targetAudience.male') : g === 'FEMALE' ? t('sections.targetAudience.female') : t('sections.targetAudience.other')}
+                                            </span>
                                         </label>
                                     ))}
                                 </div>
@@ -2137,7 +2177,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         </div>
 
                         <div className="mt-4 space-y-2">
-                            <label className={labelClasses}>Grades</label>
+                            <label className={labelClasses}>{t('sections.targetAudience.grades')}</label>
                             <div className="flex flex-wrap gap-2 mt-2">
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map(grade => (
                                     <button
@@ -2153,14 +2193,14 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         }}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium border-2 transition-all ${formData.target_grades?.includes(grade) ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/50' : 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'}`}
                                     >
-                                        Grade {grade}
+                                        {t('sections.targetAudience.grade')} {grade}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
                         <div className="mt-4 space-y-2">
-                            <label className={labelClasses}>Interests</label>
+                            <label className={labelClasses}>{t('sections.targetAudience.interests')}</label>
                             
                             {/* Selected Interests Display */}
                             {selectedInterests.length > 0 && (
@@ -2187,7 +2227,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40 pointer-events-none" />
                                     <input
                                         type="text"
-                                        placeholder="Search interests by name..."
+                                        placeholder={t('sections.targetAudience.searchInterests')}
                                         value={interestSearch}
                                         onChange={(e) => {
                                             setInterestSearch(e.target.value);
@@ -2219,13 +2259,13 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                 ))
                                             ) : interestSearch ? (
                                                 <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
-                                                    No interests found matching "{interestSearch}"
+                                                    {t('sections.targetAudience.noInterestsFound', { search: interestSearch })}
                                                 </div>
                                             ) : (
                                                 <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
                                                     {selectedInterests.length === 0 
-                                                        ? 'Start typing to search for interests...'
-                                                        : 'All matching interests are already selected.'}
+                                                        ? t('sections.targetAudience.startTypingInterests')
+                                                        : t('sections.targetAudience.allInterestsSelected')}
                                                 </div>
                                             )}
                                         </div>
@@ -2246,8 +2286,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <FileText className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Documents & Attachments</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Upload documents related to this event.</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.documents.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('sections.documents.description')}</p>
                         </div>
                     </div>
                 </div>
@@ -2263,14 +2303,14 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             }} />
                         <label htmlFor="doc-upload" className="cursor-pointer">
                             <FileText className="w-8 h-8 text-[var(--brand-light)]/30 mx-auto mb-2" />
-                            <p className="text-sm text-[var(--brand-light)]/40">Click to upload PDFs, Docs, or Excel files</p>
+                            <p className="text-sm text-[var(--brand-light)]/40">{t('sections.documents.clickToUpload')}</p>
                         </label>
                     </div>
                 
                 {/* Existing Documents */}
                 {existingDocuments.length > 0 && (
                     <div className="mt-4">
-                        <p className="text-xs text-[var(--brand-light)]/50 mb-2">Existing documents:</p>
+                        <p className="text-xs text-[var(--brand-light)]/50 mb-2">{t('sections.documents.existingDocuments')}</p>
                         <ul className="space-y-2">
                             {existingDocuments.map((doc) => (
                                 <li key={doc.id} className="flex items-center justify-between text-sm bg-[var(--dark-700)] p-3 rounded-xl border border-[var(--dark-500)]">
@@ -2350,8 +2390,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <Settings className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">Registration & Capacity</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Configure registration settings and capacity limits.</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.registration.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('sections.registration.description')}</p>
                         </div>
                     </div>
                 </div>
@@ -2364,24 +2404,24 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             checked={formData.allow_registration}
                             onChange={e => handleChange('allow_registration', e.target.checked)}
                         />
-                        <label htmlFor="allowReg" className="font-bold cursor-pointer text-[var(--brand-light)]">Enable Registration</label>
+                        <label htmlFor="allowReg" className="font-bold cursor-pointer text-[var(--brand-light)]">{t('sections.registration.enableRegistration')}</label>
                     </div>
 
                     {formData.allow_registration && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className={labelClasses}>Regular Seats</label>
+                                    <label className={labelClasses}>{t('sections.registration.regularSeats')}</label>
                                     <input 
                                         type="number" 
                                         className={inputClasses}
                                         value={formData.max_seats}
                                         onChange={e => handleChange('max_seats', parseInt(e.target.value) || 0)}
                                     />
-                                    <p className="text-xs text-[var(--brand-light)]/50">0 = Unlimited</p>
+                                    <p className="text-xs text-[var(--brand-light)]/50">{t('sections.registration.unlimited')}</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className={labelClasses}>Waitlist Spots</label>
+                                    <label className={labelClasses}>{t('sections.registration.waitlistSpots')}</label>
                                     <input 
                                         type="number" 
                                         className={inputClasses}
@@ -2392,7 +2432,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
 
                             <div className="space-y-2">
-                                <label className={labelClasses}>Registration Closes</label>
+                                <label className={labelClasses}>{t('sections.registration.registrationCloses')}</label>
                                 <input 
                                     type="datetime-local" 
                                     className={inputClasses}
@@ -2402,13 +2442,13 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                 />
                                 <p className="text-xs text-[var(--brand-light)]/50">
                                     {formData.registration_close_date 
-                                        ? 'Members can apply until this date and time.'
-                                        : 'If no date/time is specified, members can apply until the event starts. Registration opens when the event is published.'}
+                                        ? t('sections.registration.registrationClosesHint')
+                                        : t('sections.registration.registrationClosesDefaultHint')}
                                 </p>
                             </div>
 
                             <div className="space-y-3 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
-                                <h4 className="font-bold text-sm text-[var(--brand-light)]">Approval Rules</h4>
+                                <h4 className="font-bold text-sm text-[var(--brand-light)]">{t('sections.registration.approvalRules')}</h4>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
                                         type="checkbox" 
@@ -2416,7 +2456,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         onChange={e => handleChange('requires_guardian_approval', e.target.checked)}
                                         className={checkboxClasses}
                                     />
-                                    <span className="text-sm text-[var(--brand-light)]/80">Requires Guardian Approval</span>
+                                    <span className="text-sm text-[var(--brand-light)]/80">{t('sections.registration.requiresGuardianApproval')}</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
@@ -2425,7 +2465,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         onChange={e => handleChange('requires_admin_approval', e.target.checked)}
                                         className={checkboxClasses}
                                     />
-                                    <span className="text-sm text-[var(--brand-light)]/80">Requires Admin Approval (Manual review)</span>
+                                    <span className="text-sm text-[var(--brand-light)]/80">{t('sections.registration.requiresAdminApproval')}</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
@@ -2434,13 +2474,157 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         onChange={e => handleChange('enable_tickets', e.target.checked)}
                                         className={checkboxClasses}
                                     />
-                                    <span className="text-sm text-[var(--brand-light)]/80">Generate Tickets (QR Codes)</span>
+                                    <span className="text-sm text-[var(--brand-light)]/80">{t('sections.registration.generateTickets')}</span>
                                 </label>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Section 8: Custom Fields for Registration */}
+            {availableCustomFields.length > 0 && formData.allow_registration && (
+                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                    <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-pink)] flex items-center justify-center">
+                                <FileText className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.customFields.title')}</h2>
+                                <p className="text-sm text-[var(--brand-light)]/50">{t('sections.customFields.description')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        {/* Selected Custom Fields */}
+                        {selectedCustomFields.length > 0 && (
+                            <div className="space-y-2">
+                                <p className="text-sm text-[var(--brand-light)]/60 mb-2">{t('sections.customFields.selectedFields')}</p>
+                                {selectedCustomFields.map((scf, index) => {
+                                    const fieldDef = availableCustomFields.find(f => f.id === scf.field_id);
+                                    if (!fieldDef) return null;
+                                    return (
+                                        <div 
+                                            key={scf.field_id} 
+                                            className="flex items-center justify-between p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[var(--brand-light)]/40 text-sm">{index + 1}.</span>
+                                                <div>
+                                                    <span className="font-medium text-[var(--brand-light)]">{fieldDef.name}</span>
+                                                    <span className="text-xs text-[var(--brand-light)]/50 ml-2">
+                                                        ({fieldDef.field_type === 'TEXT' ? t('sections.customFields.fieldTypes.text') : 
+                                                          fieldDef.field_type === 'SINGLE_SELECT' ? t('sections.customFields.fieldTypes.dropdown') :
+                                                          fieldDef.field_type === 'MULTI_SELECT' ? t('sections.customFields.fieldTypes.multiSelect') : t('sections.customFields.fieldTypes.checkbox')})
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={scf.is_required}
+                                                        onChange={(e) => {
+                                                            setSelectedCustomFields(prev => 
+                                                                prev.map(f => 
+                                                                    f.field_id === scf.field_id 
+                                                                        ? { ...f, is_required: e.target.checked }
+                                                                        : f
+                                                                )
+                                                            );
+                                                        }}
+                                                        className={checkboxClasses}
+                                                    />
+                                                    <span className="text-sm text-[var(--brand-light)]/70">{t('sections.customFields.required')}</span>
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedCustomFields(prev => 
+                                                            prev.filter(f => f.field_id !== scf.field_id)
+                                                        );
+                                                    }}
+                                                    className="text-[var(--brand-red)] hover:text-[var(--brand-red)]/80 p-1"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Add Custom Field Dropdown */}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setShowCustomFieldDropdown(!showCustomFieldDropdown)}
+                                className="w-full p-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-left text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] transition-colors flex items-center justify-between"
+                            >
+                                <span>{t('sections.customFields.addCustomField')}</span>
+                                <ChevronUp className={`w-4 h-4 transition-transform ${showCustomFieldDropdown ? '' : 'rotate-180'}`} />
+                            </button>
+                            
+                            {showCustomFieldDropdown && (
+                                <>
+                                    <div 
+                                        className="fixed inset-0 z-10" 
+                                        onClick={() => setShowCustomFieldDropdown(false)}
+                                    ></div>
+                                    <div className="absolute z-20 w-full mt-1 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                        {availableCustomFields.filter(f => 
+                                            !selectedCustomFields.some(scf => scf.field_id === f.id)
+                                        ).length > 0 ? (
+                                            availableCustomFields
+                                                .filter(f => !selectedCustomFields.some(scf => scf.field_id === f.id))
+                                                .map(field => (
+                                                    <button
+                                                        key={field.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedCustomFields(prev => [
+                                                                ...prev,
+                                                                {
+                                                                    field_id: field.id,
+                                                                    is_required: field.required || false,
+                                                                    order: prev.length
+                                                                }
+                                                            ]);
+                                                            setShowCustomFieldDropdown(false);
+                                                        }}
+                                                        className="w-full text-left px-4 py-3 hover:bg-[var(--dark-600)] transition-colors border-b border-[var(--dark-600)] last:border-b-0"
+                                                    >
+                                                        <div className="font-medium text-[var(--brand-light)]">{field.name}</div>
+                                                        <div className="text-xs text-[var(--brand-light)]/50">
+                                                            {field.field_type === 'TEXT' ? t('sections.customFields.fieldTypes.textInput') : 
+                                                             field.field_type === 'SINGLE_SELECT' ? t('sections.customFields.fieldTypes.dropdownSelection') :
+                                                             field.field_type === 'MULTI_SELECT' ? t('sections.customFields.fieldTypes.multipleCheckboxes') : t('sections.customFields.fieldTypes.yesNoCheckbox')}
+                                                            {field.help_text && ` • ${field.help_text}`}
+                                                        </div>
+                                                    </button>
+                                                ))
+                                        ) : (
+                                            <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
+                                                {selectedCustomFields.length > 0 
+                                                    ? t('sections.customFields.allFieldsAdded')
+                                                    : t('sections.customFields.noFieldsAvailable')}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {selectedCustomFields.length === 0 && (
+                            <p className="text-sm text-[var(--brand-light)]/40 text-center py-2">
+                                {t('sections.customFields.noFieldsAdded')}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Section: SEO Settings - Collapsible at bottom */}
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
@@ -2454,8 +2638,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <Globe className="w-5 h-5 text-white" />
                         </div>
                         <div className="text-left">
-                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">SEO Settings</h2>
-                            <p className="text-sm text-[var(--brand-light)]/50">Optimize for search engines and social media</p>
+                            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.seo.title')}</h2>
+                            <p className="text-sm text-[var(--brand-light)]/50">{t('sections.seo.description')}</p>
                         </div>
                     </div>
                     <ChevronUp className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform ${seoExpanded ? '' : 'rotate-180'}`} />
@@ -2467,7 +2651,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             {/* Slug */}
                             <div>
                                 <label className={labelClasses}>
-                                    URL Slug <span className="text-[var(--brand-red)]">*</span>
+                                    {t('sections.seo.urlSlug')} <span className="text-[var(--brand-red)]">*</span>
                                 </label>
                                 <input 
                                     required
@@ -2475,95 +2659,95 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     className={inputClasses}
                                     value={formData.slug || ''} 
                                     onChange={e => handleSlugChange(e.target.value)}
-                                    placeholder="Auto-generated from title"
+                                    placeholder={t('sections.seo.urlSlugPlaceholder')}
                                 />
-                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">URL-friendly version of the title (auto-generated, but editable)</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.seo.urlSlugHint')}</p>
                             </div>
 
                             {/* Meta Description */}
                             <div>
-                                <label className={labelClasses}>Meta Description</label>
+                                <label className={labelClasses}>{t('sections.seo.metaDescription')}</label>
                                 <textarea 
                                     className={textareaClasses}
                                     rows={3}
                                     value={formData.meta_description || ''} 
                                     onChange={e => handleChange('meta_description', e.target.value)}
-                                    placeholder="Brief description for search engines (recommended: 150-160 characters)"
+                                    placeholder={t('sections.seo.metaDescriptionPlaceholder')}
                                     maxLength={500}
                                 />
                                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                                    {formData.meta_description?.length || 0}/500 characters
+                                    {t('sections.seo.metaDescriptionHint', { count: formData.meta_description?.length || 0 })}
                                 </p>
                             </div>
 
                             {/* Meta Tags */}
                             <div>
-                                <label className={labelClasses}>Meta Tags</label>
+                                <label className={labelClasses}>{t('sections.seo.metaTags')}</label>
                                 <input 
                                     type="text" 
                                     className={inputClasses}
                                     value={formData.meta_tags || ''} 
                                     onChange={e => handleChange('meta_tags', e.target.value)}
-                                    placeholder="Comma-separated keywords (e.g., event, youth, activities)"
+                                    placeholder={t('sections.seo.metaTagsPlaceholder')}
                                 />
-                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">Comma-separated keywords for search engines</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.seo.metaTagsHint')}</p>
                             </div>
 
                             {/* Page Title */}
                             <div>
-                                <label className={labelClasses}>Page Title</label>
+                                <label className={labelClasses}>{t('sections.seo.pageTitle')}</label>
                                 <input 
                                     type="text" 
                                     className={inputClasses}
                                     value={formData.page_title || ''} 
                                     onChange={e => handleChange('page_title', e.target.value)}
-                                    placeholder="Custom page title (defaults to event title if not set)"
+                                    placeholder={t('sections.seo.pageTitlePlaceholder')}
                                     maxLength={255}
                                 />
-                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">Custom title for the browser tab (optional)</p>
+                                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.seo.pageTitleHint')}</p>
                             </div>
 
                             {/* Social Media Section */}
                             <div className="border-t border-[var(--dark-600)] pt-6 mt-6">
-                                <h4 className="text-md font-semibold mb-4 text-[var(--brand-light)]">Social Media Sharing</h4>
+                                <h4 className="text-md font-semibold mb-4 text-[var(--brand-light)]">{t('sections.seo.socialMediaSharing')}</h4>
                                 
                                 {/* Open Graph */}
                                 <div className="mb-6 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
-                                    <h5 className="text-sm font-medium mb-3 text-[var(--brand-light)]">Open Graph (Facebook, LinkedIn, etc.)</h5>
+                                    <h5 className="text-sm font-medium mb-3 text-[var(--brand-light)]">{t('sections.seo.openGraphTitle')}</h5>
                                     
                                     <div className="space-y-4">
                                         <div>
-                                            <label className={labelClasses}>OG Title</label>
+                                            <label className={labelClasses}>{t('sections.seo.ogTitle')}</label>
                                             <input 
                                                 type="text" 
                                                 className={inputClasses}
                                                 value={formData.og_title || ''} 
                                                 onChange={e => handleChange('og_title', e.target.value)}
-                                                placeholder="Title for social media sharing"
+                                                placeholder={t('sections.seo.ogTitlePlaceholder')}
                                                 maxLength={255}
                                             />
                                         </div>
                                         
                                         <div>
-                                            <label className={labelClasses}>OG Description</label>
+                                            <label className={labelClasses}>{t('sections.seo.ogDescription')}</label>
                                             <textarea 
                                                 className={textareaClasses}
                                                 rows={2}
                                                 value={formData.og_description || ''} 
                                                 onChange={e => handleChange('og_description', e.target.value)}
-                                                placeholder="Description for social media sharing"
+                                                placeholder={t('sections.seo.ogDescriptionPlaceholder')}
                                                 maxLength={500}
                                             />
                                         </div>
                                         
                                         <div>
-                                            <label className={labelClasses}>OG Image</label>
+                                            <label className={labelClasses}>{t('sections.seo.ogImage')}</label>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-32 h-20 bg-[var(--dark-600)] rounded-xl overflow-hidden border-2 border-[var(--dark-500)]">
                                                     {ogImagePreview ? (
                                                         <img src={ogImagePreview} className="w-full h-full object-cover" alt="OG Preview" />
                                                     ) : (
-                                                        <div className="flex items-center justify-center h-full text-[var(--brand-light)]/30 text-xs">No Image</div>
+                                                        <div className="flex items-center justify-center h-full text-[var(--brand-light)]/30 text-xs">{t('sections.seo.noImage')}</div>
                                                     )}
                                                 </div>
                                                 <input 
@@ -2582,61 +2766,61 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                     }} 
                                                 />
                                             </div>
-                                            <p className="text-xs text-[var(--brand-light)]/40 mt-2">Recommended: 1200x630px</p>
+                                            <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.seo.ogImageHint')}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Twitter Card */}
                                 <div className="p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
-                                    <h5 className="text-sm font-medium mb-3 text-[var(--brand-light)]">Twitter Card</h5>
+                                    <h5 className="text-sm font-medium mb-3 text-[var(--brand-light)]">{t('sections.seo.twitterCardTitle')}</h5>
                                     
                                     <div className="space-y-4">
                                         <div>
-                                            <label className={labelClasses}>Card Type</label>
+                                            <label className={labelClasses}>{t('sections.seo.twitterCardType')}</label>
                                             <select 
                                                 className={selectClasses}
                                                 style={selectArrowStyle}
                                                 value={formData.twitter_card_type || 'summary_large_image'}
                                                 onChange={e => handleChange('twitter_card_type', e.target.value)}
                                             >
-                                                <option value="summary">Summary</option>
-                                                <option value="summary_large_image">Summary Large Image</option>
+                                                <option value="summary">{t('sections.seo.twitterCardTypeSummary')}</option>
+                                                <option value="summary_large_image">{t('sections.seo.twitterCardTypeSummaryLarge')}</option>
                                             </select>
                                         </div>
                                         
                                         <div>
-                                            <label className={labelClasses}>Twitter Title</label>
+                                            <label className={labelClasses}>{t('sections.seo.twitterTitle')}</label>
                                             <input 
                                                 type="text" 
                                                 className={inputClasses}
                                                 value={formData.twitter_title || ''} 
                                                 onChange={e => handleChange('twitter_title', e.target.value)}
-                                                placeholder="Title for Twitter sharing"
+                                                placeholder={t('sections.seo.twitterTitlePlaceholder')}
                                                 maxLength={255}
                                             />
                                         </div>
                                         
                                         <div>
-                                            <label className={labelClasses}>Twitter Description</label>
+                                            <label className={labelClasses}>{t('sections.seo.twitterDescription')}</label>
                                             <textarea 
                                                 className={textareaClasses}
                                                 rows={2}
                                                 value={formData.twitter_description || ''} 
                                                 onChange={e => handleChange('twitter_description', e.target.value)}
-                                                placeholder="Description for Twitter sharing"
+                                                placeholder={t('sections.seo.twitterDescriptionPlaceholder')}
                                                 maxLength={500}
                                             />
                                         </div>
                                         
                                         <div>
-                                            <label className={labelClasses}>Twitter Image</label>
+                                            <label className={labelClasses}>{t('sections.seo.twitterImage')}</label>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-32 h-20 bg-[var(--dark-600)] rounded-xl overflow-hidden border-2 border-[var(--dark-500)]">
                                                     {twitterImagePreview ? (
                                                         <img src={twitterImagePreview} className="w-full h-full object-cover" alt="Twitter Preview" />
                                                     ) : (
-                                                        <div className="flex items-center justify-center h-full text-[var(--brand-light)]/30 text-xs">No Image</div>
+                                                        <div className="flex items-center justify-center h-full text-[var(--brand-light)]/30 text-xs">{t('sections.seo.noImage')}</div>
                                                     )}
                                                 </div>
                                                 <input 
@@ -2655,7 +2839,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                     }} 
                                                 />
                                             </div>
-                                            <p className="text-xs text-[var(--brand-light)]/40 mt-2">Recommended: 1200x675px</p>
+                                            <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.seo.twitterImageHint')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -2673,7 +2857,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         onClick={() => router.push(redirectPath)}
                         className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all"
                     >
-                        Cancel
+                        {t('actions.cancel')}
                     </button>
                     <button 
                         type="submit" 
@@ -2683,12 +2867,12 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         {loading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
-                                Saving...
+                                {t('actions.saving')}
                             </>
                         ) : (
                             <>
                                 <Save className="w-4 h-4" />
-                                {initialData ? 'Update Event' : 'Create Event'}
+                                {initialData ? t('actions.updateEvent') : t('actions.createEvent')}
                             </>
                         )}
                     </button>
@@ -2699,16 +2883,6 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
         </div>
         </div>
         
-        {/* Toast Notification */}
-        {toast && (
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={!!toast}
-                onClose={() => setToast(null)}
-                darkMode
-            />
-        )}
         </>
     );
 }

@@ -6,8 +6,7 @@ import { useTranslations } from 'next-intl';
 import api from '../../../../lib/api';
 import { format } from 'date-fns';
 import { X, Clock, Calendar, MapPin, XCircle, Users, AlertCircle } from 'lucide-react';
-import Toast from '../../Toast';
-
+import { useToast } from '../../../../hooks/useToast';
 
 interface Props {
   booking: any;
@@ -21,7 +20,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
   const tCommon = useTranslations('common');
   const [notes, setNotes] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'info' | 'warning', isVisible: false });
+  const { success, error, info, warning } = useToast();
   const [showCancelOptions, setShowCancelOptions] = useState(false);
 
   // Check if this is a recurring booking
@@ -43,12 +42,6 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
         ? t('seriesCancelledSuccess')
         : t('bookingCancelledSuccess');
       
-      setToast({ 
-        message, 
-        type: 'success', 
-        isVisible: true 
-      });
-      
       // Wait a moment to show toast, then update and close
       setTimeout(() => {
         onUpdate();
@@ -56,11 +49,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
       }, 1500);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.response?.data?.detail || t('failedToCancelBooking');
-      setToast({ 
-        message: errorMessage, 
-        type: 'error', 
-        isVisible: true 
-      });
+      error(errorMessage);
       setProcessing(false);
     }
   };
@@ -349,13 +338,6 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
       </div>
       
       {/* Toast Notification */}
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast({ ...toast, isVisible: false })}
-        darkMode={darkMode}
-      />
-    </div>
+      </div>
   );
 }

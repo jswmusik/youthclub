@@ -58,7 +58,7 @@ class CustomFieldDefinition(models.Model):
 
 class CustomFieldValue(models.Model):
     """
-    Stores the actual data entered by a user for a specific field.
+    Stores the actual data entered by a user for a specific field (USER_PROFILE context).
     """
     field = models.ForeignKey(CustomFieldDefinition, on_delete=models.CASCADE, related_name='values')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='custom_field_values')
@@ -73,3 +73,62 @@ class CustomFieldValue(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.field.name}: {self.value}"
+
+
+class EventCustomField(models.Model):
+    """
+    Links a CustomFieldDefinition to an Event.
+    Allows per-event configuration like required override.
+    """
+    event = models.ForeignKey(
+        'events.Event', 
+        on_delete=models.CASCADE, 
+        related_name='event_custom_fields'
+    )
+    field = models.ForeignKey(
+        CustomFieldDefinition, 
+        on_delete=models.CASCADE, 
+        related_name='event_usages'
+    )
+    
+    # Per-event override: can make a field required for this specific event
+    is_required = models.BooleanField(default=False)
+    
+    # Ordering for display
+    order = models.PositiveIntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('event', 'field')
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.event.title} - {self.field.name}"
+
+
+class EventRegistrationCustomFieldValue(models.Model):
+    """
+    Stores the actual data entered by a user for a custom field 
+    when registering for an event.
+    """
+    registration = models.ForeignKey(
+        'events.EventRegistration', 
+        on_delete=models.CASCADE, 
+        related_name='custom_field_values'
+    )
+    field = models.ForeignKey(
+        CustomFieldDefinition, 
+        on_delete=models.CASCADE, 
+        related_name='event_registration_values'
+    )
+    value = models.JSONField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('registration', 'field')
+    
+    def __str__(self):
+        return f"{self.registration} - {self.field.name}: {self.value}"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -16,6 +17,7 @@ interface CustomFieldDetailProps {
 }
 
 export default function CustomFieldDetailView({ fieldId, basePath }: CustomFieldDetailProps) {
+  const t = useTranslations('customFields.detail');
   const searchParams = useSearchParams();
   const [field, setField] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -63,10 +65,10 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
 
   const getFieldTypeLabel = (type: string) => {
     switch (type) {
-      case 'TEXT': return 'Text';
-      case 'SINGLE_SELECT': return 'Single Select';
-      case 'MULTI_SELECT': return 'Multi Select';
-      case 'BOOLEAN': return 'Boolean';
+      case 'TEXT': return t('labels.text');
+      case 'SINGLE_SELECT': return t('labels.singleSelect');
+      case 'MULTI_SELECT': return t('labels.multiSelect');
+      case 'BOOLEAN': return t('labels.boolean');
       default: return type.replace('_', ' ');
     }
   };
@@ -101,7 +103,7 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--brand-light)]/60">Loading field details...</p>
+          <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
         </div>
       </div>
     );
@@ -112,9 +114,9 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
       <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
         <div className="text-center">
           <Tag className="w-12 h-12 text-[var(--brand-red)] mx-auto mb-4" />
-          <p className="text-[var(--brand-light)] font-semibold">Field not found</p>
+          <p className="text-[var(--brand-light)] font-semibold">{t('notFound')}</p>
           <Link href={buildUrlWithParams(basePath)} className="text-[var(--brand-primary)] text-sm hover:underline mt-2 inline-block">
-            Return to list
+            {t('returnToList')}
           </Link>
         </div>
       </div>
@@ -135,12 +137,12 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
             href={buildUrlWithParams(basePath)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to List
+            <ArrowLeft className="h-4 w-4" /> {t('backToList')}
           </Link>
           <Link href={buildUrlWithParams(`${basePath}/edit/${field.id}`)}>
             <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-medium transition-all">
               <Edit className="h-4 w-4" />
-              Edit Field
+              {t('editField')}
             </button>
           </Link>
         </div>
@@ -172,12 +174,12 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                       : 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]'
                   }`}>
                     {field.is_published ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                    {field.is_published ? 'Active' : 'Inactive'}
+                    {field.is_published ? t('labels.active') : t('labels.inactive')}
                   </span>
                   {field.required && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
                       <AlertCircle className="h-3 w-3" />
-                      Required
+                      {t('labels.required')}
                     </span>
                   )}
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${typeConfig.bg} ${typeConfig.text} border ${typeConfig.border}`}>
@@ -198,7 +200,7 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                 <TypeIcon className={`w-5 h-5 ${typeConfig.text}`} />
               </div>
               <div>
-                <p className="text-xs text-[var(--brand-light)]/50 font-medium">Type</p>
+                <p className="text-xs text-[var(--brand-light)]/50 font-medium">{t('labels.type')}</p>
                 <p className={`text-sm font-semibold ${typeConfig.text}`}>{getFieldTypeLabel(field.field_type)}</p>
               </div>
             </div>
@@ -210,9 +212,9 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                 <Eye className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-xs text-[var(--brand-light)]/50 font-medium">Context</p>
+                <p className="text-xs text-[var(--brand-light)]/50 font-medium">{t('labels.context')}</p>
                 <p className="text-sm font-semibold text-purple-400">
-                  {field.context === 'EVENT' ? 'Event' : 'Profile'}
+                  {field.context === 'EVENT' ? t('labels.event') : t('labels.profile')}
                 </p>
               </div>
             </div>
@@ -228,9 +230,9 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                 )}
               </div>
               <div>
-                <p className="text-xs text-[var(--brand-light)]/50 font-medium">Status</p>
+                <p className="text-xs text-[var(--brand-light)]/50 font-medium">{t('labels.status')}</p>
                 <p className={`text-sm font-semibold ${field.is_published ? 'text-green-400' : 'text-[var(--brand-light)]/60'}`}>
-                  {field.is_published ? 'Active' : 'Inactive'}
+                  {field.is_published ? t('labels.active') : t('labels.inactive')}
                 </p>
               </div>
             </div>
@@ -242,9 +244,9 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                 <AlertCircle className={`w-5 h-5 ${field.required ? 'text-red-400' : 'text-[var(--brand-light)]/40'}`} />
               </div>
               <div>
-                <p className="text-xs text-[var(--brand-light)]/50 font-medium">Required</p>
+                <p className="text-xs text-[var(--brand-light)]/50 font-medium">{t('labels.required')}</p>
                 <p className={`text-sm font-semibold ${field.required ? 'text-red-400' : 'text-[var(--brand-light)]/60'}`}>
-                  {field.required ? 'Yes' : 'No'}
+                  {field.required ? t('labels.yes') : t('labels.no')}
                 </p>
               </div>
             </div>
@@ -265,8 +267,8 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                     <Info className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-[var(--brand-light)]">Field Details</h2>
-                    <p className="text-sm text-[var(--brand-light)]/60">Configuration information</p>
+                    <h2 className="font-semibold text-[var(--brand-light)]">{t('fieldDetails')}</h2>
+                    <p className="text-sm text-[var(--brand-light)]/60">{t('configInfo')}</p>
                   </div>
                 </div>
               </div>
@@ -276,7 +278,7 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                     <div className="flex items-center gap-3">
                       <TypeIcon className={`w-5 h-5 ${typeConfig.text}`} />
                       <div>
-                        <p className="text-xs text-[var(--brand-light)]/50 font-medium uppercase">Field Type</p>
+                        <p className="text-xs text-[var(--brand-light)]/50 font-medium uppercase">{t('labels.fieldType')}</p>
                         <p className="text-[var(--brand-light)] font-medium">{getFieldTypeLabel(field.field_type)}</p>
                       </div>
                     </div>
@@ -285,9 +287,9 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                     <div className="flex items-center gap-3">
                       <Eye className="w-5 h-5 text-purple-400" />
                       <div>
-                        <p className="text-xs text-[var(--brand-light)]/50 font-medium uppercase">Context</p>
+                        <p className="text-xs text-[var(--brand-light)]/50 font-medium uppercase">{t('labels.context')}</p>
                         <p className="text-[var(--brand-light)] font-medium">
-                          {field.context === 'EVENT' ? 'Event Booking' : 'User Profile'}
+                          {field.context === 'EVENT' ? t('labels.eventBooking') : t('labels.userProfile')}
                         </p>
                       </div>
                     </div>
@@ -300,9 +302,9 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                         <XCircle className="w-5 h-5 text-[var(--brand-light)]/40" />
                       )}
                       <div>
-                        <p className="text-xs text-[var(--brand-light)]/50 font-medium uppercase">Status</p>
+                        <p className="text-xs text-[var(--brand-light)]/50 font-medium uppercase">{t('labels.status')}</p>
                         <p className={`font-medium ${field.is_published ? 'text-green-400' : 'text-[var(--brand-light)]/60'}`}>
-                          {field.is_published ? 'Active' : 'Inactive'}
+                          {field.is_published ? t('labels.active') : t('labels.inactive')}
                         </p>
                       </div>
                     </div>
@@ -311,9 +313,9 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                     <div className="flex items-center gap-3">
                       <AlertCircle className={`w-5 h-5 ${field.required ? 'text-red-400' : 'text-[var(--brand-light)]/40'}`} />
                       <div>
-                        <p className="text-xs text-[var(--brand-light)]/50 font-medium uppercase">Required</p>
+                        <p className="text-xs text-[var(--brand-light)]/50 font-medium uppercase">{t('labels.required')}</p>
                         <p className={`font-medium ${field.required ? 'text-red-400' : 'text-[var(--brand-light)]/60'}`}>
-                          {field.required ? 'Yes' : 'No'}
+                          {field.required ? t('labels.yes') : t('labels.no')}
                         </p>
                       </div>
                     </div>
@@ -331,8 +333,10 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                       <List className="w-5 h-5 text-green-400" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-[var(--brand-light)]">Available Options</h2>
-                      <p className="text-sm text-[var(--brand-light)]/60">{field.options.length} option{field.options.length !== 1 ? 's' : ''}</p>
+                      <h2 className="font-semibold text-[var(--brand-light)]">{t('availableOptions')}</h2>
+                      <p className="text-sm text-[var(--brand-light)]/60">
+                        {field.options.length === 1 ? t('optionCount', { count: field.options.length }) : t('optionCountPlural', { count: field.options.length })}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -360,8 +364,10 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                       <Building className="w-5 h-5 text-yellow-400" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-[var(--brand-light)]">Limited to Clubs</h2>
-                      <p className="text-sm text-[var(--brand-light)]/60">{clubNames.length} club{clubNames.length !== 1 ? 's' : ''}</p>
+                      <h2 className="font-semibold text-[var(--brand-light)]">{t('limitedToClubs')}</h2>
+                      <p className="text-sm text-[var(--brand-light)]/60">
+                        {clubNames.length === 1 ? t('clubCount', { count: clubNames.length }) : t('clubCountPlural', { count: clubNames.length })}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -393,8 +399,8 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                     <Users className="w-5 h-5 text-orange-400" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-[var(--brand-light)]">Target Roles</h2>
-                    <p className="text-sm text-[var(--brand-light)]/60">Who sees this field</p>
+                    <h2 className="font-semibold text-[var(--brand-light)]">{t('targetRoles')}</h2>
+                    <p className="text-sm text-[var(--brand-light)]/60">{t('whoSeesField')}</p>
                   </div>
                 </div>
               </div>
@@ -410,13 +416,13 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                           <Users className="w-4 h-4 text-orange-400" />
                         </div>
                         <span className="text-[var(--brand-light)] font-medium">
-                          {role === 'YOUTH_MEMBER' ? 'Youth Members' : 'Guardians'}
+                          {role === 'YOUTH_MEMBER' ? t('labels.youthMembers') : t('labels.guardians')}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[var(--brand-light)]/40 italic">No target roles specified.</p>
+                  <p className="text-sm text-[var(--brand-light)]/40 italic">{t('noTargetRoles')}</p>
                 )}
               </div>
             </div>
@@ -430,8 +436,8 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                       <ShieldCheck className="w-5 h-5 text-cyan-400" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-[var(--brand-light)]">Owner</h2>
-                      <p className="text-sm text-[var(--brand-light)]/60">Field creator</p>
+                      <h2 className="font-semibold text-[var(--brand-light)]">{t('owner')}</h2>
+                      <p className="text-sm text-[var(--brand-light)]/60">{t('fieldCreator')}</p>
                     </div>
                   </div>
                 </div>
@@ -443,11 +449,11 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                       </div>
                       <div>
                         <p className="text-[var(--brand-light)] font-semibold">
-                          {field.owner_role === 'SUPER_ADMIN' ? 'Super Admin' : 
-                           field.owner_role === 'MUNICIPALITY_ADMIN' ? 'Municipality Admin' : 
-                           'Club Admin'}
+                          {field.owner_role === 'SUPER_ADMIN' ? t('labels.superAdmin') : 
+                           field.owner_role === 'MUNICIPALITY_ADMIN' ? t('labels.municipalityAdmin') : 
+                           t('labels.clubAdmin')}
                         </p>
-                        <p className="text-xs text-[var(--brand-light)]/50">Administrator</p>
+                        <p className="text-xs text-[var(--brand-light)]/50">{t('administrator')}</p>
                       </div>
                     </div>
                   </div>
@@ -464,7 +470,7 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                       <Calendar className="w-5 h-5 text-[var(--brand-light)]/60" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-[var(--brand-light)]">Created</h2>
+                      <h2 className="font-semibold text-[var(--brand-light)]">{t('created')}</h2>
                       <p className="text-sm text-[var(--brand-light)]/60">
                         {new Date(field.created_at).toLocaleDateString('en-US', {
                           year: 'numeric',

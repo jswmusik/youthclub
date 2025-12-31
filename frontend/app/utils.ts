@@ -1,7 +1,7 @@
 // Get the base URL from the API configuration
 const getBaseUrl = () => {
   // Use the same IP as configured in the API
-  return 'http://192.168.1.208:8000';
+  return 'http://127.0.0.1:8000';
 };
 
 export const getMediaUrl = (path: string | null | undefined) => {

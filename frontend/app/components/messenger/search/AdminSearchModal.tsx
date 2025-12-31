@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { messengerApi } from '../../../../lib/messenger-api';
 import QuickMessageModal from '../QuickMessageModal';
 import { User } from '../../../../types/user';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../../hooks/useToast';
 
 interface AdminSearchModalProps {
     isOpen: boolean;
@@ -15,20 +16,17 @@ interface AdminSearchModalProps {
 }
 
 export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onError, darkMode = false }: AdminSearchModalProps) {
+    const t = useTranslations('messages.adminSearch');
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<User[]>([]);
-    const [searching, setSearching] = useState(false);
+    const [allAdmins, setAllAdmins] = useState<User[]>([]);
+    const [filteredAdmins, setFilteredAdmins] = useState<User[]>([]);
+    const [loading, setLoading] = useState(false);
     const [selectedAdmin, setSelectedAdmin] = useState<User | null>(null);
     const [showMessageModal, setShowMessageModal] = useState(false);
-    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     
     // Toast state
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
-        message: '',
-        type: 'success',
-        isVisible: false,
-    });
+    const { success, error, info, warning } = useToast();
 
     // Focus input when modal opens
     useEffect(() => {
@@ -37,58 +35,63 @@ export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onErr
         }
     }, [isOpen]);
 
+    // Load all admins when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            loadAdmins();
+        }
+    }, [isOpen]);
+
     // Reset when modal closes
     useEffect(() => {
         if (!isOpen) {
             setSearchQuery('');
-            setSearchResults([]);
+            setAllAdmins([]);
+            setFilteredAdmins([]);
             setSelectedAdmin(null);
             setShowMessageModal(false);
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current);
-            }
         }
     }, [isOpen]);
 
-    // Debounced search
+    // Filter admins when search query changes
     useEffect(() => {
-        if (!isOpen || !searchQuery.trim()) {
-            setSearchResults([]);
-            return;
+        if (!searchQuery.trim()) {
+            setFilteredAdmins(allAdmins);
+        } else {
+            const query = searchQuery.toLowerCase();
+            const filtered = allAdmins.filter(admin => 
+                admin.first_name?.toLowerCase().includes(query) ||
+                admin.last_name?.toLowerCase().includes(query) ||
+                admin.email?.toLowerCase().includes(query) ||
+                admin.nickname?.toLowerCase().includes(query) ||
+                (admin.club?.name && admin.club.name.toLowerCase().includes(query)) ||
+                (admin.municipality?.name && admin.municipality.name.toLowerCase().includes(query))
+            );
+            setFilteredAdmins(filtered);
         }
+    }, [searchQuery, allAdmins]);
 
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current);
+    const loadAdmins = async () => {
+        setLoading(true);
+        try {
+            // Call API without search query to get all available admins
+            const res = await messengerApi.searchAdmins('');
+            const admins = res.data.results || [];
+            setAllAdmins(admins);
+            setFilteredAdmins(admins);
+        } catch (err: any) {
+            console.error('Failed to load admins:', err);
+            setAllAdmins([]);
+            setFilteredAdmins([]);
+            const errorMsg = err?.response?.data?.error || t('failedToLoadAdmins');
+            error(errorMsg);
+            if (onError) {
+                onError(errorMsg);
+            }
+        } finally {
+            setLoading(false);
         }
-
-        setSearching(true);
-        searchTimeoutRef.current = setTimeout(async () => {
-            try {
-                const res = await messengerApi.searchAdmins(searchQuery.trim());
-                setSearchResults(res.data.results || []);
-            } catch (err: any) {
-                console.error('Search error:', err);
-                setSearchResults([]);
-                const errorMsg = err?.response?.data?.error || 'Failed to search admins.';
-                setToast({ 
-                    message: errorMsg, 
-                    type: 'error', 
-                    isVisible: true 
-                });
-                if (onError) {
-                    onError(errorMsg);
-                }
-            } finally {
-                setSearching(false);
-            }
-        }, 300);
-
-        return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current);
-            }
-        };
-    }, [searchQuery, isOpen, onError]);
+    };
 
     const handleAdminSelect = (admin: User) => {
         setSelectedAdmin(admin);
@@ -136,8 +139,13 @@ export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onErr
                     <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'}`}>
                         <div className="flex justify-between items-center mb-4">
                             <div>
-                                <h2 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>Contact an Admin</h2>
-                                <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Search for an admin to message</p>
+                                <h2 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{t('title')}</h2>
+                                <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
+                                    {allAdmins.length > 0 
+                                        ? t('adminsAvailable', { count: allAdmins.length })
+                                        : t('searchForAdmin')
+                                    }
+                                </p>
                             </div>
                             <button
                                 onClick={onClose}
@@ -165,45 +173,60 @@ export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onErr
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search admins by name or email..."
+                                placeholder={t('filterPlaceholder')}
                                 className={`block w-full pl-10 pr-3 py-3 rounded-lg ${
                                     darkMode 
                                         ? 'bg-[var(--dark-700)] border border-[var(--dark-400)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)]' 
                                         : 'border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                 }`}
                             />
-                            {searching && (
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <div className={`w-5 h-5 border-2 border-t-transparent rounded-full animate-spin ${
-                                        darkMode ? 'border-[var(--brand-primary)]' : 'border-blue-600'
-                                    }`} />
-                                </div>
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                                        darkMode ? 'text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]' : 'text-gray-400 hover:text-gray-600'
+                                    }`}
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
                             )}
                         </div>
                     </div>
 
-                    {/* Search Results */}
+                    {/* Admin List */}
                     <div className="flex-1 overflow-y-auto p-6">
-                        {!searchQuery.trim() ? (
+                        {loading ? (
+                            <div className={`text-center py-8 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
+                                <div className={`w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-3 ${
+                                    darkMode ? 'border-[var(--brand-primary)]' : 'border-blue-600'
+                                }`} />
+                                <p>{t('loadingAdmins')}</p>
+                            </div>
+                        ) : allAdmins.length === 0 ? (
                             <div className={`text-center py-8 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                                 <svg className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-[var(--dark-500)]' : 'text-gray-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
-                                <p>Start typing to search for admins...</p>
+                                <p className="font-medium">{t('noAdminsAvailable')}</p>
                                 <p className={`text-xs mt-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>
-                                    You can contact admins in your municipality or admins of clubs you follow (even if outside your municipality)
+                                    {t('noAdminsMessage')}
                                 </p>
                             </div>
-                        ) : searchResults.length === 0 && !searching ? (
+                        ) : filteredAdmins.length === 0 ? (
                             <div className={`text-center py-8 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
-                                <p>No admins found matching "{searchQuery}"</p>
-                                <p className={`text-xs mt-2 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>
-                                    You can only contact admins in your municipality or admins of clubs you follow
-                                </p>
+                                <p>{t('noAdminsFound', { query: searchQuery })}</p>
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className={`text-sm mt-2 ${darkMode ? 'text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80' : 'text-blue-600 hover:text-blue-500'}`}
+                                >
+                                    {t('clearSearch')}
+                                </button>
                             </div>
                         ) : (
                             <ul className="space-y-2">
-                                {searchResults.map((admin) => (
+                                {filteredAdmins.map((admin) => (
                                     <li key={admin.id}>
                                         <button
                                             onClick={() => handleAdminSelect(admin)}
@@ -244,18 +267,18 @@ export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onErr
                                                 <div className="flex flex-col gap-1 mt-1">
                                                     {admin.role && (
                                                         <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>
-                                                            {admin.role.replace('_', ' ')}
+                                                            {admin.role === 'CLUB_ADMIN' ? t('clubStaff') : admin.role === 'MUNICIPALITY_ADMIN' ? t('municipalityAdmin') : admin.role.replace('_', ' ')}
                                                         </div>
                                                     )}
                                                     {/* Club Admin Info */}
                                                     {admin.club && (
                                                         <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>
-                                                            <span className="font-medium">Club:</span> {admin.club.name}
+                                                            <span className="font-medium">{t('club')}:</span> {admin.club.name}
                                                             {admin.club.municipality && (
                                                                 <span className={`ml-1 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
                                                                     ({admin.club.municipality}
                                                                     {admin.club.is_followed && !admin.club.is_in_youth_municipality && (
-                                                                        <span className={`ml-1 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'}`}>• Following</span>
+                                                                        <span className={`ml-1 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-600'}`}>• {t('following')}</span>
                                                                     )}
                                                                     )
                                                                 </span>
@@ -265,7 +288,7 @@ export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onErr
                                                     {/* Municipality Admin Info */}
                                                     {admin.municipality && (
                                                         <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>
-                                                            <span className="font-medium">Municipality:</span> {admin.municipality.name}
+                                                            <span className="font-medium">{t('municipality')}:</span> {admin.municipality.name}
                                                         </div>
                                                     )}
                                                 </div>
@@ -301,12 +324,6 @@ export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onErr
             )}
             
             {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.isVisible}
-                onClose={() => setToast({ ...toast, isVisible: false })}
-            />
         </>
     );
 }

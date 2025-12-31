@@ -8,6 +8,7 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('api/cms/', include('cms.urls')),
     path('api/analytics/', include('analytics.urls')),
+    path('api/emails/', include('emails.urls')),
 ]
 
 # This logic is what serves the image files during development

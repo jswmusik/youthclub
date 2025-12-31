@@ -6,8 +6,9 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { Event } from '@/types/event';
 import { format } from 'date-fns';
-import { Calendar, MapPin, Users, ArrowLeft, Clock, CheckCircle } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, CheckCircle } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
+import BackButton from '@/app/components/BackButton';
 
 interface EventRegistration {
     id: number;
@@ -179,13 +180,10 @@ export default function AttendedEventsPage() {
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-6">
-                    <Link
+                    <BackButton
                         href={`/admin/club/youth/${userId}`}
-                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold mb-4 transition-colors"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                        Back to Profile
-                    </Link>
+                        label="Back to Profile"
+                    />
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
                         Events
                     </h1>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Props) {
+  const t = useTranslations('questionnairesAdmin.editor.analyticsPage');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -59,7 +61,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
         </div>
         <div className="absolute -inset-2 bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 rounded-3xl blur-xl animate-pulse"></div>
       </div>
-      <div className="text-[var(--brand-light)]/60 animate-pulse">Loading analytics...</div>
+      <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</div>
     </div>
   );
 
@@ -68,7 +70,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
       <div className="w-16 h-16 rounded-2xl bg-[var(--brand-red)]/20 flex items-center justify-center">
         <Info className="w-8 h-8 text-[var(--brand-red)]" />
       </div>
-      <div className="text-[var(--brand-red)]">Failed to load analytics data.</div>
+      <div className="text-[var(--brand-red)]">{t('loadFailed')}</div>
     </div>
   );
 
@@ -117,7 +119,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="w-5 h-5 text-[var(--brand-primary)]" />
-                      <span className="text-sm font-medium text-[var(--brand-primary)]">Analytics Dashboard</span>
+                      <span className="text-sm font-medium text-[var(--brand-primary)]">{t('title')}</span>
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] mb-2">
                       {data.questionnaire_info?.title || 'Questionnaire Results'}
@@ -134,7 +136,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all"
                 >
                   <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">Export</span>
+                  <span className="hidden sm:inline">{t('export')}</span>
                 </button>
               </div>
 
@@ -143,16 +145,16 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                 <div className="bg-[var(--dark-700)]/50 rounded-xl p-3 border border-[var(--dark-600)]">
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${data.questionnaire_info?.status === 'PUBLISHED' ? 'bg-[var(--brand-green)] animate-pulse' : 'bg-[var(--brand-yellow)]'}`}></div>
-                    <span className="text-xs text-[var(--brand-light)]/50">Status</span>
+                    <span className="text-xs text-[var(--brand-light)]/50">{t('status')}</span>
                   </div>
                   <span className={`text-sm font-semibold ${data.questionnaire_info?.status === 'PUBLISHED' ? 'text-[var(--brand-green)]' : 'text-[var(--brand-yellow)]'}`}>
-                    {data.questionnaire_info?.status || 'N/A'}
+                    {data.questionnaire_info?.status === 'PUBLISHED' ? t('published') : data.questionnaire_info?.status === 'DRAFT' ? t('draft') : t('archived')}
                   </span>
                 </div>
                 <div className="bg-[var(--dark-700)]/50 rounded-xl p-3 border border-[var(--dark-600)]">
                   <div className="flex items-center gap-2 mb-1">
                     <Calendar className="w-3 h-3 text-[var(--brand-light)]/50" />
-                    <span className="text-xs text-[var(--brand-light)]/50">Expires</span>
+                    <span className="text-xs text-[var(--brand-light)]/50">{t('expires')}</span>
                   </div>
                   <span className="text-sm font-semibold text-[var(--brand-light)]">
                     {formatDate(data.questionnaire_info?.expiration_date)}
@@ -161,19 +163,19 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                 <div className="bg-[var(--dark-700)]/50 rounded-xl p-3 border border-[var(--dark-600)]">
                   <div className="flex items-center gap-2 mb-1">
                     <Target className="w-3 h-3 text-[var(--brand-light)]/50" />
-                    <span className="text-xs text-[var(--brand-light)]/50">Target</span>
+                    <span className="text-xs text-[var(--brand-light)]/50">{t('target')}</span>
                   </div>
                   <span className="text-sm font-semibold text-[var(--brand-light)]">
-                    {data.questionnaire_info?.target_audience || 'All'}
+                    {data.questionnaire_info?.target_audience === 'YOUTH' ? t('youth') : data.questionnaire_info?.target_audience === 'GUARDIAN' ? t('guardian') : t('both')}
                   </span>
                 </div>
                 <div className="bg-[var(--dark-700)]/50 rounded-xl p-3 border border-[var(--dark-600)]">
                   <div className="flex items-center gap-2 mb-1">
                     <Eye className="w-3 h-3 text-[var(--brand-light)]/50" />
-                    <span className="text-xs text-[var(--brand-light)]/50">Anonymous</span>
+                    <span className="text-xs text-[var(--brand-light)]/50">{t('anonymous')}</span>
                   </div>
                   <span className="text-sm font-semibold text-[var(--brand-light)]">
-                    {data.questionnaire_info?.is_anonymous ? 'Yes' : 'No'}
+                    {data.questionnaire_info?.is_anonymous ? t('yes') : t('no')}
                   </span>
                 </div>
               </div>
@@ -197,7 +199,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
               </div>
               <div className="space-y-2 mt-auto">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--brand-light)]/50">Response Rate</span>
+                  <span className="text-[var(--brand-light)]/50">{t('stats.responseRate')}</span>
                   <span className="text-[var(--brand-light)]">{data.total_responses}/{data.total_eligible}</span>
                 </div>
                 <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -223,8 +225,8 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                 </div>
               </div>
               <div className="space-y-1 mt-auto">
-                <span className="text-[var(--brand-light)]/50 text-sm">Total Responses</span>
-                <p className="text-xs text-[var(--brand-light)]/40">From {data.total_eligible || 0} eligible members</p>
+                <span className="text-[var(--brand-light)]/50 text-sm">{t('stats.totalResponses')}</span>
+                <p className="text-xs text-[var(--brand-light)]/40">{t('stats.fromEligible', { count: data.total_eligible || 0 })}</p>
               </div>
             </div>
           </div>
@@ -237,19 +239,19 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center flex-shrink-0">
                   <Users className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-[var(--brand-light)]/50 text-sm">Gender Distribution</span>
+                <span className="text-[var(--brand-light)]/50 text-sm">{t('stats.genderDistribution')}</span>
               </div>
               <div className="space-y-2 mt-auto">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--brand-light)]/70">Male</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('stats.male')}</span>
                   <span className="text-sm font-bold text-[var(--brand-light)]">{data.gender_breakdown?.male || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--brand-light)]/70">Female</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('stats.female')}</span>
                   <span className="text-sm font-bold text-[var(--brand-light)]">{data.gender_breakdown?.female || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--brand-light)]/70">Other</span>
+                  <span className="text-sm text-[var(--brand-light)]/70">{t('stats.other')}</span>
                   <span className="text-sm font-bold text-[var(--brand-light)]">{data.gender_breakdown?.other || 0}</span>
                 </div>
               </div>
@@ -265,7 +267,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
           >
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-[var(--brand-light)]/50" />
-              <span className="text-sm font-medium text-[var(--brand-light)]">Filters & Search</span>
+              <span className="text-sm font-medium text-[var(--brand-light)]">{t('filters.title')}</span>
             </div>
             {filtersExpanded ? (
               <ChevronUp className="w-4 h-4 text-[var(--brand-light)]/50" />
@@ -383,7 +385,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                                 />
                               ))}
                             </div>
-                            <span className="text-sm text-[var(--brand-light)]/50 mt-3">Average Rating</span>
+                            <span className="text-sm text-[var(--brand-light)]/50 mt-3">{t('questions.averageRating')}</span>
                           </div>
 
                           {/* Circular Progress */}
@@ -419,7 +421,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                               <span className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
                                 {Math.round(((q.average_rating || 0) / 5) * 100)}%
                               </span>
-                              <span className="text-xs text-[var(--brand-light)]/50">Satisfaction</span>
+                              <span className="text-xs text-[var(--brand-light)]/50">{t('questions.satisfaction')}</span>
                             </div>
                           </div>
                         </div>
@@ -478,7 +480,7 @@ export default function QuestionnaireAnalytics({ questionnaireId, basePath }: Pr
                         <div>
                           <div className="flex items-center gap-2 mb-4">
                             <MessageSquare className="w-5 h-5 text-[var(--brand-blue)]" />
-                            <span className="text-sm font-semibold text-[var(--brand-light)]">Latest Responses</span>
+                            <span className="text-sm font-semibold text-[var(--brand-light)]">{t('questions.latestResponses')}</span>
                             {q.latest_text_answers && q.latest_text_answers.length > 0 && (
                               <span className="ml-auto text-xs px-2 py-1 rounded-lg bg-[var(--brand-blue)]/20 text-[var(--brand-blue)]">
                                 {q.latest_text_answers.length} answers

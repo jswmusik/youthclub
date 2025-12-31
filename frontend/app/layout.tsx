@@ -48,7 +48,7 @@ export default function RootLayout({
               <RootLayoutClient>
                 <ToastProvider>
                   <SystemAlert />
-                  <div className="min-w-0 max-w-full overflow-x-hidden">
+                  <div className="min-w-0 max-w-full overflow-x-hidden" style={{ paddingTop: 'var(--system-alert-height, 0px)' }}>
                     {children}
                   </div>
                 </ToastProvider>

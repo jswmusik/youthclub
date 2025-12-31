@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { cmsApi } from '@/lib/cms-api';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { CookieConsent } from '@/types/cms';
 import { X, Cookie, Settings, Check, Shield, BarChart3 } from 'lucide-react';
 
@@ -148,7 +149,7 @@ export default function CookieConsentBanner() {
               {policy.policy_text && (
                 <div 
                   className="cms-content text-sm text-[var(--brand-light)]/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: policy.policy_text }} 
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(policy.policy_text) }} 
                 />
               )}
               

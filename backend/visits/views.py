@@ -61,6 +61,51 @@ class KioskTokenView(views.APIView):
         token = CheckInService.generate_kiosk_token(club_id_int)
         return Response({'token': token})
 
+
+class KioskPinView(views.APIView):
+    """
+    Endpoint for the Club Admin Kiosk to get the current PIN code.
+    PIN changes every 60 minutes and can be used by youth members
+    who don't have access to a camera.
+    """
+    
+    def get_permissions(self):
+        permission_classes = [permissions.IsAuthenticated]
+        permission_classes.append(HasLicenseFeature('visits')())
+        return [permission() for permission in permission_classes]
+
+    def get(self, request):
+        user = request.user
+        
+        # Check if user is an admin
+        if user.role not in [User.Role.CLUB_ADMIN, User.Role.SUPER_ADMIN, User.Role.MUNICIPALITY_ADMIN]:
+            return Response({"error": "Only club admins can access the kiosk"}, status=status.HTTP_403_FORBIDDEN)
+        
+        club_id = request.query_params.get('club_id')
+        if not club_id:
+            return Response({"error": "Club ID required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            club_id_int = int(club_id)
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid club ID"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify club exists
+        club = get_object_or_404(Club, id=club_id_int)
+        
+        # For CLUB_ADMIN, verify they own this club
+        if user.role == User.Role.CLUB_ADMIN:
+            if not user.assigned_club or user.assigned_club.id != club_id_int:
+                return Response({"error": "You can only get PIN for your assigned club"}, status=status.HTTP_403_FORBIDDEN)
+        
+        # For MUNICIPALITY_ADMIN, verify the club is in their municipality
+        elif user.role == User.Role.MUNICIPALITY_ADMIN:
+            if not user.assigned_municipality or club.municipality != user.assigned_municipality:
+                return Response({"error": "You can only get PIN for clubs in your municipality"}, status=status.HTTP_403_FORBIDDEN)
+        
+        pin_data = CheckInService.generate_pin_code(club_id_int)
+        return Response(pin_data)
+
 class VisitViewSet(viewsets.ModelViewSet):
     queryset = CheckInSession.objects.all()
     serializer_class = CheckInSessionSerializer
@@ -203,6 +248,78 @@ class VisitViewSet(viewsets.ModelViewSet):
             user=user,
             club=club,
             method='QR_KIOSK'
+        )
+
+        return Response(CheckInSessionSerializer(session, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'], url_path='pin-checkin')
+    def pin_checkin(self, request):
+        """
+        User checks in using a 6-digit PIN code displayed on the kiosk.
+        This is an alternative for users who don't have camera access.
+        """
+        pin = request.data.get('pin')
+        club_id = request.data.get('club_id')
+        
+        if not pin:
+            return Response({"error": "PIN code is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not club_id:
+            return Response({"error": "Club ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate PIN format (6 digits)
+        if not isinstance(pin, str) or len(pin) != 6 or not pin.isdigit():
+            return Response({"error": "PIN must be a 6-digit code"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            club_id_int = int(club_id)
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid club ID"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate PIN
+        try:
+            validated_club_id = CheckInService.validate_pin_code(pin, club_id_int)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        club = get_object_or_404(Club, id=validated_club_id)
+        user = request.user
+
+        # 1. Check Age/Restrictions (same as QR scan)
+        allowed, reason = CheckInService.can_user_enter(user, club)
+        if not allowed:
+            response_data = {"error": reason}
+            
+            if reason == "CLOSED":
+                next_opening = CheckInService.get_next_opening(club)
+                response_data["error"] = "Club is currently closed"
+                response_data["code"] = "CLUB_CLOSED"
+                response_data["next_opening"] = next_opening
+                
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"PIN check-in denied for user {user.id} at club {club.id}: {response_data}")
+            
+            return Response(response_data, status=status.HTTP_403_FORBIDDEN)
+
+        # 2. Check for ANY active session (Global Check)
+        active_session = CheckInSession.objects.filter(
+            user=user, 
+            check_out_at__isnull=True
+        ).first()
+        
+        if active_session:
+            if active_session.club.id == club.id:
+                return Response({"message": "Already checked in!", "id": active_session.id, "club_name": club.name})
+            
+            # Auto-checkout from other club
+            active_session.check_out_at = timezone.now()
+            active_session.save()
+
+        # 3. Create Session with PIN method
+        session = CheckInSession.objects.create(
+            user=user,
+            club=club,
+            method='PIN_CODE'
         )
 
         return Response(CheckInSessionSerializer(session, context={'request': request}).data, status=status.HTTP_201_CREATED)
